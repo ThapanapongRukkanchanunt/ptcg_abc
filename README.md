@@ -6,6 +6,8 @@ Pokemon TCG AI Battle Challenge workspace.
 
 Build a reproducible deck corpus from Limitless TCG before starting agent work.
 
+See [docs/implementation-plan.md](docs/implementation-plan.md) for the detailed implementation plan.
+
 The first data milestone will:
 
 - Collect the current Standard metagame from Limitless TCG.
