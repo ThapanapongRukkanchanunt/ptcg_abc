@@ -6,6 +6,8 @@ Pokemon TCG AI Battle Challenge workspace.
 
 Kaggle legality setup, Limitless format selection, and the first `TEF-POR` deck corpus are complete.
 
+Resume from [docs/project-state.md](docs/project-state.md) for the full phase log and next steps.
+
 See [docs/implementation-plan.md](docs/implementation-plan.md) for the detailed implementation plan.
 The current workflow starts with Kaggle files so the legal card list is known before
 Limitless decks are collected. See [docs/kaggle-first-workflow.md](docs/kaggle-first-workflow.md).
