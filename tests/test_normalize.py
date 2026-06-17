@@ -33,6 +33,10 @@ class NormalizeTests(unittest.TestCase):
             normalize_card_name("Telepathic Psychic Energy"),
             normalize_card_name("Telepath Psychic Energy"),
         )
+        self.assertEqual(
+            normalize_card_name("Rocky Fighting Energy"),
+            normalize_card_name("Rock Fighting Energy"),
+        )
 
     def test_deck_fingerprint_is_order_independent(self):
         first = [CardLine(count=4, name="Dreepy"), CardLine(count=2, name="Dragapult ex")]

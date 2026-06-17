@@ -21,6 +21,7 @@ _BASIC_ENERGY_ALIASES = {
 }
 _EXACT_ALIASES = {
     "growing grass energy": "grow grass energy",
+    "rocky fighting energy": "rock fighting energy",
     "telepathic psychic energy": "telepath psychic energy",
 }
 
