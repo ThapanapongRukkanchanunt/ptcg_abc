@@ -61,8 +61,8 @@ python -m ptcg_abc missing-limitless
 
 This writes `reports/missing_limitless_cards.md`, with an empty column for the alternative card you want to provide.
 
-By default, Limitless pages are filtered to `TEF-CRI`, matching the current competition-relevant format shown on Limitless. Override only when intentionally checking another format:
+By default, Limitless pages are filtered to `TEF-POR`, matching the selected competition workflow format. Override only when intentionally checking another format:
 
 ```powershell
-python -m ptcg_abc missing-limitless --limitless-format TEF-CRI
+python -m ptcg_abc missing-limitless --limitless-format TEF-POR
 ```

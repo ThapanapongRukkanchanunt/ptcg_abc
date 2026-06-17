@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build a reproducible deck corpus for the Pokemon TCG AI Battle Challenge. Kaggle competition files define the legal card list first; Limitless TCG is then used as the source of current `TEF-CRI` metagame decks to compare against Kaggle legality.
+Build a reproducible deck corpus for the Pokemon TCG AI Battle Challenge. Kaggle competition files define the legal card list first; Limitless TCG is then used as the source of current `TEF-POR` metagame decks to compare against Kaggle legality.
 
 This milestone stops at data collection and validation. Rule-based play, reinforcement learning, and deck-building experiments come after the corpus is reliable.
 
@@ -18,7 +18,7 @@ This milestone stops at data collection and validation. Rule-based play, reinfor
 - Every accepted deck has source metadata: archetype, variant, player, event, placement, source URL, and fetch timestamp.
 - Every skipped or unavailable deck is recorded with a reason.
 - Limitless card names missing from Kaggle legality are reported for manual alternatives.
-- Limitless tournament-history pages are filtered with `format=TEF-CRI`; older formats must not leak into the corpus.
+- Limitless tournament-history pages are filtered with `format=TEF-POR`; older formats must not leak into the corpus.
 - Outputs are deterministic from cached HTML.
 
 ## Proposed Project Shape
@@ -66,10 +66,10 @@ Use typed Python records for the core entities:
 
 1. Download Kaggle competition data with credentials, or extract an already-downloaded archive.
 2. Discover the English legal card list from `EN_Card_Data.csv`, with an override flag if Kaggle file names change.
-3. Fetch the current Limitless metagame page from `https://limitlesstcg.com/decks?format=TEF-CRI`.
+3. Fetch the current Limitless metagame page from `https://limitlesstcg.com/decks?format=TEF-POR`.
 4. Parse the top 10 archetypes by points from the default metagame table.
 5. For each archetype, fetch its overview page and parse variant options.
-6. For each variant, fetch the tournament history page with `format=TEF-CRI` plus the variant filter when available.
+6. For each variant, fetch the tournament history page with `format=TEF-POR` plus the variant filter when available.
 7. Parse candidate tournament results in placement order.
 8. Fetch candidate decklist pages until 2 unique valid 60-card lists are accepted or the variant is exhausted.
 9. Normalize and fingerprint each deck by sorted `(card_name, count)` pairs.
@@ -94,7 +94,7 @@ Expose commands through `python -m ptcg_abc`:
 ```powershell
 python -m ptcg_abc kaggle-setup --archive pokemon-tcg-ai-battle.zip
 python -m ptcg_abc discover-legal-cards --legal-source data\kaggle\input\EN_Card_Data.csv
-python -m ptcg_abc missing-limitless --snapshot-date 2026-06-17 --limitless-format TEF-CRI
+python -m ptcg_abc missing-limitless --snapshot-date 2026-06-17 --limitless-format TEF-POR
 ```
 
 Defaults:
@@ -152,6 +152,6 @@ This milestone is done when:
 - The manifest shows the top 10 archetypes were attempted.
 - The corpus has no duplicate fingerprints.
 - Every accepted deck totals exactly 60 cards.
-- The missing-card report is generated for manual alternatives.
+- The missing-card report is generated and has no missing names for the selected `TEF-POR` format.
 - The README explains how to reproduce the snapshot.
 - Tests pass without requiring network access.
