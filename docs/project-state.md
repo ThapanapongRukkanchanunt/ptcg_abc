@@ -159,6 +159,7 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-1-conclusion.md`: legality and format-selection conclusion.
 - `docs/phase-2-conclusion.md`: deck-corpus export conclusion.
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
+- `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
@@ -177,6 +178,7 @@ Completed first slice:
 
 Next useful slice:
 
+- Use `docs/rule-inventory.md` as the source list of current and candidate rules.
 - Add card/attack metadata helpers.
 - Use attack damage and energy requirements when choosing attacks.
 - Improve setup, benching, attachment, and evolution targets.
