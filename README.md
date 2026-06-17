@@ -7,6 +7,8 @@ Pokemon TCG AI Battle Challenge workspace.
 Build a reproducible deck corpus from Limitless TCG before starting agent work.
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) for the detailed implementation plan.
+The current workflow starts with Kaggle files so the legal card list is known before
+Limitless decks are collected. See [docs/kaggle-first-workflow.md](docs/kaggle-first-workflow.md).
 
 The first data milestone will:
 

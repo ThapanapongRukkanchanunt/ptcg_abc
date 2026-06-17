@@ -2,19 +2,22 @@
 
 ## Objective
 
-Build a reproducible deck corpus for the Pokemon TCG AI Battle Challenge, using Limitless TCG as the source of current Standard metagame decks.
+Build a reproducible deck corpus for the Pokemon TCG AI Battle Challenge. Kaggle competition files define the legal card list first; Limitless TCG is then used as the source of current Standard metagame decks to compare against Kaggle legality.
 
 This milestone stops at data collection and validation. Rule-based play, reinforcement learning, and deck-building experiments come after the corpus is reliable.
 
 ## Success Criteria
 
 - The project can fetch the current Standard metagame from Limitless TCG.
+- Kaggle competition files can be downloaded or extracted from a local archive.
+- The English Kaggle card data can be converted into a legal card name list.
 - The top 10 archetypes are selected by points.
 - Every available variant for those archetypes is attempted.
 - Up to 2 unique 60-card lists are saved per variant.
 - Duplicate decklists are removed by exact 60-card fingerprint.
 - Every accepted deck has source metadata: archetype, variant, player, event, placement, source URL, and fetch timestamp.
 - Every skipped or unavailable deck is recorded with a reason.
+- Limitless card names missing from Kaggle legality are reported for manual alternatives.
 - Outputs are deterministic from cached HTML.
 
 ## Proposed Project Shape
@@ -30,21 +33,15 @@ ptcg_abc/
       __init__.py
       cli.py
       config.py
+      http_client.py
       models.py
-      fingerprints.py
-      limitless/
-        __init__.py
-        client.py
-        parser.py
-        collector.py
-      export.py
-      validate.py
+      normalize.py
+      kaggle_api.py
+      legal_cards.py
+      limitless.py
   tests/
-    fixtures/
-      limitless/
-    test_fingerprints.py
-    test_limitless_parser.py
-    test_validate.py
+    test_legal_cards.py
+    test_normalize.py
   data/
     raw/
     processed/
@@ -60,19 +57,22 @@ Use typed Python records for the core entities:
 - `Variant`: archetype id, variant name, variant filter id or URL, source URL.
 - `TournamentResult`: event name, event date, event type when available, placement, player, decklist URL, variant name.
 - `CardLine`: section, count, card name.
+- `LegalCardCandidate`: source file, detected card-name column, optional legality column, score, sample names.
 - `Decklist`: archetype, variant, result metadata, cards, total count, fingerprint, source URL.
 - `CorpusManifest`: fetch timestamp, Limitless filters, accepted counts, skipped rows, warnings, output file paths.
 
 ## Collection Workflow
 
-1. Fetch the current Standard metagame page from `https://limitlesstcg.com/decks`.
-2. Parse the top 10 archetypes by points from the default metagame table.
-3. For each archetype, fetch its overview page and parse variant options.
-4. For each variant, fetch the tournament history page with the variant filter when available.
-5. Parse candidate tournament results in placement order.
-6. Fetch candidate decklist pages until 2 unique valid 60-card lists are accepted or the variant is exhausted.
-7. Normalize and fingerprint each deck by sorted `(card_name, count)` pairs.
-8. Write raw HTML cache, processed corpus files, and manifest.
+1. Download Kaggle competition data with credentials, or extract an already-downloaded archive.
+2. Discover the English legal card list from `EN_Card_Data.csv`, with an override flag if Kaggle file names change.
+3. Fetch the current Standard metagame page from `https://limitlesstcg.com/decks`.
+4. Parse the top 10 archetypes by points from the default metagame table.
+5. For each archetype, fetch its overview page and parse variant options.
+6. For each variant, fetch the tournament history page with the variant filter when available.
+7. Parse candidate tournament results in placement order.
+8. Fetch candidate decklist pages until 2 unique valid 60-card lists are accepted or the variant is exhausted.
+9. Normalize and fingerprint each deck by sorted `(card_name, count)` pairs.
+10. Compare unique Limitless card names against the Kaggle legal list and write the missing-card report.
 
 ## Outputs
 
@@ -82,6 +82,7 @@ Write generated outputs under `data/processed/<snapshot-date>/`:
 - `deck_corpus.csv`: compact table for human review.
 - `decks/*.txt`: plain decklists grouped by archetype and variant.
 - `manifest.json`: run metadata, selected archetypes, counts, skips, and warnings.
+- `reports/missing_limitless_cards.md`: card names from Limitless decks that are absent from Kaggle legality.
 
 Raw pages should be cached under `data/raw/<snapshot-date>/` using a URL hash plus readable slug.
 
@@ -90,25 +91,25 @@ Raw pages should be cached under `data/raw/<snapshot-date>/` using a URL hash pl
 Expose commands through `python -m ptcg_abc`:
 
 ```powershell
-python -m ptcg_abc fetch --snapshot-date 2026-06-17
-python -m ptcg_abc validate --snapshot-date 2026-06-17
-python -m ptcg_abc export --snapshot-date 2026-06-17
+python -m ptcg_abc kaggle-setup --archive pokemon-tcg-ai-battle.zip
+python -m ptcg_abc discover-legal-cards --legal-source data\kaggle\input\EN_Card_Data.csv
+python -m ptcg_abc missing-limitless --snapshot-date 2026-06-17
 ```
 
 Defaults:
 
-- `fetch` uses today's date when `--snapshot-date` is omitted.
-- `fetch` uses cached HTML unless `--refresh` is passed.
-- `validate` exits non-zero if any accepted deck is not exactly 60 cards.
-- `export` reads processed JSONL and rewrites CSV/TXT outputs deterministically.
+- `kaggle-setup` uses Kaggle API credentials unless `--archive` is provided.
+- `discover-legal-cards` writes `data/kaggle/legal_cards.txt`.
+- `missing-limitless` uses today's date when `--snapshot-date` is omitted.
+- `missing-limitless` uses cached HTML unless `--refresh` is passed.
 
 ## Dependencies
 
 Start small:
 
 - Standard library for CLI, JSON, CSV, paths, hashing, and dates.
-- `requests` for HTTP.
-- `beautifulsoup4` or `lxml` for HTML parsing.
+- Standard library HTTP for Kaggle API and simple downloads.
+- `lxml` for HTML parsing.
 - `pydantic` for validation models if useful.
 - `pytest` for tests.
 - `ruff` for linting and formatting once the codebase is non-trivial.
@@ -126,29 +127,30 @@ Use fixture-first tests so normal checks do not depend on network access.
 ## Implementation Order
 
 1. Add `pyproject.toml`, package skeleton, and basic CLI.
-2. Add models and fingerprinting.
-3. Add raw HTML cache and Limitless HTTP client.
-4. Add parsers using saved fixtures.
-5. Add collector orchestration and manifest writing.
-6. Add validators and deterministic exports.
+2. Add Kaggle archive/API setup and legal-card discovery.
+3. Add models and fingerprinting.
+4. Add raw HTML cache and Limitless HTTP client.
+5. Add parsers using saved fixtures.
+6. Add collector orchestration, manifest writing, and missing-card report output.
 7. Add README usage instructions.
-8. Run tests, then do one live fetch smoke test.
+8. Run tests, then do one live Kaggle/Limitless smoke test.
 
 ## Risks and Mitigations
 
 - Limitless HTML may change: keep parser tests around saved fixtures and record skip reasons clearly.
 - Variant filter IDs may not be stable: discover variant URLs from the page instead of hard-coding IDs.
 - Some variants may have fewer than 2 public unique lists: record shortfalls in the manifest.
-- Kaggle legality may differ from current Standard: defer legality filtering until competition files are available locally.
+- Kaggle names may differ from Limitless display names: report mismatches and maintain a manual alternative map later.
 - Live scraping can be brittle: cache all raw pages and make exports reproducible from cache.
 
 ## Done Definition
 
 This milestone is done when:
 
-- `fetch`, `validate`, and `export` run from a clean checkout.
+- `kaggle-setup` and `missing-limitless` run from a clean checkout once Kaggle data is available.
 - The manifest shows the top 10 archetypes were attempted.
 - The corpus has no duplicate fingerprints.
 - Every accepted deck totals exactly 60 cards.
+- The missing-card report is generated for manual alternatives.
 - The README explains how to reproduce the snapshot.
 - Tests pass without requiring network access.

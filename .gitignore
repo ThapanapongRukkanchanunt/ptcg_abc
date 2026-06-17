@@ -14,6 +14,7 @@ venv/
 # Secrets and local credentials
 .env
 kaggle.json
+.kaggle/
 
 # Build and package outputs
 build/
@@ -21,5 +22,7 @@ dist/
 *.egg-info/
 
 # Generated data
+data/kaggle/
 data/raw/
 data/processed/
+/pokemon-tcg-ai-battle.zip
