@@ -87,6 +87,8 @@ Write generated outputs under `data/processed/<snapshot-date>/`:
 
 Raw pages should be cached under `data/raw/<snapshot-date>/` using a URL hash plus readable slug.
 
+Generated corpus data is ignored by git. Recreate it with `python -m ptcg_abc collect-corpus`.
+
 ## CLI Commands
 
 Expose commands through `python -m ptcg_abc`:
@@ -95,6 +97,7 @@ Expose commands through `python -m ptcg_abc`:
 python -m ptcg_abc kaggle-setup --archive pokemon-tcg-ai-battle.zip
 python -m ptcg_abc discover-legal-cards --legal-source data\kaggle\input\EN_Card_Data.csv
 python -m ptcg_abc missing-limitless --snapshot-date 2026-06-17 --limitless-format TEF-POR
+python -m ptcg_abc collect-corpus --snapshot-date 2026-06-17 --limitless-format TEF-POR
 ```
 
 Defaults:
@@ -103,6 +106,7 @@ Defaults:
 - `discover-legal-cards` writes `data/kaggle/legal_cards.txt`.
 - `missing-limitless` uses today's date when `--snapshot-date` is omitted.
 - `missing-limitless` uses cached HTML unless `--refresh` is passed.
+- `collect-corpus` writes JSONL, CSV, TXT decklists, and a manifest.
 
 ## Dependencies
 
@@ -155,3 +159,5 @@ This milestone is done when:
 - The missing-card report is generated and has no missing names for the selected `TEF-POR` format.
 - The README explains how to reproduce the snapshot.
 - Tests pass without requiring network access.
+
+Status: complete for the 2026-06-17 local snapshot. See `docs/phase-2-conclusion.md`.

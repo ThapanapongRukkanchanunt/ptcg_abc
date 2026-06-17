@@ -4,7 +4,7 @@ Pokemon TCG AI Battle Challenge workspace.
 
 ## Phase Status
 
-Kaggle legality setup and Limitless format selection are complete.
+Kaggle legality setup, Limitless format selection, and the first `TEF-POR` deck corpus are complete.
 
 See [docs/implementation-plan.md](docs/implementation-plan.md) for the detailed implementation plan.
 The current workflow starts with Kaggle files so the legal card list is known before
@@ -14,13 +14,17 @@ The selected Limitless format is `TEF-POR`. The latest missing-card report found
 Limitless card names missing from the Kaggle legal list. See
 [docs/phase-1-conclusion.md](docs/phase-1-conclusion.md).
 
-The next data milestone will:
+The corpus command writes generated outputs under `data/processed/<snapshot-date>/`:
 
-- Collect the `TEF-POR` metagame from Limitless TCG.
-- Select the top 10 archetypes by points.
-- Enumerate variants for each archetype.
-- Save the top 2 unique 60-card decklists per variant when available.
-- Preserve source URLs and snapshot metadata for reproducibility.
+```powershell
+python -m ptcg_abc collect-corpus
+```
+
+The next milestone will:
+
+- Use the deck corpus to start a generic rule-based agent.
+- Keep rule logic deck-agnostic at first.
+- Add evaluation harnesses before moving into reinforcement learning.
 
 ## Roadmap
 

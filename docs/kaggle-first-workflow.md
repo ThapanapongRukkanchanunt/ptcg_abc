@@ -66,3 +66,16 @@ By default, Limitless pages are filtered to `TEF-POR`, matching the selected com
 ```powershell
 python -m ptcg_abc missing-limitless --limitless-format TEF-POR
 ```
+
+## 5. Collect the deck corpus
+
+```powershell
+python -m ptcg_abc collect-corpus
+```
+
+This writes generated corpus files under `data/processed/<snapshot-date>/`:
+
+- `deck_corpus.jsonl`
+- `deck_corpus.csv`
+- `decks/*.txt`
+- `manifest.json`

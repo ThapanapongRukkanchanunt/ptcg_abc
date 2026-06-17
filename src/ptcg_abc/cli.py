@@ -103,12 +103,42 @@ def command_missing_limitless(args: argparse.Namespace) -> int:
         delay_seconds=args.delay_seconds,
         limitless_format=args.limitless_format,
     )
-    write_deck_collection(collection, snapshot_date=args.snapshot_date)
+    write_deck_collection(
+        collection,
+        snapshot_date=args.snapshot_date,
+        limitless_format=args.limitless_format,
+        top_archetypes=args.top_archetypes,
+        lists_per_variant=args.lists_per_variant,
+        candidate_limit=args.candidate_limit,
+    )
     report_path = write_missing_report(
         collection, legal_cards, args.output, limitless_format=args.limitless_format
     )
     print(deck_collection_summary(collection))
     print(f"Wrote missing-card report to {report_path}.")
+    return 0
+
+
+def command_collect_corpus(args: argparse.Namespace) -> int:
+    collection = collect_limitless_decks(
+        snapshot_date=args.snapshot_date,
+        top_archetypes=args.top_archetypes,
+        lists_per_variant=args.lists_per_variant,
+        refresh=args.refresh,
+        candidate_limit=args.candidate_limit,
+        delay_seconds=args.delay_seconds,
+        limitless_format=args.limitless_format,
+    )
+    outputs = write_deck_collection(
+        collection,
+        snapshot_date=args.snapshot_date,
+        limitless_format=args.limitless_format,
+        top_archetypes=args.top_archetypes,
+        lists_per_variant=args.lists_per_variant,
+        candidate_limit=args.candidate_limit,
+    )
+    print(deck_collection_summary(collection))
+    print(f"Wrote corpus outputs to {outputs['output_dir']}.")
     return 0
 
 
@@ -163,6 +193,13 @@ def build_parser() -> argparse.ArgumentParser:
     missing.add_argument("--output", type=_path, default=REPORTS_DIR / "missing_limitless_cards.md")
     _add_common_limitless_args(missing)
     missing.set_defaults(func=command_missing_limitless)
+
+    collect = subparsers.add_parser(
+        "collect-corpus",
+        help="Collect Limitless decks and write JSONL, CSV, TXT, and manifest outputs.",
+    )
+    _add_common_limitless_args(collect)
+    collect.set_defaults(func=command_collect_corpus)
 
     return parser
 

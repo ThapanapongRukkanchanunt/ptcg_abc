@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import csv
 import json
 import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
@@ -315,23 +316,170 @@ def collect_limitless_decks(
     return result
 
 
-def write_deck_collection(collection: CollectionResult, *, snapshot_date: str) -> Path:
-    output_dir = PROCESSED_DIR / snapshot_date
+def _section_counts(deck: Decklist) -> dict[str, int]:
+    counts: dict[str, int] = defaultdict(int)
+    for card in deck.cards:
+        counts[card.section or "Cards"] += card.count
+    return dict(counts)
+
+
+def _decklist_id(deck: Decklist) -> str:
+    return deck.source_url.rstrip("/").rsplit("/", 1)[-1]
+
+
+def _deck_export_stem(index: int, deck: Decklist) -> str:
+    label = "-".join(
+        [
+            f"{index:03d}",
+            slugify(deck.archetype.name, max_length=36),
+            slugify(deck.variant.name, max_length=32),
+            slugify(deck.result.player, max_length=28),
+            slugify(deck.result.placement, max_length=12),
+            _decklist_id(deck),
+        ]
+    )
+    return label
+
+
+def _write_deck_text(deck: Decklist, path: Path) -> None:
+    section_counts = _section_counts(deck)
+    lines = [
+        f"# {deck.title}",
+        f"# Archetype: {deck.archetype.name}",
+        f"# Variant: {deck.variant.name}",
+        f"# Player: {deck.result.player}",
+        f"# Placement: {deck.result.placement}",
+        f"# Event: {deck.result.event_name}",
+        f"# Source: {deck.source_url}",
+        "",
+    ]
+    current_section = None
+    for card in deck.cards:
+        section = card.section or "Cards"
+        if section != current_section:
+            if current_section is not None:
+                lines.append("")
+            lines.append(f"{section} ({section_counts[section]})")
+            current_section = section
+        lines.append(f"{card.count} {card.name}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _write_review_csv(decks: list[Decklist], path: Path) -> None:
+    fieldnames = [
+        "deck_index",
+        "archetype_rank",
+        "archetype",
+        "variant",
+        "player",
+        "placement",
+        "placement_rank",
+        "event_date",
+        "event_name",
+        "total_cards",
+        "pokemon_count",
+        "trainer_count",
+        "energy_count",
+        "fingerprint",
+        "source_url",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for index, deck in enumerate(decks, start=1):
+            section_counts = _section_counts(deck)
+            writer.writerow(
+                {
+                    "deck_index": index,
+                    "archetype_rank": deck.archetype.rank,
+                    "archetype": deck.archetype.name,
+                    "variant": deck.variant.name,
+                    "player": deck.result.player,
+                    "placement": deck.result.placement,
+                    "placement_rank": deck.result.placement_rank,
+                    "event_date": deck.result.event_date,
+                    "event_name": deck.result.event_name,
+                    "total_cards": deck.total_cards,
+                    "pokemon_count": section_counts.get("Pokemon", 0)
+                    or section_counts.get("Pokémon", 0),
+                    "trainer_count": section_counts.get("Trainer", 0)
+                    or section_counts.get("Trainers", 0),
+                    "energy_count": section_counts.get("Energy", 0),
+                    "fingerprint": deck.fingerprint,
+                    "source_url": deck.source_url,
+                }
+            )
+
+
+def write_deck_collection(
+    collection: CollectionResult,
+    *,
+    snapshot_date: str,
+    limitless_format: str = LIMITLESS_FORMAT,
+    top_archetypes: int = 10,
+    lists_per_variant: int = 2,
+    candidate_limit: int = 250,
+    output_root: Path = PROCESSED_DIR,
+) -> dict[str, Path]:
+    output_dir = output_root / snapshot_date
     output_dir.mkdir(parents=True, exist_ok=True)
-    jsonl_path = output_dir / "limitless_decks.jsonl"
+    decks_dir = output_dir / "decks"
+    decks_dir.mkdir(parents=True, exist_ok=True)
+
+    jsonl_path = output_dir / "deck_corpus.jsonl"
     with jsonl_path.open("w", encoding="utf-8") as handle:
         for deck in collection.decks:
             handle.write(json.dumps(deck.to_dict(), ensure_ascii=False) + "\n")
+
+    csv_path = output_dir / "deck_corpus.csv"
+    _write_review_csv(collection.decks, csv_path)
+
+    text_paths = []
+    for index, deck in enumerate(collection.decks, start=1):
+        text_path = decks_dir / f"{_deck_export_stem(index, deck)}.txt"
+        _write_deck_text(deck, text_path)
+        text_paths.append(text_path)
+
+    archetype_counts = Counter(deck.archetype.name for deck in collection.decks)
+    variant_counts = Counter((deck.archetype.name, deck.variant.name) for deck in collection.decks)
     manifest = {
         "snapshot_date": snapshot_date,
+        "limitless_format": limitless_format,
+        "top_archetypes": top_archetypes,
+        "lists_per_variant": lists_per_variant,
+        "candidate_limit": candidate_limit,
         "deck_count": len(collection.decks),
+        "archetype_count": len(archetype_counts),
+        "variant_count": len(variant_counts),
+        "unique_fingerprint_count": len({deck.fingerprint for deck in collection.decks}),
         "skip_count": len(collection.skips),
+        "accepted_by_archetype": [
+            {"archetype": archetype, "deck_count": count}
+            for archetype, count in sorted(archetype_counts.items())
+        ],
+        "accepted_by_variant": [
+            {"archetype": archetype, "variant": variant, "deck_count": count}
+            for (archetype, variant), count in sorted(variant_counts.items())
+        ],
+        "outputs": {
+            "jsonl": str(jsonl_path.as_posix()),
+            "csv": str(csv_path.as_posix()),
+            "decks_dir": str(decks_dir.as_posix()),
+            "deck_text_files": [str(path.as_posix()) for path in text_paths],
+        },
         "skips": collection.skips,
     }
-    (output_dir / "manifest.json").write_text(
+    manifest_path = output_dir / "manifest.json"
+    manifest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    return jsonl_path
+    return {
+        "output_dir": output_dir,
+        "jsonl": jsonl_path,
+        "csv": csv_path,
+        "decks_dir": decks_dir,
+        "manifest": manifest_path,
+    }
 
 
 def write_missing_report(
