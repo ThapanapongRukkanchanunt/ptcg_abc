@@ -1,0 +1,21 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environments
+.venv/
+venv/
+
+# Test and tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and local credentials
+.env
+kaggle.json
+
+# Build and package outputs
+build/
+dist/
+*.egg-info/
