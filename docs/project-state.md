@@ -8,8 +8,8 @@ This is the resume point for the project. Start here after switching machines, c
 - Active branch: `main`
 - Selected Limitless format: `TEF-POR`
 - Kaggle legal-card source: `EN_Card_Data.csv`
-- Latest completed phase: Phase 2, deck corpus exports
-- Next phase: Phase 3, generic rule-based agent baseline
+- Latest completed checkpoint: Phase 3 baseline smoke
+- Next phase checkpoint: Phase 3 rule-quality improvements
 
 ## Phase Log
 
@@ -18,7 +18,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 0: Repo setup | Complete | GitHub repo initialized with README, `.gitignore`, and implementation plan. |
 | Phase 1: Kaggle legality and format selection | Complete | Kaggle card data extracted, Limitless format set to `TEF-POR`, missing-card report shows 0 missing names. |
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
-| Phase 3: Generic rule-based agent | Not started | Next work: load legal decks, implement basic deck-agnostic action selection, add local evaluation tooling. |
+| Phase 3: Generic rule-based agent | In progress | First runnable baseline added with corpus-to-card-ID conversion, deterministic option selection, and `agent-smoke`. |
 | Phase 4: Reinforcement learning workflow | Deferred | Start only after the rule-based baseline and evaluation harness are stable. |
 | Phase 5: Deck-building experiments | Deferred | Wildcard/search-based deck construction ideas stay parked until baseline play exists. |
 
@@ -93,6 +93,23 @@ Representative commit:
 
 - `407c29a` Add TEF-POR deck corpus exports
 
+### Phase 3: Generic Rule-Based Agent Baseline
+
+- Added Kaggle card-ID lookup from `EN_Card_Data.csv`.
+- Added corpus JSONL loading and deck-name to card-ID conversion.
+- Added deterministic lowest-ID handling for ambiguous Kaggle card names.
+- Added the first deck-agnostic rule selector.
+- Added `agent-smoke` to run two corpus decks in the local Kaggle sample simulator.
+- Detailed checkpoint: `docs/phase-3-baseline.md`
+
+Current smoke result:
+
+- Selected decks: first two Dragapult ex corpus decks.
+- Ambiguous selected names: `Dunsparce` maps to card IDs 65 and 305; current policy chooses 65.
+- Simulator start: successful.
+- Selections completed: 50.
+- Engine error: none.
+
 ## Recreate Local State From A Clean Checkout
 
 1. Install the package:
@@ -125,6 +142,12 @@ python -m ptcg_abc collect-corpus
 python -m unittest discover -s tests
 ```
 
+6. Run the Phase 3 baseline smoke:
+
+```powershell
+python -m ptcg_abc agent-smoke --max-steps 50
+```
+
 If `python` is not on PATH in the Codex desktop workspace, use the bundled Python path from the app's workspace dependencies.
 
 ## Important Files
@@ -135,18 +158,27 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/kaggle-first-workflow.md`: Kaggle setup and collection commands.
 - `docs/phase-1-conclusion.md`: legality and format-selection conclusion.
 - `docs/phase-2-conclusion.md`: deck-corpus export conclusion.
+- `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
 
 ## Next Phase Entry Point
 
-Phase 3 should start by building the generic rule-based agent baseline.
+Continue Phase 3 by improving the generic rule-based agent baseline.
 
-Minimum useful first slice:
+Completed first slice:
 
-- Add a loader for `deck_corpus.jsonl` records.
-- Add a Kaggle/sample-submission adapter boundary without hard-coding one deck.
-- Implement the first deck-agnostic action heuristics.
-- Add a tiny local evaluation command that can run one selected deck through the available Kaggle simulator interface.
+- Load `deck_corpus.jsonl` records.
+- Convert Limitless deck names to Kaggle numeric card IDs.
+- Add a Kaggle sample-simulator adapter.
+- Implement first deck-agnostic action heuristics.
+- Add a local smoke command.
+
+Next useful slice:
+
+- Add card/attack metadata helpers.
+- Use attack damage and energy requirements when choosing attacks.
+- Improve setup, benching, attachment, and evolution targets.
+- Start tracking prize and knockout plans.
 - Keep reinforcement learning out of scope until the rule-based baseline is runnable and measurable.

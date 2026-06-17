@@ -4,7 +4,8 @@ Pokemon TCG AI Battle Challenge workspace.
 
 ## Phase Status
 
-Kaggle legality setup, Limitless format selection, and the first `TEF-POR` deck corpus are complete.
+Kaggle legality setup, Limitless format selection, the first `TEF-POR` deck corpus,
+and a runnable rule-based baseline smoke check are complete.
 
 Resume from [docs/project-state.md](docs/project-state.md) for the full phase log and next steps.
 
@@ -24,9 +25,15 @@ python -m ptcg_abc collect-corpus
 
 The next milestone will:
 
-- Use the deck corpus to start a generic rule-based agent.
-- Keep rule logic deck-agnostic at first.
-- Add evaluation harnesses before moving into reinforcement learning.
+- Improve the generic rule-based agent with card metadata and attack damage.
+- Add stronger sequencing, target selection, and prize-planning helpers.
+- Keep reinforcement learning out of scope until the rule-based baseline is measurable.
+
+Run the current baseline smoke check:
+
+```powershell
+python -m ptcg_abc agent-smoke --max-steps 50
+```
 
 ## Roadmap
 

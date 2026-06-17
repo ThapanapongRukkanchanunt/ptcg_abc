@@ -12,7 +12,17 @@ from ptcg_abc.config import (
     KAGGLE_RAW_DIR,
     LEGAL_CARDS_PATH,
     LIMITLESS_FORMAT,
+    PROCESSED_DIR,
     REPORTS_DIR,
+)
+from ptcg_abc.card_db import load_card_id_lookup
+from ptcg_abc.corpus import (
+    deck_card_names,
+    deck_label,
+    deck_to_card_ids,
+    get_deck_by_index,
+    load_deck_corpus,
+    write_deck_csv,
 )
 from ptcg_abc.kaggle_api import KaggleCredentialsError, setup_kaggle_data
 from ptcg_abc.legal_cards import (
@@ -28,6 +38,7 @@ from ptcg_abc.limitless import (
     write_deck_collection,
     write_missing_report,
 )
+from ptcg_abc.simulator import run_battle_smoke
 
 
 def _path(value: str) -> Path:
@@ -142,6 +153,72 @@ def command_collect_corpus(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_agent_smoke(args: argparse.Namespace) -> int:
+    if not args.corpus.exists():
+        print(
+            f"Deck corpus not found at {args.corpus}. "
+            "Run `python -m ptcg_abc collect-corpus` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.card_data.exists():
+        print(
+            f"Kaggle card data not found at {args.card_data}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+
+    decks = load_deck_corpus(args.corpus)
+    if len(decks) < 2:
+        print("The corpus needs at least two decks for a battle smoke check.", file=sys.stderr)
+        return 2
+
+    try:
+        deck0 = get_deck_by_index(decks, args.deck_index)
+        deck1 = get_deck_by_index(decks, args.opponent_index)
+    except IndexError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    lookup = load_card_id_lookup(args.card_data)
+    try:
+        deck0_ids = deck_to_card_ids(deck0, lookup)
+        deck1_ids = deck_to_card_ids(deck1, lookup)
+    except (KeyError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if args.write_deck_csv:
+        write_deck_csv(deck0_ids, args.write_deck_csv)
+
+    selected_names = list(deck_card_names(deck0)) + list(deck_card_names(deck1))
+    ambiguous = lookup.ambiguous_names(selected_names)
+    result = run_battle_smoke(
+        deck0_ids,
+        deck1_ids,
+        sample_dir=args.sample_dir,
+        max_steps=args.max_steps,
+    )
+
+    print(f"Deck 0: {deck_label(deck0)}")
+    print(f"Deck 1: {deck_label(deck1)}")
+    print(f"Ambiguous names resolved by lowest Kaggle Card ID: {len(ambiguous)}")
+    for name, card_ids in list(ambiguous.items())[:10]:
+        print(f"  {name}: {', '.join(str(card_id) for card_id in card_ids)}")
+    if len(ambiguous) > 10:
+        print(f"  ... {len(ambiguous) - 10} more")
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.started and result.error is None else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ptcg-abc",
@@ -200,6 +277,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common_limitless_args(collect)
     collect.set_defaults(func=command_collect_corpus)
+
+    smoke = subparsers.add_parser(
+        "agent-smoke",
+        help="Run the first rule-based agent against two corpus decks in the Kaggle simulator.",
+    )
+    smoke.add_argument(
+        "--corpus",
+        type=_path,
+        default=PROCESSED_DIR / date.today().isoformat() / "deck_corpus.jsonl",
+    )
+    smoke.add_argument(
+        "--card-data",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "EN_Card_Data.csv",
+    )
+    smoke.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    smoke.add_argument("--deck-index", type=int, default=1)
+    smoke.add_argument("--opponent-index", type=int, default=2)
+    smoke.add_argument("--max-steps", type=int, default=50)
+    smoke.add_argument("--write-deck-csv", type=_path)
+    smoke.set_defaults(func=command_agent_smoke)
 
     return parser
 
