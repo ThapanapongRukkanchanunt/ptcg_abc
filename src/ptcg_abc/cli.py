@@ -11,6 +11,7 @@ from ptcg_abc.config import (
     KAGGLE_INPUT_DIR,
     KAGGLE_RAW_DIR,
     LEGAL_CARDS_PATH,
+    LIMITLESS_FORMAT,
     REPORTS_DIR,
 )
 from ptcg_abc.kaggle_api import KaggleCredentialsError, setup_kaggle_data
@@ -39,6 +40,7 @@ def _add_common_limitless_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--lists-per-variant", type=int, default=2)
     parser.add_argument("--candidate-limit", type=int, default=250)
     parser.add_argument("--delay-seconds", type=float, default=0.2)
+    parser.add_argument("--limitless-format", default=LIMITLESS_FORMAT)
     parser.add_argument("--refresh", action="store_true")
 
 
@@ -99,9 +101,12 @@ def command_missing_limitless(args: argparse.Namespace) -> int:
         refresh=args.refresh,
         candidate_limit=args.candidate_limit,
         delay_seconds=args.delay_seconds,
+        limitless_format=args.limitless_format,
     )
     write_deck_collection(collection, snapshot_date=args.snapshot_date)
-    report_path = write_missing_report(collection, legal_cards, args.output)
+    report_path = write_missing_report(
+        collection, legal_cards, args.output, limitless_format=args.limitless_format
+    )
     print(deck_collection_summary(collection))
     print(f"Wrote missing-card report to {report_path}.")
     return 0

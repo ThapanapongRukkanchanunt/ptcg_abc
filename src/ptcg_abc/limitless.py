@@ -6,11 +6,17 @@ import time
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 from lxml import html
 
-from ptcg_abc.config import LIMITLESS_BASE_URL, LIMITLESS_RAW_DIR, PROCESSED_DIR, REPORTS_DIR
+from ptcg_abc.config import (
+    LIMITLESS_BASE_URL,
+    LIMITLESS_FORMAT,
+    LIMITLESS_RAW_DIR,
+    PROCESSED_DIR,
+    REPORTS_DIR,
+)
 from ptcg_abc.http_client import fetch_text_with_cache
 from ptcg_abc.models import Archetype, CardLine, CollectionResult, Decklist, TournamentResult, Variant
 from ptcg_abc.normalize import clean_text, deck_fingerprint, normalize_card_name, slugify
@@ -30,6 +36,17 @@ def _text(node: html.HtmlElement) -> str:
 
 def _absolute_url(path: str) -> str:
     return urljoin(LIMITLESS_BASE_URL, path)
+
+
+def with_query_params(url: str, **params: str | None) -> str:
+    split = urlsplit(url)
+    query = dict(parse_qsl(split.query, keep_blank_values=True))
+    for key, value in params.items():
+        if value is None:
+            query.pop(key, None)
+        else:
+            query[key] = value
+    return urlunsplit((split.scheme, split.netloc, split.path, urlencode(query), split.fragment))
 
 
 def _parse_int(value: str) -> int | None:
@@ -102,14 +119,26 @@ def parse_variants(html_text: str, archetype: Archetype) -> list[Variant]:
         name = _text(option)
         if value == "null" or name.casefold() == "all":
             continue
-        source_url = _absolute_url(f"/decks/{archetype.deck_id}/results")
+        source_url = with_query_params(
+            _absolute_url(f"/decks/{archetype.deck_id}/results"),
+            format=LIMITLESS_FORMAT,
+        )
         if value:
-            source_url = f"{source_url}?variant={value}"
+            source_url = with_query_params(source_url, variant=value)
         variants.append(Variant(name=name, value=value, source_url=source_url))
 
     if variants:
         return variants
-    return [Variant(name="All", value=None, source_url=_absolute_url(f"/decks/{archetype.deck_id}/results"))]
+    return [
+        Variant(
+            name="All",
+            value=None,
+            source_url=with_query_params(
+                _absolute_url(f"/decks/{archetype.deck_id}/results"),
+                format=LIMITLESS_FORMAT,
+            ),
+        )
+    ]
 
 
 def parse_results(html_text: str, *, source_url: str) -> list[TournamentResult]:
@@ -208,19 +237,27 @@ def collect_limitless_decks(
     refresh: bool = False,
     candidate_limit: int = 250,
     delay_seconds: float = 0.2,
+    limitless_format: str = LIMITLESS_FORMAT,
 ) -> CollectionResult:
     snapshot_date = snapshot_date or date.today().isoformat()
     cache_dir = LIMITLESS_RAW_DIR / snapshot_date
     result = CollectionResult()
     seen_fingerprints: set[str] = set()
 
-    metagame_html = fetch_text_with_cache(f"{LIMITLESS_BASE_URL}/decks", cache_dir, refresh=refresh)
+    metagame_url = with_query_params(f"{LIMITLESS_BASE_URL}/decks", format=limitless_format)
+    metagame_html = fetch_text_with_cache(metagame_url, cache_dir, refresh=refresh)
     archetypes = parse_metagame(metagame_html, limit=top_archetypes)
 
     for archetype in archetypes:
-        overview_html = fetch_text_with_cache(archetype.source_url, cache_dir, refresh=refresh)
+        overview_url = with_query_params(archetype.source_url, format=limitless_format)
+        overview_html = fetch_text_with_cache(overview_url, cache_dir, refresh=refresh)
         variants = parse_variants(overview_html, archetype)
         for variant in variants:
+            variant = Variant(
+                name=variant.name,
+                value=variant.value,
+                source_url=with_query_params(variant.source_url, format=limitless_format),
+            )
             results_html = fetch_text_with_cache(variant.source_url, cache_dir, refresh=refresh)
             candidates = parse_results(results_html, source_url=variant.source_url)
             accepted_for_variant = 0
@@ -301,6 +338,7 @@ def write_missing_report(
     collection: CollectionResult,
     legal_cards: dict[str, str],
     output_path: Path | None = None,
+    limitless_format: str = LIMITLESS_FORMAT,
 ) -> Path:
     output_path = output_path or REPORTS_DIR / "missing_limitless_cards.md"
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -319,6 +357,7 @@ def write_missing_report(
     lines = [
         "# Missing Limitless Cards",
         "",
+        f"Limitless format: {limitless_format}",
         f"Selected Limitless decks: {len(collection.decks)}",
         f"Unique Limitless card names: {len(usage)}",
         f"Missing from Kaggle legal list: {len(missing)}",

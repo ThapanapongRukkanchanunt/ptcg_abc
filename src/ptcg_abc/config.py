@@ -3,6 +3,7 @@ from pathlib import Path
 
 COMPETITION_SLUG = "pokemon-tcg-ai-battle"
 LIMITLESS_BASE_URL = "https://limitlesstcg.com"
+LIMITLESS_FORMAT = "TEF-CRI"
 
 DATA_DIR = Path("data")
 KAGGLE_RAW_DIR = DATA_DIR / "kaggle" / "raw"
