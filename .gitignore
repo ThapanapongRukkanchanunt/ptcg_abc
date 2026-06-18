@@ -15,6 +15,7 @@ venv/
 .env
 kaggle.json
 .kaggle/
+.tmp/
 
 # Build and package outputs
 build/
@@ -27,3 +28,8 @@ data/kaggle/
 data/raw/
 data/processed/
 /pokemon-tcg-ai-battle.zip
+
+# Benchmark scratch outputs
+reports/*_smoke.json
+reports/*_smoke.md
+reports/*_smoke_comparison.md

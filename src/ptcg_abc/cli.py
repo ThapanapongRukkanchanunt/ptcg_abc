@@ -28,6 +28,7 @@ from ptcg_abc.evaluation import (
     Phase3CloseoutResult,
     choose_deck_from_best_archetype,
     prepare_decks,
+    required_phase3_prepared_decks,
     run_archetype_sweep,
     run_random_evaluation,
     run_sample_dragapult_benchmark,
@@ -347,6 +348,8 @@ def command_benchmark_sample_dragapult(args: argparse.Namespace) -> int:
     except (KeyError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    if not args.skip_required_decks:
+        prepared.extend(required_phase3_prepared_decks(start_index=len(prepared) + 1))
 
     print(
         f"Running sample Dragapult benchmark: decks={len(prepared)} "
@@ -548,6 +551,11 @@ def build_parser() -> argparse.ArgumentParser:
     sample_dragapult.add_argument("--max-steps", type=int, default=600)
     sample_dragapult.add_argument("--debug-limit-per-deck", type=int, default=2)
     sample_dragapult.add_argument("--trace-limit", type=int, default=80)
+    sample_dragapult.add_argument(
+        "--skip-required-decks",
+        action="store_true",
+        help="Benchmark only the collected corpus and omit the four required Phase 3 sample decks.",
+    )
     sample_dragapult.add_argument(
         "--baseline-json",
         type=_path,

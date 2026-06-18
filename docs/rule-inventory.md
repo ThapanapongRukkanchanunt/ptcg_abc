@@ -113,6 +113,8 @@ Phase 3 closeout agent uses card metadata when it is available from Kaggle's
     - Count multiple knockouts from one multi-target attack when scoring a route.
     - Ignore routes that do not contain an actionable prize-taking step from a primary
       attacker.
+    - Boost mapped spread or damage-counter targets when a planned route assigns
+      damage to multiple opponent Pokemon.
     - Reuse the first prize-map step as the immediate attack plan.
 
 21. Automatic key-attacker identification
@@ -123,6 +125,20 @@ Phase 3 closeout agent uses card metadata when it is available from Kaggle's
       high-value route.
     - Boost search, benching, evolution, attachment, and discard-protection rules for
       key attackers and their recursive pre-evolution chains.
+
+22. Evolution setup and repeat acceleration
+    - Prefer key evolution-chain basics during opening Active selection when they are
+      available.
+    - Support repeat attachment abilities such as Iono's Bellibolt ex's Electric
+      Streamer when enough matching Energy is in hand.
+    - Keep broad chain scoring narrow by default because the first aggressive version
+      regressed the 27-deck Dragapult benchmark.
+
+23. Phase 3 benchmark coverage
+    - The copied Dragapult benchmark now appends required sample decks for Crustle,
+      Mega Lucario ex, Mega Abomasnow ex, and Iono's Bellibolt ex.
+    - Coverage status is written into benchmark reports so missing required decks are
+      visible immediately.
 
 ## Rule Families Learned From Kaggle Examples
 
@@ -237,12 +253,13 @@ remain intentionally out of scope.
 
 ## Phase 4 Follow-Up Ideas
 
-1. Add evolution-chain setup scoring so the agent benches and searches for pieces that
-   lead to key attackers before the attacker itself is playable.
-2. Improve opening Active and early bench choices so fragile support Pokemon are not
-   promoted into losing positions.
-3. Add spread-route execution bonuses and trace counters so planned multi-target routes
-   are easier to diagnose in benchmark logs.
+1. Add focused deck-family profiles derived from the public sample agents while keeping
+   the generic scorer as the default.
+2. Add anti-Dragapult defensive rules for Phantom Dive, especially avoiding optional
+   low-HP bench liabilities and prioritizing damage-counter-safe board states.
+3. Add variable-damage estimates for attacks such as Mega Abomasnow ex's Hammer-lanche
+   and Iono's Voltaic Chain.
 4. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
 5. Train or tune weights for setup, attachment, attack, and target scoring.
-6. Add deck-specific override profiles only after a generic learned baseline exists.
+6. Re-run the 31-deck Phase 3 benchmark after each focused profile change until the
+   average win rate approaches the 50% target.

@@ -14,8 +14,107 @@ from typing import Any
 from ptcg_abc.agent import RandomAgent, RuleBasedAgent
 from ptcg_abc.card_db import CardIdLookup
 from ptcg_abc.corpus import deck_label, deck_to_card_ids
-from ptcg_abc.models import Decklist
+from ptcg_abc.models import Archetype, CardLine, Decklist, TournamentResult, Variant
 from ptcg_abc.simulator import BattleResult, load_engine_metadata, run_battle
+
+
+REQUIRED_PHASE3_BENCHMARK_DECKS = (
+    "Crustle",
+    "Mega Lucario",
+    "Mega Abomasnow",
+    "Iono",
+)
+
+REQUIRED_PHASE3_SAMPLE_DECKS = (
+    (
+        "Crustle",
+        [
+            *([344] * 4),
+            *([345] * 3),
+            *([756] * 3),
+            117,
+            *([1227] * 4),
+            *([1182] * 4),
+            *([1219] * 4),
+            *([1194] * 2),
+            *([1225] * 2),
+            1197,
+            1187,
+            *([1122] * 4),
+            *([1147] * 4),
+            *([1121] * 3),
+            *([1086] * 2),
+            1123,
+            1159,
+            1257,
+            1242,
+            *([11] * 4),
+            *([18] * 4),
+            *([14] * 4),
+            *([20] * 2),
+        ],
+        "https://limitlesstcg.com/decks/list/26474",
+    ),
+    (
+        "Mega Lucario ex",
+        [
+            *([673] * 2),
+            *([674] * 2),
+            *([675] * 2),
+            *([676] * 3),
+            *([677] * 3),
+            *([678] * 4),
+            *([1102] * 4),
+            *([1123] * 2),
+            *([1141] * 4),
+            *([1142] * 4),
+            *([1152] * 4),
+            1159,
+            *([1182] * 2),
+            *([1192] * 4),
+            *([1227] * 4),
+            *([1252] * 2),
+            *([6] * 13),
+        ],
+        "https://www.kaggle.com/code/kiyotah/a-sample-rule-based-agent-mega-lucario-ex-deck",
+    ),
+    (
+        "Mega Abomasnow ex",
+        [
+            *([721] * 2),
+            *([722] * 4),
+            *([723] * 4),
+            *([1121] * 4),
+            1126,
+            *([1192] * 4),
+            *([1227] * 4),
+            *([1262] * 3),
+            *([3] * 34),
+        ],
+        "https://www.kaggle.com/code/kiyotah/a-sample-rule-based-agent-mega-abomasnow-ex-deck",
+    ),
+    (
+        "Iono's Bellibolt ex",
+        [
+            *([265] * 3),
+            *([268] * 3),
+            *([269] * 3),
+            *([270] * 3),
+            *([271] * 3),
+            *([1086] * 3),
+            *([1097] * 2),
+            1110,
+            1118,
+            *([1121] * 3),
+            *([1152] * 2),
+            *([1227] * 4),
+            *([1233] * 4),
+            *([1254] * 3),
+            *([4] * 22),
+        ],
+        "https://www.kaggle.com/code/kiyotah/a-sample-rule-based-agent-iono-s-deck",
+    ),
+)
 
 
 @dataclass
@@ -164,6 +263,64 @@ class SampleDragapultBenchmarkResult:
             "rows": [row.to_dict() for row in self.rows],
             "debug_games": [game.to_dict() for game in self.debug_games],
         }
+
+
+def phase3_benchmark_deck_coverage(rows: list[SampleDragapultBenchmarkRow]) -> list[dict[str, Any]]:
+    coverage = []
+    haystacks = [
+        f"{row.archetype} {row.deck_label}".casefold()
+        for row in rows
+    ]
+    for required in REQUIRED_PHASE3_BENCHMARK_DECKS:
+        needle = required.casefold()
+        matches = [
+            row.deck_index
+            for row, haystack in zip(rows, haystacks, strict=False)
+            if needle in haystack
+        ]
+        coverage.append(
+            {
+                "required_deck": required,
+                "status": "covered" if matches else "missing",
+                "deck_indices": matches,
+            }
+        )
+    return coverage
+
+
+def required_phase3_prepared_decks(start_index: int) -> list[PreparedDeck]:
+    prepared = []
+    for offset, (name, card_ids, source_url) in enumerate(REQUIRED_PHASE3_SAMPLE_DECKS):
+        if len(card_ids) != 60:
+            raise ValueError(f"Required benchmark deck {name} has {len(card_ids)} cards, expected 60.")
+        deck = Decklist(
+            archetype=Archetype(
+                rank=1000 + offset,
+                name=name,
+                deck_id=f"required-{offset + 1}",
+                points=None,
+                share=None,
+                source_url=source_url,
+            ),
+            variant=Variant(name="Required benchmark sample", value=None, source_url=source_url),
+            result=TournamentResult(
+                event_name="Phase 3 required benchmark",
+                event_date="2026-06-18",
+                placement="Sample",
+                placement_rank=1000 + offset,
+                player="Required sample",
+                decklist_url=source_url,
+                source_url=source_url,
+                page_order=offset,
+            ),
+            title=name,
+            cards=[CardLine(count=1, name=str(card_id), section="Card IDs") for card_id in card_ids],
+            total_cards=60,
+            fingerprint=f"required-phase3-{offset + 1}",
+            source_url=source_url,
+        )
+        prepared.append(PreparedDeck(index=start_index + offset, deck=deck, card_ids=list(card_ids)))
+    return prepared
 
 
 def prepare_decks(decks: list[Decklist], lookup: CardIdLookup) -> list[PreparedDeck]:
@@ -540,6 +697,20 @@ def write_sample_dragapult_benchmark_report(
             f"| {row.deck_index} | {row.archetype} | {row.wins} | {row.losses} | "
             f"{row.draws} | {row.timeouts} | {row.errors} | {row.win_rate:.3f} |"
         )
+    lines.extend(
+        [
+            "",
+            "## Phase 3 Coverage Targets",
+            "",
+            "These named decks are required for the final Phase 3 benchmark target.",
+            "",
+            "| Required deck | Status | Corpus deck indices |",
+            "| --- | --- | --- |",
+        ]
+    )
+    for row in phase3_benchmark_deck_coverage(result.rows):
+        indices = ", ".join(str(index) for index in row["deck_indices"]) or "-"
+        lines.append(f"| {row['required_deck']} | {row['status']} | {indices} |")
     lines.extend(
         [
             "",

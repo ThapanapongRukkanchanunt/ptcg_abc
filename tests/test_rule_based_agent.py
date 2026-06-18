@@ -780,6 +780,174 @@ class RuleBasedAgentTests(unittest.TestCase):
         self.assertEqual(features.prize_map.steps[0].target_damages[("BENCH", 0)], 30)
         self.assertEqual(features.prize_map.steps[0].target_damages[("BENCH", 1)], 30)
 
+    def test_search_prefers_key_evolution_chain_basic(self):
+        select = FakeSelect(
+            type=1,
+            context=7,
+            minCount=1,
+            maxCount=1,
+            option=[
+                FakeOption(3, area=1),
+                FakeOption(3, area=1),
+            ],
+        )
+        select.option[0].index = 0
+        select.option[1].index = 1
+        select.deck = [FakeHandCard(10), FakeHandCard(40)]
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[], bench=[], hand=[], discard=[], prize=[1, 2, 3, 4]),
+                FakePlayerState(
+                    active=[FakePokemon(50, 220, 220, [], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3, 4],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            10: FakeCardData(cardId=10, name="Setup Basic", cardType=0, hp=70, basic=True, attacks=[10]),
+            20: FakeCardData(cardId=20, name="Middle Link", cardType=0, hp=90, stage1=True, evolvesFrom="Setup Basic", attacks=[20]),
+            30: FakeCardData(cardId=30, name="Stage 2 Attacker ex", cardType=0, hp=320, stage2=True, ex=True, evolvesFrom="Middle Link", attacks=[30]),
+            40: FakeCardData(cardId=40, name="Support ex", cardType=0, hp=210, basic=True, ex=True, skills=[FakeOption(10)], attacks=[40]),
+            50: FakeCardData(cardId=50, name="Opponent ex", cardType=0, hp=220, ex=True),
+        }
+        attack_by_id = {
+            10: FakeAttack(attackId=10, damage=30, energies=[1]),
+            20: FakeAttack(attackId=20, damage=70, energies=[1]),
+            30: FakeAttack(attackId=30, damage=220, energies=[1, 1]),
+            40: FakeAttack(attackId=40, damage=60, energies=[1, 1, 1]),
+        }
+
+        self.assertEqual(
+            select_option_indices(
+                select,
+                current=current,
+                card_by_id=card_by_id,
+                attack_by_id=attack_by_id,
+                deck_ids=[10] * 4 + [20] * 3 + [30] * 3 + [40],
+            ),
+            [0],
+        )
+
+    def test_opening_active_prefers_key_basic_over_support_ex(self):
+        select = FakeSelect(
+            type=1,
+            context=1,
+            minCount=1,
+            maxCount=1,
+            option=[
+                FakeOption(3, area=2, playerIndex=0),
+                FakeOption(3, area=2, playerIndex=0),
+            ],
+        )
+        select.option[0].index = 0
+        select.option[1].index = 1
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[],
+                    bench=[],
+                    hand=[FakeHandCard(40), FakeHandCard(10)],
+                    discard=[],
+                    prize=[1, 2, 3, 4],
+                ),
+                FakePlayerState(
+                    active=[FakePokemon(50, 220, 220, [], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3, 4],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            10: FakeCardData(cardId=10, name="Setup Basic", cardType=0, hp=70, basic=True, attacks=[10]),
+            20: FakeCardData(cardId=20, name="Middle Link", cardType=0, hp=90, stage1=True, evolvesFrom="Setup Basic", attacks=[20]),
+            30: FakeCardData(cardId=30, name="Stage 2 Attacker ex", cardType=0, hp=320, stage2=True, ex=True, evolvesFrom="Middle Link", attacks=[30]),
+            40: FakeCardData(cardId=40, name="Support ex", cardType=0, hp=210, basic=True, ex=True, skills=[FakeOption(10)], attacks=[40]),
+            50: FakeCardData(cardId=50, name="Opponent ex", cardType=0, hp=220, ex=True),
+        }
+        attack_by_id = {
+            10: FakeAttack(attackId=10, damage=30, energies=[1]),
+            20: FakeAttack(attackId=20, damage=70, energies=[1]),
+            30: FakeAttack(attackId=30, damage=220, energies=[1, 1]),
+            40: FakeAttack(attackId=40, damage=60, energies=[1, 1, 1]),
+        }
+
+        self.assertEqual(
+            select_option_indices(
+                select,
+                current=current,
+                card_by_id=card_by_id,
+                attack_by_id=attack_by_id,
+                deck_ids=[10] * 4 + [20] * 3 + [30] * 3 + [40],
+            ),
+            [1],
+        )
+
+    def test_repeat_attach_ability_can_power_iono_style_attack(self):
+        from ptcg_abc.agent.rule_based import _make_features
+
+        ability_option = FakeOption(10, area=4)
+        ability_option.index = 0
+        select = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[ability_option])
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(269, 280, 280, [], [], [])],
+                    bench=[],
+                    hand=[FakeHandCard(4), FakeHandCard(4), FakeHandCard(4), FakeHandCard(4)],
+                    discard=[],
+                    prize=[1, 2, 3],
+                ),
+                FakePlayerState(
+                    active=[FakePokemon(50, 230, 230, [], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3],
+                ),
+            ],
+            energyAttached=False,
+            supporterPlayed=False,
+            stadium=[],
+        )
+        card_by_id = {
+            4: FakeCardData(cardId=4, name="Basic Lightning Energy", cardType=5, energyType=4),
+            269: FakeCardData(
+                cardId=269,
+                name="Iono's Bellibolt ex",
+                cardType=0,
+                hp=280,
+                stage1=True,
+                ex=True,
+                evolvesFrom="Iono's Tadbulb",
+                skills=[
+                    {
+                        "name": "Electric Streamer",
+                        "text": "As often as you like during your turn, you may attach a Basic {L} Energy card from your hand to 1 of your Iono's Pokemon.",
+                    }
+                ],
+                attacks=[368],
+            ),
+            50: FakeCardData(cardId=50, name="Opponent ex", cardType=0, hp=230, ex=True),
+        }
+        attack_by_id = {
+            368: FakeAttack(attackId=368, damage=230, energies=[4, 4, 4, 0])
+        }
+
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=[269] * 4 + [4] * 20)
+
+        self.assertEqual(features.plan.attack_id, 368)
+        self.assertTrue(features.plan.needs_energy)
+
 
 if __name__ == "__main__":
     unittest.main()

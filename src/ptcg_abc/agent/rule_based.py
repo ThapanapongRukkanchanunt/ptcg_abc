@@ -559,6 +559,7 @@ class BoardFeatures:
     hand_counts: Counter = field(default_factory=Counter)
     discard_counts: Counter = field(default_factory=Counter)
     field_hand_counts: Counter = field(default_factory=Counter)
+    deck_counts: Counter = field(default_factory=Counter)
     active_ready: bool = False
     bench_ready_indices: list[int] = field(default_factory=list)
     plan: AttackPlan = field(default_factory=AttackPlan)
@@ -592,6 +593,7 @@ def _make_features(
         my_state=_player_state(current, my_index),
         op_state=_player_state(current, 1 - my_index),
     )
+    features.deck_counts.update(deck_ids)
     features.no_draw = int(_get(features.my_state, "deckCount", 99) or 99) <= 6
 
     for pokemon in _cards_in_play(features.my_state):
@@ -657,6 +659,7 @@ def _get_max_attachments_for_pokemon(pokemon: Any, features: BoardFeatures) -> t
                 skills = " ".join(f"{_get(s, 'name', '')} {_get(s, 'text', '')}" for s in list(_get(cdata, "skills", []) or [])).casefold()
                 if "attach" in skills:
                     can_use = True
+                    target_name = _card_name(_card_id(pokemon), features.card_by_id).casefold()
                     if "to this pok" in skills or "to itself" in skills or "teal dance" in skills:
                         if ability_card is not pokemon and _card_id(ability_card) != _card_id(pokemon):
                             can_use = False
@@ -667,9 +670,14 @@ def _get_max_attachments_for_pokemon(pokemon: Any, features: BoardFeatures) -> t
                             is_bench = True
                         if not is_bench:
                             can_use = False
+                    elif "iono" in skills and "iono" not in target_name:
+                        can_use = False
                     
                     if can_use:
-                        allowed += 1
+                        if "as often as you like" in skills:
+                            allowed += max(1, features.hand_energy_count)
+                        else:
+                            allowed += 1
                         
     return allowed, virtual_types
 
@@ -1258,11 +1266,18 @@ def _is_primary_attacker_card(card_id: int | None, features: BoardFeatures) -> b
             _bench_damage_spec(attack)[0],
             _multi_pokemon_damage_spec(attack)[0],
         )
+    skills_text = " ".join(
+        f"{_get(skill, 'name', '')} {_get(skill, 'text', '')}"
+        for skill in list(_get(data, "skills", []) or [])
+    ).casefold()
+    max_output = max(best_damage, best_spread)
     if bool(_get(data, "ex", False)) or bool(_get(data, "megaEx", False)):
         return max(best_damage, best_spread) >= 80
     if bool(_get(data, "stage1", False)) or bool(_get(data, "stage2", False)):
-        return max(best_damage, best_spread) >= 80
-    return max(best_damage, best_spread) >= 130
+        if any(word in skills_text for word in ("draw", "look at the top", "search your deck")):
+            return max_output >= 120
+        return max_output >= 110
+    return max_output >= 130
 
 
 def _route_is_actionable(features: BoardFeatures) -> bool:
@@ -1440,6 +1455,139 @@ def _first_prize_step(features: BoardFeatures) -> PrizeMapStep | None:
     return features.prize_map.steps[0] if _route_is_actionable(features) else None
 
 
+def _deck_count(card_id: int | None, features: BoardFeatures) -> int:
+    if card_id is None:
+        return 0
+    return int(features.deck_counts.get(card_id, 0) or 0)
+
+
+def _card_name_fold(card_id: int | None, features: BoardFeatures) -> str:
+    return _card_name(card_id, features.card_by_id).casefold()
+
+
+def _deck_pokemon_ids(features: BoardFeatures) -> set[int]:
+    ids = set(features.deck_counts)
+    ids.update(features.field_hand_counts)
+    return {
+        card_id
+        for card_id in ids
+        if _card_type_name(features.card_by_id.get(card_id)) == "POKEMON"
+    }
+
+
+def _known_pokemon_ids_with_name(name: str, features: BoardFeatures) -> set[int]:
+    name = name.casefold()
+    return {
+        card_id
+        for card_id, data in features.card_by_id.items()
+        if _card_type_name(data) == "POKEMON" and _card_name_fold(card_id, features) == name
+    }
+
+
+def _key_chain_distance(card_id: int | None, features: BoardFeatures) -> int | None:
+    if card_id is None:
+        return None
+    name = _card_name_fold(card_id, features)
+    if not name:
+        return None
+    best: int | None = None
+
+    def distance_from_key(attacker_id: int, depth: int, checked: set[int]) -> int | None:
+        if depth > 3 or attacker_id in checked:
+            return None
+        checked.add(attacker_id)
+        data = features.card_by_id.get(attacker_id)
+        evolves_from = str(_get(data, "evolvesFrom", "") or "").casefold()
+        if not evolves_from:
+            return None
+        if evolves_from == name:
+            return depth
+        candidates = _known_pokemon_ids_with_name(evolves_from, features)
+        distances = [
+            distance_from_key(candidate_id, depth + 1, set(checked))
+            for candidate_id in candidates
+        ]
+        distances = [distance for distance in distances if distance is not None]
+        return min(distances) if distances else None
+
+    for attacker_id in features.key_attackers:
+        distance = distance_from_key(attacker_id, 1, set())
+        if distance is not None:
+            best = distance if best is None else min(best, distance)
+    return best
+
+
+def _key_chain_score(card_id: int | None, features: BoardFeatures) -> float:
+    if card_id is None:
+        return 0.0
+    if card_id in features.key_attackers:
+        count_bonus = min(4, _deck_count(card_id, features)) * 350.0
+        missing_bonus = 1000.0 if features.field_hand_counts[card_id] == 0 else 0.0
+        return 9000.0 + count_bonus + missing_bonus
+    distance = _key_chain_distance(card_id, features)
+    if distance is None:
+        return 0.0
+    count_bonus = min(4, _deck_count(card_id, features)) * 350.0
+    missing_bonus = 1000.0 if features.field_hand_counts[card_id] == 0 else 0.0
+    return max(2500.0, 6200.0 - distance * 700.0 + count_bonus + missing_bonus)
+
+
+def _key_chain_pokemon_in_play(features: BoardFeatures) -> int:
+    return sum(
+        count
+        for card_id, count in features.field_counts.items()
+        if card_id in features.key_attackers or _key_chain_distance(card_id, features) is not None
+    )
+
+
+def _has_key_stage2_basic_in_play(features: BoardFeatures) -> bool:
+    for attacker_id in features.key_attackers:
+        data = features.card_by_id.get(attacker_id)
+        if not bool(_get(data, "stage2", False)):
+            continue
+        evolves_from = str(_get(data, "evolvesFrom", "") or "").casefold()
+        stage1_ids = _known_pokemon_ids_with_name(evolves_from, features)
+        basic_names = {
+            str(_get(features.card_by_id.get(stage1_id), "evolvesFrom", "") or "").casefold()
+            for stage1_id in stage1_ids
+        }
+        if any(
+            _card_name_fold(card_id, features) in basic_names
+            for card_id in features.field_counts
+        ):
+            return True
+    return False
+
+
+def _is_support_liability(card_id: int | None, features: BoardFeatures) -> bool:
+    data = features.card_by_id.get(card_id) if card_id is not None else None
+    if _card_type_name(data) != "POKEMON":
+        return False
+    if card_id in features.key_attackers or _key_chain_distance(card_id, features) is not None:
+        return False
+    attacks = [
+        features.attack_by_id.get(int(attack_id))
+        for attack_id in list(_get(data, "attacks", []) or [])
+        if features.attack_by_id.get(int(attack_id)) is not None
+    ]
+    max_output = 0
+    for attack in attacks:
+        max_output = max(
+            max_output,
+            _attack_damage(attack),
+            _damage_counter_pool(attack),
+            _single_bench_counter_damage(attack),
+            _bench_damage_spec(attack)[0],
+            _multi_pokemon_damage_spec(attack)[0],
+        )
+    has_ability = bool(_get(data, "skills", []) or [])
+    low_count = _deck_count(card_id, features) <= 1
+    is_two_prize_basic = bool(_get(data, "basic", False)) and (
+        bool(_get(data, "ex", False)) or bool(_get(data, "megaEx", False))
+    )
+    return low_count and has_ability and is_two_prize_basic and max_output < 100
+
+
 def _route_needs_boss(features: BoardFeatures) -> bool:
     route_needs_boss = _route_is_actionable(features) and any(step.needs_boss for step in features.prize_map.steps)
     return route_needs_boss or features.plan.target_area == "BENCH"
@@ -1457,34 +1605,24 @@ def _is_first_step_attacker(card: Any, features: BoardFeatures) -> bool:
     return False
 
 
+def _prize_mapped_target_bonus(card: Any, area: Any, index: Any, features: BoardFeatures) -> float:
+    step = _first_prize_step(features)
+    if step is None:
+        return 0.0
+    key = (_area_name(area), _int_or_none(index) or 0)
+    mapped_damage = step.target_damages.get(key, 0)
+    if mapped_damage <= 0:
+        return 0.0
+    score = 12000.0 + mapped_damage * 35.0
+    if card is not None and mapped_damage >= _hp(card):
+        score += 8000.0 + _prize_count(card, features.card_by_id, attack_damage=False) * 2500.0
+    if key == (step.target_area, step.target_index):
+        score += 6000.0
+    return score
+
+
 def _is_key_preevolution(card_id: int | None, features: BoardFeatures) -> bool:
-    if card_id is None:
-        return False
-    name = _card_name(card_id, features.card_by_id).casefold()
-    if not name:
-        return False
-    checked: set[int] = set()
-
-    def evolves_from_key(attacker_id: int) -> bool:
-        if attacker_id in checked:
-            return False
-        checked.add(attacker_id)
-        data = features.card_by_id.get(attacker_id)
-        evolves_from = str(_get(data, "evolvesFrom", "") or "").casefold()
-        if not evolves_from:
-            return False
-        if evolves_from == name:
-            return True
-        for candidate_id, candidate_data in features.card_by_id.items():
-            if _card_name(candidate_id, features.card_by_id).casefold() == evolves_from:
-                if evolves_from_key(candidate_id):
-                    return True
-        return False
-
-    for attacker_id in features.key_attackers:
-        if evolves_from_key(attacker_id):
-            return True
-    return False
+    return _key_chain_distance(card_id, features) is not None
 
 
 def _key_stage2_exists(features: BoardFeatures) -> bool:
@@ -1498,7 +1636,24 @@ def _active_candidate_score(card: Any, features: BoardFeatures, *, own: bool) ->
         return _pokemon_target_value(card, features.card_by_id)
     data = _card_data_for(card, features.card_by_id)
     card_id = _card_id(card)
+    context_name = _select_context_name(features.select)
     score = _hp(card) + _energy_count(card) * 800
+    if context_name == "SETUP_ACTIVE_POKEMON":
+        score += 2500
+        chain_score = _key_chain_score(card_id, features)
+        if chain_score:
+            score += chain_score + 3000
+        if _is_support_liability(card_id, features):
+            score -= 10000
+        if bool(_get(data, "ex", False)) or bool(_get(data, "megaEx", False)):
+            score -= 3000
+        if bool(_get(data, "basic", False)) and _deck_count(card_id, features) >= 2:
+            score += 1400
+        attacks = _attacks_for_pokemon(card, features.card_by_id, features.attack_by_id)
+        if any("ascension" in _attack_text(attack) for attack in attacks):
+            score += 4000
+        score -= int(_get(data, "retreatCost", 0) or 0) * 180
+        return score
     if _can_attack_soon(card, features.card_by_id, features.attack_by_id):
         score += 12000
     score += _best_attack_damage(card, features.card_by_id, features.attack_by_id) * 8
@@ -1537,6 +1692,10 @@ def _bench_candidate_score(card: Any, features: BoardFeatures) -> float:
         score += 9000
     elif _is_key_preevolution(card_id, features):
         score += 5000
+    if _is_support_liability(card_id, features):
+        score -= 4200
+        if _key_chain_pokemon_in_play(features) == 0:
+            score -= 3500
     score += int(_get(data, "hp", 0) or 0)
     if bool(_get(data, "ex", False)) or bool(_get(data, "megaEx", False)):
         score -= 300
@@ -1910,6 +2069,8 @@ def _score_option_base(index: int, option: Any, select: Any, features: BoardFeat
                 and _int_or_none(_get(option, "index")) == step.target_index
             ):
                 score += 15000
+            if not own and player_index == features.opponent_index:
+                score += _prize_mapped_target_bonus(card, _get(option, "area"), _get(option, "index"), features)
             return score
         if context_name == "SETUP_BENCH_POKEMON":
             return _bench_candidate_score(card, features)
@@ -1924,6 +2085,8 @@ def _score_option_base(index: int, option: Any, select: Any, features: BoardFeat
                 score += 4000
             if player_index == features.my_index:
                 score -= 10000
+            elif player_index == features.opponent_index:
+                score += _prize_mapped_target_bonus(card, _get(option, "area"), _get(option, "index"), features)
             step = _first_prize_step(features)
             if (
                 step is not None
