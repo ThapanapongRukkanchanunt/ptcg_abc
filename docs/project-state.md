@@ -102,6 +102,7 @@ Representative commit:
 - Added `agent-smoke` to run two corpus decks in the local Kaggle sample simulator.
 - Detailed checkpoint: `docs/phase-3-baseline.md`
 - Added combined score-based generic rule agent.
+- Added v1 prize-map planning with automatic key-attacker identification.
 - Added random-agent evaluation and archetype matchup sweep.
 - Selected final archetype: `Hydrapple ex`.
 - Selected final deck index: `20`.
@@ -114,7 +115,7 @@ Current smoke result:
 - Selected decks: first two Dragapult ex corpus decks.
 - Ambiguous selected names: `Dunsparce` maps to card IDs 65 and 305; current policy chooses 65.
 - Simulator start: successful.
-- Match finished in 19 selections.
+- Match finished in 24 selections after v1 prize-map planning.
 - Engine error: none.
 
 Closeout result:
@@ -191,6 +192,14 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 
 Start Phase 4 by adding reinforcement learning workflow experiments.
 
+Immediate next step before Phase 4:
+
+- Rerun `benchmark-sample-dragapult` with the v1 prize-map planner.
+- Compare the new report against `reports/sample_dragapult_benchmark.md`.
+- Add lightweight prize-map debug logging for games that lose quickly or time out.
+- Use those logs to decide the next rule upgrade, likely v2 spread/damage-counter
+  prize mapping for Dragapult-like attacks.
+
 Phase 3 completed:
 
 - Load `deck_corpus.jsonl` records.
@@ -199,6 +208,7 @@ Phase 3 completed:
 - Implement first deck-agnostic action heuristics.
 - Add a local smoke command.
 - Add combined score-based rule agent.
+- Add v1 prize-map planning with automatic key-attacker identification.
 - Add random-agent evaluation.
 - Run 10-game archetype matchup sweep.
 - Select final archetype and deck.

@@ -103,6 +103,20 @@ Phase 3 closeout agent uses card metadata when it is available from Kaggle's
     - Use recovery effects only when discard contains useful Pokemon or Energy.
     - Prefer discarding duplicates and low-value cards while protecting current plans.
 
+20. Prize-map planning
+    - Build a turn-local prize route from available attackers and opponent board targets.
+    - Prefer routes that take the remaining prizes in the fewest attack commands.
+    - Use route setup cost to account for missing energy, retreat/switch needs, and
+      Boss-like bench targeting.
+    - Reuse the first prize-map step as the immediate attack plan.
+
+21. Automatic key-attacker identification
+    - Mark attackers used in the current prize map as key attackers.
+    - Score deck Pokemon with attacks against the current opponent board to identify
+      high-value attackers even before they are in play.
+    - Boost search, benching, evolution, attachment, and discard-protection rules for
+      key attackers and their direct pre-evolutions.
+
 ## Rule Families Learned From Kaggle Examples
 
 These are reusable patterns learned from the four example agents. The Phase 3 closeout
@@ -139,6 +153,8 @@ remain intentionally out of scope.
 - Prefer game-winning knockouts over ordinary value.
 - Store the best attack plan and reuse it to guide Boss, switch, retreat, energy attach,
   attack choice, and target choice.
+- Build a prize route before immediate action scoring, so setup decisions can serve a
+  route to the remaining prizes instead of only the highest current damage option.
 
 ### Prize Mapping
 
@@ -214,7 +230,10 @@ remain intentionally out of scope.
 
 ## Phase 4 Follow-Up Ideas
 
-1. Add more game-state logging around the score assigned to each legal option.
-2. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
-3. Train or tune weights for setup, attachment, attack, and target scoring.
-4. Add deck-specific override profiles only after a generic learned baseline exists.
+1. Rerun the copied sample Dragapult benchmark with v1 prize-map planning enabled.
+2. Add prize-map debug logging for the selected route, key attackers, setup costs, and
+   final chosen action.
+3. Extend prize mapping to spread and damage-counter attacks after benchmark review.
+4. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
+5. Train or tune weights for setup, attachment, attack, and target scoring.
+6. Add deck-specific override profiles only after a generic learned baseline exists.

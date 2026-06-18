@@ -536,6 +536,141 @@ class RuleBasedAgentTests(unittest.TestCase):
         allowed_other, _ = _get_max_attachments_for_pokemon(bench_pokemon, features)
         self.assertEqual(allowed_other, 1) # 1 manual only
 
+    def test_prize_map_prefers_boss_two_prize_route(self):
+        from ptcg_abc.agent.rule_based import _make_features
+
+        boss_option = FakeOption(7, area=2)
+        boss_option.index = 0
+        select = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[boss_option])
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(1, 100, 100, [1], [], [])],
+                    bench=[],
+                    hand=[FakeHandCard(1000)],
+                    discard=[],
+                    prize=[1, 2],
+                ),
+                FakePlayerState(
+                    active=[FakePokemon(2, 100, 100, [], [], [])],
+                    bench=[FakePokemon(3, 100, 100, [], [], [])],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Flexible Attacker", cardType=0, hp=100, attacks=[99]),
+            2: FakeCardData(cardId=2, name="Single Prize Target", cardType=0, hp=100),
+            3: FakeCardData(cardId=3, name="Bench ex", cardType=0, hp=100, ex=True),
+            1000: FakeCardData(cardId=1000, name="Boss's Orders", cardType=3),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=120, energies=[1])}
+
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=[1] * 60)
+
+        self.assertEqual(features.prize_map.attack_count, 1)
+        self.assertEqual(features.prize_map.total_prizes, 2)
+        self.assertEqual(features.prize_map.steps[0].target_area, "BENCH")
+        self.assertEqual(features.plan.target_area, "BENCH")
+        self.assertIn(1, features.key_attackers)
+
+    def test_boss_play_is_boosted_when_prize_map_needs_bench_target(self):
+        from ptcg_abc.agent.rule_based import _make_features, _score_option
+
+        boss_option = FakeOption(7, area=2)
+        boss_option.index = 0
+        draw_option = FakeOption(7, area=2)
+        draw_option.index = 1
+        select = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[boss_option, draw_option])
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(1, 100, 100, [1], [], [])],
+                    bench=[],
+                    hand=[FakeHandCard(1000), FakeHandCard(1001)],
+                    discard=[],
+                    prize=[1, 2],
+                ),
+                FakePlayerState(
+                    active=[FakePokemon(2, 100, 100, [], [], [])],
+                    bench=[FakePokemon(3, 100, 100, [], [], [])],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Flexible Attacker", cardType=0, hp=100, attacks=[99]),
+            2: FakeCardData(cardId=2, name="Single Prize Target", cardType=0, hp=100),
+            3: FakeCardData(cardId=3, name="Bench ex", cardType=0, hp=100, ex=True),
+            1000: FakeCardData(cardId=1000, name="Boss's Orders", cardType=3),
+            1001: FakeCardData(cardId=1001, name="Draw Supporter", cardType=3),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=120, energies=[1])}
+
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=[1] * 60)
+
+        self.assertGreater(
+            _score_option(0, boss_option, select, features),
+            _score_option(1, draw_option, select, features),
+        )
+
+    def test_key_attackers_are_identified_from_deck_metadata_for_search(self):
+        select = FakeSelect(
+            type=1,
+            context=7,
+            minCount=1,
+            maxCount=1,
+            option=[
+                FakeOption(3, area=1),
+                FakeOption(3, area=1),
+            ],
+        )
+        select.option[0].index = 0
+        select.option[1].index = 1
+        select.deck = [FakeHandCard(10), FakeHandCard(20)]
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[], bench=[], hand=[], discard=[], prize=[1, 2, 3]),
+                FakePlayerState(
+                    active=[FakePokemon(30, 180, 180, [], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            10: FakeCardData(cardId=10, name="Low Damage Basic", cardType=0, hp=70, basic=True, attacks=[10]),
+            20: FakeCardData(cardId=20, name="Heavy Hitter ex", cardType=0, hp=220, basic=True, ex=True, attacks=[20]),
+            30: FakeCardData(cardId=30, name="Opponent ex", cardType=0, hp=180, ex=True),
+        }
+        attack_by_id = {
+            10: FakeAttack(attackId=10, damage=40, energies=[1]),
+            20: FakeAttack(attackId=20, damage=200, energies=[1, 1]),
+        }
+
+        self.assertEqual(
+            select_option_indices(
+                select,
+                current=current,
+                card_by_id=card_by_id,
+                attack_by_id=attack_by_id,
+                deck_ids=[10] * 30 + [20] * 30,
+            ),
+            [1],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
