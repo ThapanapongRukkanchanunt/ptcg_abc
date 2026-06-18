@@ -114,8 +114,8 @@ CARD_TYPE_NAMES = {
 
 MAIN_ACTION_PRIORITY = {
     "ATTACH": 0,
-    "EVOLVE": 10,
-    "ABILITY": 20,
+    "ABILITY": 10,
+    "EVOLVE": 20,
     "PLAY": 30,
     "ATTACK": 80,
     "RETREAT": 300,
@@ -302,6 +302,39 @@ def _attacks_for_pokemon(pokemon: Any, card_by_id: dict[int, Any], attack_by_id:
     return attacks
 
 
+def get_missing_energies(attached: list[int], cost: list[int]) -> list[int]:
+    attached_pool = list(attached)
+    colored_reqs = [r for r in cost if r > 0]
+    colorless_reqs = [r for r in cost if r == 0]
+    unsatisfied = []
+    for req in colored_reqs:
+        if req in attached_pool:
+            attached_pool.remove(req)
+        elif 10 in attached_pool:
+            attached_pool.remove(10)
+        else:
+            unsatisfied.append(req)
+    for req in colorless_reqs:
+        colorless_candidates = [e for e in attached_pool if e not in {1, 2, 3, 4, 5, 6, 7, 8}]
+        if colorless_candidates:
+            attached_pool.remove(colorless_candidates[0])
+        elif attached_pool:
+            attached_pool.remove(attached_pool[0])
+        else:
+            unsatisfied.append(0)
+    return unsatisfied
+
+
+def _get_missing_for_attacks(pokemon: Any, card_by_id: dict[int, Any], attack_by_id: dict[int, Any]) -> list[tuple[Any, list[int]]]:
+    attached = list(_get(pokemon, "energies", []) or [])
+    res = []
+    for attack in _attacks_for_pokemon(pokemon, card_by_id, attack_by_id):
+        cost = list(_get(attack, "energies", []) or [])
+        missing = get_missing_energies(attached, cost)
+        res.append((attack, missing))
+    return res
+
+
 def _min_attack_cost(pokemon: Any, card_by_id: dict[int, Any], attack_by_id: dict[int, Any]) -> int:
     costs = [_attack_cost(attack) for attack in _attacks_for_pokemon(pokemon, card_by_id, attack_by_id)]
     return min(costs) if costs else 99
@@ -320,8 +353,17 @@ def _can_attack_soon(
 ) -> bool:
     if pokemon is None:
         return False
-    energy_count = _energy_count(pokemon) + extra_energy
-    return any(_attack_cost(attack) <= energy_count for attack in _attacks_for_pokemon(pokemon, card_by_id, attack_by_id))
+    attached = list(_get(pokemon, "energies", []) or [])
+    if extra_energy > 0:
+        attached.extend([10] * extra_energy)
+    attacks = _attacks_for_pokemon(pokemon, card_by_id, attack_by_id)
+    if not attacks:
+        return False
+    for attack in attacks:
+        cost = list(_get(attack, "energies", []) or [])
+        if not get_missing_energies(attached, cost):
+            return True
+    return False
 
 
 def _prize_count(pokemon: Any, card_by_id: dict[int, Any], *, attack_damage: bool = True) -> int:
@@ -508,12 +550,62 @@ def _make_features(
     return features
 
 
+def _get_max_attachments_for_pokemon(pokemon: Any, features: BoardFeatures) -> tuple[int, list[int]]:
+    allowed = 0 if bool(_get(features.current, "energyAttached", False)) else 1
+    virtual_types = []
+    
+    # Check for Crispin in hand
+    has_supporter_played = bool(_get(features.current, "supporterPlayed", False))
+    if not has_supporter_played:
+        hand_cards = list(_get(features.my_state, "hand", []) or [])
+        hand_card_ids = [_card_id(hc) for hc in hand_cards]
+        if 1198 in hand_card_ids:
+            allowed += 1
+            virtual_types.extend([2, 5])  # Fire (2) and Psychic (5)
+            
+    # Check for active energy-attaching abilities on the board
+    for option in list(_get(features.select, "option", []) or []):
+        if _option_type_name(option) == "ABILITY":
+            ability_card = _get_card(features.select, features.current, _get(option, "area"), _get(option, "index"), features.my_index)
+            cdata = _card_data_for(ability_card, features.card_by_id)
+            if cdata is not None:
+                skills = " ".join(f"{_get(s, 'name', '')} {_get(s, 'text', '')}" for s in list(_get(cdata, "skills", []) or [])).casefold()
+                if "attach" in skills:
+                    can_use = True
+                    if "to this pok" in skills or "to itself" in skills or "teal dance" in skills:
+                        if ability_card is not pokemon and _card_id(ability_card) != _card_id(pokemon):
+                            can_use = False
+                    elif "to your benched" in skills or "to 1 of your benched" in skills:
+                        is_bench = False
+                        bench = list(_get(features.my_state, "bench", []) or [])
+                        if any(b is pokemon for b in bench):
+                            is_bench = True
+                        if not is_bench:
+                            can_use = False
+                    
+                    if can_use:
+                        allowed += 1
+                        
+    return allowed, virtual_types
+
+
+def _get_hand_energy_types(features: BoardFeatures) -> list[int]:
+    hand_cards = list(_get(features.my_state, "hand", []) or [])
+    types = []
+    for hc in hand_cards:
+        hc_id = _card_id(hc)
+        if hc_id is not None and _is_energy_card(hc_id, features.card_by_id):
+            hc_data = features.card_by_id.get(hc_id)
+            if hc_data is not None:
+                types.append(hc_data.energyType)
+    return types
+
+
 def _build_attack_plan(features: BoardFeatures) -> AttackPlan:
     plan = AttackPlan()
     if features.my_state is None or features.op_state is None:
         return plan
 
-    can_attach = not bool(_get(features.current, "energyAttached", False)) and features.hand_energy_count > 0
     legal_active_attack_ids = {
         int(_get(option, "attackId"))
         for option in list(_get(features.select, "option", []) or [])
@@ -528,15 +620,59 @@ def _build_attack_plan(features: BoardFeatures) -> AttackPlan:
     for area, attacker_index, attacker in own_pokemon:
         if attacker is None:
             continue
-        if area == "BENCH" and not features.can_switch:
-            continue
+        retreat_attachment_cost = 0
+        if area == "BENCH":
+            if not features.can_switch:
+                active_pk = _first_active(features.my_state)
+                if active_pk is not None:
+                    active_data = _card_data_for(active_pk, features.card_by_id)
+                    retreat_cost = int(_get(active_data, "retreatCost", 0) or 0)
+                    attached_energy_count = len(list(_get(active_pk, "energies", []) or []))
+                    retreat_attachment_cost = max(0, retreat_cost - attached_energy_count)
+                if retreat_attachment_cost <= 0:
+                    continue
         for attack in _attacks_for_pokemon(attacker, features.card_by_id, features.attack_by_id):
             attack_id = int(_get(attack, "attackId", -1))
-            cost = _attack_cost(attack)
-            energy_count = _energy_count(attacker)
-            needs_energy = energy_count < cost
-            if needs_energy and (not can_attach or energy_count + 1 < cost):
-                continue
+            cost = list(_get(attack, "energies", []) or [])
+            attached = list(_get(attacker, "energies", []) or [])
+            
+            missing = get_missing_energies(attached, cost)
+            if not missing:
+                needs_energy = False
+                if retreat_attachment_cost > 0:
+                    max_allowed, virtual_types = _get_max_attachments_for_pokemon(attacker, features)
+                    if retreat_attachment_cost > max_allowed or features.hand_energy_count < retreat_attachment_cost:
+                        continue
+                    needs_energy = True
+            else:
+                max_allowed, virtual_types = _get_max_attachments_for_pokemon(attacker, features)
+                total_needed = len(missing) + retreat_attachment_cost
+                if total_needed > max_allowed:
+                    continue
+                
+                hand_energy_types = _get_hand_energy_types(features) + virtual_types
+                if len(hand_energy_types) < total_needed:
+                    continue
+                
+                temp_missing = list(missing)
+                temp_hand = list(hand_energy_types)
+                possible = True
+                for req in list(temp_missing):
+                    matched = False
+                    for he_type in temp_hand:
+                        if req == 0 or he_type == req or he_type == 10:
+                            temp_missing.remove(req)
+                            temp_hand.remove(he_type)
+                            matched = True
+                            break
+                    if not matched:
+                        possible = False
+                        break
+                if not possible or len(temp_hand) < retreat_attachment_cost:
+                    continue
+                
+                needs_energy = True
+
             if area == "ACTIVE" and legal_active_attack_ids and attack_id not in legal_active_attack_ids:
                 continue
             for target_area, target_index, target in targets:
@@ -669,8 +805,24 @@ def _search_candidate_score(card: Any, features: BoardFeatures) -> float:
             score -= 3000
         return score
     if card_type in {"BASIC_ENERGY", "SPECIAL_ENERGY"}:
-        if features.plan.needs_energy:
-            return 7000
+        if features.plan.needs_energy and features.plan.attack_id != -1:
+            attacker = None
+            plan = features.plan
+            if plan.attacker_area == "ACTIVE":
+                attacker = _first_active(features.my_state)
+            elif plan.attacker_area == "BENCH":
+                bench = list(_get(features.my_state, "bench", []) or [])
+                if 0 <= plan.attacker_index < len(bench):
+                    attacker = bench[plan.attacker_index]
+            if attacker is not None:
+                attack = features.attack_by_id.get(plan.attack_id)
+                if attack is not None:
+                    cost = list(_get(attack, "energies", []) or [])
+                    attached = list(_get(attacker, "energies", []) or [])
+                    missing = get_missing_energies(attached, cost)
+                    energy_type = getattr(data, "energyType", 0)
+                    if any(req == 0 or energy_type == req or energy_type == 10 for req in missing):
+                        return 7000
         return 800 - features.hand_counts[card_id] * 200
     name = _card_name(card_id, features.card_by_id).casefold()
     if "boss" in name and features.plan.target_index > 0:
@@ -693,8 +845,24 @@ def _discard_candidate_score(card: Any, features: BoardFeatures) -> float:
     card_type = _card_type_name(data)
     if card_type in {"BASIC_ENERGY", "SPECIAL_ENERGY"}:
         score += 800
-        if features.plan.needs_energy:
-            score -= 3000
+        if features.plan.needs_energy and features.plan.attack_id != -1:
+            attacker = None
+            plan = features.plan
+            if plan.attacker_area == "ACTIVE":
+                attacker = _first_active(features.my_state)
+            elif plan.attacker_area == "BENCH":
+                bench = list(_get(features.my_state, "bench", []) or [])
+                if 0 <= plan.attacker_index < len(bench):
+                    attacker = bench[plan.attacker_index]
+            if attacker is not None:
+                attack = features.attack_by_id.get(plan.attack_id)
+                if attack is not None:
+                    cost = list(_get(attack, "energies", []) or [])
+                    attached = list(_get(attacker, "energies", []) or [])
+                    missing = get_missing_energies(attached, cost)
+                    energy_type = getattr(data, "energyType", 0)
+                    if any(req == 0 or energy_type == req or energy_type == 10 for req in missing):
+                        score -= 3000
     elif card_type == "POKEMON":
         if features.field_counts[card_id] == 0:
             score -= 2500
@@ -705,6 +873,43 @@ def _discard_candidate_score(card: Any, features: BoardFeatures) -> float:
     elif card_type == "ITEM":
         score += 1000
     return score
+
+
+def _is_energy_useful(energy_card: Any, pokemon: Any, features: BoardFeatures) -> bool:
+    card_id = _card_id(energy_card)
+    card_data = features.card_by_id.get(card_id) if card_id is not None else None
+    if card_data is None:
+        return False
+    energy_type = getattr(card_data, "energyType", 0)
+    
+    is_planned_attacker = False
+    plan = features.plan
+    if plan.attacker_area == "ACTIVE":
+        active = _first_active(features.my_state)
+        if active is not None and active is pokemon:
+            is_planned_attacker = True
+    elif plan.attacker_area == "BENCH":
+        bench = list(_get(features.my_state, "bench", []) or [])
+        if 0 <= plan.attacker_index < len(bench) and bench[plan.attacker_index] is pokemon:
+            is_planned_attacker = True
+            
+    if is_planned_attacker and plan.attack_id != -1:
+        attack = features.attack_by_id.get(plan.attack_id)
+        if attack is not None:
+            cost = list(_get(attack, "energies", []) or [])
+            attached = list(_get(pokemon, "energies", []) or [])
+            missing = get_missing_energies(attached, cost)
+            for req in missing:
+                if req == 0 or energy_type == req or energy_type == 10:
+                    return True
+            return False
+            
+    for attack, missing in _get_missing_for_attacks(pokemon, features.card_by_id, features.attack_by_id):
+        for req in missing:
+            if req == 0 or energy_type == req or energy_type == 10:
+                return True
+                
+    return False
 
 
 def _attach_score(card: Any, pokemon: Any, features: BoardFeatures, *, active: bool) -> float:
@@ -724,10 +929,14 @@ def _attach_score(card: Any, pokemon: Any, features: BoardFeatures, *, active: b
     if not _is_energy_card(card_id, features.card_by_id):
         return 8000
 
-    energy_count = _energy_count(pokemon)
-    min_cost = _min_attack_cost(pokemon, features.card_by_id, features.attack_by_id)
-    if min_cost == 99:
-        return 500
+    if not _is_energy_useful(card, pokemon, features):
+        return 100.0
+
+    missing_list = [len(missing) for attack, missing in _get_missing_for_attacks(pokemon, features.card_by_id, features.attack_by_id)]
+    if not missing_list:
+        return 500.0
+    min_missing = min(missing_list)
+
     score = 25000
     if active:
         score += 1000
@@ -741,10 +950,10 @@ def _attach_score(card: Any, pokemon: Any, features: BoardFeatures, *, active: b
                     score += 30000
             except IndexError:
                 pass
-    if energy_count < min_cost:
-        score += (min_cost - energy_count) * 3000
+    if min_missing > 0:
+        score += min_missing * 3000
     else:
-        score -= 12000 + (energy_count - min_cost) * 2000
+        score -= 12000
     if not features.active_ready and active:
         score += 5000
     if features.active_ready and not active:
@@ -818,7 +1027,91 @@ def _ability_score(option: Any, features: BoardFeatures) -> float:
     return score
 
 
+def _option_involves_pokemon(option: Any, select: Any, features: BoardFeatures, check_fn) -> bool:
+    option_name = _option_type_name(option)
+    
+    # 1. Check direct card referenced by area/index
+    area = _get(option, "area")
+    index = _get(option, "index")
+    if area is not None and index is not None:
+        player_index = _get(option, "playerIndex")
+        if player_index is None:
+            player_index = features.my_index
+        card = _get_card(select, features.current, area, index, player_index)
+        if card is not None:
+            card_data = _card_data_for(card, features.card_by_id)
+            if card_data is not None and check_fn(card_data):
+                return True
+                
+    # 2. Check inPlayArea/inPlayIndex (for ATTACH, EVOLVE)
+    in_play_area = _get(option, "inPlayArea")
+    in_play_index = _get(option, "inPlayIndex")
+    if in_play_area is not None and in_play_index is not None:
+        card = _get_card(select, features.current, in_play_area, in_play_index, features.my_index)
+        if card is not None:
+            card_data = _card_data_for(card, features.card_by_id)
+            if card_data is not None and check_fn(card_data):
+                return True
+                
+    # 3. Check Active Pokémon for ATTACK or RETREAT
+    if option_name in {"ATTACK", "RETREAT"}:
+        active = _first_active(features.my_state)
+        if active is not None:
+            card_data = _card_data_for(active, features.card_by_id)
+            if card_data is not None and check_fn(card_data):
+                return True
+
+    # 4. Check contextCard on select
+    context_card = _get(select, "contextCard")
+    if context_card is not None:
+        card_data = _card_data_for(context_card, features.card_by_id)
+        if card_data is not None and check_fn(card_data):
+            return True
+
+    return False
+
+
 def _score_option(index: int, option: Any, select: Any, features: BoardFeatures) -> float:
+    option_name = _option_type_name(option)
+    
+    # Original scoring logic first
+    score = _score_option_base(index, option, select, features)
+    
+    # Prevention rules check
+    if option_name not in {"END", "RETREAT", "EVOLVE", "DISCARD"}:
+        op_active = _first_active(features.op_state) if features.op_state is not None else None
+        if op_active is not None:
+            op_active_id = _card_id(op_active)
+            if op_active_id is not None:
+                # Helper predicates
+                def check_basic_ex(c):
+                    return _card_type_name(c) == "POKEMON" and bool(_get(c, "ex")) and bool(_get(c, "basic"))
+                
+                def check_ex(c):
+                    return _card_type_name(c) == "POKEMON" and bool(_get(c, "ex"))
+                    
+                def check_ability(c):
+                    return _card_type_name(c) == "POKEMON" and bool(_get(c, "skills"))
+
+                # Rule 1: Farigiraf ex (ID=83)
+                if op_active_id == 83:
+                    if _option_involves_pokemon(option, select, features, check_basic_ex):
+                        return 1.0
+
+                # Rule 2: Sylveon (ID=330) or Crustle (ID=345)
+                elif op_active_id in {330, 345}:
+                    if _option_involves_pokemon(option, select, features, check_ex):
+                        return 1.0
+
+                # Rule 3: Cornerstone Mask Ogerpon ex (ID=117)
+                elif op_active_id == 117:
+                    if _option_involves_pokemon(option, select, features, check_ability):
+                        return 1.0
+                        
+    return score
+
+
+def _score_option_base(index: int, option: Any, select: Any, features: BoardFeatures) -> float:
     option_name = _option_type_name(option)
     context_name = _select_context_name(select)
 
@@ -1003,6 +1296,29 @@ class RuleBasedAgent:
             for attack in self.attack_data
             if _get(attack, "attackId") is not None
         }
+
+        # Identify all types of attackers in the deck at the start of the game
+        basic_ex_attackers = []
+        ex_attackers = []
+        ability_attackers = []
+        for card_id in self.deck_ids:
+            card = self.card_by_id.get(card_id)
+            if card is not None and _card_type_name(card) == "POKEMON":
+                name = str(_get(card, "name", ""))
+                is_ex = bool(_get(card, "ex"))
+                is_basic = bool(_get(card, "basic"))
+                has_ability = bool(_get(card, "skills"))
+                if is_ex and is_basic:
+                    basic_ex_attackers.append(name)
+                if is_ex:
+                    ex_attackers.append(name)
+                if has_ability:
+                    ability_attackers.append(name)
+                    
+        print("Deck attackers identified:")
+        print(f"  Basic Pokemon ex: {sorted(list(set(basic_ex_attackers)))}")
+        print(f"  Pokemon ex: {sorted(list(set(ex_attackers)))}")
+        print(f"  Pokemon with Ability: {sorted(list(set(ability_attackers)))}")
 
     def act(self, observation: Any) -> list[int]:
         select = _get(observation, "select")

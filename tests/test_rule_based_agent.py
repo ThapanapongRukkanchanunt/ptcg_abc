@@ -88,6 +88,11 @@ class FakeFullCurrent:
     stadium: list | None = None
 
 
+@dataclass
+class FakeHandCard:
+    id: int
+
+
 class RuleBasedAgentTests(unittest.TestCase):
     def test_agent_returns_deck_for_initial_selection(self):
         deck = list(range(60))
@@ -194,6 +199,342 @@ class RuleBasedAgentTests(unittest.TestCase):
             ),
             [1],
         )
+
+    def test_prevention_rules(self):
+        deck = [1] * 20 + [2] * 20 + [3] * 20
+        card_data = [
+            FakeCardData(cardId=1, name="Pikachu ex", cardType=0, basic=True, ex=True),
+            FakeCardData(cardId=2, name="Charizard ex", cardType=0, stage2=True, ex=True),
+            FakeCardData(cardId=3, name="Pidgeot", cardType=0, stage2=True, skills=[FakeOption(10)]),
+        ]
+        agent = RuleBasedAgent(deck, card_data=card_data)
+        
+        select = FakeSelect(
+            type=0, context=0, minCount=1, maxCount=1,
+            option=[FakeOption(13)] # ATTACK
+        )
+        select.option[0].attackId = 99
+        
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[FakePokemon(1, 100, 100, [1], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+                FakePlayerState(active=[FakePokemon(83, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ]
+        )
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Pikachu ex", cardType=0, basic=True, ex=True, attacks=[99]),
+            83: FakeCardData(cardId=83, name="Farigiraf ex", cardType=0, basic=True, ex=True),
+            2: FakeCardData(cardId=2, name="Charizard ex", cardType=0, stage2=True, ex=True),
+            3: FakeCardData(cardId=3, name="Pidgeot", cardType=0, stage2=True, skills=[FakeOption(10)]),
+            330: FakeCardData(cardId=330, name="Sylveon", cardType=0, basic=True),
+            117: FakeCardData(cardId=117, name="Cornerstone Mask Ogerpon ex", cardType=0, basic=True, ex=True, skills=[FakeOption(10)]),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=50, energies=[1])}
+        
+        from ptcg_abc.agent.rule_based import _make_features, _score_option
+        features = _make_features(select, current, card_by_id, attack_by_id)
+        
+        score = _score_option(0, select.option[0], select, features)
+        self.assertEqual(score, 1.0)
+        
+        evolve_opt = FakeOption(9, area=2) # EVOLVE
+        evolve_opt.index = 0
+        evolve_opt.inPlayArea = 5
+        evolve_opt.inPlayIndex = 0
+        select_evolve = FakeSelect(type=7, context=37, minCount=1, maxCount=1, option=[evolve_opt])
+        current_evolve = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[], bench=[FakePokemon(1, 100, 100, [], [], [])], hand=[FakePokemon(2, 120, 120, [], [], [])], discard=[], prize=[1]),
+                FakePlayerState(active=[FakePokemon(83, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ]
+        )
+        features_evolve = _make_features(select_evolve, current_evolve, card_by_id, attack_by_id)
+        score_evolve = _score_option(0, evolve_opt, select_evolve, features_evolve)
+        self.assertGreater(score_evolve, 1.0)
+        
+        current_sylveon = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[FakePokemon(2, 100, 100, [1], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+                FakePlayerState(active=[FakePokemon(330, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ]
+        )
+        features_sylveon = _make_features(select, current_sylveon, card_by_id, attack_by_id)
+        score_sylveon = _score_option(0, select.option[0], select, features_sylveon)
+        self.assertEqual(score_sylveon, 1.0)
+        
+        current_ogerpon = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[FakePokemon(3, 100, 100, [1], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+                FakePlayerState(active=[FakePokemon(117, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ]
+        )
+        select_ability = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[FakeOption(13)])
+        select_ability.option[0].attackId = 99
+        features_ogerpon = _make_features(select_ability, current_ogerpon, card_by_id, attack_by_id)
+        score_ogerpon = _score_option(0, select_ability.option[0], select_ability, features_ogerpon)
+        self.assertEqual(score_ogerpon, 1.0)
+
+    def test_get_missing_energies(self):
+        from ptcg_abc.agent.rule_based import get_missing_energies
+        self.assertEqual(get_missing_energies([2], [2, 5]), [5])
+        self.assertEqual(get_missing_energies([2, 2], [2, 5]), [5])
+        self.assertEqual(get_missing_energies([2, 5], [2, 5]), [])
+        self.assertEqual(get_missing_energies([2, 10], [2, 5]), [])
+        self.assertEqual(get_missing_energies([2], [0]), [])
+        self.assertEqual(get_missing_energies([], [0]), [0])
+        self.assertEqual(get_missing_energies([2, 5], [2, 5, 0]), [0])
+        self.assertEqual(get_missing_energies([2, 5, 1], [2, 5, 0]), [])
+
+    def test_color_aware_energy_attaching(self):
+        from ptcg_abc.agent.rule_based import _make_features, _score_option
+        select = FakeSelect(
+            type=0, context=0, minCount=1, maxCount=1,
+            option=[
+                FakeOption(8, area=2), # ATTACH Fire Energy to active
+                FakeOption(8, area=2), # ATTACH Psychic Energy to active
+            ]
+        )
+        select.option[0].index = 0
+        select.option[0].inPlayArea = 4
+        select.option[0].inPlayIndex = 0
+        select.option[1].index = 1
+        select.option[1].inPlayArea = 4
+        select.option[1].inPlayIndex = 0
+        
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(1, 100, 100, [2], [], [])],
+                    bench=[],
+                    hand=[
+                        FakeHandCard(101),
+                        FakeHandCard(102),
+                    ],
+                    discard=[],
+                    prize=[1],
+                ),
+                FakePlayerState(active=[FakePokemon(2, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ]
+        )
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Dragapult ex", cardType=0, hp=100, attacks=[99]),
+            2: FakeCardData(cardId=2, name="Target", cardType=0, hp=100),
+            101: FakeCardData(cardId=101, name="Basic {R} Energy", cardType=5, energyType=2),
+            102: FakeCardData(cardId=102, name="Basic {P} Energy", cardType=5, energyType=5),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=100, energies=[2, 5])}
+        
+        features = _make_features(select, current, card_by_id, attack_by_id)
+        
+        score_fire = _score_option(0, select.option[0], select, features)
+        self.assertEqual(score_fire, 100.0)
+        
+        score_psychic = _score_option(1, select.option[1], select, features)
+        self.assertGreater(score_psychic, 100.0)
+
+    def test_ability_priority_over_evolve(self):
+        select = FakeSelect(
+            type=0,  # MAIN
+            context=0,
+            minCount=1,
+            maxCount=1,
+            option=[
+                FakeOption(9),  # EVOLVE
+                FakeOption(10), # ABILITY
+            ]
+        )
+        # Select options: since ABILITY is now priority 10 (base 9990) and EVOLVE is 20 (base 9980)
+        # select_option_indices should rank index 1 (ABILITY) higher than index 0 (EVOLVE)
+        indices = select_option_indices(select)
+        self.assertEqual(indices, [1])
+
+    def test_energy_acceleration_planning(self):
+        from ptcg_abc.agent.rule_based import _make_features
+        select = FakeSelect(
+            type=0, context=0, minCount=1, maxCount=1,
+            option=[FakeOption(14)] # END
+        )
+        
+        # Scenario A: Dragapult ex has 0 energy, and Crispin is in hand.
+        # We need Fire (2) and Psychic (5).
+        # Dynamic attachments allows: 1 manual + 1 Crispin = 2.
+        # This matches Fire (2) + Psychic (5) exactly because Crispin can search virtual types.
+        current_with_crispin = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(1, 100, 100, [], [], [])], # 0 energy
+                    bench=[],
+                    hand=[
+                        FakeHandCard(1198), # Crispin (ID 1198)
+                    ],
+                    discard=[],
+                    prize=[1],
+                ),
+                FakePlayerState(active=[FakePokemon(2, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ],
+            energyAttached=False,
+            supporterPlayed=False
+        )
+        
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Dragapult ex", cardType=0, hp=100, attacks=[99]),
+            2: FakeCardData(cardId=2, name="Target", cardType=0, hp=100),
+            1198: FakeCardData(cardId=1198, name="Crispin", cardType=3),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=100, energies=[2, 5])}
+        
+        features_with_crispin = _make_features(select, current_with_crispin, card_by_id, attack_by_id)
+        # The plan should successfully select Phantom Dive (attackId 99)
+        self.assertEqual(features_with_crispin.plan.attack_id, 99)
+        self.assertTrue(features_with_crispin.plan.needs_energy)
+        
+        # Scenario B: Dragapult ex has 0 energy, but Crispin is NOT in hand (only random trainer is in hand)
+        # Dynamic attachments only allows 1 manual. Phantom Dive needs 2, so it's not feasible.
+        current_without_crispin = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(1, 100, 100, [], [], [])],
+                    bench=[],
+                    hand=[
+                        FakeHandCard(999), # Some random trainer card
+                    ],
+                    discard=[],
+                    prize=[1],
+                ),
+                FakePlayerState(active=[FakePokemon(2, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ],
+            energyAttached=False,
+            supporterPlayed=False
+        )
+        card_by_id_no_crispin = {
+            1: FakeCardData(cardId=1, name="Dragapult ex", cardType=0, hp=100, attacks=[99]),
+            2: FakeCardData(cardId=2, name="Target", cardType=0, hp=100),
+            999: FakeCardData(cardId=999, name="Random Card", cardType=1),
+        }
+        
+        features_no_crispin = _make_features(select, current_without_crispin, card_by_id_no_crispin, attack_by_id)
+        # The plan should NOT choose Phantom Dive (attackId 99) because it's not powerable this turn
+        self.assertEqual(features_no_crispin.plan.attack_id, -1)
+
+    def test_active_retreat_cost_planning(self):
+        from ptcg_abc.agent.rule_based import _make_features
+        select = FakeSelect(
+            type=0, context=0, minCount=1, maxCount=1,
+            option=[FakeOption(14)] # END
+        )
+        # Active Dreepy (ID 119) with 0 energy attached, retreat cost 1.
+        # Benched Dragapult ex (ID 1) with 0 energy, needs 1 energy (Psychic 5) to attack.
+        # Hand has 1 Basic Psychic Energy card.
+        # Total needed is 2, but we only have 1 allowed manual attachment this turn.
+        # Dragapult ex should NOT be able to attack.
+        current_1_energy = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(119, 60, 60, [], [], [])],
+                    bench=[FakePokemon(1, 320, 320, [], [], [])],
+                    hand=[
+                        FakeHandCard(5), # Basic Psychic Energy
+                    ],
+                    discard=[],
+                    prize=[1],
+                ),
+                FakePlayerState(active=[FakePokemon(2, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ],
+            energyAttached=False,
+            supporterPlayed=False
+        )
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Dragapult ex", cardType=0, hp=320, attacks=[99]),
+            119: FakeCardData(cardId=119, name="Dreepy", cardType=0, hp=60, retreatCost=1),
+            2: FakeCardData(cardId=2, name="Target", cardType=0, hp=100),
+            5: FakeCardData(cardId=5, name="Basic Psychic Energy", cardType=5, energyType=5),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=100, energies=[5])}
+        
+        features_1_energy = _make_features(select, current_1_energy, card_by_id, attack_by_id)
+        self.assertEqual(features_1_energy.plan.attack_id, -1)
+        
+        # Benched Dragapult ex already has 1 energy attached (needs 0 to attack).
+        # Dreepy has 0 energy (needs 1 to retreat). Hand has 1 Basic Psychic Energy card.
+        # Total needed is 1 attachment (for retreat cost), which is allowed (1 allowed).
+        # Dragapult ex should be able to attack!
+        current_ready = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(119, 60, 60, [], [], [])],
+                    bench=[FakePokemon(1, 320, 320, [5], [], [])], # Dragapult has 1 attached Psychic
+                    hand=[
+                        FakeHandCard(5), # Basic Psychic Energy
+                    ],
+                    discard=[],
+                    prize=[1],
+                ),
+                FakePlayerState(active=[FakePokemon(2, 100, 100, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ],
+            energyAttached=False,
+            supporterPlayed=False
+        )
+        features_ready = _make_features(select, current_ready, card_by_id, attack_by_id)
+        self.assertEqual(features_ready.plan.attack_id, 99)
+        self.assertTrue(features_ready.plan.needs_energy)
+
+    def test_ability_target_restrictions(self):
+        from ptcg_abc.agent.rule_based import _get_max_attachments_for_pokemon
+        # Fake features
+        option = FakeOption(type=10, number=1, area=4) # ABILITY, active ogerpon
+        option.index = 0
+        select = FakeSelect(
+            type=0, context=0, minCount=1, maxCount=1,
+            option=[option]
+        )
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(96, 210, 210, [], [], [])],
+                    bench=[FakePokemon(1, 320, 320, [], [], [])],
+                    hand=[],
+                    discard=[],
+                    prize=[1],
+                ),
+                FakePlayerState(active=[], bench=[], hand=[], discard=[], prize=[]),
+            ],
+            energyAttached=False,
+            supporterPlayed=False
+        )
+        # Ogerpon ex has Teal Dance ability: "Once during your turn, you may attach a Basic Grass Energy card from your hand to this Pokémon..."
+        card_by_id = {
+            96: FakeCardData(
+                cardId=96, name="Teal Mask Ogerpon ex", cardType=0, hp=210,
+                skills=[{"name": "Teal Dance", "text": "Attach a Basic Grass Energy card from your hand to this Pokémon."}]
+            ),
+            1: FakeCardData(cardId=1, name="Dragapult ex", cardType=0, hp=320),
+        }
+        
+        # Create features manually
+        from ptcg_abc.agent.rule_based import _make_features
+        features = _make_features(select, current, card_by_id, {})
+        
+        # Active is Ogerpon ex (ID 96). Benched is Dragapult ex (ID 1).
+        active_pokemon = current.players[0].active[0]
+        bench_pokemon = current.players[0].bench[0]
+        
+        # Evaluating Ogerpon ex (ability-user itself): Teal Dance ability should be allowed!
+        allowed_self, _ = _get_max_attachments_for_pokemon(active_pokemon, features)
+        self.assertEqual(allowed_self, 2) # 1 manual + 1 ability = 2
+        
+        # Evaluating Dragapult ex (non ability-user): Teal Dance should NOT be allowed!
+        allowed_other, _ = _get_max_attachments_for_pokemon(bench_pokemon, features)
+        self.assertEqual(allowed_other, 1) # 1 manual only
 
 
 if __name__ == "__main__":
