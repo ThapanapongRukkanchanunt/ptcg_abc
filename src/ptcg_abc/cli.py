@@ -24,6 +24,14 @@ from ptcg_abc.corpus import (
     load_deck_corpus,
     write_deck_csv,
 )
+from ptcg_abc.evaluation import (
+    Phase3CloseoutResult,
+    choose_deck_from_best_archetype,
+    prepare_decks,
+    run_archetype_sweep,
+    run_random_evaluation,
+    write_closeout_reports,
+)
 from ptcg_abc.kaggle_api import KaggleCredentialsError, setup_kaggle_data
 from ptcg_abc.legal_cards import (
     choose_legal_card_candidate,
@@ -39,6 +47,7 @@ from ptcg_abc.limitless import (
     write_missing_report,
 )
 from ptcg_abc.simulator import run_battle_smoke
+from ptcg_abc.submission import build_submission_bundle
 
 
 def _path(value: str) -> Path:
@@ -219,6 +228,91 @@ def command_agent_smoke(args: argparse.Namespace) -> int:
     return 0 if result.started and result.error is None else 1
 
 
+def command_phase3_closeout(args: argparse.Namespace) -> int:
+    if not args.corpus.exists():
+        print(
+            f"Deck corpus not found at {args.corpus}. "
+            "Run `python -m ptcg_abc collect-corpus` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.card_data.exists():
+        print(
+            f"Kaggle card data not found at {args.card_data}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+
+    decks = load_deck_corpus(args.corpus)
+    lookup = load_card_id_lookup(args.card_data)
+    try:
+        prepared = prepare_decks(decks, lookup)
+    except (KeyError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if len({deck.archetype for deck in prepared}) < 2:
+        print("The corpus needs at least two archetypes for the Phase 3 sweep.", file=sys.stderr)
+        return 2
+
+    print(
+        f"Running archetype sweep: archetypes={len({deck.archetype for deck in prepared})} "
+        f"games_per_matchup={args.games_per_matchup} max_steps={args.max_steps}"
+    )
+    scores, matchups = run_archetype_sweep(
+        prepared,
+        sample_dir=args.sample_dir,
+        games_per_matchup=args.games_per_matchup,
+        max_steps=args.max_steps,
+    )
+    selected = choose_deck_from_best_archetype(prepared, scores, seed=args.seed)
+
+    print(
+        f"Testing selected archetype against random agent: "
+        f"{selected.archetype}, games={args.random_games}"
+    )
+    random_eval = run_random_evaluation(
+        selected,
+        sample_dir=args.sample_dir,
+        games=args.random_games,
+        max_steps=args.max_steps,
+        seed=args.seed,
+    )
+    submission = build_submission_bundle(
+        deck_ids=selected.card_ids,
+        sample_dir=args.sample_dir,
+        output_dir=args.output_dir,
+        tar_path=args.submission_tar,
+    )
+
+    result = Phase3CloseoutResult(
+        selected_archetype=selected.archetype,
+        selected_deck_index=selected.index,
+        selected_deck_label=selected.label,
+        submission_tar=str(submission.tar_path.as_posix()),
+        random_eval=random_eval,
+        archetype_scores=scores,
+        matchups=matchups,
+        games_per_matchup=args.games_per_matchup,
+        random_games=args.random_games,
+        max_steps=args.max_steps,
+        seed=args.seed,
+    )
+    write_closeout_reports(result, json_path=args.report_json, markdown_path=args.report_md)
+
+    print(json.dumps(result.to_dict(), indent=2))
+    print(f"Wrote submission bundle to {submission.tar_path}.")
+    print(f"Wrote closeout report to {args.report_md}.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ptcg-abc",
@@ -302,6 +396,47 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--max-steps", type=int, default=50)
     smoke.add_argument("--write-deck-csv", type=_path)
     smoke.set_defaults(func=command_agent_smoke)
+
+    closeout = subparsers.add_parser(
+        "phase3-closeout",
+        help="Run Phase 3 evaluation, select the final archetype/deck, and build submission.tar.gz.",
+    )
+    closeout.add_argument(
+        "--corpus",
+        type=_path,
+        default=PROCESSED_DIR / date.today().isoformat() / "deck_corpus.jsonl",
+    )
+    closeout.add_argument(
+        "--card-data",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "EN_Card_Data.csv",
+    )
+    closeout.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    closeout.add_argument("--games-per-matchup", type=int, default=10)
+    closeout.add_argument("--random-games", type=int, default=20)
+    closeout.add_argument("--max-steps", type=int, default=600)
+    closeout.add_argument("--seed", type=int, default=20260617)
+    closeout.add_argument("--output-dir", type=_path, default=Path("submissions") / "phase3")
+    closeout.add_argument(
+        "--submission-tar",
+        type=_path,
+        default=Path("submissions") / "phase3" / "submission.tar.gz",
+    )
+    closeout.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase3_closeout.json",
+    )
+    closeout.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase3_closeout.md",
+    )
+    closeout.set_defaults(func=command_phase3_closeout)
 
     return parser
 

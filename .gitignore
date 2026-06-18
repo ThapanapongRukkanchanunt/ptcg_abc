@@ -20,6 +20,7 @@ kaggle.json
 build/
 dist/
 *.egg-info/
+submissions/
 
 # Generated data
 data/kaggle/

@@ -1,0 +1,593 @@
+{
+  "selected_archetype": "Hydrapple ex",
+  "selected_deck_index": 20,
+  "selected_deck_label": "Hydrapple ex / All / Matias Matricardi 1st",
+  "submission_tar": "submissions/phase3/submission.tar.gz",
+  "random_eval": {
+    "games": 20,
+    "wins": 18,
+    "losses": 2,
+    "draws": 0,
+    "timeouts": 0,
+    "errors": 0,
+    "win_rate": 0.9
+  },
+  "archetype_scores": [
+    {
+      "archetype": "Hydrapple ex",
+      "games": 90,
+      "wins": 66,
+      "losses": 23,
+      "draws": 0,
+      "timeouts": 1,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 199,
+      "win_rate": 0.7333333333333333
+    },
+    {
+      "archetype": "Mega Lopunny ex",
+      "games": 90,
+      "wins": 63,
+      "losses": 27,
+      "draws": 0,
+      "timeouts": 0,
+      "prize_leads": 0,
+      "errors": 0,
+      "points": 189,
+      "win_rate": 0.7
+    },
+    {
+      "archetype": "Cynthia's Garchomp ex",
+      "games": 90,
+      "wins": 61,
+      "losses": 27,
+      "draws": 1,
+      "timeouts": 2,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 184,
+      "win_rate": 0.6777777777777778
+    },
+    {
+      "archetype": "Ogerpon Box",
+      "games": 90,
+      "wins": 54,
+      "losses": 34,
+      "draws": 1,
+      "timeouts": 2,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 163,
+      "win_rate": 0.6
+    },
+    {
+      "archetype": "Raging Bolt ex",
+      "games": 90,
+      "wins": 51,
+      "losses": 38,
+      "draws": 0,
+      "timeouts": 1,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 154,
+      "win_rate": 0.5666666666666667
+    },
+    {
+      "archetype": "Rocket's Mewtwo ex",
+      "games": 90,
+      "wins": 47,
+      "losses": 42,
+      "draws": 0,
+      "timeouts": 1,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 142,
+      "win_rate": 0.5222222222222223
+    },
+    {
+      "archetype": "Dragapult ex",
+      "games": 90,
+      "wins": 46,
+      "losses": 43,
+      "draws": 0,
+      "timeouts": 1,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 139,
+      "win_rate": 0.5111111111111111
+    },
+    {
+      "archetype": "Festival Lead",
+      "games": 90,
+      "wins": 27,
+      "losses": 63,
+      "draws": 0,
+      "timeouts": 0,
+      "prize_leads": 0,
+      "errors": 0,
+      "points": 81,
+      "win_rate": 0.3
+    },
+    {
+      "archetype": "Alakazam Powerful Hand",
+      "games": 90,
+      "wins": 15,
+      "losses": 65,
+      "draws": 2,
+      "timeouts": 10,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 46,
+      "win_rate": 0.16666666666666666
+    },
+    {
+      "archetype": "N's Zoroark ex",
+      "games": 90,
+      "wins": 10,
+      "losses": 78,
+      "draws": 0,
+      "timeouts": 2,
+      "prize_leads": 1,
+      "errors": 0,
+      "points": 31,
+      "win_rate": 0.1111111111111111
+    }
+  ],
+  "matchups": [
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Cynthia's Garchomp ex",
+      "games": 10,
+      "wins_a": 0,
+      "wins_b": 9,
+      "draws": 1,
+      "timeouts": 2,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Dragapult ex",
+      "games": 10,
+      "wins_a": 3,
+      "wins_b": 7,
+      "draws": 0,
+      "timeouts": 1,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Festival Lead",
+      "games": 10,
+      "wins_a": 3,
+      "wins_b": 7,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Hydrapple ex",
+      "games": 10,
+      "wins_a": 0,
+      "wins_b": 10,
+      "draws": 0,
+      "timeouts": 1,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Mega Lopunny ex",
+      "games": 10,
+      "wins_a": 0,
+      "wins_b": 10,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "N's Zoroark ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 2,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 0,
+      "wins_b": 9,
+      "draws": 1,
+      "timeouts": 2,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 1,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Alakazam Powerful Hand",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 1,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Dragapult ex",
+      "games": 10,
+      "wins_a": 6,
+      "wins_b": 4,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Festival Lead",
+      "games": 10,
+      "wins_a": 9,
+      "wins_b": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Hydrapple ex",
+      "games": 10,
+      "wins_a": 3,
+      "wins_b": 7,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Mega Lopunny ex",
+      "games": 10,
+      "wins_a": 6,
+      "wins_b": 4,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "N's Zoroark ex",
+      "games": 10,
+      "wins_a": 10,
+      "wins_b": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 7,
+      "wins_b": 3,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Cynthia's Garchomp ex",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 4,
+      "wins_b": 6,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "Festival Lead",
+      "games": 10,
+      "wins_a": 10,
+      "wins_b": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "Hydrapple ex",
+      "games": 10,
+      "wins_a": 2,
+      "wins_b": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "Mega Lopunny ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "N's Zoroark ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 2,
+      "wins_b": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 5,
+      "wins_b": 5,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Dragapult ex",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Festival Lead",
+      "archetype_b": "Hydrapple ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Festival Lead",
+      "archetype_b": "Mega Lopunny ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Festival Lead",
+      "archetype_b": "N's Zoroark ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Festival Lead",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 2,
+      "wins_b": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Festival Lead",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 5,
+      "wins_b": 5,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Festival Lead",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 2,
+      "wins_b": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Hydrapple ex",
+      "archetype_b": "Mega Lopunny ex",
+      "games": 10,
+      "wins_a": 4,
+      "wins_b": 6,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Hydrapple ex",
+      "archetype_b": "N's Zoroark ex",
+      "games": 10,
+      "wins_a": 10,
+      "wins_b": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Hydrapple ex",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 6,
+      "wins_b": 4,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Hydrapple ex",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 4,
+      "wins_b": 6,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Hydrapple ex",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 9,
+      "wins_b": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Mega Lopunny ex",
+      "archetype_b": "N's Zoroark ex",
+      "games": 10,
+      "wins_a": 9,
+      "wins_b": 1,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Mega Lopunny ex",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 5,
+      "wins_b": 5,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Mega Lopunny ex",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Mega Lopunny ex",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 10,
+      "wins_b": 0,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "N's Zoroark ex",
+      "archetype_b": "Ogerpon Box",
+      "games": 10,
+      "wins_a": 2,
+      "wins_b": 8,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "N's Zoroark ex",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "N's Zoroark ex",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 1,
+      "wins_b": 9,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Ogerpon Box",
+      "archetype_b": "Raging Bolt ex",
+      "games": 10,
+      "wins_a": 4,
+      "wins_b": 6,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Ogerpon Box",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 6,
+      "wins_b": 4,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    },
+    {
+      "archetype_a": "Raging Bolt ex",
+      "archetype_b": "Rocket's Mewtwo ex",
+      "games": 10,
+      "wins_a": 8,
+      "wins_b": 2,
+      "draws": 0,
+      "timeouts": 0,
+      "errors": 0
+    }
+  ],
+  "games_per_matchup": 10,
+  "random_games": 20,
+  "max_steps": 600,
+  "seed": 20260617
+}

@@ -32,6 +32,62 @@ class FakeObservation:
     current: FakeCurrent | None = None
 
 
+@dataclass
+class FakeCardData:
+    cardId: int
+    name: str
+    cardType: int
+    retreatCost: int = 0
+    hp: int = 0
+    weakness: int | None = None
+    resistance: int | None = None
+    energyType: int = 0
+    basic: bool = False
+    stage1: bool = False
+    stage2: bool = False
+    ex: bool = False
+    megaEx: bool = False
+    evolvesFrom: str | None = None
+    skills: list | None = None
+    attacks: list[int] | None = None
+
+
+@dataclass
+class FakeAttack:
+    attackId: int
+    damage: int
+    energies: list[int]
+
+
+@dataclass
+class FakePokemon:
+    id: int
+    hp: int
+    maxHp: int
+    energies: list[int]
+    energyCards: list
+    tools: list
+
+
+@dataclass
+class FakePlayerState:
+    active: list
+    bench: list
+    hand: list
+    discard: list
+    prize: list
+    deckCount: int = 40
+
+
+@dataclass
+class FakeFullCurrent:
+    yourIndex: int
+    players: list[FakePlayerState]
+    energyAttached: bool = False
+    supporterPlayed: bool = False
+    stadium: list | None = None
+
+
 class RuleBasedAgentTests(unittest.TestCase):
     def test_agent_returns_deck_for_initial_selection(self):
         deck = list(range(60))
@@ -93,6 +149,51 @@ class RuleBasedAgentTests(unittest.TestCase):
         )
 
         self.assertEqual(select_option_indices(select), [1])
+
+    def test_metadata_scoring_prefers_ko_attack(self):
+        select = FakeSelect(
+            type=0,
+            context=0,
+            minCount=1,
+            maxCount=1,
+            option=[FakeOption(14), FakeOption(13)],
+        )
+        select.option[1].attackId = 99
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(1, 100, 100, [1], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3],
+                ),
+                FakePlayerState(
+                    active=[FakePokemon(2, 50, 50, [], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            1: FakeCardData(cardId=1, name="Attacker", cardType=0, hp=100, attacks=[99]),
+            2: FakeCardData(cardId=2, name="Target ex", cardType=0, hp=50, ex=True),
+        }
+        attack_by_id = {99: FakeAttack(attackId=99, damage=60, energies=[1])}
+
+        self.assertEqual(
+            select_option_indices(
+                select,
+                current=current,
+                card_by_id=card_by_id,
+                attack_by_id=attack_by_id,
+            ),
+            [1],
+        )
 
 
 if __name__ == "__main__":

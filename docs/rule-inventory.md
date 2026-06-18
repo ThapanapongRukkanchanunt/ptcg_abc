@@ -17,7 +17,9 @@ Kaggle example agents and worth considering next.
 
 ## Current Implemented Rules
 
-These rules are implemented in `RuleBasedAgent` and `select_option_indices`.
+These rules are implemented in `RuleBasedAgent` and `select_option_indices`. The
+Phase 3 closeout agent uses card metadata when it is available from Kaggle's
+`all_card_data()` and `all_attack()` APIs.
 
 1. Initial deck selection
    - If `obs.select` is `None`, return the configured 60-card deck ID list.
@@ -61,10 +63,51 @@ These rules are implemented in `RuleBasedAgent` and `select_option_indices`.
 11. Determinism
     - Ties fall back to the original option order, so the policy is deterministic.
 
-## Learned Rule Families From Kaggle Examples
+12. Metadata-backed scoring
+    - When metadata is available, score every legal option and select the highest
+      scoring legal choices rather than relying only on fixed priority order.
 
-These rules are not yet implemented in the generic baseline. They are reusable patterns
-learned from the four example agents.
+13. Board feature extraction
+    - Count cards across field, hand, discard, and field-plus-hand.
+    - Track active attacker readiness, bench attacker readiness, hand energy count,
+      stadium state, supporter state, deck count, and current prize counts.
+
+14. Attack planning
+    - Estimate the best current attack plan from active and switchable benched Pokemon.
+    - Use attack damage, energy cost, weakness, resistance, knockout potential, and
+      prize value.
+    - Reuse the attack plan to guide attachment, retreat, Boss-like plays, target
+      selection, and attack choice.
+
+15. Prize-aware target value
+    - Value knockouts by prize count, ex/Mega ex status, attached energy, tools,
+      evolution stage, and remaining HP.
+    - Account for known prize modifiers such as Legacy Energy and Lillie's Pearl.
+
+16. Setup and search
+    - Prefer missing core Pokemon over duplicates.
+    - Prefer evolution targets when the matching previous stage is already in play.
+    - Penalize extra copies when enough are already in field or hand.
+
+17. Energy attachment
+    - Prefer attachments that complete the planned attack.
+    - Prefer powering a next attacker when the active Pokemon can already attack.
+    - Penalize over-attaching beyond useful attack requirements.
+
+18. Retreat and switch
+    - Retreat only when a better benched attacker is ready or the stored attack plan
+      requires a bench attacker.
+
+19. Draw, recovery, and discard
+    - Restrict deck-search/draw effects when deck count is low.
+    - Use recovery effects only when discard contains useful Pokemon or Energy.
+    - Prefer discarding duplicates and low-value cards while protecting current plans.
+
+## Rule Families Learned From Kaggle Examples
+
+These are reusable patterns learned from the four example agents. The Phase 3 closeout
+agent implements the generic versions; deck-specific card IDs and exact combo scripts
+remain intentionally out of scope.
 
 ### Board Feature Extraction
 
@@ -169,11 +212,9 @@ learned from the four example agents.
 - Use knockout detection to raise the value of comeback cards such as draw or stamp
   effects.
 
-## Recommended Next Implementation Order
+## Phase 4 Follow-Up Ideas
 
-1. Add card metadata helpers and `get_card`.
-2. Add board feature extraction: counts, active/bench attackers, stadium, prize counts.
-3. Replace fixed priority ordering with score-based option evaluation.
-4. Add generic prize mapping and target value.
-5. Add generic attack planning for damage, weakness, resistance, and energy readiness.
-6. Add setup, attachment, retreat, search, discard, and draw-conservation rules.
+1. Add more game-state logging around the score assigned to each legal option.
+2. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
+3. Train or tune weights for setup, attachment, attack, and target scoring.
+4. Add deck-specific override profiles only after a generic learned baseline exists.

@@ -8,8 +8,8 @@ This is the resume point for the project. Start here after switching machines, c
 - Active branch: `main`
 - Selected Limitless format: `TEF-POR`
 - Kaggle legal-card source: `EN_Card_Data.csv`
-- Latest completed checkpoint: Phase 3 baseline smoke
-- Next phase checkpoint: Phase 3 rule-quality improvements
+- Latest completed phase: Phase 3, generic rule-based agent and Kaggle submission bundle
+- Next phase: Phase 4, reinforcement learning workflow
 
 ## Phase Log
 
@@ -18,7 +18,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 0: Repo setup | Complete | GitHub repo initialized with README, `.gitignore`, and implementation plan. |
 | Phase 1: Kaggle legality and format selection | Complete | Kaggle card data extracted, Limitless format set to `TEF-POR`, missing-card report shows 0 missing names. |
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
-| Phase 3: Generic rule-based agent | In progress | First runnable baseline added with corpus-to-card-ID conversion, deterministic option selection, and `agent-smoke`. |
+| Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Deferred | Start only after the rule-based baseline and evaluation harness are stable. |
 | Phase 5: Deck-building experiments | Deferred | Wildcard/search-based deck construction ideas stay parked until baseline play exists. |
 
@@ -101,14 +101,27 @@ Representative commit:
 - Added the first deck-agnostic rule selector.
 - Added `agent-smoke` to run two corpus decks in the local Kaggle sample simulator.
 - Detailed checkpoint: `docs/phase-3-baseline.md`
+- Added combined score-based generic rule agent.
+- Added random-agent evaluation and archetype matchup sweep.
+- Selected final archetype: `Hydrapple ex`.
+- Selected final deck index: `20`.
+- Built local Kaggle submission bundle: `submissions/phase3/submission.tar.gz`.
+- Detailed conclusion: `docs/phase-3-conclusion.md`
+- Full closeout report: `reports/phase3_closeout.md`
 
 Current smoke result:
 
 - Selected decks: first two Dragapult ex corpus decks.
 - Ambiguous selected names: `Dunsparce` maps to card IDs 65 and 305; current policy chooses 65.
 - Simulator start: successful.
-- Selections completed: 50.
+- Match finished in 19 selections.
 - Engine error: none.
+
+Closeout result:
+
+- Random-agent mirror evaluation: 18 wins, 2 losses, 0 draws, 0 errors.
+- Archetype sweep winner: `Hydrapple ex` with 199 points and 0.733 win rate.
+- Generated submission bundle: `submissions/phase3/submission.tar.gz`.
 
 ## Recreate Local State From A Clean Checkout
 
@@ -148,6 +161,12 @@ python -m unittest discover -s tests
 python -m ptcg_abc agent-smoke --max-steps 50
 ```
 
+7. Rebuild the Phase 3 submission bundle:
+
+```powershell
+python -m ptcg_abc phase3-closeout
+```
+
 If `python` is not on PATH in the Codex desktop workspace, use the bundled Python path from the app's workspace dependencies.
 
 ## Important Files
@@ -159,28 +178,29 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-1-conclusion.md`: legality and format-selection conclusion.
 - `docs/phase-2-conclusion.md`: deck-corpus export conclusion.
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
+- `docs/phase-3-conclusion.md`: Phase 3 final rule agent, evaluation, and submission conclusion.
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
+- `reports/phase3_closeout.md`: final Phase 3 evaluation report.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
 
 ## Next Phase Entry Point
 
-Continue Phase 3 by improving the generic rule-based agent baseline.
+Start Phase 4 by adding reinforcement learning workflow experiments.
 
-Completed first slice:
+Phase 3 completed:
 
 - Load `deck_corpus.jsonl` records.
 - Convert Limitless deck names to Kaggle numeric card IDs.
 - Add a Kaggle sample-simulator adapter.
 - Implement first deck-agnostic action heuristics.
 - Add a local smoke command.
+- Add combined score-based rule agent.
+- Add random-agent evaluation.
+- Run 10-game archetype matchup sweep.
+- Select final archetype and deck.
+- Build Kaggle submission bundle.
 
-Next useful slice:
-
-- Use `docs/rule-inventory.md` as the source list of current and candidate rules.
-- Add card/attack metadata helpers.
-- Use attack damage and energy requirements when choosing attacks.
-- Improve setup, benching, attachment, and evolution targets.
-- Start tracking prize and knockout plans.
-- Keep reinforcement learning out of scope until the rule-based baseline is runnable and measurable.
+Phase 4 should keep the Phase 3 rule agent as a fixed baseline opponent while building
+state/action/reward traces and training loops.
