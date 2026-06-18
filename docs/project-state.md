@@ -180,6 +180,7 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
 - `docs/phase-3-conclusion.md`: Phase 3 final rule agent, evaluation, and submission conclusion.
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
+- `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
 - `reports/phase3_closeout.md`: final Phase 3 evaluation report.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
