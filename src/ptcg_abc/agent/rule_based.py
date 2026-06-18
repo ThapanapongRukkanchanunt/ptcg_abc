@@ -520,6 +520,28 @@ class CandidateAttack:
 
 
 @dataclass
+class RuleDecisionTrace:
+    turn: int
+    player_index: int
+    select_type: str
+    context: str
+    selected_options: list[dict[str, Any]]
+    prize_map: dict[str, Any]
+    key_attackers: list[dict[str, Any]]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "turn": self.turn,
+            "player_index": self.player_index,
+            "select_type": self.select_type,
+            "context": self.context,
+            "selected_options": self.selected_options,
+            "prize_map": self.prize_map,
+            "key_attackers": self.key_attackers,
+        }
+
+
+@dataclass
 class BoardFeatures:
     select: Any
     current: Any
@@ -1690,6 +1712,132 @@ def _fallback_sort_key(index: int, option: Any, select: Any, current: Any) -> tu
     return (priority, side_bonus, numeric, active_bonus, index)
 
 
+def _card_trace(card: Any, features: BoardFeatures) -> dict[str, Any] | None:
+    card_id = _card_id(card)
+    if card_id is None:
+        return None
+    return {"id": card_id, "name": _card_name(card_id, features.card_by_id)}
+
+
+def _option_trace(index: int, option: Any, select: Any, features: BoardFeatures, score: float) -> dict[str, Any]:
+    option_name = _option_type_name(option)
+    trace: dict[str, Any] = {
+        "index": index,
+        "type": option_name,
+        "score": round(float(score), 3),
+    }
+    card = None
+    if option_name == "PLAY":
+        card = _get_card(select, features.current, "HAND", _get(option, "index"), features.my_index)
+    elif option_name == "ATTACH":
+        card = _get_card(select, features.current, _get(option, "area"), _get(option, "index"), features.my_index)
+        target = _get_card(
+            select,
+            features.current,
+            _get(option, "inPlayArea"),
+            _get(option, "inPlayIndex"),
+            features.my_index,
+        )
+        target_trace = _card_trace(target, features)
+        if target_trace is not None:
+            trace["target"] = target_trace
+    elif option_name == "EVOLVE":
+        card = _get_card(select, features.current, _get(option, "area"), _get(option, "index"), features.my_index)
+        target = _get_card(
+            select,
+            features.current,
+            _get(option, "inPlayArea"),
+            _get(option, "inPlayIndex"),
+            features.my_index,
+        )
+        target_trace = _card_trace(target, features)
+        if target_trace is not None:
+            trace["target"] = target_trace
+    elif option_name == "CARD":
+        card = _get_card(
+            select,
+            features.current,
+            _get(option, "area"),
+            _get(option, "index"),
+            _get(option, "playerIndex"),
+        )
+        trace["area"] = _area_name(_get(option, "area"))
+        player_index = _int_or_none(_get(option, "playerIndex"))
+        if player_index is not None:
+            trace["player_index"] = player_index
+    elif option_name == "ATTACK":
+        attack_id = _int_or_none(_get(option, "attackId"))
+        trace["attack_id"] = attack_id
+        attack = features.attack_by_id.get(attack_id) if attack_id is not None else None
+        if attack is not None:
+            trace["attack_damage"] = _attack_damage(attack)
+    elif option_name == "NUMBER":
+        trace["number"] = _get(option, "number")
+
+    card_trace = _card_trace(card, features)
+    if card_trace is not None:
+        trace["card"] = card_trace
+    return trace
+
+
+def _prize_step_trace(step: PrizeMapStep, features: BoardFeatures) -> dict[str, Any]:
+    return {
+        "attacker": {
+            "id": step.attacker_card_id,
+            "name": _card_name(step.attacker_card_id, features.card_by_id),
+            "area": step.attacker_area,
+            "index": step.attacker_index,
+        },
+        "attack_id": step.attack_id,
+        "target": {
+            "id": step.target_card_id,
+            "name": _card_name(step.target_card_id, features.card_by_id),
+            "area": step.target_area,
+            "index": step.target_index,
+        },
+        "prizes_taken": step.prizes_taken,
+        "damage": step.damage,
+        "needs_boss": step.needs_boss,
+        "needs_switch": step.needs_switch,
+        "needs_energy": step.needs_energy,
+        "setup_cost": round(step.setup_cost, 3),
+        "score": round(step.score, 3),
+    }
+
+
+def _decision_trace(
+    select: Any,
+    features: BoardFeatures,
+    scores: list[float],
+    output: list[int],
+) -> RuleDecisionTrace:
+    selected_options = [
+        _option_trace(index, list(_get(select, "option", []) or [])[index], select, features, scores[index])
+        for index in output
+        if 0 <= index < len(scores)
+    ]
+    prize_map = {
+        "total_prizes": features.prize_map.total_prizes,
+        "attack_count": features.prize_map.attack_count,
+        "setup_cost": round(features.prize_map.setup_cost, 3),
+        "score": round(features.prize_map.score, 3),
+        "steps": [_prize_step_trace(step, features) for step in features.prize_map.steps[:3]],
+    }
+    key_attackers = [
+        {"id": card_id, "name": _card_name(card_id, features.card_by_id)}
+        for card_id in sorted(features.key_attackers)
+    ]
+    return RuleDecisionTrace(
+        turn=int(_get(features.current, "turn", 0) or 0),
+        player_index=features.my_index,
+        select_type=_select_type_name(select),
+        context=_select_context_name(select),
+        selected_options=selected_options,
+        prize_map=prize_map,
+        key_attackers=key_attackers,
+    )
+
+
 def select_option_indices(
     select: Any,
     *,
@@ -1697,6 +1845,8 @@ def select_option_indices(
     card_by_id: dict[int, Any] | None = None,
     attack_by_id: dict[int, Any] | None = None,
     deck_ids: Sequence[int] = (),
+    trace_sink: list[RuleDecisionTrace] | None = None,
+    trace_limit: int = 0,
 ) -> list[int]:
     options = list(_get(select, "option", []) or [])
     if not options:
@@ -1724,6 +1874,8 @@ def select_option_indices(
                 break
             if len(output) < min_count or context_name not in OPTIONAL_POSITIVE_CONTEXTS or scores[index] > 0:
                 output.append(index)
+        if trace_sink is not None and (trace_limit <= 0 or len(trace_sink) < trace_limit):
+            trace_sink.append(_decision_trace(select, features, scores, output))
         return output
 
     ranked = sorted(
@@ -1738,6 +1890,8 @@ class RuleBasedAgent:
     deck_ids: Sequence[int]
     card_data: Sequence[Any] = ()
     attack_data: Sequence[Any] = ()
+    trace: list[RuleDecisionTrace] | None = None
+    trace_limit: int = 0
     card_by_id: dict[int, Any] = field(init=False, default_factory=dict)
     attack_by_id: dict[int, Any] = field(init=False, default_factory=dict)
 
@@ -1786,4 +1940,6 @@ class RuleBasedAgent:
             card_by_id=self.card_by_id,
             attack_by_id=self.attack_by_id,
             deck_ids=self.deck_ids,
+            trace_sink=self.trace,
+            trace_limit=self.trace_limit,
         )

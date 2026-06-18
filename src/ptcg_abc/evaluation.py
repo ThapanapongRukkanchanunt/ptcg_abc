@@ -132,11 +132,29 @@ class SampleDragapultBenchmarkRow:
 
 
 @dataclass
+class SampleDragapultDebugGame:
+    deck_index: int
+    deck_label: str
+    archetype: str
+    game_index: int
+    outcome: str
+    our_player_index: int
+    steps: int
+    prize_counts: tuple[int, int] | None
+    error: str | None
+    trace: list[dict[str, Any]]
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
 class SampleDragapultBenchmarkResult:
     sample_deck_label: str
     games_per_deck: int
     max_steps: int
     rows: list[SampleDragapultBenchmarkRow]
+    debug_games: list[SampleDragapultDebugGame] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -144,6 +162,7 @@ class SampleDragapultBenchmarkResult:
             "games_per_deck": self.games_per_deck,
             "max_steps": self.max_steps,
             "rows": [row.to_dict() for row in self.rows],
+            "debug_games": [game.to_dict() for game in self.debug_games],
         }
 
 
@@ -375,9 +394,22 @@ def _load_sample_dragapult_module(sample_dir: Path):
         sys.path = previous_path
 
 
-def _quiet_rule_agent(deck_ids: list[int], card_data: list[Any], attack_data: list[Any]) -> RuleBasedAgent:
+def _quiet_rule_agent(
+    deck_ids: list[int],
+    card_data: list[Any],
+    attack_data: list[Any],
+    *,
+    trace: list[Any] | None = None,
+    trace_limit: int = 0,
+) -> RuleBasedAgent:
     with contextlib.redirect_stdout(io.StringIO()):
-        return RuleBasedAgent(deck_ids, card_data=card_data, attack_data=attack_data)
+        return RuleBasedAgent(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            trace=trace,
+            trace_limit=trace_limit,
+        )
 
 
 def run_sample_dragapult_benchmark(
@@ -386,11 +418,14 @@ def run_sample_dragapult_benchmark(
     sample_dir: Path,
     games_per_deck: int = 10,
     max_steps: int = 600,
+    debug_limit_per_deck: int = 2,
+    trace_limit: int = 80,
 ) -> SampleDragapultBenchmarkResult:
     card_data, attack_data = load_engine_metadata(sample_dir)
     sample_module = _load_sample_dragapult_module(sample_dir)
     sample_deck = list(sample_module.SAMPLE_DRAGAPULT_DECK)
     rows: list[SampleDragapultBenchmarkRow] = []
+    debug_games: list[SampleDragapultDebugGame] = []
 
     for prepared in prepared_decks:
         row = SampleDragapultBenchmarkRow(
@@ -399,10 +434,18 @@ def run_sample_dragapult_benchmark(
             archetype=prepared.archetype,
             games=games_per_deck,
         )
+        kept_debug_games = 0
         for game_index in range(games_per_deck):
             our_is_player0 = game_index % 2 == 0
+            trace = []
             sample_agent = sample_module.SampleDragapultAgent()
-            rule_agent = _quiet_rule_agent(prepared.card_ids, card_data, attack_data)
+            rule_agent = _quiet_rule_agent(
+                prepared.card_ids,
+                card_data,
+                attack_data,
+                trace=trace,
+                trace_limit=trace_limit,
+            )
             result = run_battle(
                 prepared.card_ids if our_is_player0 else sample_deck,
                 sample_deck if our_is_player0 else prepared.card_ids,
@@ -413,25 +456,53 @@ def run_sample_dragapult_benchmark(
                 attack_data=attack_data,
                 max_steps=max_steps,
             )
+            timeout = False
+            outcome = "draw"
             if result.error:
                 row.errors += 1
                 row.draws += 1
+                outcome = "error"
             else:
                 if result.winner is None:
                     if not result.finished:
                         row.timeouts += 1
+                        timeout = True
                     effective_winner = result.leader
                 else:
                     effective_winner = result.winner
 
                 if effective_winner is None:
                     row.draws += 1
+                    outcome = "timeout_draw" if timeout else "draw"
                 elif (effective_winner == 0 and our_is_player0) or (
                     effective_winner == 1 and not our_is_player0
                 ):
                     row.wins += 1
+                    outcome = "win"
                 else:
                     row.losses += 1
+                    outcome = "timeout_loss" if timeout else "loss"
+
+            if (
+                debug_limit_per_deck > 0
+                and kept_debug_games < debug_limit_per_deck
+                and outcome in {"loss", "timeout_loss", "timeout_draw", "error"}
+            ):
+                debug_games.append(
+                    SampleDragapultDebugGame(
+                        deck_index=prepared.index,
+                        deck_label=prepared.label,
+                        archetype=prepared.archetype,
+                        game_index=game_index + 1,
+                        outcome=outcome,
+                        our_player_index=0 if our_is_player0 else 1,
+                        steps=result.steps,
+                        prize_counts=result.prize_counts,
+                        error=result.error,
+                        trace=[entry.to_dict() for entry in trace],
+                    )
+                )
+                kept_debug_games += 1
         row.win_rate = row.wins / row.games if row.games else 0.0
         rows.append(row)
 
@@ -440,6 +511,7 @@ def run_sample_dragapult_benchmark(
         games_per_deck=games_per_deck,
         max_steps=max_steps,
         rows=rows,
+        debug_games=debug_games,
     )
 
 
@@ -479,4 +551,140 @@ def write_sample_dragapult_benchmark_report(
     )
     for row in result.rows:
         lines.append(f"| {row.deck_index} | {row.deck_label} |")
+
+    if result.debug_games:
+        lines.extend(
+            [
+                "",
+                "## Debug Samples",
+                "",
+                "These are compact traces from early losses, timeouts, or errors. They show the rule "
+                "agent's selected option and the first prize-map route it was trying to serve.",
+                "",
+            ]
+        )
+        for game in result.debug_games:
+            lines.extend(
+                [
+                    f"### Deck {game.deck_index}, game {game.game_index}: {game.outcome}",
+                    "",
+                    f"- Label: `{game.deck_label}`",
+                    f"- Our player index: {game.our_player_index}",
+                    f"- Steps: {game.steps}",
+                    f"- Prize counts: `{game.prize_counts}`",
+                ]
+            )
+            if game.error:
+                lines.append(f"- Error: `{game.error}`")
+            lines.extend(
+                [
+                    "",
+                    "| Turn | Context | Selected | Prize map | Key attackers |",
+                    "| ---: | --- | --- | --- | --- |",
+                ]
+            )
+            interesting = [
+                entry
+                for entry in game.trace
+                if entry["prize_map"]["steps"]
+                or entry["context"] in {"MAIN", "ATTACK", "TO_ACTIVE", "SWITCH", "TO_HAND"}
+            ][:10]
+            for entry in interesting:
+                selected = "; ".join(
+                    f"{option['type']}#{option['index']} {option.get('card', {}).get('name', '')}"
+                    f"{' atk=' + str(option['attack_id']) if 'attack_id' in option else ''}"
+                    for option in entry["selected_options"]
+                )
+                steps = entry["prize_map"]["steps"]
+                if steps:
+                    first = steps[0]
+                    route = (
+                        f"{first['attacker']['name']} -> atk {first['attack_id']} -> "
+                        f"{first['target']['area']} {first['target']['name']} "
+                        f"({first['prizes_taken']} prizes, setup {first['setup_cost']})"
+                    )
+                else:
+                    route = "none"
+                attackers = ", ".join(attacker["name"] for attacker in entry["key_attackers"][:4])
+                lines.append(
+                    f"| {entry['turn']} | {entry['context']} | {selected or 'none'} | "
+                    f"{route} | {attackers or 'none'} |"
+                )
+            lines.append("")
+    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _sample_totals(result: SampleDragapultBenchmarkResult) -> dict[str, Any]:
+    games = sum(row.games for row in result.rows)
+    wins = sum(row.wins for row in result.rows)
+    losses = sum(row.losses for row in result.rows)
+    draws = sum(row.draws for row in result.rows)
+    timeouts = sum(row.timeouts for row in result.rows)
+    errors = sum(row.errors for row in result.rows)
+    return {
+        "games": games,
+        "wins": wins,
+        "losses": losses,
+        "draws": draws,
+        "timeouts": timeouts,
+        "errors": errors,
+        "win_rate": wins / games if games else 0.0,
+    }
+
+
+def sample_dragapult_benchmark_from_dict(data: dict[str, Any]) -> SampleDragapultBenchmarkResult:
+    return SampleDragapultBenchmarkResult(
+        sample_deck_label=str(data["sample_deck_label"]),
+        games_per_deck=int(data["games_per_deck"]),
+        max_steps=int(data["max_steps"]),
+        rows=[SampleDragapultBenchmarkRow(**row) for row in data["rows"]],
+        debug_games=[
+            SampleDragapultDebugGame(**game) for game in data.get("debug_games", [])
+        ],
+    )
+
+
+def write_sample_dragapult_comparison_report(
+    baseline: SampleDragapultBenchmarkResult,
+    current: SampleDragapultBenchmarkResult,
+    *,
+    markdown_path: Path,
+) -> None:
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    baseline_by_index = {row.deck_index: row for row in baseline.rows}
+    base_totals = _sample_totals(baseline)
+    current_totals = _sample_totals(current)
+
+    lines = [
+        "# Sample Dragapult Benchmark Comparison",
+        "",
+        "| Metric | Previous | Current | Delta |",
+        "| --- | ---: | ---: | ---: |",
+        f"| Wins | {base_totals['wins']} | {current_totals['wins']} | "
+        f"{current_totals['wins'] - base_totals['wins']:+d} |",
+        f"| Losses | {base_totals['losses']} | {current_totals['losses']} | "
+        f"{current_totals['losses'] - base_totals['losses']:+d} |",
+        f"| Draws | {base_totals['draws']} | {current_totals['draws']} | "
+        f"{current_totals['draws'] - base_totals['draws']:+d} |",
+        f"| Timeouts | {base_totals['timeouts']} | {current_totals['timeouts']} | "
+        f"{current_totals['timeouts'] - base_totals['timeouts']:+d} |",
+        f"| Errors | {base_totals['errors']} | {current_totals['errors']} | "
+        f"{current_totals['errors'] - base_totals['errors']:+d} |",
+        f"| Win rate | {base_totals['win_rate']:.3f} | {current_totals['win_rate']:.3f} | "
+        f"{current_totals['win_rate'] - base_totals['win_rate']:+.3f} |",
+        "",
+        "## Deck-Level Changes",
+        "",
+        "| Deck | Archetype | Previous | Current | Win delta | Timeout delta |",
+        "| ---: | --- | ---: | ---: | ---: | ---: |",
+    ]
+    for row in current.rows:
+        old = baseline_by_index.get(row.deck_index)
+        if old is None:
+            continue
+        lines.append(
+            f"| {row.deck_index} | {row.archetype} | {old.wins}-{old.losses}-{old.draws} | "
+            f"{row.wins}-{row.losses}-{row.draws} | {row.wins - old.wins:+d} | "
+            f"{row.timeouts - old.timeouts:+d} |"
+        )
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

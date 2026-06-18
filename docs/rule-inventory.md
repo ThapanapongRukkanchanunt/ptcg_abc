@@ -230,10 +230,12 @@ remain intentionally out of scope.
 
 ## Phase 4 Follow-Up Ideas
 
-1. Rerun the copied sample Dragapult benchmark with v1 prize-map planning enabled.
-2. Add prize-map debug logging for the selected route, key attackers, setup costs, and
-   final chosen action.
-3. Extend prize mapping to spread and damage-counter attacks after benchmark review.
+1. Tighten key-attacker identification so low-damage setup Pokemon are not treated as
+   primary attackers.
+2. Gate prize-map bonuses so routes with no prize-taking step or negative route value
+   do not override generic setup rules.
+3. Extend prize mapping to spread and damage-counter attacks after the key-attacker
+   regression is fixed.
 4. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
 5. Train or tune weights for setup, attachment, attack, and target scoring.
 6. Add deck-specific override profiles only after a generic learned baseline exists.

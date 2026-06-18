@@ -184,6 +184,9 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
 - `reports/phase3_closeout.md`: final Phase 3 evaluation report.
 - `reports/sample_dragapult_benchmark.md`: copied sample Dragapult agent benchmark against every corpus deck.
+- `reports/sample_dragapult_benchmark_prizemap.md`: v1 prize-map benchmark against the copied sample Dragapult agent.
+- `reports/sample_dragapult_benchmark_comparison.md`: previous-vs-prize-map benchmark comparison.
+- `reports/sample_dragapult_benchmark_prizemap_analysis.md`: diagnosis and next rule upgrade after the v1 prize-map benchmark.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
@@ -194,11 +197,17 @@ Start Phase 4 by adding reinforcement learning workflow experiments.
 
 Immediate next step before Phase 4:
 
-- Rerun `benchmark-sample-dragapult` with the v1 prize-map planner.
-- Compare the new report against `reports/sample_dragapult_benchmark.md`.
-- Add lightweight prize-map debug logging for games that lose quickly or time out.
-- Use those logs to decide the next rule upgrade, likely v2 spread/damage-counter
-  prize mapping for Dragapult-like attacks.
+- Tighten key-attacker identification after the v1 prize-map benchmark regression.
+- Gate prize-map bonuses so chip-damage routes do not override generic setup rules.
+- Then add v2 spread/damage-counter prize mapping for Dragapult-like attacks.
+
+Latest benchmark checkpoint:
+
+- Benchmark: copied sample Dragapult agent vs all 27 corpus decks.
+- Previous baseline: 22 wins, 247 losses, 1 draw, 4 timeouts, 0.081 win rate.
+- V1 prize-map run: 10 wins, 260 losses, 0 draws, 0 timeouts, 0.037 win rate.
+- Conclusion: v1 prize-map tracing is useful, but its key-attacker selection is too
+  broad and currently overvalues low-damage setup or utility Pokemon.
 
 Phase 3 completed:
 

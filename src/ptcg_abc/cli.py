@@ -31,6 +31,8 @@ from ptcg_abc.evaluation import (
     run_archetype_sweep,
     run_random_evaluation,
     run_sample_dragapult_benchmark,
+    sample_dragapult_benchmark_from_dict,
+    write_sample_dragapult_comparison_report,
     write_sample_dragapult_benchmark_report,
     write_closeout_reports,
 )
@@ -355,13 +357,45 @@ def command_benchmark_sample_dragapult(args: argparse.Namespace) -> int:
         sample_dir=args.sample_dir,
         games_per_deck=args.games_per_deck,
         max_steps=args.max_steps,
+        debug_limit_per_deck=args.debug_limit_per_deck,
+        trace_limit=args.trace_limit,
     )
     write_sample_dragapult_benchmark_report(
         result,
         json_path=args.report_json,
         markdown_path=args.report_md,
     )
-    print(json.dumps(result.to_dict(), indent=2))
+    if args.baseline_json and args.baseline_json.exists():
+        baseline = sample_dragapult_benchmark_from_dict(
+            json.loads(args.baseline_json.read_text(encoding="utf-8"))
+        )
+        write_sample_dragapult_comparison_report(
+            baseline,
+            result,
+            markdown_path=args.comparison_md,
+        )
+        print(f"Wrote benchmark comparison to {args.comparison_md}.")
+    games = sum(row.games for row in result.rows)
+    wins = sum(row.wins for row in result.rows)
+    losses = sum(row.losses for row in result.rows)
+    draws = sum(row.draws for row in result.rows)
+    timeouts = sum(row.timeouts for row in result.rows)
+    errors = sum(row.errors for row in result.rows)
+    print(
+        json.dumps(
+            {
+                "games": games,
+                "wins": wins,
+                "losses": losses,
+                "draws": draws,
+                "timeouts": timeouts,
+                "errors": errors,
+                "win_rate": wins / games if games else 0.0,
+                "debug_games": len(result.debug_games),
+            },
+            indent=2,
+        )
+    )
     print(f"Wrote benchmark report to {args.report_md}.")
     return 0
 
@@ -512,6 +546,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sample_dragapult.add_argument("--games-per-deck", type=int, default=10)
     sample_dragapult.add_argument("--max-steps", type=int, default=600)
+    sample_dragapult.add_argument("--debug-limit-per-deck", type=int, default=2)
+    sample_dragapult.add_argument("--trace-limit", type=int, default=80)
+    sample_dragapult.add_argument(
+        "--baseline-json",
+        type=_path,
+        default=None,
+    )
+    sample_dragapult.add_argument(
+        "--comparison-md",
+        type=_path,
+        default=REPORTS_DIR / "sample_dragapult_benchmark_comparison.md",
+    )
     sample_dragapult.add_argument(
         "--report-json",
         type=_path,
