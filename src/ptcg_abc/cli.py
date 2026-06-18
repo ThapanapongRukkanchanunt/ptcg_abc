@@ -30,6 +30,8 @@ from ptcg_abc.evaluation import (
     prepare_decks,
     run_archetype_sweep,
     run_random_evaluation,
+    run_sample_dragapult_benchmark,
+    write_sample_dragapult_benchmark_report,
     write_closeout_reports,
 )
 from ptcg_abc.kaggle_api import KaggleCredentialsError, setup_kaggle_data
@@ -313,6 +315,57 @@ def command_phase3_closeout(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_benchmark_sample_dragapult(args: argparse.Namespace) -> int:
+    if not args.corpus.exists():
+        print(
+            f"Deck corpus not found at {args.corpus}. "
+            "Run `python -m ptcg_abc collect-corpus` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.card_data.exists():
+        print(
+            f"Kaggle card data not found at {args.card_data}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+
+    decks = load_deck_corpus(args.corpus)
+    lookup = load_card_id_lookup(args.card_data)
+    try:
+        prepared = prepare_decks(decks, lookup)
+    except (KeyError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    print(
+        f"Running sample Dragapult benchmark: decks={len(prepared)} "
+        f"games_per_deck={args.games_per_deck} max_steps={args.max_steps}"
+    )
+    result = run_sample_dragapult_benchmark(
+        prepared,
+        sample_dir=args.sample_dir,
+        games_per_deck=args.games_per_deck,
+        max_steps=args.max_steps,
+    )
+    write_sample_dragapult_benchmark_report(
+        result,
+        json_path=args.report_json,
+        markdown_path=args.report_md,
+    )
+    print(json.dumps(result.to_dict(), indent=2))
+    print(f"Wrote benchmark report to {args.report_md}.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ptcg-abc",
@@ -437,6 +490,39 @@ def build_parser() -> argparse.ArgumentParser:
         default=REPORTS_DIR / "phase3_closeout.md",
     )
     closeout.set_defaults(func=command_phase3_closeout)
+
+    sample_dragapult = subparsers.add_parser(
+        "benchmark-sample-dragapult",
+        help="Run our rule-based agent with every corpus deck against the copied sample Dragapult agent.",
+    )
+    sample_dragapult.add_argument(
+        "--corpus",
+        type=_path,
+        default=PROCESSED_DIR / date.today().isoformat() / "deck_corpus.jsonl",
+    )
+    sample_dragapult.add_argument(
+        "--card-data",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "EN_Card_Data.csv",
+    )
+    sample_dragapult.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    sample_dragapult.add_argument("--games-per-deck", type=int, default=10)
+    sample_dragapult.add_argument("--max-steps", type=int, default=600)
+    sample_dragapult.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "sample_dragapult_benchmark.json",
+    )
+    sample_dragapult.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "sample_dragapult_benchmark.md",
+    )
+    sample_dragapult.set_defaults(func=command_benchmark_sample_dragapult)
 
     return parser
 

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import contextlib
+import importlib
+import io
 import json
 import random
+import sys
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -107,6 +111,39 @@ class Phase3CloseoutResult:
             "random_games": self.random_games,
             "max_steps": self.max_steps,
             "seed": self.seed,
+        }
+
+
+@dataclass
+class SampleDragapultBenchmarkRow:
+    deck_index: int
+    deck_label: str
+    archetype: str
+    games: int
+    wins: int = 0
+    losses: int = 0
+    draws: int = 0
+    timeouts: int = 0
+    errors: int = 0
+    win_rate: float = 0.0
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class SampleDragapultBenchmarkResult:
+    sample_deck_label: str
+    games_per_deck: int
+    max_steps: int
+    rows: list[SampleDragapultBenchmarkRow]
+
+    def to_dict(self) -> dict:
+        return {
+            "sample_deck_label": self.sample_deck_label,
+            "games_per_deck": self.games_per_deck,
+            "max_steps": self.max_steps,
+            "rows": [row.to_dict() for row in self.rows],
         }
 
 
@@ -326,4 +363,120 @@ def write_closeout_reports(result: Phase3CloseoutResult, *, json_path: Path, mar
             f"{score.losses} | {score.draws} | {score.prize_leads} | {score.timeouts} | "
             f"{score.errors} | {score.win_rate:.3f} |"
         )
+    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _load_sample_dragapult_module(sample_dir: Path):
+    previous_path = list(sys.path)
+    sys.path.insert(0, str(sample_dir.resolve()))
+    try:
+        return importlib.import_module("ptcg_abc.agent.sample_dragapult_agent")
+    finally:
+        sys.path = previous_path
+
+
+def _quiet_rule_agent(deck_ids: list[int], card_data: list[Any], attack_data: list[Any]) -> RuleBasedAgent:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return RuleBasedAgent(deck_ids, card_data=card_data, attack_data=attack_data)
+
+
+def run_sample_dragapult_benchmark(
+    prepared_decks: list[PreparedDeck],
+    *,
+    sample_dir: Path,
+    games_per_deck: int = 10,
+    max_steps: int = 600,
+) -> SampleDragapultBenchmarkResult:
+    card_data, attack_data = load_engine_metadata(sample_dir)
+    sample_module = _load_sample_dragapult_module(sample_dir)
+    sample_deck = list(sample_module.SAMPLE_DRAGAPULT_DECK)
+    rows: list[SampleDragapultBenchmarkRow] = []
+
+    for prepared in prepared_decks:
+        row = SampleDragapultBenchmarkRow(
+            deck_index=prepared.index,
+            deck_label=prepared.label,
+            archetype=prepared.archetype,
+            games=games_per_deck,
+        )
+        for game_index in range(games_per_deck):
+            our_is_player0 = game_index % 2 == 0
+            sample_agent = sample_module.SampleDragapultAgent()
+            rule_agent = _quiet_rule_agent(prepared.card_ids, card_data, attack_data)
+            result = run_battle(
+                prepared.card_ids if our_is_player0 else sample_deck,
+                sample_deck if our_is_player0 else prepared.card_ids,
+                sample_dir=sample_dir,
+                agent0=rule_agent if our_is_player0 else sample_agent,
+                agent1=sample_agent if our_is_player0 else rule_agent,
+                card_data=card_data,
+                attack_data=attack_data,
+                max_steps=max_steps,
+            )
+            if result.error:
+                row.errors += 1
+                row.draws += 1
+            else:
+                if result.winner is None:
+                    if not result.finished:
+                        row.timeouts += 1
+                    effective_winner = result.leader
+                else:
+                    effective_winner = result.winner
+
+                if effective_winner is None:
+                    row.draws += 1
+                elif (effective_winner == 0 and our_is_player0) or (
+                    effective_winner == 1 and not our_is_player0
+                ):
+                    row.wins += 1
+                else:
+                    row.losses += 1
+        row.win_rate = row.wins / row.games if row.games else 0.0
+        rows.append(row)
+
+    return SampleDragapultBenchmarkResult(
+        sample_deck_label="Kiyotah sample Dragapult ex deck",
+        games_per_deck=games_per_deck,
+        max_steps=max_steps,
+        rows=rows,
+    )
+
+
+def write_sample_dragapult_benchmark_report(
+    result: SampleDragapultBenchmarkResult,
+    *,
+    json_path: Path,
+    markdown_path: Path,
+) -> None:
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+
+    lines = [
+        "# Sample Dragapult Benchmark",
+        "",
+        f"Opponent: `{result.sample_deck_label}`",
+        f"Games per deck: {result.games_per_deck}",
+        f"Max selections per game: {result.max_steps}",
+        "",
+        "| Deck | Archetype | Wins | Losses | Draws | Timeouts | Errors | Win rate |",
+        "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    for row in result.rows:
+        lines.append(
+            f"| {row.deck_index} | {row.archetype} | {row.wins} | {row.losses} | "
+            f"{row.draws} | {row.timeouts} | {row.errors} | {row.win_rate:.3f} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Deck Labels",
+            "",
+            "| Deck | Label |",
+            "| ---: | --- |",
+        ]
+    )
+    for row in result.rows:
+        lines.append(f"| {row.deck_index} | {row.deck_label} |")
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -182,6 +182,7 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
 - `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
 - `reports/phase3_closeout.md`: final Phase 3 evaluation report.
+- `reports/sample_dragapult_benchmark.md`: copied sample Dragapult agent benchmark against every corpus deck.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
