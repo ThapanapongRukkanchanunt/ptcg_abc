@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import itertools
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Sequence
@@ -483,6 +485,7 @@ class PrizeMapStep:
     needs_energy: bool
     setup_cost: float
     score: float = 0.0
+    target_damages: dict[tuple[str, int], int] = field(default_factory=dict)
 
 
 @dataclass
@@ -826,18 +829,163 @@ def _build_candidate_attacks(features: BoardFeatures, *, legal_active_only: bool
     return candidates
 
 
-def _make_prize_map_step(
+def _attack_text(attack: Any) -> str:
+    return f"{_get(attack, 'name', '')} {_get(attack, 'text', '')}".casefold()
+
+
+def _damage_counter_pool(attack: Any) -> int:
+    text = _attack_text(attack)
+    if "damage counter" not in text or "opponent" not in text or "benched" not in text:
+        return 0
+    match = re.search(r"(?:put|place)\s+(\d+)\s+damage counters?.*benched.*in any way", text)
+    return int(match.group(1)) * 10 if match else 0
+
+
+def _single_bench_counter_damage(attack: Any) -> int:
+    text = _attack_text(attack)
+    if "damage counter" not in text or "opponent" not in text or "benched" not in text:
+        return 0
+    match = re.search(r"(?:put|place)\s+(\d+)\s+damage counters?.*(?:1|one) of .*benched", text)
+    return int(match.group(1)) * 10 if match else 0
+
+
+def _bench_damage_spec(attack: Any) -> tuple[int, int | None]:
+    text = _attack_text(attack)
+    if "damage" not in text or "opponent" not in text or "benched" not in text:
+        return (0, None)
+    each = re.search(r"(?:also )?does\s+(\d+)\s+damage to each of your opponent.?s benched", text)
+    if each:
+        return (int(each.group(1)), None)
+    numbered = re.search(
+        r"(?:also )?does\s+(\d+)\s+damage to\s+(\d+|one|two|three)\s+of your opponent.?s benched",
+        text,
+    )
+    if numbered:
+        count_raw = numbered.group(2)
+        count = {"one": 1, "two": 2, "three": 3}.get(count_raw, int(count_raw) if count_raw.isdigit() else 1)
+        return (int(numbered.group(1)), count)
+    return (0, None)
+
+
+def _multi_pokemon_damage_spec(attack: Any) -> tuple[int, int]:
+    text = _attack_text(attack)
+    if _attack_damage(attack) > 0 or "opponent" not in text or "pok" not in text:
+        return (0, 0)
+    match = re.search(
+        r"does\s+(\d+)\s+damage to\s+(\d+|one|two|three)\s+of your opponent.?s pok",
+        text,
+    )
+    if not match:
+        match = re.search(r"does\s+(\d+)\s+damage to\s+(?:1|one) of your opponent.?s pok", text)
+        if not match:
+            return (0, 0)
+        return (int(match.group(1)), 1)
+    count_raw = match.group(2)
+    count = {"one": 1, "two": 2, "three": 3}.get(count_raw, int(count_raw) if count_raw.isdigit() else 1)
+    return (int(match.group(1)), count)
+
+
+def _target_key(target: TargetState) -> tuple[str, int]:
+    return (target.area, target.index)
+
+
+def _target_by_key(targets: list[TargetState]) -> dict[tuple[str, int], TargetState]:
+    return {_target_key(target): target for target in targets}
+
+
+def _best_counter_distributions(
+    base_damages: dict[tuple[str, int], int],
+    bench_targets: list[TargetState],
+    pool_damage: int,
+    *,
+    limit: int = 10,
+) -> list[dict[tuple[str, int], int]]:
+    if pool_damage <= 0 or not bench_targets:
+        return [dict(base_damages)]
+
+    variants: list[tuple[float, dict[tuple[str, int], int]]] = []
+    for size in range(0, min(3, len(bench_targets)) + 1):
+        for combo in itertools.combinations(bench_targets, size):
+            needed = sum(target.hp for target in combo)
+            if needed > pool_damage:
+                continue
+            damages = dict(base_damages)
+            for target in combo:
+                damages[_target_key(target)] = damages.get(_target_key(target), 0) + target.hp
+            leftover = pool_damage - needed
+            if leftover > 0:
+                remaining = [target for target in bench_targets if target not in combo]
+                if remaining:
+                    chip_target = max(remaining, key=lambda target: (target.value, -target.hp))
+                    damages[_target_key(chip_target)] = damages.get(_target_key(chip_target), 0) + min(
+                        leftover,
+                        chip_target.hp,
+                    )
+            prizes = sum(target.prizes for target in combo)
+            score = prizes * 10000.0 + sum(target.value for target in combo)
+            if leftover > 0 and bench_targets:
+                score += leftover * 5.0
+            variants.append((score, damages))
+
+    if not variants:
+        chip_target = max(bench_targets, key=lambda target: (target.value, -target.hp))
+        damages = dict(base_damages)
+        damages[_target_key(chip_target)] = min(pool_damage, chip_target.hp)
+        variants.append((pool_damage * 5.0, damages))
+
+    dedup: dict[tuple[tuple[tuple[str, int], int], ...], tuple[float, dict[tuple[str, int], int]]] = {}
+    for score, damages in variants:
+        key = tuple(sorted(damages.items()))
+        if key not in dedup or score > dedup[key][0]:
+            dedup[key] = (score, damages)
+    return [damages for _, damages in sorted(dedup.values(), key=lambda item: item[0], reverse=True)[:limit]]
+
+
+def _spread_damage_variants(
+    base_damages: dict[tuple[str, int], int],
+    targets: list[TargetState],
+    *,
+    damage: int,
+    target_count: int | None,
+    bench_only: bool,
+    limit: int = 12,
+) -> list[dict[tuple[str, int], int]]:
+    if damage <= 0:
+        return [dict(base_damages)]
+    candidate_targets = [target for target in targets if not bench_only or target.area == "BENCH"]
+    if not candidate_targets:
+        return [dict(base_damages)]
+    if target_count is None:
+        damages = dict(base_damages)
+        for target in candidate_targets:
+            damages[_target_key(target)] = damages.get(_target_key(target), 0) + min(damage, target.hp)
+        return [damages]
+
+    variants: list[tuple[float, dict[tuple[str, int], int]]] = []
+    for combo in itertools.combinations(candidate_targets, min(target_count, len(candidate_targets))):
+        damages = dict(base_damages)
+        prizes = 0
+        value = 0.0
+        for target in combo:
+            dealt = min(damage, target.hp)
+            damages[_target_key(target)] = damages.get(_target_key(target), 0) + dealt
+            if damage >= target.hp:
+                prizes += target.prizes
+            value += target.value * min(1.0, damage / target.hp)
+        variants.append((prizes * 10000.0 + value, damages))
+    return [damages for _, damages in sorted(variants, key=lambda item: item[0], reverse=True)[:limit]]
+
+
+def _make_prize_map_step_from_damages(
     candidate: CandidateAttack,
     target: TargetState,
     features: BoardFeatures,
     *,
+    target_damages: dict[tuple[str, int], int],
     prizes_taken: int = 0,
     score: float = 0.0,
 ) -> PrizeMapStep | None:
-    if target.area == "BENCH" and not features.can_boss:
-        return None
-    damage = _effective_damage(candidate.attacker, target.pokemon, candidate.attack, features.card_by_id)
-    if damage <= 0:
+    if not target_damages:
         return None
     needs_boss = target.area == "BENCH"
     setup_cost = candidate.setup_cost + (850.0 if needs_boss else 0.0)
@@ -850,13 +998,97 @@ def _make_prize_map_step(
         target_index=target.index,
         target_card_id=target.card_id,
         prizes_taken=prizes_taken,
-        damage=damage,
+        damage=target_damages.get(_target_key(target), 0),
         needs_boss=needs_boss,
         needs_switch=candidate.needs_switch,
         needs_energy=candidate.needs_energy,
         setup_cost=setup_cost,
         score=score,
+        target_damages=dict(target_damages),
     )
+
+
+def _make_prize_map_steps(
+    candidate: CandidateAttack,
+    target: TargetState,
+    features: BoardFeatures,
+    targets: list[TargetState],
+) -> list[PrizeMapStep]:
+    text = _attack_text(candidate.attack)
+    can_target_any = "opponent" in text and "pok" in text and "(don" in text
+    if target.area == "BENCH" and not (features.can_boss or can_target_any or "benched" in text):
+        return []
+
+    target_damages: dict[tuple[str, int], int] = {}
+    direct_damage = _effective_damage(candidate.attacker, target.pokemon, candidate.attack, features.card_by_id)
+    if direct_damage > 0:
+        target_damages[_target_key(target)] = direct_damage
+
+    multi_damage, multi_count = _multi_pokemon_damage_spec(candidate.attack)
+    if multi_damage > 0 and multi_count > 0:
+        if target != targets[0]:
+            return []
+        variants = _spread_damage_variants(
+            {},
+            targets,
+            damage=multi_damage,
+            target_count=multi_count,
+            bench_only=False,
+        )
+    else:
+        variants = [target_damages]
+
+    counter_pool = _damage_counter_pool(candidate.attack)
+    single_counter = _single_bench_counter_damage(candidate.attack)
+    bench_damage, bench_count = _bench_damage_spec(candidate.attack)
+    bench_targets = [bench_target for bench_target in targets if bench_target.area == "BENCH"]
+
+    next_variants: list[dict[tuple[str, int], int]] = []
+    for damages in variants:
+        if counter_pool:
+            next_variants.extend(_best_counter_distributions(damages, bench_targets, counter_pool))
+        elif single_counter:
+            next_variants.extend(
+                _spread_damage_variants(
+                    damages,
+                    targets,
+                    damage=single_counter,
+                    target_count=1,
+                    bench_only=True,
+                )
+            )
+        elif bench_damage:
+            next_variants.extend(
+                _spread_damage_variants(
+                    damages,
+                    targets,
+                    damage=bench_damage,
+                    target_count=bench_count,
+                    bench_only=True,
+                )
+            )
+        else:
+            next_variants.append(damages)
+
+    target_by_key = _target_by_key(targets)
+    steps: list[PrizeMapStep] = []
+    for damages in next_variants:
+        capped = {
+            key: min(damage, target_by_key[key].hp)
+            for key, damage in damages.items()
+            if key in target_by_key and damage > 0
+        }
+        if not capped:
+            continue
+        step = _make_prize_map_step_from_damages(
+            candidate,
+            target,
+            features,
+            target_damages=capped,
+        )
+        if step is not None:
+            steps.append(step)
+    return steps
 
 
 def _step_with_result(step: PrizeMapStep, *, prizes_taken: int, score: float) -> PrizeMapStep:
@@ -875,6 +1107,7 @@ def _step_with_result(step: PrizeMapStep, *, prizes_taken: int, score: float) ->
         needs_energy=step.needs_energy,
         setup_cost=step.setup_cost,
         score=score,
+        target_damages=dict(step.target_damages),
     )
 
 
@@ -891,19 +1124,26 @@ def _build_prize_map(features: BoardFeatures) -> PrizeMap:
     step_options: list[PrizeMapStep] = []
     for candidate in candidates:
         for target in targets:
-            step = _make_prize_map_step(candidate, target, features)
-            if step is None:
-                continue
-            base_efficiency = min(1.0, step.damage / target.hp)
-            immediate_prizes = target.prizes if step.damage >= target.hp else 0
-            step.score = (
-                immediate_prizes * 10000.0
-                + target.value * base_efficiency
-                - step.setup_cost
-                - max(0, step.damage - target.hp) * 2.0
-            )
-            step.prizes_taken = immediate_prizes
-            step_options.append(step)
+            for step in _make_prize_map_steps(candidate, target, features, targets):
+                immediate_prizes = 0
+                progress_score = 0.0
+                overkill = 0
+                for key, damage in step.target_damages.items():
+                    damage_target = target_by_key.get(key)
+                    if damage_target is None:
+                        continue
+                    progress_score += damage_target.value * min(1.0, damage / damage_target.hp)
+                    if damage >= damage_target.hp:
+                        immediate_prizes += damage_target.prizes
+                    overkill += max(0, damage - damage_target.hp)
+                step.score = (
+                    immediate_prizes * 10000.0
+                    + progress_score
+                    - step.setup_cost
+                    - overkill * 2.0
+                )
+                step.prizes_taken = immediate_prizes
+                step_options.append(step)
 
     if not step_options:
         return PrizeMap()
@@ -919,29 +1159,33 @@ def _build_prize_map(features: BoardFeatures) -> PrizeMap:
         expanded = []
         for route, hp_state, knocked_out, prizes, setup_cost, route_score in beam:
             for step in step_options:
-                key = (step.target_area, step.target_index)
-                if key in knocked_out:
-                    continue
-                target = target_by_key.get(key)
-                if target is None:
-                    continue
-                hp_before = hp_state.get(key, target.hp)
-                if hp_before <= 0:
-                    continue
-                hp_after = max(0, hp_before - step.damage)
-                gained = target.prizes if hp_after == 0 else 0
-                overkill = max(0, step.damage - hp_before)
-                damage_progress = min(step.damage, hp_before) / max(1, target.hp)
-                step_score = (
-                    gained * 10000.0
-                    + target.value * damage_progress
-                    - step.setup_cost
-                    - overkill * 2.0
-                )
-                result_step = _step_with_result(step, prizes_taken=gained, score=step_score)
+                gained = 0
+                overkill = 0
+                progress_score = 0.0
                 next_hp = dict(hp_state)
-                next_hp[key] = hp_after
-                next_knocked_out = knocked_out | ({key} if gained else set())
+                next_knocked_out = set(knocked_out)
+                affected = False
+                for key, damage in step.target_damages.items():
+                    if key in knocked_out:
+                        continue
+                    target = target_by_key.get(key)
+                    if target is None:
+                        continue
+                    hp_before = hp_state.get(key, target.hp)
+                    if hp_before <= 0:
+                        continue
+                    affected = True
+                    hp_after = max(0, hp_before - damage)
+                    next_hp[key] = hp_after
+                    if hp_after == 0:
+                        gained += target.prizes
+                        next_knocked_out.add(key)
+                    overkill += max(0, damage - hp_before)
+                    progress_score += target.value * (min(damage, hp_before) / max(1, target.hp))
+                if not affected:
+                    continue
+                step_score = gained * 10000.0 + progress_score - step.setup_cost - overkill * 2.0
+                result_step = _step_with_result(step, prizes_taken=gained, score=step_score)
                 next_route = route + [result_step]
                 next_state = (
                     next_route,
@@ -991,8 +1235,53 @@ def _stage_setup_cost(card_data: Any) -> float:
     return 600.0
 
 
+def _is_primary_attacker_card(card_id: int | None, features: BoardFeatures) -> bool:
+    if card_id is None:
+        return False
+    data = features.card_by_id.get(card_id)
+    if _card_type_name(data) != "POKEMON":
+        return False
+    attacks = [
+        features.attack_by_id.get(int(attack_id))
+        for attack_id in list(_get(data, "attacks", []) or [])
+        if features.attack_by_id.get(int(attack_id)) is not None
+    ]
+    if not attacks:
+        return False
+    best_damage = max((_attack_damage(attack) for attack in attacks), default=0)
+    best_spread = 0
+    for attack in attacks:
+        best_spread = max(
+            best_spread,
+            _damage_counter_pool(attack),
+            _single_bench_counter_damage(attack),
+            _bench_damage_spec(attack)[0],
+            _multi_pokemon_damage_spec(attack)[0],
+        )
+    if bool(_get(data, "ex", False)) or bool(_get(data, "megaEx", False)):
+        return max(best_damage, best_spread) >= 80
+    if bool(_get(data, "stage1", False)) or bool(_get(data, "stage2", False)):
+        return max(best_damage, best_spread) >= 80
+    return max(best_damage, best_spread) >= 130
+
+
+def _route_is_actionable(features: BoardFeatures) -> bool:
+    if not features.prize_map.steps:
+        return False
+    if features.prize_map.total_prizes <= 0 or features.prize_map.score <= 0:
+        return False
+    return any(
+        step.prizes_taken > 0 and _is_primary_attacker_card(step.attacker_card_id, features)
+        for step in features.prize_map.steps
+    )
+
+
 def _identify_key_attackers(features: BoardFeatures) -> set[int]:
-    key_attackers = {step.attacker_card_id for step in features.prize_map.steps if step.attacker_card_id >= 0}
+    key_attackers = {
+        step.attacker_card_id
+        for step in features.prize_map.steps
+        if _route_is_actionable(features) and _is_primary_attacker_card(step.attacker_card_id, features)
+    }
     targets = _build_target_states(features)
     if not targets:
         return key_attackers
@@ -1011,15 +1300,25 @@ def _identify_key_attackers(features: BoardFeatures) -> set[int]:
         best_score = -1.0
         for attack in attacks:
             cost = _attack_cost(attack)
+            best_attack_damage = max(
+                _attack_damage(attack),
+                _damage_counter_pool(attack),
+                _single_bench_counter_damage(attack),
+                _bench_damage_spec(attack)[0],
+                _multi_pokemon_damage_spec(attack)[0],
+            )
+            if not _is_primary_attacker_card(card_id, features):
+                continue
             for target in targets:
                 damage = _effective_damage_by_id(card_id, target.pokemon, attack, features.card_by_id)
+                damage = max(damage, best_attack_damage)
                 if damage <= 0:
                     continue
                 progress = min(1.0, damage / target.hp)
                 prize_bonus = target.prizes * 3500.0 if damage >= target.hp else 0.0
                 score = target.value * progress + prize_bonus - cost * 350.0 - _stage_setup_cost(data)
                 best_score = max(best_score, score)
-        if best_score > 0:
+        if best_score >= 2200:
             scored.append((best_score, card_id))
 
     scored.sort(reverse=True)
@@ -1032,7 +1331,7 @@ def _build_attack_plan(features: BoardFeatures) -> AttackPlan:
     if features.my_state is None or features.op_state is None:
         return plan
 
-    if features.prize_map.steps:
+    if _route_is_actionable(features):
         step = features.prize_map.steps[0]
         return AttackPlan(
             attacker_area=step.attacker_area,
@@ -1138,11 +1437,12 @@ def _base_priority_score(option: Any, select: Any) -> float:
 
 
 def _first_prize_step(features: BoardFeatures) -> PrizeMapStep | None:
-    return features.prize_map.steps[0] if features.prize_map.steps else None
+    return features.prize_map.steps[0] if _route_is_actionable(features) else None
 
 
 def _route_needs_boss(features: BoardFeatures) -> bool:
-    return any(step.needs_boss for step in features.prize_map.steps) or features.plan.target_area == "BENCH"
+    route_needs_boss = _route_is_actionable(features) and any(step.needs_boss for step in features.prize_map.steps)
+    return route_needs_boss or features.plan.target_area == "BENCH"
 
 
 def _is_first_step_attacker(card: Any, features: BoardFeatures) -> bool:
@@ -1163,10 +1463,26 @@ def _is_key_preevolution(card_id: int | None, features: BoardFeatures) -> bool:
     name = _card_name(card_id, features.card_by_id).casefold()
     if not name:
         return False
-    for attacker_id in features.key_attackers:
+    checked: set[int] = set()
+
+    def evolves_from_key(attacker_id: int) -> bool:
+        if attacker_id in checked:
+            return False
+        checked.add(attacker_id)
         data = features.card_by_id.get(attacker_id)
         evolves_from = str(_get(data, "evolvesFrom", "") or "").casefold()
-        if evolves_from and evolves_from == name:
+        if not evolves_from:
+            return False
+        if evolves_from == name:
+            return True
+        for candidate_id, candidate_data in features.card_by_id.items():
+            if _card_name(candidate_id, features.card_by_id).casefold() == evolves_from:
+                if evolves_from_key(candidate_id):
+                    return True
+        return False
+
+    for attacker_id in features.key_attackers:
+        if evolves_from_key(attacker_id):
             return True
     return False
 
@@ -1188,14 +1504,14 @@ def _active_candidate_score(card: Any, features: BoardFeatures, *, own: bool) ->
     score += _best_attack_damage(card, features.card_by_id, features.attack_by_id) * 8
     if card_id in features.key_attackers:
         score += 10000
-    if _is_first_step_attacker(card, features):
+    if _route_is_actionable(features) and _is_first_step_attacker(card, features):
         score += 20000
     if bool(_get(data, "basic", False)):
         score += 1000
     if bool(_get(data, "ex", False)) or bool(_get(data, "megaEx", False)):
         score -= 250
     score -= int(_get(data, "retreatCost", 0) or 0) * 80
-    if features.plan.attacker_area == "BENCH":
+    if _route_is_actionable(features) and features.plan.attacker_area == "BENCH":
         bench = list(_get(features.my_state, "bench", []) or [])
         if 0 <= features.plan.attacker_index < len(bench) and bench[features.plan.attacker_index] is card:
             score += 20000
@@ -1781,6 +2097,7 @@ def _option_trace(index: int, option: Any, select: Any, features: BoardFeatures,
 
 
 def _prize_step_trace(step: PrizeMapStep, features: BoardFeatures) -> dict[str, Any]:
+    target_lookup = _target_by_key(_build_target_states(features))
     return {
         "attacker": {
             "id": step.attacker_card_id,
@@ -1802,6 +2119,18 @@ def _prize_step_trace(step: PrizeMapStep, features: BoardFeatures) -> dict[str, 
         "needs_energy": step.needs_energy,
         "setup_cost": round(step.setup_cost, 3),
         "score": round(step.score, 3),
+        "target_damages": [
+            {
+                "area": area,
+                "index": index,
+                "id": target_lookup.get((area, index)).card_id if target_lookup.get((area, index)) else -1,
+                "name": _card_name(target_lookup.get((area, index)).card_id, features.card_by_id)
+                if target_lookup.get((area, index))
+                else "",
+                "damage": damage,
+            }
+            for (area, index), damage in sorted(step.target_damages.items())
+        ],
     }
 
 

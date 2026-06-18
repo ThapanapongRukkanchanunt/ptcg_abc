@@ -57,6 +57,8 @@ class FakeAttack:
     attackId: int
     damage: int
     energies: list[int]
+    name: str = ""
+    text: str = ""
 
 
 @dataclass
@@ -563,7 +565,7 @@ class RuleBasedAgentTests(unittest.TestCase):
             stadium=[],
         )
         card_by_id = {
-            1: FakeCardData(cardId=1, name="Flexible Attacker", cardType=0, hp=100, attacks=[99]),
+            1: FakeCardData(cardId=1, name="Flexible Attacker ex", cardType=0, hp=100, basic=True, ex=True, attacks=[99]),
             2: FakeCardData(cardId=2, name="Single Prize Target", cardType=0, hp=100),
             3: FakeCardData(cardId=3, name="Bench ex", cardType=0, hp=100, ex=True),
             1000: FakeCardData(cardId=1000, name="Boss's Orders", cardType=3),
@@ -607,7 +609,7 @@ class RuleBasedAgentTests(unittest.TestCase):
             stadium=[],
         )
         card_by_id = {
-            1: FakeCardData(cardId=1, name="Flexible Attacker", cardType=0, hp=100, attacks=[99]),
+            1: FakeCardData(cardId=1, name="Flexible Attacker ex", cardType=0, hp=100, basic=True, ex=True, attacks=[99]),
             2: FakeCardData(cardId=2, name="Single Prize Target", cardType=0, hp=100),
             3: FakeCardData(cardId=3, name="Bench ex", cardType=0, hp=100, ex=True),
             1000: FakeCardData(cardId=1000, name="Boss's Orders", cardType=3),
@@ -670,6 +672,113 @@ class RuleBasedAgentTests(unittest.TestCase):
             ),
             [1],
         )
+
+    def test_low_damage_basic_is_not_promoted_to_key_attacker(self):
+        from ptcg_abc.agent.rule_based import _make_features
+
+        select = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[FakeOption(14)])
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[FakePokemon(10, 70, 70, [1], [], [])], bench=[], hand=[], discard=[], prize=[1, 2, 3]),
+                FakePlayerState(active=[FakePokemon(30, 180, 180, [], [], [])], bench=[], hand=[], discard=[], prize=[1, 2, 3]),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            10: FakeCardData(cardId=10, name="Setup Basic", cardType=0, hp=70, basic=True, attacks=[10]),
+            20: FakeCardData(cardId=20, name="Real Attacker ex", cardType=0, hp=220, basic=True, ex=True, attacks=[20]),
+            30: FakeCardData(cardId=30, name="Opponent ex", cardType=0, hp=180, ex=True),
+        }
+        attack_by_id = {
+            10: FakeAttack(attackId=10, damage=30, energies=[1]),
+            20: FakeAttack(attackId=20, damage=200, energies=[1, 1]),
+        }
+
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=[10] * 30 + [20] * 30)
+
+        self.assertNotIn(10, features.key_attackers)
+        self.assertIn(20, features.key_attackers)
+
+    def test_low_damage_basic_prize_route_does_not_override_plan(self):
+        from ptcg_abc.agent.rule_based import _make_features, _route_is_actionable
+
+        attack_option = FakeOption(13)
+        attack_option.attackId = 10
+        select = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[attack_option])
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(active=[FakePokemon(10, 70, 70, [1], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+                FakePlayerState(active=[FakePokemon(30, 30, 30, [], [], [])], bench=[], hand=[], discard=[], prize=[1]),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            10: FakeCardData(cardId=10, name="Setup Basic", cardType=0, hp=70, basic=True, attacks=[10]),
+            30: FakeCardData(cardId=30, name="Small Target", cardType=0, hp=30),
+        }
+        attack_by_id = {10: FakeAttack(attackId=10, damage=30, energies=[1])}
+
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=[10] * 60)
+
+        self.assertEqual(features.prize_map.total_prizes, 1)
+        self.assertFalse(_route_is_actionable(features))
+        self.assertNotIn(10, features.key_attackers)
+
+    def test_phantom_dive_style_counters_count_multi_target_prizes(self):
+        from ptcg_abc.agent.rule_based import _make_features
+
+        attack_option = FakeOption(13)
+        attack_option.attackId = 154
+        select = FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[attack_option])
+        current = FakeFullCurrent(
+            yourIndex=0,
+            players=[
+                FakePlayerState(
+                    active=[FakePokemon(121, 320, 320, [2, 5], [], [])],
+                    bench=[],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3, 4],
+                ),
+                FakePlayerState(
+                    active=[FakePokemon(40, 200, 200, [], [], [])],
+                    bench=[
+                        FakePokemon(41, 30, 30, [], [], []),
+                        FakePokemon(42, 30, 30, [], [], []),
+                    ],
+                    hand=[],
+                    discard=[],
+                    prize=[1, 2, 3, 4],
+                ),
+            ],
+            stadium=[],
+        )
+        card_by_id = {
+            121: FakeCardData(cardId=121, name="Dragapult ex", cardType=0, hp=320, stage2=True, ex=True, attacks=[154]),
+            40: FakeCardData(cardId=40, name="Active ex", cardType=0, hp=200, ex=True),
+            41: FakeCardData(cardId=41, name="Bench A", cardType=0, hp=30),
+            42: FakeCardData(cardId=42, name="Bench B", cardType=0, hp=30),
+        }
+        attack_by_id = {
+            154: FakeAttack(
+                attackId=154,
+                damage=200,
+                energies=[2, 5],
+                name="Phantom Dive",
+                text="Put 6 damage counters on your opponent's Benched Pokemon in any way you like.",
+            )
+        }
+
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=[121] * 60)
+
+        self.assertEqual(features.prize_map.attack_count, 1)
+        self.assertEqual(features.prize_map.total_prizes, 4)
+        self.assertEqual(features.prize_map.steps[0].prizes_taken, 4)
+        self.assertEqual(features.prize_map.steps[0].target_damages[("ACTIVE", 0)], 200)
+        self.assertEqual(features.prize_map.steps[0].target_damages[("BENCH", 0)], 30)
+        self.assertEqual(features.prize_map.steps[0].target_damages[("BENCH", 1)], 30)
 
 
 if __name__ == "__main__":

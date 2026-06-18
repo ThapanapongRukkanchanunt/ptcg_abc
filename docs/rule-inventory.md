@@ -1,6 +1,6 @@
 # Rule Inventory
 
-Date: 2026-06-17
+Date: 2026-06-18
 
 ## Scope
 
@@ -108,14 +108,21 @@ Phase 3 closeout agent uses card metadata when it is available from Kaggle's
     - Prefer routes that take the remaining prizes in the fewest attack commands.
     - Use route setup cost to account for missing energy, retreat/switch needs, and
       Boss-like bench targeting.
+    - Model spread and damage-counter attacks that can damage multiple opponent
+      Pokemon in one attack command.
+    - Count multiple knockouts from one multi-target attack when scoring a route.
+    - Ignore routes that do not contain an actionable prize-taking step from a primary
+      attacker.
     - Reuse the first prize-map step as the immediate attack plan.
 
 21. Automatic key-attacker identification
     - Mark attackers used in the current prize map as key attackers.
     - Score deck Pokemon with attacks against the current opponent board to identify
       high-value attackers even before they are in play.
+    - Reject low-damage utility basics as primary key attackers unless they have a
+      high-value route.
     - Boost search, benching, evolution, attachment, and discard-protection rules for
-      key attackers and their direct pre-evolutions.
+      key attackers and their recursive pre-evolution chains.
 
 ## Rule Families Learned From Kaggle Examples
 
@@ -230,12 +237,12 @@ remain intentionally out of scope.
 
 ## Phase 4 Follow-Up Ideas
 
-1. Tighten key-attacker identification so low-damage setup Pokemon are not treated as
-   primary attackers.
-2. Gate prize-map bonuses so routes with no prize-taking step or negative route value
-   do not override generic setup rules.
-3. Extend prize mapping to spread and damage-counter attacks after the key-attacker
-   regression is fixed.
+1. Add evolution-chain setup scoring so the agent benches and searches for pieces that
+   lead to key attackers before the attacker itself is playable.
+2. Improve opening Active and early bench choices so fragile support Pokemon are not
+   promoted into losing positions.
+3. Add spread-route execution bonuses and trace counters so planned multi-target routes
+   are easier to diagnose in benchmark logs.
 4. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
 5. Train or tune weights for setup, attachment, attack, and target scoring.
 6. Add deck-specific override profiles only after a generic learned baseline exists.

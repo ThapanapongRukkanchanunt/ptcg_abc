@@ -103,6 +103,8 @@ Representative commit:
 - Detailed checkpoint: `docs/phase-3-baseline.md`
 - Added combined score-based generic rule agent.
 - Added v1 prize-map planning with automatic key-attacker identification.
+- Tightened v1 prize-map actionability after benchmark regression.
+- Added v2 prize-map planning for spread and damage-counter attacks.
 - Added random-agent evaluation and archetype matchup sweep.
 - Selected final archetype: `Hydrapple ex`.
 - Selected final deck index: `20`.
@@ -187,6 +189,9 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `reports/sample_dragapult_benchmark_prizemap.md`: v1 prize-map benchmark against the copied sample Dragapult agent.
 - `reports/sample_dragapult_benchmark_comparison.md`: previous-vs-prize-map benchmark comparison.
 - `reports/sample_dragapult_benchmark_prizemap_analysis.md`: diagnosis and next rule upgrade after the v1 prize-map benchmark.
+- `reports/sample_dragapult_benchmark_prizemap_v2.md`: guarded v2 prize-map benchmark against the copied sample Dragapult agent.
+- `reports/sample_dragapult_benchmark_prizemap_v2_comparison.md`: original-vs-v2 benchmark comparison.
+- `reports/sample_dragapult_benchmark_prizemap_v2_analysis.md`: v2 benchmark diagnosis and next rule upgrade plan.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
@@ -197,17 +202,19 @@ Start Phase 4 by adding reinforcement learning workflow experiments.
 
 Immediate next step before Phase 4:
 
-- Tighten key-attacker identification after the v1 prize-map benchmark regression.
-- Gate prize-map bonuses so chip-damage routes do not override generic setup rules.
-- Then add v2 spread/damage-counter prize mapping for Dragapult-like attacks.
+- Add evolution-chain setup scoring for key attackers.
+- Improve opening Active and early bench rules.
+- Add spread-route execution bonuses and trace counters.
+- Rerun the Dragapult benchmark after each rule change.
 
 Latest benchmark checkpoint:
 
 - Benchmark: copied sample Dragapult agent vs all 27 corpus decks.
-- Previous baseline: 22 wins, 247 losses, 1 draw, 4 timeouts, 0.081 win rate.
+- Original baseline: 22 wins, 247 losses, 1 draw, 4 timeouts, 0.081 win rate.
 - V1 prize-map run: 10 wins, 260 losses, 0 draws, 0 timeouts, 0.037 win rate.
-- Conclusion: v1 prize-map tracing is useful, but its key-attacker selection is too
-  broad and currently overvalues low-damage setup or utility Pokemon.
+- V2 guarded prize-map run: 23 wins, 247 losses, 0 draws, 3 timeouts, 0.085 win rate.
+- Conclusion: v2 slightly beats the original baseline and fixes most of the v1
+  regression. The next bottleneck is setup and execution, not route discovery alone.
 
 Phase 3 completed:
 
@@ -218,6 +225,7 @@ Phase 3 completed:
 - Add a local smoke command.
 - Add combined score-based rule agent.
 - Add v1 prize-map planning with automatic key-attacker identification.
+- Add guarded v2 prize-map planning for spread and damage-counter attacks.
 - Add random-agent evaluation.
 - Run 10-game archetype matchup sweep.
 - Select final archetype and deck.
