@@ -55,7 +55,17 @@ from ptcg_abc.limitless import (
     write_missing_report,
 )
 from ptcg_abc.simulator import run_battle_smoke
-from ptcg_abc.submission import build_submission_bundle
+from ptcg_abc.submission import build_hybrid_rl_submission_bundle, build_submission_bundle
+from ptcg_abc.rl.workflow import (
+    collect_bc_demonstrations,
+    rollout_games,
+    run_phase4_required_benchmark,
+    train_bc_from_jsonl,
+    train_ppo_from_rollouts,
+    train_torch_bc_from_jsonl,
+    write_phase4_benchmark_report,
+)
+from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
 
 
 def _path(value: str) -> Path:
@@ -461,6 +471,209 @@ def command_benchmark_phase3_required(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_rl_collect_bc(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    summary = collect_bc_demonstrations(
+        sample_dir=args.sample_dir,
+        output_path=args.output,
+        games=args.games,
+        max_steps=args.max_steps,
+    )
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0 if summary.errors == 0 else 1
+
+
+def command_rl_train_bc(args: argparse.Namespace) -> int:
+    if not args.dataset.exists():
+        print(f"BC dataset not found at {args.dataset}. Run `rl-collect-bc` first.", file=sys.stderr)
+        return 2
+    try:
+        if args.backend == "torch":
+            summary = train_torch_bc_from_jsonl(
+                dataset_path=args.dataset,
+                checkpoint_path=args.checkpoint,
+                export_model_path=args.model,
+                report_path=args.report_json,
+                epochs=args.epochs,
+                learning_rate=args.learning_rate,
+            )
+        else:
+            summary = train_bc_from_jsonl(
+                dataset_path=args.dataset,
+                model_path=args.model,
+                report_path=args.report_json,
+                epochs=args.epochs,
+            )
+    except TorchBackendUnavailable as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_rollout(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    summary = rollout_games(
+        sample_dir=args.sample_dir,
+        output_path=args.output,
+        agent_kind=args.agent,
+        model_path=args.model if args.model.exists() else None,
+        games=args.games,
+        max_steps=args.max_steps,
+    )
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0 if summary.errors == 0 else 1
+
+
+def command_rl_train_ppo(args: argparse.Namespace) -> int:
+    if not args.rollout.exists():
+        print(f"Rollout dataset not found at {args.rollout}. Run `rl-rollout` first.", file=sys.stderr)
+        return 2
+    summary = train_ppo_from_rollouts(
+        rollout_path=args.rollout,
+        model_path=args.model,
+        output_path=args.output_model,
+        report_path=args.report_json,
+        epochs=args.epochs,
+    )
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_evaluate(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    result = run_phase4_required_benchmark(
+        sample_dir=args.sample_dir,
+        agent_kind=args.agent,
+        model_path=model_path,
+        games_per_matchup=args.games_per_matchup,
+        max_steps=args.max_steps,
+    )
+    write_phase4_benchmark_report(
+        result,
+        json_path=args.report_json,
+        markdown_path=args.report_md,
+        agent_kind=args.agent,
+        model_path=model_path,
+    )
+    totals = _benchmark_totals(result.rows)
+    print(json.dumps(totals, indent=2))
+    print(f"Wrote Phase 4 benchmark report to {args.report_md}.")
+    return 0 if totals["errors"] == 0 else 1
+
+
+def command_rl_evaluate_guidance(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    result = run_phase4_required_benchmark(
+        sample_dir=args.sample_dir,
+        agent_kind="hybrid",
+        model_path=model_path,
+        games_per_matchup=args.games_per_matchup,
+        max_steps=args.max_steps,
+        guidance_rules=[args.guidance_rule],
+    )
+    write_phase4_benchmark_report(
+        result,
+        json_path=args.report_json,
+        markdown_path=args.report_md,
+        agent_kind=f"hybrid:{args.guidance_rule}",
+        model_path=model_path,
+    )
+    totals = _benchmark_totals(result.rows)
+    payload = {
+        "guidance_rule": args.guidance_rule,
+        **totals,
+        "accepted_against_baseline": None,
+    }
+    if args.baseline_json and args.baseline_json.exists():
+        baseline = json.loads(args.baseline_json.read_text(encoding="utf-8"))
+        baseline_wins = sum(int(row.get("wins", 0)) for row in baseline.get("rows", []))
+        payload["baseline_wins"] = baseline_wins
+        payload["accepted_against_baseline"] = totals["wins"] >= baseline_wins + 2
+    print(json.dumps(payload, indent=2))
+    return 0 if totals["errors"] == 0 else 1
+
+
+def command_rl_package(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    decks = {deck.index: deck for deck in phase3_tournament_559_prepared_decks()}
+    selected_indices = args.deck_index or [1]
+    outputs = []
+    for deck_index in selected_indices:
+        if deck_index not in decks:
+            print(f"Unknown Tournament 559 deck index: {deck_index}", file=sys.stderr)
+            return 2
+        deck = decks[deck_index]
+        deck_dir = args.output_dir / f"deck-{deck.index}"
+        tar_path = deck_dir / "submission.tar.gz"
+        result = build_hybrid_rl_submission_bundle(
+            deck_ids=deck.card_ids,
+            sample_dir=args.sample_dir,
+            output_dir=deck_dir,
+            model_path=args.model if args.model and args.model.exists() else None,
+            tar_path=tar_path,
+        )
+        outputs.append(
+            {
+                "deck_index": deck.index,
+                "deck_label": deck.label,
+                "tar_path": str(result.tar_path.as_posix()),
+            }
+        )
+    print(json.dumps({"packages": outputs}, indent=2))
+    return 0
+
+
+def _benchmark_totals(rows: list) -> dict[str, float | int]:
+    games = sum(row.games for row in rows)
+    wins = sum(row.wins for row in rows)
+    losses = sum(row.losses for row in rows)
+    draws = sum(row.draws for row in rows)
+    timeouts = sum(row.timeouts for row in rows)
+    errors = sum(row.errors for row in rows)
+    return {
+        "games": games,
+        "wins": wins,
+        "losses": losses,
+        "draws": draws,
+        "timeouts": timeouts,
+        "errors": errors,
+        "win_rate": wins / games if games else 0.0,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ptcg-abc",
@@ -660,6 +873,191 @@ def build_parser() -> argparse.ArgumentParser:
         default=REPORTS_DIR / "phase3_required_benchmark.md",
     )
     phase3_required.set_defaults(func=command_benchmark_phase3_required)
+
+    rl_collect = subparsers.add_parser(
+        "rl-collect-bc",
+        help="Collect rule-agent behavior-cloning decisions for the Phase 4 benchmark grid.",
+    )
+    rl_collect.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_collect.add_argument("--games", type=int, default=36)
+    rl_collect.add_argument("--max-steps", type=int, default=120)
+    rl_collect.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "bc_decisions.jsonl",
+    )
+    rl_collect.set_defaults(func=command_rl_collect_bc)
+
+    rl_train_bc = subparsers.add_parser(
+        "rl-train-bc",
+        help="Train the exported Phase 4 option-ranker from behavior-cloning decisions.",
+    )
+    rl_train_bc.add_argument(
+        "--dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "bc_decisions.jsonl",
+    )
+    rl_train_bc.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "bc_model.json",
+    )
+    rl_train_bc.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "bc_torch.pt",
+        help="Torch checkpoint path when `--backend torch` is used.",
+    )
+    rl_train_bc.add_argument("--backend", choices=["linear", "torch"], default="linear")
+    rl_train_bc.add_argument("--epochs", type=int, default=1)
+    rl_train_bc.add_argument("--learning-rate", type=float, default=0.02)
+    rl_train_bc.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "bc_train_report.json",
+    )
+    rl_train_bc.set_defaults(func=command_rl_train_bc)
+
+    rl_rollout = subparsers.add_parser(
+        "rl-rollout",
+        help="Generate Phase 4 trajectory records with rule, RL, or hybrid agents.",
+    )
+    rl_rollout.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_rollout.add_argument("--agent", choices=["rule", "rl", "hybrid"], default="hybrid")
+    rl_rollout.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "bc_model.json",
+    )
+    rl_rollout.add_argument("--games", type=int, default=36)
+    rl_rollout.add_argument("--max-steps", type=int, default=120)
+    rl_rollout.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "rollout_steps.jsonl",
+    )
+    rl_rollout.set_defaults(func=command_rl_rollout)
+
+    rl_train_ppo = subparsers.add_parser(
+        "rl-train-ppo",
+        help="Apply a reward-weighted PPO-style update from rollout JSONL chunks.",
+    )
+    rl_train_ppo.add_argument(
+        "--rollout",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "rollout_steps.jsonl",
+    )
+    rl_train_ppo.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "bc_model.json",
+    )
+    rl_train_ppo.add_argument(
+        "--output-model",
+        type=_path,
+        default=Path("models") / "rl" / "ppo_model.json",
+    )
+    rl_train_ppo.add_argument("--epochs", type=int, default=1)
+    rl_train_ppo.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "ppo_train_report.json",
+    )
+    rl_train_ppo.set_defaults(func=command_rl_train_ppo)
+
+    rl_evaluate = subparsers.add_parser(
+        "rl-evaluate",
+        help="Run the Phase 4 9x4 required benchmark for rule, RL, or hybrid agents.",
+    )
+    rl_evaluate.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_evaluate.add_argument("--agent", choices=["rule", "rl", "hybrid"], default="hybrid")
+    rl_evaluate.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "bc_model.json",
+    )
+    rl_evaluate.add_argument("--games-per-matchup", type=int, default=1)
+    rl_evaluate.add_argument("--max-steps", type=int, default=120)
+    rl_evaluate.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase4_required_benchmark.json",
+    )
+    rl_evaluate.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase4_required_benchmark.md",
+    )
+    rl_evaluate.set_defaults(func=command_rl_evaluate)
+
+    rl_guidance = subparsers.add_parser(
+        "rl-evaluate-guidance",
+        help="Evaluate one Phase 4 rule-guidance intervention against the 9x4 grid.",
+    )
+    rl_guidance.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_guidance.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "bc_model.json",
+    )
+    rl_guidance.add_argument("--guidance-rule", default="force_prize_attacks")
+    rl_guidance.add_argument("--games-per-matchup", type=int, default=1)
+    rl_guidance.add_argument("--max-steps", type=int, default=120)
+    rl_guidance.add_argument("--baseline-json", type=_path)
+    rl_guidance.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase4_guidance_eval.json",
+    )
+    rl_guidance.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase4_guidance_eval.md",
+    )
+    rl_guidance.set_defaults(func=command_rl_evaluate_guidance)
+
+    rl_package = subparsers.add_parser(
+        "rl-package",
+        help="Build Phase 4 hybrid Kaggle submission bundles for selected Tournament 559 decks.",
+    )
+    rl_package.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_package.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "bc_model.json",
+    )
+    rl_package.add_argument(
+        "--output-dir",
+        type=_path,
+        default=Path("submissions") / "phase4",
+    )
+    rl_package.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        help="Tournament 559 prepared deck index to package. Repeat for multiple decks.",
+    )
+    rl_package.set_defaults(func=command_rl_package)
 
     return parser
 

@@ -2330,6 +2330,39 @@ def _decision_trace(
     )
 
 
+def score_legal_options(
+    select: Any,
+    *,
+    current: Any = None,
+    card_by_id: dict[int, Any] | None = None,
+    attack_by_id: dict[int, Any] | None = None,
+    deck_ids: Sequence[int] = (),
+) -> list[float]:
+    """Return teacher scores for the legal options in a select prompt."""
+    options = list(_get(select, "option", []) or [])
+    if not options:
+        return []
+
+    if _select_type_name(select) == "YES_NO":
+        preferred = _yes_no_preference(select, options)
+        return [2.0 if index == preferred else 1.0 for index in range(len(options))]
+
+    card_by_id = card_by_id or {}
+    attack_by_id = attack_by_id or {}
+    if (card_by_id or attack_by_id) and current is not None:
+        features = _make_features(select, current, card_by_id, attack_by_id, deck_ids=deck_ids)
+        return [_score_option(index, option, select, features) for index, option in enumerate(options)]
+
+    ranked = sorted(
+        range(len(options)),
+        key=lambda index: _fallback_sort_key(index, options[index], select, current),
+    )
+    scores = [0.0] * len(options)
+    for rank, index in enumerate(ranked):
+        scores[index] = float(len(options) - rank)
+    return scores
+
+
 def select_option_indices(
     select: Any,
     *,

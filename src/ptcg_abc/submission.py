@@ -40,6 +40,49 @@ def agent(obs_dict: dict) -> list[int]:
     return _AGENT.act(obs)
 '''
 
+HYBRID_RL_MAIN_PY = '''from __future__ import annotations
+
+import os
+
+from cg.api import all_attack, all_card_data, to_observation_class
+from ptcg_abc.agent import HybridRlAgent
+
+
+_AGENT = None
+
+
+def read_deck_csv() -> list[int]:
+    file_path = "deck.csv"
+    if not os.path.exists(file_path):
+        file_path = "/kaggle_simulations/agent/" + file_path
+    with open(file_path, "r", encoding="utf-8") as handle:
+        lines = [line.strip() for line in handle.readlines() if line.strip()]
+    return [int(value) for value in lines[:60]]
+
+
+def model_path() -> str | None:
+    file_path = "model.json"
+    if os.path.exists(file_path):
+        return file_path
+    kaggle_path = "/kaggle_simulations/agent/" + file_path
+    if os.path.exists(kaggle_path):
+        return kaggle_path
+    return None
+
+
+def agent(obs_dict: dict) -> list[int]:
+    global _AGENT
+    obs = to_observation_class(obs_dict)
+    if _AGENT is None:
+        _AGENT = HybridRlAgent(
+            read_deck_csv(),
+            card_data=all_card_data(),
+            attack_data=all_attack(),
+            model_path=model_path(),
+        )
+    return _AGENT.act(obs)
+'''
+
 
 @dataclass(frozen=True)
 class SubmissionBuildResult:
@@ -56,11 +99,24 @@ def _ignore_generated(dir_name: str, names: list[str]) -> set[str]:
 def _copy_agent_package(src_root: Path, output_dir: Path) -> None:
     package_dir = output_dir / "ptcg_abc"
     agent_dir = package_dir / "agent"
+    rl_dir = package_dir / "rl"
     agent_dir.mkdir(parents=True, exist_ok=True)
+    rl_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src_root / "ptcg_abc" / "__init__.py", package_dir / "__init__.py")
     shutil.copy2(src_root / "ptcg_abc" / "agent" / "__init__.py", agent_dir / "__init__.py")
+    shutil.copy2(src_root / "ptcg_abc" / "agent" / "hybrid_rl.py", agent_dir / "hybrid_rl.py")
     shutil.copy2(src_root / "ptcg_abc" / "agent" / "rule_based.py", agent_dir / "rule_based.py")
     shutil.copy2(src_root / "ptcg_abc" / "agent" / "random_agent.py", agent_dir / "random_agent.py")
+    for name in [
+        "__init__.py",
+        "dataset.py",
+        "featurizer.py",
+        "guidance.py",
+        "model.py",
+        "records.py",
+        "rewards.py",
+    ]:
+        shutil.copy2(src_root / "ptcg_abc" / "rl" / name, rl_dir / name)
 
 
 def build_submission_bundle(
@@ -91,6 +147,50 @@ def build_submission_bundle(
     tar_path.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(tar_path, "w:gz") as tar:
         for name in ["main.py", "deck.csv", "cg", "ptcg_abc"]:
+            tar.add(output_dir / name, arcname=name)
+
+    return SubmissionBuildResult(
+        output_dir=output_dir,
+        tar_path=tar_path,
+        main_path=main_path,
+        deck_path=deck_path,
+    )
+
+
+def build_hybrid_rl_submission_bundle(
+    *,
+    deck_ids: list[int],
+    sample_dir: Path,
+    output_dir: Path,
+    model_path: Path | None = None,
+    tar_path: Path | None = None,
+    src_root: Path = Path("src"),
+) -> SubmissionBuildResult:
+    if not (sample_dir / "cg").exists():
+        raise FileNotFoundError(f"Kaggle sample cg package not found at {sample_dir}.")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    main_path = output_dir / "main.py"
+    deck_path = output_dir / "deck.csv"
+    main_path.write_text(HYBRID_RL_MAIN_PY, encoding="utf-8")
+    write_deck_csv(deck_ids, deck_path)
+    if model_path is not None and model_path.exists():
+        shutil.copy2(model_path, output_dir / "model.json")
+
+    shutil.copytree(
+        sample_dir / "cg",
+        output_dir / "cg",
+        dirs_exist_ok=True,
+        ignore=_ignore_generated,
+    )
+    _copy_agent_package(src_root, output_dir)
+
+    tar_path = tar_path or (output_dir / "submission.tar.gz")
+    tar_path.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(tar_path, "w:gz") as tar:
+        names = ["main.py", "deck.csv", "cg", "ptcg_abc"]
+        if (output_dir / "model.json").exists():
+            names.append("model.json")
+        for name in names:
             tar.add(output_dir / name, arcname=name)
 
     return SubmissionBuildResult(

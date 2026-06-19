@@ -27,7 +27,12 @@ submissions/
 data/kaggle/
 data/raw/
 data/processed/
+data/datasets/rl/
 /pokemon-tcg-ai-battle.zip
+
+# RL experiment outputs
+models/rl/
+experiments/rl/
 
 # Benchmark scratch outputs
 reports/*_smoke.json

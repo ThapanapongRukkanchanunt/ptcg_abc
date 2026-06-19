@@ -9,7 +9,8 @@ This is the resume point for the project. Start here after switching machines, c
 - Selected Limitless format: `TEF-POR`
 - Kaggle legal-card source: `EN_Card_Data.csv`
 - Latest completed phase: Phase 3, generic rule-based agent and Kaggle submission bundle
-- Next phase: Phase 4, reinforcement learning workflow
+- Current phase: Phase 4, rule-guided hybrid reinforcement learning workflow
+  (`docs/phase-4-rl-plan.md`)
 
 ## Phase Log
 
@@ -19,7 +20,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 1: Kaggle legality and format selection | Complete | Kaggle card data extracted, Limitless format set to `TEF-POR`, missing-card report shows 0 missing names. |
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
-| Phase 4: Reinforcement learning workflow | Deferred | Start only after the rule-based baseline and evaluation harness are stable. |
+| Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
 | Phase 5: Deck-building experiments | Deferred | Wildcard/search-based deck construction ideas stay parked until baseline play exists. |
 
 ## Completed Phase Details
@@ -132,6 +133,81 @@ Closeout result:
 - Archetype sweep winner: `Hydrapple ex` with 199 points and 0.733 win rate.
 - Generated submission bundle: `submissions/phase3/submission.tar.gz`.
 
+### Phase 4: Rule-Guided Hybrid RL Planning
+
+- Added the Phase 4 RL plan in `docs/phase-4-rl-plan.md`.
+- Planned a new `ptcg_abc.rl` package for featurization, datasets, rewards,
+  PyTorch policy/value models, PPO training, guidance rules, and reporting.
+- Planned a `HybridRlAgent` that scores legal options with an exported RL model,
+  blends or falls back to `RuleBasedAgent`, and never emits illegal selections.
+- Planned BC warm-start, PPO rollout/training, guidance-rule evaluation, SLURM
+  job templates for CMU ERAWAN, and Kaggle packaging without a PyTorch runtime
+  dependency.
+- Canonical Phase 4 target remains the current required 9-deck by 4-benchmark
+  grid: at least 180 wins out of 360 games, with stability and packaging gates.
+
+Representative commit:
+
+- `ff42ccb` Add Phase 4 RL planning doc
+
+### Phase 4: Initial RL Workflow Implementation
+
+- Added `src/ptcg_abc/rl/` with durable `DecisionFrame`, `ActionFrame`, and
+  `TrajectoryStep` records.
+- Added deterministic board summaries, a fixed-size board-image renderer, and
+  per-option feature vectors for legal-option scoring.
+- Added a lightweight exported linear option-ranker backend for behavior cloning
+  and reward-weighted rollout updates. This preserves the planned model shape
+  while keeping Kaggle inference self-contained.
+- Added `HybridRlAgent`, which ranks legal options with the exported model,
+  applies rule guidance, and falls back to `RuleBasedAgent`.
+- Added Phase 4 CLI commands: `rl-collect-bc`, `rl-train-bc`, `rl-rollout`,
+  `rl-train-ppo`, `rl-evaluate`, `rl-evaluate-guidance`, and `rl-package`.
+- Added Phase 4 hybrid Kaggle packaging support and ensured submission bundles
+  include the new `ptcg_abc.rl` package.
+- Added SLURM templates under `scripts/slurm/` for BC, rollout arrays, PPO-style
+  updates, evaluation, and packaging.
+- Added tests for Phase 4 decision frames, record round-trips, model training,
+  hybrid selection, rewards, and CLI command exposure.
+- Added optional PyTorch actor/value behavior-cloning backend behind
+  `rl-train-bc --backend torch`.
+- PyTorch backend trains a dynamic legal-option actor plus value head, then
+  exports actor weights to the Kaggle-safe JSON `LinearOptionModel` inference
+  format.
+- PyTorch backend now trains on CUDA automatically when available and saves a
+  portable CPU checkpoint/export.
+- Added an `rl` optional dependency group for training environments:
+  `python -m pip install -e .[rl]`.
+- Added export-equation parity coverage so the PyTorch actor equation and
+  exported JSON ranker stay aligned.
+- Updated the BC SLURM template to use the torch backend by default on ERAWAN.
+- Ran the Phase 4 local smoke workflow against the copied Kaggle simulator:
+  - `rl-collect-bc --games 36 --max-steps 120`: 36 started, 2,218 decisions,
+    0 errors, 24 timeouts.
+  - `rl-train-bc --epochs 1`: 2,218 frames, 12,409 actions, exported
+    `models/rl/bc_model.json`, teacher top-choice accuracy 1.000.
+  - `rl-rollout --games 36 --max-steps 120`: 36 started, 1,817 trajectory
+    steps, 11 wins, 23 losses, 2 draws, 0 errors, 20 timeouts.
+  - `rl-evaluate --games-per-matchup 1 --max-steps 120`: 36 games, 4 wins,
+    29 losses, 3 draws, 18 timeouts, 0 errors, 0.111 win rate.
+- Installed local PyTorch GPU wheel into the bundled Python runtime:
+  `torch 2.7.1+cu118`; CUDA is available on `NVIDIA GeForce RTX 4060 Laptop GPU`.
+- Ran GPU actor/value BC smoke:
+  - `rl-train-bc --backend torch --epochs 1`: 2,218 frames, 12,409 actions,
+    exported `models/rl/bc_torch_gpu_smoke_export.json`, final loss 0.1043,
+    teacher top-choice accuracy 1.000, device `cuda`.
+  - `rl-evaluate --agent hybrid --model models/rl/bc_torch_gpu_smoke_export.json
+    --games-per-matchup 1 --max-steps 120`: 36 games, 11 wins, 23 losses,
+    2 draws, 20 timeouts, 0 errors, 0.306 win rate.
+
+Verification:
+
+- `PYTHONPATH=src <bundled-python> -m unittest discover -s tests`: 52 tests pass,
+  1 skipped because the missing-PyTorch fallback test is skipped when PyTorch is
+  installed.
+- Phase 4 smoke gate completed with 0 simulator errors. Smoke runs used
+  `max_steps=120`, so timeout counts are expected and not promotion-gate results.
+
 ## Recreate Local State From A Clean Checkout
 
 1. Install the package:
@@ -188,6 +264,7 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-2-conclusion.md`: deck-corpus export conclusion.
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
 - `docs/phase-3-conclusion.md`: Phase 3 final rule agent, evaluation, and submission conclusion.
+- `docs/phase-4-rl-plan.md`: Phase 4 rule-guided hybrid RL workflow plan.
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
 - `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
 - `reports/phase3_closeout.md`: final Phase 3 evaluation report.
@@ -205,22 +282,29 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `reports/phase3_required_benchmark.json`: machine-readable version of the current required benchmark.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
+- `src/ptcg_abc/rl/`: Phase 4 RL records, featurization, model export, rewards,
+  guidance, and workflow helpers.
+- `src/ptcg_abc/rl/torch_backend.py`: optional PyTorch actor/value BC backend and
+  JSON export bridge.
+- `src/ptcg_abc/agent/hybrid_rl.py`: hybrid RL agent with rule fallback.
+- `scripts/slurm/`: Phase 4 ERAWAN/SLURM job templates.
 - `tests/`: regression tests.
 
 ## Next Phase Entry Point
 
-Start Phase 4 by adding reinforcement learning workflow experiments.
+Continue Phase 4 from the implemented workflow in `src/ptcg_abc/rl/` and
+`docs/phase-4-rl-plan.md`.
 
-Immediate next step before Phase 4:
+Immediate Phase 4 next steps:
 
-- Replace the temporary legal stand-in for rank 2 if a better alternative is chosen:
-  Limitless `Pokemon Center Lady` is not present in Kaggle `EN_Card_Data.csv`, so the
-  current simulator deck uses `Cook`.
-- Add focused deck-family profiles against the four fixed benchmark decks.
-- Start with Crustle wall setup, Mega Lucario Fighting-energy setup, Mega Abomasnow
-  water-energy discard math, and Iono Lightning acceleration.
-- Add anti-Dragapult defensive rules for Phantom Dive bench-counter pressure.
-- Rerun `benchmark-phase3-required` after each focused profile change.
+- On ERAWAN or another environment with PyTorch installed, run
+  `rl-train-bc --backend torch` and verify the exported JSON model with
+  `rl-evaluate --agent hybrid`.
+- Scale BC collection toward the planned 20,000 rule-agent games on ERAWAN.
+- Use rollout chunks and `rl-train-ppo` as the first resumable reward-weighted
+  update loop, then replace the update backend with true PPO.
+- Keep the rank 2 legal stand-in in mind: Limitless `Pokemon Center Lady` is not
+  present in Kaggle `EN_Card_Data.csv`, so the current simulator deck uses `Cook`.
 
 Latest benchmark checkpoint:
 
