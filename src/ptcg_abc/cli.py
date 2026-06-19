@@ -27,12 +27,15 @@ from ptcg_abc.corpus import (
 from ptcg_abc.evaluation import (
     Phase3CloseoutResult,
     choose_deck_from_best_archetype,
+    phase3_tournament_559_prepared_decks,
     prepare_decks,
     required_phase3_prepared_decks,
     run_archetype_sweep,
+    run_phase3_required_benchmark,
     run_random_evaluation,
     run_sample_dragapult_benchmark,
     sample_dragapult_benchmark_from_dict,
+    write_phase3_required_benchmark_report,
     write_sample_dragapult_comparison_report,
     write_sample_dragapult_benchmark_report,
     write_closeout_reports,
@@ -403,6 +406,61 @@ def command_benchmark_sample_dragapult(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_benchmark_phase3_required(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+
+    our_decks = phase3_tournament_559_prepared_decks()
+    benchmark_decks = required_phase3_prepared_decks(start_index=1)
+    print(
+        f"Running Phase 3 required benchmark: our_decks={len(our_decks)} "
+        f"benchmark_decks={len(benchmark_decks)} "
+        f"games_per_matchup={args.games_per_matchup} max_steps={args.max_steps}"
+    )
+    result = run_phase3_required_benchmark(
+        our_decks,
+        benchmark_decks,
+        sample_dir=args.sample_dir,
+        games_per_matchup=args.games_per_matchup,
+        max_steps=args.max_steps,
+        debug_limit_per_matchup=args.debug_limit_per_matchup,
+        trace_limit=args.trace_limit,
+    )
+    write_phase3_required_benchmark_report(
+        result,
+        json_path=args.report_json,
+        markdown_path=args.report_md,
+    )
+    games = sum(row.games for row in result.rows)
+    wins = sum(row.wins for row in result.rows)
+    losses = sum(row.losses for row in result.rows)
+    draws = sum(row.draws for row in result.rows)
+    timeouts = sum(row.timeouts for row in result.rows)
+    errors = sum(row.errors for row in result.rows)
+    print(
+        json.dumps(
+            {
+                "games": games,
+                "wins": wins,
+                "losses": losses,
+                "draws": draws,
+                "timeouts": timeouts,
+                "errors": errors,
+                "win_rate": wins / games if games else 0.0,
+                "debug_games": len(result.debug_games),
+            },
+            indent=2,
+        )
+    )
+    print(f"Wrote Phase 3 required benchmark report to {args.report_md}.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ptcg-abc",
@@ -577,6 +635,31 @@ def build_parser() -> argparse.ArgumentParser:
         default=REPORTS_DIR / "sample_dragapult_benchmark.md",
     )
     sample_dragapult.set_defaults(func=command_benchmark_sample_dragapult)
+
+    phase3_required = subparsers.add_parser(
+        "benchmark-phase3-required",
+        help="Run the nine Tournament 559 decks against the four fixed Phase 3 benchmark decks.",
+    )
+    phase3_required.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    phase3_required.add_argument("--games-per-matchup", type=int, default=10)
+    phase3_required.add_argument("--max-steps", type=int, default=600)
+    phase3_required.add_argument("--debug-limit-per-matchup", type=int, default=0)
+    phase3_required.add_argument("--trace-limit", type=int, default=60)
+    phase3_required.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase3_required_benchmark.json",
+    )
+    phase3_required.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase3_required_benchmark.md",
+    )
+    phase3_required.set_defaults(func=command_benchmark_phase3_required)
 
     return parser
 

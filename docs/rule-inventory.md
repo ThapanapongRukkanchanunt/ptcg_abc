@@ -135,10 +135,14 @@ Phase 3 closeout agent uses card metadata when it is available from Kaggle's
       regressed the 27-deck Dragapult benchmark.
 
 23. Phase 3 benchmark coverage
-    - The copied Dragapult benchmark now appends required sample decks for Crustle,
-      Mega Lucario ex, Mega Abomasnow ex, and Iono's Bellibolt ex.
-    - Coverage status is written into benchmark reports so missing required decks are
-      visible immediately.
+    - The active required benchmark now uses nine Limitless Tournament 559 decks
+      from ranks 1, 2, 3, 4, 9, 10, 11, 18, and 22 as our agent's deck pool.
+    - The fixed benchmark deck pool remains Crustle, Mega Lucario ex,
+      Mega Abomasnow ex, and Iono's Bellibolt ex.
+    - The command `benchmark-phase3-required` runs the 9-by-4 matchup grid and writes
+      both Markdown and JSON reports.
+    - Rank 2 currently substitutes `Cook` for Limitless `Pokemon Center Lady` because
+      that card is not present in Kaggle's `EN_Card_Data.csv`.
 
 ## Rule Families Learned From Kaggle Examples
 
@@ -261,5 +265,5 @@ remain intentionally out of scope.
    and Iono's Voltaic Chain.
 4. Use the Phase 3 scorer as a fixed baseline opponent for reinforcement learning.
 5. Train or tune weights for setup, attachment, attack, and target scoring.
-6. Re-run the 31-deck Phase 3 benchmark after each focused profile change until the
+6. Re-run `benchmark-phase3-required` after each focused profile change until the
    average win rate approaches the 50% target.

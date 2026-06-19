@@ -116,6 +116,128 @@ REQUIRED_PHASE3_SAMPLE_DECKS = (
     ),
 )
 
+TOURNAMENT_559_SOURCE_URL = "https://limitlesstcg.com/tournaments/559/decklists"
+TOURNAMENT_559_REQUESTED_RANKS = (1, 2, 3, 4, 9, 10, 11, 18, 22)
+TOURNAMENT_559_SUBSTITUTIONS = (
+    {
+        "rank": 2,
+        "original_card": "Pokemon Center Lady",
+        "replacement_card": "Cook",
+        "reason": "Pokemon Center Lady is not present in the Kaggle card table.",
+    },
+)
+
+TOURNAMENT_559_DECKS = (
+    (
+        1,
+        "Alakazam Dudunsparce",
+        "Cerys Jones",
+        [
+            109, 109, 109, 109, 742, 742, 742, 742, 245, 245, 245, 65, 65, 65, 66,
+            66, 66, 140, 222, 521, 142, 858, 1231, 1231, 1231, 1231, 1225, 1225,
+            1225, 1182, 1182, 1184, 1086, 1086, 1086, 1086, 1152, 1152, 1152,
+            1152, 1079, 1079, 1079, 1081, 1081, 1129, 1097, 1161, 1161, 1156,
+            1266, 1266, 1266, 1266, 19, 19, 19, 19, 5, 13,
+        ],
+    ),
+    (
+        2,
+        "Crustle",
+        "Rahul Reddy",
+        [
+            756, 756, 756, 756, 344, 344, 344, 345, 345, 345, 117, 858, 1227,
+            1227, 1227, 1227, 1182, 1182, 1182, 1182, 1219, 1219, 1219, 1219,
+            1225, 1225, 1186, 1197, 1212, 1190, 1120, 1120, 1120, 1120, 1147,
+            1147, 1147, 1147, 1122, 1122, 1122, 1086, 1086, 1121, 1123, 1159,
+            1257, 14, 14, 14, 14, 18, 18, 18, 18, 11, 11, 11, 11, 6,
+        ],
+    ),
+    (
+        3,
+        "Dragapult Dusknoir",
+        "Justin Newdorf",
+        [
+            119, 119, 119, 119, 120, 120, 120, 120, 121, 121, 121, 131, 131, 132,
+            132, 133, 140, 112, 235, 1071, 791, 1227, 1227, 1227, 1227, 1182,
+            1182, 1182, 1198, 1198, 1198, 1231, 1086, 1086, 1086, 1086, 1152,
+            1152, 1152, 1152, 1121, 1121, 1121, 1121, 1120, 1120, 1120, 1097,
+            1097, 1080, 1256, 1256, 2, 2, 2, 2, 5, 5, 5, 7,
+        ],
+    ),
+    (
+        4,
+        "Dragapult",
+        "Kira Melville",
+        [
+            119, 119, 119, 119, 120, 120, 120, 120, 121, 121, 121, 112, 112, 235,
+            235, 1071, 140, 791, 1227, 1227, 1227, 1227, 1182, 1182, 1182, 1198,
+            1198, 1198, 1213, 1120, 1120, 1120, 1120, 1086, 1086, 1086, 1086,
+            1152, 1152, 1152, 1152, 1121, 1121, 1121, 1121, 1097, 1097, 1080,
+            1256, 1256, 1260, 2, 2, 2, 2, 5, 5, 5, 7, 7,
+        ],
+    ),
+    (
+        9,
+        "Dragapult Dudunsparce",
+        "Alex Engeriser",
+        [
+            119, 119, 119, 119, 120, 120, 120, 120, 121, 121, 121, 65, 65, 66,
+            66, 306, 112, 112, 140, 1071, 235, 791, 1227, 1227, 1227, 1227,
+            1182, 1182, 1182, 1198, 1198, 1198, 1213, 1152, 1152, 1152, 1152,
+            1086, 1086, 1086, 1086, 1121, 1121, 1121, 1121, 1097, 1097, 1080,
+            1260, 1260, 2, 2, 2, 2, 7, 7, 7, 5, 5, 5,
+        ],
+    ),
+    (
+        10,
+        "Hydrapple",
+        "Cody Hope",
+        [
+            96, 96, 96, 96, 708, 708, 709, 709, 710, 710, 42, 42, 93, 93, 150,
+            150, 1071, 1071, 655, 920, 140, 1227, 1227, 1227, 1227, 1182, 1182,
+            1231, 1231, 1201, 1184, 1188, 1121, 1121, 1121, 1121, 1094, 1094,
+            1094, 1094, 1080, 1097, 1261, 1261, 1261, 1261, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1,
+        ],
+    ),
+    (
+        11,
+        "Raging Bolt Ogerpon",
+        "Larry Russano",
+        [
+            756, 756, 756, 96, 96, 96, 1071, 1071, 1071, 184, 184, 63, 63, 209,
+            978, 272, 108, 140, 1198, 1198, 1198, 1198, 1182, 1182, 1205, 1205,
+            1188, 1227, 1121, 1121, 1121, 1121, 1116, 1116, 1116, 1116, 1097,
+            1097, 1098, 1098, 1080, 1250, 1250, 1250, 1250, 1, 1, 1, 1, 1, 1, 1,
+            1, 5, 5, 4, 4, 6, 6, 3,
+        ],
+    ),
+    (
+        18,
+        "Dragapult Blaziken",
+        "Ivan Lukens",
+        [
+            119, 119, 119, 119, 120, 120, 120, 120, 121, 121, 324, 324, 325,
+            326, 326, 112, 112, 235, 272, 140, 1071, 1227, 1227, 1227, 1227,
+            1182, 1182, 1182, 1231, 1231, 1198, 1198, 1086, 1086, 1086, 1086,
+            1121, 1121, 1121, 1121, 1152, 1152, 1152, 1152, 1079, 1079, 1079,
+            1097, 1097, 1080, 1250, 1256, 2, 2, 2, 5, 5, 5, 7, 7,
+        ],
+    ),
+    (
+        22,
+        "Ogerpon Box",
+        "Matthew Hubbard",
+        [
+            756, 756, 756, 756, 1071, 1071, 1071, 96, 96, 96, 272, 272, 184, 184,
+            108, 140, 209, 63, 979, 1198, 1198, 1198, 1198, 1182, 1182, 1188,
+            1227, 1205, 1223, 1116, 1116, 1116, 1116, 1121, 1121, 1121, 1121,
+            1098, 1098, 1097, 1097, 1159, 1250, 1250, 1250, 1, 1, 1, 1, 1, 1, 1,
+            1, 5, 5, 4, 4, 6, 6, 3,
+        ],
+    ),
+)
+
 
 @dataclass
 class PreparedDeck:
@@ -265,6 +387,67 @@ class SampleDragapultBenchmarkResult:
         }
 
 
+@dataclass
+class Phase3RequiredBenchmarkRow:
+    deck_index: int
+    deck_label: str
+    archetype: str
+    tournament_rank: int
+    opponent: str
+    opponent_deck_label: str
+    games: int
+    wins: int = 0
+    losses: int = 0
+    draws: int = 0
+    timeouts: int = 0
+    errors: int = 0
+    win_rate: float = 0.0
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class Phase3RequiredDebugGame:
+    deck_index: int
+    deck_label: str
+    archetype: str
+    tournament_rank: int
+    opponent: str
+    game_index: int
+    outcome: str
+    our_player_index: int
+    steps: int
+    prize_counts: tuple[int, int] | None
+    error: str | None
+    trace: list[dict[str, Any]]
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
+class Phase3RequiredBenchmarkResult:
+    our_deck_source_url: str
+    requested_ranks: tuple[int, ...]
+    substitutions: tuple[dict[str, Any], ...]
+    games_per_matchup: int
+    max_steps: int
+    rows: list[Phase3RequiredBenchmarkRow]
+    debug_games: list[Phase3RequiredDebugGame] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "our_deck_source_url": self.our_deck_source_url,
+            "requested_ranks": list(self.requested_ranks),
+            "substitutions": list(self.substitutions),
+            "games_per_matchup": self.games_per_matchup,
+            "max_steps": self.max_steps,
+            "rows": [row.to_dict() for row in self.rows],
+            "debug_games": [game.to_dict() for game in self.debug_games],
+        }
+
+
 def phase3_benchmark_deck_coverage(rows: list[SampleDragapultBenchmarkRow]) -> list[dict[str, Any]]:
     coverage = []
     haystacks = [
@@ -318,6 +501,47 @@ def required_phase3_prepared_decks(start_index: int) -> list[PreparedDeck]:
             total_cards=60,
             fingerprint=f"required-phase3-{offset + 1}",
             source_url=source_url,
+        )
+        prepared.append(PreparedDeck(index=start_index + offset, deck=deck, card_ids=list(card_ids)))
+    return prepared
+
+
+def phase3_tournament_559_prepared_decks(start_index: int = 1) -> list[PreparedDeck]:
+    prepared = []
+    for offset, (rank, archetype, player, card_ids) in enumerate(TOURNAMENT_559_DECKS):
+        if len(card_ids) != 60:
+            raise ValueError(
+                f"Tournament 559 rank {rank} deck has {len(card_ids)} cards, expected 60."
+            )
+        deck = Decklist(
+            archetype=Archetype(
+                rank=rank,
+                name=archetype,
+                deck_id=f"tournament-559-rank-{rank}",
+                points=None,
+                share=None,
+                source_url=TOURNAMENT_559_SOURCE_URL,
+            ),
+            variant=Variant(
+                name=f"Rank {rank}",
+                value=None,
+                source_url=TOURNAMENT_559_SOURCE_URL,
+            ),
+            result=TournamentResult(
+                event_name="Regional Indianapolis, IN",
+                event_date="2026-05-30",
+                placement=f"Rank {rank}",
+                placement_rank=rank,
+                player=player,
+                decklist_url=TOURNAMENT_559_SOURCE_URL,
+                source_url=TOURNAMENT_559_SOURCE_URL,
+                page_order=offset,
+            ),
+            title=archetype,
+            cards=[CardLine(count=1, name=str(card_id), section="Card IDs") for card_id in card_ids],
+            total_cards=60,
+            fingerprint=f"tournament-559-rank-{rank}",
+            source_url=TOURNAMENT_559_SOURCE_URL,
         )
         prepared.append(PreparedDeck(index=start_index + offset, deck=deck, card_ids=list(card_ids)))
     return prepared
@@ -670,6 +894,303 @@ def run_sample_dragapult_benchmark(
         rows=rows,
         debug_games=debug_games,
     )
+
+
+def _record_phase3_required_outcome(
+    row: Phase3RequiredBenchmarkRow,
+    result: BattleResult,
+    *,
+    our_is_player0: bool,
+) -> tuple[str, bool]:
+    timeout = False
+    if result.error:
+        row.errors += 1
+        row.draws += 1
+        return "error", False
+
+    if result.winner is None:
+        if not result.finished:
+            row.timeouts += 1
+            timeout = True
+        effective_winner = result.leader
+    else:
+        effective_winner = result.winner
+
+    if effective_winner is None:
+        row.draws += 1
+        return ("timeout_draw" if timeout else "draw"), timeout
+
+    if (effective_winner == 0 and our_is_player0) or (
+        effective_winner == 1 and not our_is_player0
+    ):
+        row.wins += 1
+        return ("timeout_win" if timeout else "win"), timeout
+
+    row.losses += 1
+    return ("timeout_loss" if timeout else "loss"), timeout
+
+
+def run_phase3_required_benchmark(
+    our_decks: list[PreparedDeck],
+    benchmark_decks: list[PreparedDeck],
+    *,
+    sample_dir: Path,
+    games_per_matchup: int = 10,
+    max_steps: int = 600,
+    debug_limit_per_matchup: int = 1,
+    trace_limit: int = 60,
+) -> Phase3RequiredBenchmarkResult:
+    card_data, attack_data = load_engine_metadata(sample_dir)
+    rows: list[Phase3RequiredBenchmarkRow] = []
+    debug_games: list[Phase3RequiredDebugGame] = []
+
+    for our_deck in our_decks:
+        for benchmark_deck in benchmark_decks:
+            row = Phase3RequiredBenchmarkRow(
+                deck_index=our_deck.index,
+                deck_label=our_deck.label,
+                archetype=our_deck.archetype,
+                tournament_rank=our_deck.deck.result.placement_rank,
+                opponent=benchmark_deck.archetype,
+                opponent_deck_label=benchmark_deck.label,
+                games=games_per_matchup,
+            )
+            kept_debug_games = 0
+            for game_index in range(games_per_matchup):
+                our_is_player0 = game_index % 2 == 0
+                trace = []
+                our_agent = _quiet_rule_agent(
+                    our_deck.card_ids,
+                    card_data,
+                    attack_data,
+                    trace=trace,
+                    trace_limit=trace_limit,
+                )
+                benchmark_agent = _quiet_rule_agent(
+                    benchmark_deck.card_ids,
+                    card_data,
+                    attack_data,
+                )
+                result = run_battle(
+                    our_deck.card_ids if our_is_player0 else benchmark_deck.card_ids,
+                    benchmark_deck.card_ids if our_is_player0 else our_deck.card_ids,
+                    sample_dir=sample_dir,
+                    agent0=our_agent if our_is_player0 else benchmark_agent,
+                    agent1=benchmark_agent if our_is_player0 else our_agent,
+                    card_data=card_data,
+                    attack_data=attack_data,
+                    max_steps=max_steps,
+                )
+                outcome, _ = _record_phase3_required_outcome(
+                    row,
+                    result,
+                    our_is_player0=our_is_player0,
+                )
+                if (
+                    debug_limit_per_matchup > 0
+                    and kept_debug_games < debug_limit_per_matchup
+                    and outcome in {"loss", "timeout_loss", "timeout_draw", "error"}
+                ):
+                    debug_games.append(
+                        Phase3RequiredDebugGame(
+                            deck_index=our_deck.index,
+                            deck_label=our_deck.label,
+                            archetype=our_deck.archetype,
+                            tournament_rank=our_deck.deck.result.placement_rank,
+                            opponent=benchmark_deck.archetype,
+                            game_index=game_index + 1,
+                            outcome=outcome,
+                            our_player_index=0 if our_is_player0 else 1,
+                            steps=result.steps,
+                            prize_counts=result.prize_counts,
+                            error=result.error,
+                            trace=[entry.to_dict() for entry in trace],
+                        )
+                    )
+                    kept_debug_games += 1
+            row.win_rate = row.wins / row.games if row.games else 0.0
+            rows.append(row)
+
+    return Phase3RequiredBenchmarkResult(
+        our_deck_source_url=TOURNAMENT_559_SOURCE_URL,
+        requested_ranks=TOURNAMENT_559_REQUESTED_RANKS,
+        substitutions=TOURNAMENT_559_SUBSTITUTIONS,
+        games_per_matchup=games_per_matchup,
+        max_steps=max_steps,
+        rows=rows,
+        debug_games=debug_games,
+    )
+
+
+def _phase3_required_totals(rows: list[Phase3RequiredBenchmarkRow]) -> dict[str, Any]:
+    games = sum(row.games for row in rows)
+    wins = sum(row.wins for row in rows)
+    losses = sum(row.losses for row in rows)
+    draws = sum(row.draws for row in rows)
+    timeouts = sum(row.timeouts for row in rows)
+    errors = sum(row.errors for row in rows)
+    return {
+        "games": games,
+        "wins": wins,
+        "losses": losses,
+        "draws": draws,
+        "timeouts": timeouts,
+        "errors": errors,
+        "win_rate": wins / games if games else 0.0,
+    }
+
+
+def _phase3_required_deck_totals(rows: list[Phase3RequiredBenchmarkRow]) -> list[dict[str, Any]]:
+    totals: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        data = totals.setdefault(
+            row.deck_index,
+            {
+                "deck_index": row.deck_index,
+                "tournament_rank": row.tournament_rank,
+                "archetype": row.archetype,
+                "deck_label": row.deck_label,
+                "games": 0,
+                "wins": 0,
+                "losses": 0,
+                "draws": 0,
+                "timeouts": 0,
+                "errors": 0,
+            },
+        )
+        data["games"] += row.games
+        data["wins"] += row.wins
+        data["losses"] += row.losses
+        data["draws"] += row.draws
+        data["timeouts"] += row.timeouts
+        data["errors"] += row.errors
+    ordered = sorted(totals.values(), key=lambda item: item["deck_index"])
+    for data in ordered:
+        data["win_rate"] = data["wins"] / data["games"] if data["games"] else 0.0
+    return ordered
+
+
+def write_phase3_required_benchmark_report(
+    result: Phase3RequiredBenchmarkResult,
+    *,
+    json_path: Path,
+    markdown_path: Path,
+) -> None:
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    markdown_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+
+    totals = _phase3_required_totals(result.rows)
+    deck_totals = _phase3_required_deck_totals(result.rows)
+    requested_ranks = ", ".join(str(rank) for rank in result.requested_ranks)
+    lines = [
+        "# Phase 3 Required Benchmark",
+        "",
+        f"Our deck source: {result.our_deck_source_url}",
+        f"Our requested ranks: {requested_ranks}",
+        "Benchmark decks: Crustle, Mega Lucario ex, Mega Abomasnow ex, Iono's Bellibolt ex",
+        f"Games per matchup: {result.games_per_matchup}",
+        f"Max selections per game: {result.max_steps}",
+        "",
+        "## Overall",
+        "",
+        f"- Games: {totals['games']}",
+        f"- Wins: {totals['wins']}",
+        f"- Losses: {totals['losses']}",
+        f"- Draws: {totals['draws']}",
+        f"- Timeouts: {totals['timeouts']}",
+        f"- Errors: {totals['errors']}",
+        f"- Win rate: {totals['win_rate']:.3f}",
+        "",
+    ]
+    if result.substitutions:
+        lines.extend(
+            [
+                "## Temporary Substitutions",
+                "",
+                "| Rank | Original | Replacement | Reason |",
+                "| ---: | --- | --- | --- |",
+            ]
+        )
+        for substitution in result.substitutions:
+            lines.append(
+                f"| {substitution['rank']} | {substitution['original_card']} | "
+                f"{substitution['replacement_card']} | {substitution['reason']} |"
+            )
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Per-Deck Totals",
+            "",
+            "| Deck | Tournament rank | Archetype | Wins | Losses | Draws | Timeouts | Errors | Win rate |",
+            "| ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for row in deck_totals:
+        lines.append(
+            f"| {row['deck_index']} | {row['tournament_rank']} | {row['archetype']} | "
+            f"{row['wins']} | {row['losses']} | {row['draws']} | {row['timeouts']} | "
+            f"{row['errors']} | {row['win_rate']:.3f} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Matchups",
+            "",
+            "| Deck | Tournament rank | Archetype | Opponent | Wins | Losses | Draws | Timeouts | Errors | Win rate |",
+            "| ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for row in result.rows:
+        lines.append(
+            f"| {row.deck_index} | {row.tournament_rank} | {row.archetype} | {row.opponent} | "
+            f"{row.wins} | {row.losses} | {row.draws} | {row.timeouts} | "
+            f"{row.errors} | {row.win_rate:.3f} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Deck Labels",
+            "",
+            "| Deck | Label |",
+            "| ---: | --- |",
+        ]
+    )
+    seen_labels = set()
+    for row in result.rows:
+        if row.deck_index in seen_labels:
+            continue
+        seen_labels.add(row.deck_index)
+        lines.append(f"| {row.deck_index} | {row.deck_label} |")
+
+    if result.debug_games:
+        lines.extend(
+            [
+                "",
+                "## Debug Samples",
+                "",
+                "These compact traces are captured from the first loss, timeout, or error in each matchup.",
+                "",
+            ]
+        )
+        for game in result.debug_games[:20]:
+            lines.extend(
+                [
+                    f"### Deck {game.deck_index} vs {game.opponent}, game {game.game_index}: {game.outcome}",
+                    "",
+                    f"- Our player index: {game.our_player_index}",
+                    f"- Steps: {game.steps}",
+                    f"- Prize counts: `{game.prize_counts}`",
+                ]
+            )
+            if game.error:
+                lines.append(f"- Error: `{game.error}`")
+            lines.append("")
+
+    markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def write_sample_dragapult_benchmark_report(

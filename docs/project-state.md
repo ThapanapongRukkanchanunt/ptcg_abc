@@ -107,12 +107,16 @@ Representative commit:
 - Added v2 prize-map planning for spread and damage-counter attacks.
 - Added required Phase 3 benchmark decks for Crustle, Mega Lucario ex, Mega Abomasnow ex,
   and Iono's Bellibolt ex.
+- Added the current Phase 3 required benchmark shape: our agent uses nine Limitless
+  Tournament 559 decks from ranks 1, 2, 3, 4, 9, 10, 11, 18, and 22 against the four
+  fixed benchmark decks.
 - Added random-agent evaluation and archetype matchup sweep.
 - Selected final archetype: `Hydrapple ex`.
 - Selected final deck index: `20`.
 - Built local Kaggle submission bundle: `submissions/phase3/submission.tar.gz`.
 - Detailed conclusion: `docs/phase-3-conclusion.md`
 - Full closeout report: `reports/phase3_closeout.md`
+- Current required benchmark report: `reports/phase3_required_benchmark.md`
 
 Current smoke result:
 
@@ -195,8 +199,10 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `reports/sample_dragapult_benchmark_prizemap_v2_comparison.md`: original-vs-v2 benchmark comparison.
 - `reports/sample_dragapult_benchmark_prizemap_v2_analysis.md`: v2 benchmark diagnosis and next rule upgrade plan.
 - `reports/sample_dragapult_benchmark_prizemap_v3_setup.md`: narrowed setup-rule benchmark preserving the v2 27-deck result.
-- `reports/sample_dragapult_benchmark_phase3_required.md`: current 31-deck Phase 3 benchmark with required sample decks included.
-- `reports/sample_dragapult_benchmark_phase3_required_analysis.md`: current Phase 3 target gap and next rule upgrade plan.
+- `reports/sample_dragapult_benchmark_phase3_required.md`: historical 31-deck Dragapult benchmark with required sample decks included.
+- `reports/sample_dragapult_benchmark_phase3_required_analysis.md`: historical Phase 3 target gap and next rule upgrade plan.
+- `reports/phase3_required_benchmark.md`: current 9-deck by 4-benchmark Phase 3 required benchmark.
+- `reports/phase3_required_benchmark.json`: machine-readable version of the current required benchmark.
 - `reports/missing_limitless_cards.md`: canonical legality report for `TEF-POR`.
 - `src/ptcg_abc/`: project code.
 - `tests/`: regression tests.
@@ -207,26 +213,26 @@ Start Phase 4 by adding reinforcement learning workflow experiments.
 
 Immediate next step before Phase 4:
 
-- Add focused deck-family profiles derived from the public sample agents.
+- Replace the temporary legal stand-in for rank 2 if a better alternative is chosen:
+  Limitless `Pokemon Center Lady` is not present in Kaggle `EN_Card_Data.csv`, so the
+  current simulator deck uses `Cook`.
+- Add focused deck-family profiles against the four fixed benchmark decks.
 - Start with Crustle wall setup, Mega Lucario Fighting-energy setup, Mega Abomasnow
   water-energy discard math, and Iono Lightning acceleration.
 - Add anti-Dragapult defensive rules for Phantom Dive bench-counter pressure.
-- Rerun the 31-deck Phase 3 benchmark after each focused profile change.
+- Rerun `benchmark-phase3-required` after each focused profile change.
 
 Latest benchmark checkpoint:
 
-- Benchmark: copied sample Dragapult agent vs all 27 corpus decks plus the 4 required
-  Phase 3 sample decks.
-- Original baseline: 22 wins, 247 losses, 1 draw, 4 timeouts, 0.081 win rate.
-- V1 prize-map run: 10 wins, 260 losses, 0 draws, 0 timeouts, 0.037 win rate.
-- V2 guarded prize-map run: 23 wins, 247 losses, 0 draws, 3 timeouts, 0.085 win rate.
-- V3 narrowed setup run on the original 27 decks: 23 wins, 247 losses, 0 draws,
-  3 timeouts, 0.085 win rate.
-- Current required Phase 3 benchmark: 27 wins, 283 losses, 0 draws, 1 timeout,
-  0 errors, 0.087 win rate across 310 games.
-- Phase 3 target: approximately 155 wins in 310 games, or 50% average win rate.
-- Conclusion: the benchmark is now measuring the required decks, but generic setup
-  scoring alone is not enough. Focused deck-family rules are the next step.
+- Benchmark: our rule-based agent using nine Limitless Tournament 559 decks
+  (ranks 1, 2, 3, 4, 9, 10, 11, 18, and 22) against the four fixed benchmark decks:
+  Crustle, Mega Lucario ex, Mega Abomasnow ex, and Iono's Bellibolt ex.
+- Current full run: 138 wins, 220 losses, 2 draws, 3 timeouts, 0 errors, 0.383 win
+  rate across 360 games.
+- Current best deck totals: Crustle 0.550, Hydrapple 0.525, Ogerpon Box 0.525.
+- Phase 3 target: approximately 180 wins in 360 games, or 50% average win rate.
+- Conclusion: the new benchmark shape is implemented and error-free, but the generic
+  agent still needs focused rules to reach the 50% target.
 
 Phase 3 completed:
 

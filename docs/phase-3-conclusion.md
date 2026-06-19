@@ -89,7 +89,7 @@ submission artifacts and copied Kaggle native files.
 Unit tests:
 
 ```text
-Ran 19 tests
+Ran 42 tests
 OK
 ```
 
@@ -102,6 +102,31 @@ Packaged-agent smoke:
 
 ## Next Phase
 
-Phase 4 can start reinforcement learning experiments from this baseline. Recommended
-first step: keep the Phase 3 rule agent as a fixed opponent and build an evaluation loop
-that logs state/action/reward traces from local simulator games.
+Phase 4 can start reinforcement learning experiments once the required benchmark is
+stable enough to be useful as a baseline. Recommended first step: keep the Phase 3
+rule agent as a fixed opponent and build an evaluation loop that logs
+state/action/reward traces from local simulator games.
+
+## Post-Closeout Benchmark Update
+
+Date: 2026-06-19
+
+The active Phase 3 target now uses a stricter required benchmark:
+
+- Our agent uses nine Limitless Tournament 559 decks from ranks 1, 2, 3, 4, 9, 10,
+  11, 18, and 22.
+- Benchmark decks remain fixed: Crustle, Mega Lucario ex, Mega Abomasnow ex, and
+  Iono's Bellibolt ex.
+- Command: `python -m ptcg_abc benchmark-phase3-required`
+- Latest full run: 138 wins, 220 losses, 2 draws, 3 timeouts, 0 errors, 0.383 win
+  rate across 360 games.
+- Target: approximately 180 wins in 360 games, or 50% average win rate.
+
+Rank 2 from Limitless includes `Pokemon Center Lady`, which is not present in Kaggle
+`EN_Card_Data.csv`. The current simulator deck uses `Cook` as a temporary legal
+stand-in until a better replacement is chosen.
+
+Current reports:
+
+- `reports/phase3_required_benchmark.md`
+- `reports/phase3_required_benchmark.json`

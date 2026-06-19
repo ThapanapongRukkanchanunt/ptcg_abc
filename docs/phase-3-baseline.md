@@ -47,7 +47,7 @@ $env:PYTHONPATH='src'
 & 'C:\Users\thaip\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m unittest discover -s tests
 ```
 
-Result:
+Historical checkpoint result:
 
 ```text
 Ran 19 tests
