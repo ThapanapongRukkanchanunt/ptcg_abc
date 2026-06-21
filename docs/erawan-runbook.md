@@ -1,300 +1,481 @@
-# ERAWAN Phase 4 Runbook
+# ERAWAN Phase 4 Image-Size Progression Runbook
 
-This is the tested ERAWAN path for Phase 4 RL jobs. It records the working
-setup after the first successful login smoke and GPU check on June 20, 2026.
+This runbook only covers the current Phase 4 path in this repo: the
+image-size progression experiment driven by `rl-image-progression` and
+`scripts/slurm/phase4_image_progression_conda.sbatch`.
 
-## Known ERAWAN Notes
+The current experiment repeats this loop for each image-size label:
 
-- The login node may report `torch.cuda.is_available() == False`; that is normal.
-- GPU availability must be checked inside a SLURM GPU allocation.
-- Do not use the repo `.venv` for SLURM if it points at `/usr/bin/python`.
-  In one failed setup, `.venv/bin/python` printed Python 3.6 in a batch job even
-  though it printed Python 3.12 interactively.
-- Do not use ERAWAN `python/3.11.1` for PyTorch if it lacks `_ctypes`.
-- The working environment used `miniconda3/3.12` with a local conda env at
-  `.conda_ptcg`.
-- The working torch build was `torch 2.5.1+cu121`; a newer `cu130` wheel failed
-  on one login check because the visible driver was too old there.
+1. Run Hybrid vs Hybrid self-play for 1,000 games rotating across all 9 prepared decks.
+2. Update the model from the rollout records.
+3. Run Hybrid vs Benchmark evaluation for 100 games per matchup.
+4. Save one compact replay per matchup, for 36 replays per iteration.
 
-## One-Time Environment Setup
+The planned sweep runs 10 iterations for image sizes `1024`, `512`, and `256`.
+Rollout records are compact symbolic records; the image size is tracked as the
+experiment dimension and model metadata for comparing these three runs.
+By default, self-play rotates through the full 9x9 ordered matchup grid,
+including mirror matchups. Use `DECK_A_INDEX` and `DECK_B_INDEX` only when you
+intentionally want to reproduce a fixed two-deck run.
 
-Run from the repo root on ERAWAN:
+## 0. Push Latest Changes From This PC
+
+Run this from Windows PowerShell on this PC before pulling on ERAWAN:
+
+```powershell
+cd C:\Users\thaip\Documents\ptcg_ai_battle_challenge
+git status --short --branch
+git add docs/erawan-runbook.md `
+  scripts/slurm/phase4_image_progression_conda.sbatch `
+  src/ptcg_abc/cli.py `
+  src/ptcg_abc/rl/workflow.py `
+  tests/test_rl_phase4.py
+git commit -m "Rotate Phase 4 self-play decks"
+git push origin main
+```
+
+Use explicit file paths here. Do not use `git add .` if local copied Kaggle or
+ERAWAN data folders are present.
+
+Verify GitHub has the latest commit:
+
+```powershell
+git status --short --branch
+git log -1 --oneline
+```
+
+## 1. Pull The Latest Repo On ERAWAN
+
+Run on ERAWAN from your home directory:
 
 ```bash
 cd ~/ptcg_abc
+git fetch origin
+git status --short --branch
+git pull --ff-only origin main
+git rev-parse --short HEAD
+```
 
+Expected: the branch is up to date with `origin/main`, and the latest commit
+contains `scripts/slurm/phase4_image_progression_conda.sbatch`.
+
+Verify the progression command exists:
+
+```bash
+cd ~/ptcg_abc
+~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc --help | grep rl-image-progression
+```
+
+If `.conda_ptcg` is not created yet, do Step 2 first, then rerun this command.
+
+## 2. Prepare The Conda Environment
+
+Use the ERAWAN miniconda module and call the environment Python directly.
+Do not rely on `conda activate` inside SLURM jobs.
+
+```bash
+cd ~/ptcg_abc
 module purge
 module load miniconda3/3.12
-
-conda create -y -p ~/ptcg_abc/.conda_ptcg python=3.12 pip
-
-~/ptcg_abc/.conda_ptcg/bin/python --version
-~/ptcg_abc/.conda_ptcg/bin/python -m pip install -U pip setuptools wheel
-~/ptcg_abc/.conda_ptcg/bin/python -m pip install --ignore-requires-python -e .
-~/ptcg_abc/.conda_ptcg/bin/python -m pip install numpy
-~/ptcg_abc/.conda_ptcg/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu121
+test -x ~/ptcg_abc/.conda_ptcg/bin/python || conda create -y -p ~/ptcg_abc/.conda_ptcg python=3.12 pip
 ```
 
-Do not rely on `conda activate`; use the direct Python path:
+Install the repo and runtime packages:
 
 ```bash
-~/ptcg_abc/.conda_ptcg/bin/python
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" --version
+"$PY" -m pip install -U pip setuptools wheel
+"$PY" -m pip install -e .
+"$PY" -m pip install "numpy>=1.26" "Pillow>=10.0" "pypdf>=4.0"
+"$PY" -m pip install --force-reinstall torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 ```
 
-Verify imports on the login node:
+Check imports on the login node:
 
 ```bash
-~/ptcg_abc/.conda_ptcg/bin/python - <<'PY'
-import sys, torch, ptcg_abc
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" - <<'PY'
+import sys
+import torch
+import ptcg_abc
+
 print(sys.version)
 print(sys.executable)
-print(torch.__version__)
-print(torch.version.cuda)
-print(torch.cuda.is_available())
-print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)
+print("torch", torch.__version__)
+print("torch cuda runtime", torch.version.cuda)
+print("cuda available on login node", torch.cuda.is_available())
+print("device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)
 PY
 ```
 
-It is acceptable if CUDA is `False` here.
+It is acceptable if CUDA is `False` on the login node. CUDA must be checked
+inside a SLURM GPU allocation in Step 5.
 
-## Kaggle Data
+## 3. Prepare Kaggle Input Files
 
-If Kaggle files are under `data/input/`, create the default project path:
+If your files are already in `data/input/`, point the repo default path at that
+directory:
 
 ```bash
+cd ~/ptcg_abc
 mkdir -p data/kaggle
-ln -sfn ../input data/kaggle/input
+test -e data/kaggle/input || ln -s ../input data/kaggle/input
+ls data/kaggle/input
 ```
 
-Create the legal-card list without Kaggle credentials:
+Build the legal-card list from the copied Kaggle CSV:
 
 ```bash
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc discover-legal-cards \
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" -m ptcg_abc discover-legal-cards \
   --input-dir data/kaggle/input \
   --legal-source data/kaggle/input/EN_Card_Data.csv \
   --legal-cards data/kaggle/legal_cards.txt
 ```
 
-Phase 4 needs these files:
+Verify the required files:
 
 ```bash
-test -f data/kaggle/input/EN_Card_Data.csv && echo "card data OK"
+cd ~/ptcg_abc
+test -f data/kaggle/input/EN_Card_Data.csv && echo "EN card data OK"
+test -f data/kaggle/input/Card_ID\ List_EN.pdf && echo "card art PDF OK"
 test -d data/kaggle/input/sample_submission && echo "sample submission OK"
 test -f data/kaggle/legal_cards.txt && echo "legal cards OK"
 ```
 
-## Login-Node Smoke
+## 4. Login-Node Smoke Test
 
-Keep this tiny. The goal is wiring, not performance.
-
-```bash
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc rl-collect-bc \
-  --games 4 \
-  --max-steps 60 \
-  --output data/datasets/rl/bc_smoke.jsonl
-
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc rl-train-bc \
-  --backend torch \
-  --dataset data/datasets/rl/bc_smoke.jsonl \
-  --checkpoint models/rl/bc_smoke.pt \
-  --model models/rl/bc_smoke_export.json \
-  --epochs 1
-
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc rl-evaluate \
-  --agent hybrid \
-  --model models/rl/bc_smoke_export.json \
-  --games-per-matchup 1 \
-  --max-steps 120
-```
-
-Pass condition: `errors: 0`. Timeouts are acceptable at these short step caps.
-
-## GPU Check Job
-
-Create the GPU check script:
+Keep this tiny. It verifies the latest progression command, data paths, model
+update path, benchmark path, and replay writing without starting the real run.
 
 ```bash
-cat > scripts/slurm/gpu_check_conda.sbatch <<'EOF'
-#!/usr/bin/env bash
-#SBATCH --job-name=gpu-check
-#SBATCH --output=experiments/rl/slurm-%j-gpu-check.out
-#SBATCH --error=experiments/rl/slurm-%j-gpu-check.err
-#SBATCH --time=00:05:00
-#SBATCH --gres=gpu:1
-
-set -euo pipefail
-
-module purge
-module load miniconda3/3.12
-
-cd "$SLURM_SUBMIT_DIR"
-PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
-
-nvidia-smi || true
-"$PY" - <<'PY'
-import torch
-print("torch", torch.__version__)
-print("torch cuda runtime", torch.version.cuda)
-print("cuda available", torch.cuda.is_available())
-print("device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)
-PY
-EOF
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" -m ptcg_abc rl-image-progression \
+  --image-size 256 \
+  --iterations 1 \
+  --selfplay-games 1 \
+  --eval-games-per-matchup 1 \
+  --max-steps 20 \
+  --saved-replays-per-matchup 1 \
+  --replay-trace-limit 10 \
+  --update-epochs 1 \
+  --dataset-root data/datasets/rl/image_progression_smoke \
+  --model-root models/rl/image_progression_smoke \
+  --report-root reports/image_progression_smoke \
+  --output-root experiments/rl/image_progression_smoke
 ```
 
-Submit:
+Inspect the smoke result:
 
 ```bash
-sbatch --gres=gpu:1 scripts/slurm/gpu_check_conda.sbatch
+cd ~/ptcg_abc
+cat experiments/rl/image_progression_smoke/image-256/progression_summary.json
+find experiments/rl/image_progression_smoke/image-256/iter-01/replays -type f | wc -l
 ```
 
-Check:
+Expected: `errors` is `0`, and the replay count is `36`.
+
+## 5. GPU Smoke Test Through SLURM
+
+Run the same current progression script as a tiny GPU job. This checks the
+conda interpreter and CUDA from inside the allocation.
 
 ```bash
-cat experiments/rl/slurm-<jobid>-gpu-check.out
-cat experiments/rl/slurm-<jobid>-gpu-check.err
+cd ~/ptcg_abc
+JOB=$(
+  IMAGE_SIZES="256" \
+  ITERATIONS=1 \
+  SELFPLAY_GAMES=1 \
+  EVAL_GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=20 \
+  SAVED_REPLAYS_PER_MATCHUP=1 \
+  REPLAY_TRACE_LIMIT=10 \
+  UPDATE_EPOCHS=1 \
+  sbatch --parsable --gres=gpu:1 --time=00:30:00 scripts/slurm/phase4_image_progression_conda.sbatch
+)
+mkdir -p experiments/rl/image_progression_smoke
+echo "$JOB" | tee experiments/rl/image_progression_smoke/latest_slurm_job.txt
 ```
 
-Known good result:
+Monitor the GPU smoke job:
+
+```bash
+cd ~/ptcg_abc
+JOB=$(cat experiments/rl/image_progression_smoke/latest_slurm_job.txt)
+squeue -j "$JOB"
+tail -n 80 experiments/rl/slurm-${JOB}-image-progression.out
+tail -n 80 experiments/rl/slurm-${JOB}-image-progression.err
+```
+
+Expected in the output:
 
 ```text
-NVIDIA A100-SXM4-80GB
 torch 2.5.1+cu121
-torch cuda runtime 12.1
-cuda available True
+cuda True
+device NVIDIA A100-SXM4-80GB
 ```
 
-## Medium BC Trend Job
+The exact GPU name can differ if the job lands on H100 instead of A100.
 
-Use the checked-in conda script:
+## 6. Submit The Full Image-Size Progression Experiment
 
-```text
-scripts/slurm/phase4_bc_conda.sbatch
-```
-
-The script loads `miniconda3/3.12`, uses the direct
-`$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python` interpreter, exports `PYTHONPATH`,
-checks CUDA inside the allocation, and prints the torch checkpoint format. It
-saves the training-side CNN actor/value checkpoint to `models/rl/bc_model.pt`
-and the Kaggle-safe JSON fallback to `models/rl/bc_model.json`.
-
-Useful environment overrides:
-
-```text
-BC_GAMES=1000
-BC_EPOCHS=2
-MAX_STEPS=600
-BC_LEARNING_RATE=0.02
-BC_DATASET=data/datasets/rl/bc_decisions.jsonl
-BC_CHECKPOINT=models/rl/bc_model.pt
-BC_MODEL=models/rl/bc_model.json
-BC_REPORT=experiments/rl/bc_train_report.json
-```
-
-Submit the medium trend job:
+This is the current full experiment:
 
 ```bash
-BC_GAMES=1000 BC_EPOCHS=2 MAX_STEPS=600 \
-sbatch --gres=gpu:1 scripts/slurm/phase4_bc_conda.sbatch
+cd ~/ptcg_abc
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+mkdir -p "$PROJECT_RUN"
+JOB=$(
+  IMAGE_SIZES="1024 512 256" \
+  ITERATIONS=10 \
+  SELFPLAY_GAMES=1000 \
+  EVAL_GAMES_PER_MATCHUP=100 \
+  MAX_STEPS=600 \
+  SAVED_REPLAYS_PER_MATCHUP=1 \
+  REPLAY_TRACE_LIMIT=60 \
+  UPDATE_EPOCHS=1 \
+  DATASET_ROOT="$PROJECT_RUN/data/datasets/rl/image_progression" \
+  MODEL_ROOT="$PROJECT_RUN/models/rl/image_progression" \
+  REPORT_ROOT="$PROJECT_RUN/reports/image_progression" \
+  OUTPUT_ROOT="$PROJECT_RUN/experiments/rl/image_progression" \
+  sbatch --parsable --gres=gpu:1 scripts/slurm/phase4_image_progression_conda.sbatch
+)
+mkdir -p experiments/rl/image_progression
+echo "$JOB" | tee experiments/rl/image_progression/latest_slurm_job.txt
 ```
 
-Monitor:
+The script writes logs here:
 
 ```bash
-squeue -u "$USER"
-cat experiments/rl/slurm-<jobid>-bc.out
-cat experiments/rl/slurm-<jobid>-bc.err
+cd ~/ptcg_abc
+JOB=$(cat experiments/rl/image_progression/latest_slurm_job.txt)
+echo experiments/rl/slurm-${JOB}-image-progression.out
+echo experiments/rl/slurm-${JOB}-image-progression.err
 ```
 
-Evaluate after the job finishes:
+## 7. Monitor The Running Job
+
+Check whether the job is still queued or running:
 
 ```bash
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc rl-evaluate \
-  --agent hybrid \
-  --model models/rl/bc_model.json \
-  --games-per-matchup 10 \
-  --max-steps 600 \
-  --report-json reports/phase4_medium_benchmark.json \
-  --report-md reports/phase4_medium_benchmark.md
+cd ~/ptcg_abc
+JOB=$(cat experiments/rl/image_progression/latest_slurm_job.txt)
+squeue -j "$JOB"
 ```
 
-Compare the medium result to the Phase 3 baseline:
-
-```text
-Phase 3 baseline: 138 wins / 360 games, win rate 0.383
-```
-
-## Large BC And Package
-
-If the medium trend has `errors: 0`, launch the large BC run:
+Watch the latest normal output:
 
 ```bash
-BC_GAMES=20000 BC_EPOCHS=3 MAX_STEPS=600 \
-sbatch --gres=gpu:1 scripts/slurm/phase4_bc_conda.sbatch
+cd ~/ptcg_abc
+JOB=$(cat experiments/rl/image_progression/latest_slurm_job.txt)
+tail -f experiments/rl/slurm-${JOB}-image-progression.out
 ```
 
-Evaluate:
+Watch errors or tracebacks:
 
 ```bash
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc rl-evaluate \
-  --agent hybrid \
-  --model models/rl/bc_model.json \
-  --games-per-matchup 10 \
-  --max-steps 600 \
-  --report-json reports/phase4_large_bc_benchmark.json \
-  --report-md reports/phase4_large_bc_benchmark.md
+cd ~/ptcg_abc
+JOB=$(cat experiments/rl/image_progression/latest_slurm_job.txt)
+tail -f experiments/rl/slurm-${JOB}-image-progression.err
 ```
 
-Package a Kaggle submission for the selected deck:
+If the job leaves the queue, inspect the final logs:
 
 ```bash
-~/ptcg_abc/.conda_ptcg/bin/python -m ptcg_abc rl-package \
-  --model models/rl/bc_model.json \
-  --deck-index 1 \
-  --output-dir submissions/phase4
+cd ~/ptcg_abc
+JOB=$(cat experiments/rl/image_progression/latest_slurm_job.txt)
+cat experiments/rl/slurm-${JOB}-image-progression.out
+cat experiments/rl/slurm-${JOB}-image-progression.err
 ```
 
-Expected package path:
+## 8. Inspect The Progression Trend
 
-```text
-submissions/phase4/deck-1/submission.tar.gz
-```
-
-## Image-Size Progression Experiment
-
-Use this after the compact board snapshots are accepted and you want the
-10-iteration progression sweep:
+Each image size gets its own summary:
 
 ```bash
-IMAGE_SIZES="256 512 1024" \
-ITERATIONS=10 \
-SELFPLAY_GAMES=1000 \
-EVAL_GAMES_PER_MATCHUP=100 \
-MAX_STEPS=600 \
-DECK_A_INDEX=9 \
-DECK_B_INDEX=9 \
-sbatch --gres=gpu:1 scripts/slurm/phase4_image_progression_conda.sbatch
+cd ~/ptcg_abc
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+ls "$PROJECT_RUN"/experiments/rl/image_progression/image-1024/progression_summary.json
+ls "$PROJECT_RUN"/experiments/rl/image_progression/image-512/progression_summary.json
+ls "$PROJECT_RUN"/experiments/rl/image_progression/image-256/progression_summary.json
 ```
 
-This runs three separate experiments. For each image size, each iteration does:
+Print a compact trend table:
 
-```text
-1,000 Hybrid-vs-Hybrid self-play games
-reward-weighted model update
-3,600 Hybrid-vs-Benchmark evaluation games
-36 compact replay traces, one per 9x4 matchup
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+export PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+"$PY" - <<'PY'
+import json
+import os
+from pathlib import Path
+
+root = Path(os.environ["PROJECT_RUN"])
+for size in (1024, 512, 256):
+    path = root / "experiments" / "rl" / "image_progression" / f"image-{size}" / "progression_summary.json"
+    print(f"\nimage-{size}")
+    if not path.exists():
+        print("  not started")
+        continue
+    data = json.loads(path.read_text())
+    for item in data.get("summaries", []):
+        ev = item.get("evaluation", {})
+        print(
+            f"  iter {item['iteration']:02d}: "
+            f"win_rate={ev.get('win_rate', 0):.3f} "
+            f"wins={ev.get('wins', 0)}/{ev.get('games', 0)} "
+            f"timeouts={ev.get('timeouts', 0)} "
+            f"errors={ev.get('errors', 0)} "
+            f"model={item.get('model_path')}"
+        )
+PY
 ```
 
-Outputs:
+Check replay counts:
 
-```text
-data/datasets/rl/image_progression/image-<size>/
-models/rl/image_progression/image-<size>/
-reports/image_progression/image-<size>/
-experiments/rl/image_progression/image-<size>/progression_summary.json
-experiments/rl/image_progression/image-<size>/iter-<NN>/replays/
+```bash
+cd ~/ptcg_abc
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+find "$PROJECT_RUN"/experiments/rl/image_progression/image-1024 -path '*/replays/*.json' | wc -l
+find "$PROJECT_RUN"/experiments/rl/image_progression/image-512 -path '*/replays/*.json' | wc -l
+find "$PROJECT_RUN"/experiments/rl/image_progression/image-256 -path '*/replays/*.json' | wc -l
 ```
 
-The runner keeps rollout records compact for storage. The current update step
-uses the existing reward-weighted JSON model path; the `image_size` value is
-recorded in model metadata and replay/progression artifacts so the 256, 512, and
-1024 sweeps can be compared cleanly.
+Expected after a complete run: `360` replay files per image size.
+
+## 9. Inspect A Specific Iteration
+
+Open the markdown benchmark for any image size and iteration:
+
+```bash
+cd ~/ptcg_abc
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+cat "$PROJECT_RUN"/reports/image_progression/image-1024/iter-01-benchmark.md
+cat "$PROJECT_RUN"/reports/image_progression/image-512/iter-01-benchmark.md
+cat "$PROJECT_RUN"/reports/image_progression/image-256/iter-01-benchmark.md
+```
+
+List the 36 compact replay traces for an iteration:
+
+```bash
+cd ~/ptcg_abc
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+find "$PROJECT_RUN"/experiments/rl/image_progression/image-1024/iter-01/replays -maxdepth 1 -type f | sort
+```
+
+View one replay trace:
+
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+"$PY" -m json.tool "$PROJECT_RUN"/experiments/rl/image_progression/image-1024/iter-01/replays/deck-01-vs-Crustle-game-001.json | head -n 120
+```
+
+If the exact replay filename differs, list the directory first and replace the
+path in the command.
+
+## 10. Select The Best Model
+
+After the job finishes, pick the model with the highest benchmark win rate:
+
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+export PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+BEST_MODEL=$(
+  "$PY" - <<'PY'
+import json
+import os
+from pathlib import Path
+
+root = Path(os.environ["PROJECT_RUN"])
+best = None
+for size in (1024, 512, 256):
+    path = root / "experiments" / "rl" / "image_progression" / f"image-{size}" / "progression_summary.json"
+    if not path.exists():
+        continue
+    data = json.loads(path.read_text())
+    for item in data.get("summaries", []):
+        ev = item.get("evaluation", {})
+        row = (
+            float(ev.get("win_rate", 0.0)),
+            int(ev.get("wins", 0)),
+            int(ev.get("games", 0)),
+            size,
+            int(item.get("iteration", 0)),
+            item.get("model_path", ""),
+        )
+        if best is None or row > best:
+            best = row
+if best is None:
+    raise SystemExit("no progression summaries found")
+print(best[5])
+PY
+)
+mkdir -p "$PROJECT_RUN"/experiments/rl/image_progression
+echo "$BEST_MODEL" | tee "$PROJECT_RUN"/experiments/rl/image_progression/best_model.txt
+```
+
+Print the selected model metadata:
+
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+BEST_MODEL=$(cat "$PROJECT_RUN"/experiments/rl/image_progression/best_model.txt)
+"$PY" -m json.tool "$BEST_MODEL" | head -n 80
+```
+
+## 11. Package A Kaggle Submission
+
+Use the selected model. The current progression self-play defaults to deck `9`
+vs deck `9`, so package deck `9` unless you decide to submit a different
+prepared deck.
+
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+BEST_MODEL=$(cat "$PROJECT_RUN"/experiments/rl/image_progression/best_model.txt)
+PACKAGE_DECK_INDEX=9
+"$PY" -m ptcg_abc rl-package \
+  --model "$BEST_MODEL" \
+  --deck-index "$PACKAGE_DECK_INDEX" \
+  --output-dir submissions/phase4_image_progression
+```
+
+Verify the package path:
+
+```bash
+cd ~/ptcg_abc
+PACKAGE_DECK_INDEX=9
+ls -lh submissions/phase4_image_progression/deck-${PACKAGE_DECK_INDEX}/submission.tar.gz
+```
+
+## 12. Optional: Copy Results Back
+
+Create a compact archive of summaries, benchmark markdown, and replay traces:
+
+```bash
+cd ~/ptcg_abc
+PROJECT_RUN=/project/SIGGI/$USER/ptcg_abc_phase4
+tar -czf experiments/rl/phase4_image_progression_results.tar.gz \
+  -C "$PROJECT_RUN" \
+  experiments/rl/image_progression \
+  reports/image_progression \
+  models/rl/image_progression
+ls -lh experiments/rl/phase4_image_progression_results.tar.gz
+```
+
+From your local machine, copy the archive back:
+
+```bash
+scp thapanapong.r@erawan.cmu.ac.th:~/ptcg_abc/experiments/rl/phase4_image_progression_results.tar.gz .
+```

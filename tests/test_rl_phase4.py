@@ -16,6 +16,7 @@ from ptcg_abc.rl.torch_backend import (
     linear_model_from_actor_params,
     train_torch_bc_model,
 )
+from ptcg_abc.rl.workflow import build_selfplay_deck_plan, selfplay_pair_for_game
 
 
 @dataclass
@@ -57,6 +58,12 @@ class FakePlayer:
 class FakeObservation:
     select: FakeSelect | None
     current: FakeCurrent
+
+
+@dataclass
+class FakePreparedDeck:
+    index: int
+    label: str
 
 
 class Phase4RlTests(unittest.TestCase):
@@ -222,6 +229,52 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(progression_args.image_size, [256])
         self.assertEqual(progression_args.iterations, 1)
         self.assertEqual(progression_args.selfplay_games, 2)
+        self.assertIsNone(progression_args.deck_a_index)
+        self.assertIsNone(progression_args.deck_b_index)
+        self.assertEqual(progression_args.selfplay_deck_index, [])
+
+        subset_progression_args = parser.parse_args(
+            [
+                "rl-image-progression",
+                "--selfplay-deck-index",
+                "1",
+                "--selfplay-deck-index",
+                "9",
+            ]
+        )
+
+        self.assertEqual(subset_progression_args.selfplay_deck_index, [1, 9])
+
+    def test_selfplay_default_plan_rotates_all_ordered_deck_pairs(self):
+        decks = [FakePreparedDeck(index, f"deck-{index}") for index in range(1, 10)]
+
+        plan = build_selfplay_deck_plan(decks)
+
+        self.assertEqual(plan.mode, "rotate")
+        self.assertEqual(plan.deck_indices, list(range(1, 10)))
+        self.assertEqual(len(plan.pairs), 81)
+        self.assertEqual(
+            [(deck_a.index, deck_b.index) for deck_a, deck_b in plan.pairs[:3]],
+            [(1, 1), (1, 2), (1, 3)],
+        )
+        self.assertEqual((plan.pairs[-1][0].index, plan.pairs[-1][1].index), (9, 9))
+        self.assertEqual(
+            (
+                selfplay_pair_for_game(plan, 81)[0].index,
+                selfplay_pair_for_game(plan, 81)[1].index,
+            ),
+            (1, 1),
+        )
+
+    def test_selfplay_fixed_plan_requires_explicit_two_deck_pair(self):
+        decks = [FakePreparedDeck(index, f"deck-{index}") for index in range(1, 10)]
+
+        plan = build_selfplay_deck_plan(decks, deck_a_index=9, deck_b_index=9)
+
+        self.assertEqual(plan.mode, "fixed")
+        self.assertEqual(plan.deck_indices, [9, 9])
+        self.assertEqual(len(plan.pairs), 1)
+        self.assertEqual((plan.pairs[0][0].index, plan.pairs[0][1].index), (9, 9))
 
     def test_torch_actor_export_equation_matches_linear_model(self):
         obs = FakeObservation(

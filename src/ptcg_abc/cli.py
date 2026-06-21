@@ -604,6 +604,7 @@ def command_rl_image_progression(args: argparse.Namespace) -> int:
                 max_steps=args.max_steps,
                 deck_a_index=args.deck_a_index,
                 deck_b_index=args.deck_b_index,
+                selfplay_deck_indices=args.selfplay_deck_index or None,
                 saved_replays_per_matchup=args.saved_replays_per_matchup,
                 replay_trace_limit=args.replay_trace_limit,
                 update_epochs=args.update_epochs,
@@ -1091,8 +1092,25 @@ def build_parser() -> argparse.ArgumentParser:
     rl_progression.add_argument("--selfplay-games", type=int, default=1000)
     rl_progression.add_argument("--eval-games-per-matchup", type=int, default=100)
     rl_progression.add_argument("--max-steps", type=int, default=600)
-    rl_progression.add_argument("--deck-a-index", type=int, default=9)
-    rl_progression.add_argument("--deck-b-index", type=int, default=9)
+    rl_progression.add_argument(
+        "--deck-a-index",
+        type=int,
+        default=None,
+        help="Optional fixed self-play deck A. If omitted with deck B, self-play rotates decks.",
+    )
+    rl_progression.add_argument(
+        "--deck-b-index",
+        type=int,
+        default=None,
+        help="Optional fixed self-play deck B. If omitted with deck A, self-play rotates decks.",
+    )
+    rl_progression.add_argument(
+        "--selfplay-deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Prepared deck index included in rotating self-play. Repeat to choose a subset.",
+    )
     rl_progression.add_argument("--saved-replays-per-matchup", type=int, default=1)
     rl_progression.add_argument("--replay-trace-limit", type=int, default=60)
     rl_progression.add_argument("--update-epochs", type=int, default=1)

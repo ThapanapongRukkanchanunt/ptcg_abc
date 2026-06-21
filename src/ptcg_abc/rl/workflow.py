@@ -71,12 +71,21 @@ class SelfPlaySummary:
     games_started: int
     steps: int
     output_path: str
-    deck_a_index: int
-    deck_a_label: str
-    deck_b_index: int
-    deck_b_label: str
+    mode: str
+    deck_indices: list[int]
+    deck_labels: list[str]
+    pair_count: int
+    deck_a_index: int | None
+    deck_a_label: str | None
+    deck_b_index: int | None
+    deck_b_label: str | None
     deck_a_wins: int
     deck_b_wins: int
+    deck_games: dict[str, int]
+    deck_wins: dict[str, int]
+    deck_losses: dict[str, int]
+    deck_draws: dict[str, int]
+    matchups: dict[str, dict[str, int]]
     draws: int
     errors: int
     timeouts: int
@@ -84,6 +93,16 @@ class SelfPlaySummary:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class SelfPlayDeckPlan:
+    mode: str
+    deck_indices: list[int]
+    deck_labels: list[str]
+    pairs: list[tuple[PreparedDeck, PreparedDeck]]
+    fixed_deck_a: PreparedDeck | None = None
+    fixed_deck_b: PreparedDeck | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +140,76 @@ class ProgressionExperimentSummary:
             "model_root": self.model_root,
             "report_root": self.report_root,
         }
+
+
+def _ordered_unique_ints(values: Sequence[int]) -> list[int]:
+    seen: set[int] = set()
+    ordered: list[int] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
+def build_selfplay_deck_plan(
+    prepared_decks: Sequence[PreparedDeck],
+    *,
+    deck_a_index: int | None = None,
+    deck_b_index: int | None = None,
+    selfplay_deck_indices: Sequence[int] | None = None,
+) -> SelfPlayDeckPlan:
+    decks_by_index = {deck.index: deck for deck in prepared_decks}
+    if selfplay_deck_indices:
+        if deck_a_index is not None or deck_b_index is not None:
+            raise ValueError(
+                "Use either selfplay_deck_indices for rotation or deck_a_index/deck_b_index "
+                "for a fixed pair, not both."
+            )
+        requested_indices = _ordered_unique_ints(list(selfplay_deck_indices))
+        mode = "rotate"
+    elif deck_a_index is None and deck_b_index is None:
+        requested_indices = [deck.index for deck in prepared_decks]
+        mode = "rotate"
+    elif deck_a_index is not None and deck_b_index is not None:
+        missing = [index for index in (deck_a_index, deck_b_index) if index not in decks_by_index]
+        if missing:
+            raise ValueError(f"Unknown prepared deck index for fixed self-play: {missing[0]}.")
+        deck_a = decks_by_index[deck_a_index]
+        deck_b = decks_by_index[deck_b_index]
+        return SelfPlayDeckPlan(
+            mode="fixed",
+            deck_indices=[deck_a.index, deck_b.index],
+            deck_labels=[deck_a.label, deck_b.label],
+            pairs=[(deck_a, deck_b)],
+            fixed_deck_a=deck_a,
+            fixed_deck_b=deck_b,
+        )
+    else:
+        raise ValueError("Set both deck_a_index and deck_b_index, or omit both to rotate decks.")
+
+    if not requested_indices:
+        raise ValueError("Self-play deck rotation needs at least one deck.")
+    for index in requested_indices:
+        if index not in decks_by_index:
+            raise ValueError(f"Unknown prepared deck index for self-play rotation: {index}.")
+    selected_decks = [decks_by_index[index] for index in requested_indices]
+    return SelfPlayDeckPlan(
+        mode=mode,
+        deck_indices=[deck.index for deck in selected_decks],
+        deck_labels=[deck.label for deck in selected_decks],
+        pairs=[(deck_a, deck_b) for deck_a in selected_decks for deck_b in selected_decks],
+    )
+
+
+def selfplay_pair_for_game(
+    plan: SelfPlayDeckPlan,
+    game_index: int,
+) -> tuple[PreparedDeck, PreparedDeck]:
+    if not plan.pairs:
+        raise ValueError("Self-play deck plan has no pairs.")
+    return plan.pairs[game_index % len(plan.pairs)]
 
 
 def collect_bc_demonstrations(
@@ -327,27 +416,51 @@ def rollout_selfplay_games(
     model_path: Path | None = None,
     games: int = 1000,
     max_steps: int = 600,
-    deck_a_index: int = 9,
-    deck_b_index: int = 9,
+    deck_a_index: int | None = None,
+    deck_b_index: int | None = None,
+    selfplay_deck_indices: Sequence[int] | None = None,
     image_size: int = 1024,
     guidance_rules: Sequence[str] | None = None,
 ) -> SelfPlaySummary:
     card_data, attack_data = load_engine_metadata(sample_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("", encoding="utf-8")
-    decks = {deck.index: deck for deck in phase3_tournament_559_prepared_decks()}
-    if deck_a_index not in decks:
-        raise ValueError(f"Unknown prepared deck index for deck A: {deck_a_index}.")
-    if deck_b_index not in decks:
-        raise ValueError(f"Unknown prepared deck index for deck B: {deck_b_index}.")
-    deck_a = decks[deck_a_index]
-    deck_b = decks[deck_b_index]
+    plan = build_selfplay_deck_plan(
+        phase3_tournament_559_prepared_decks(),
+        deck_a_index=deck_a_index,
+        deck_b_index=deck_b_index,
+        selfplay_deck_indices=selfplay_deck_indices,
+    )
     games_started = deck_a_wins = deck_b_wins = draws = errors = timeouts = steps_written = 0
+    deck_keys = {str(index) for index in plan.deck_indices}
+    deck_games = {key: 0 for key in deck_keys}
+    deck_wins = {key: 0 for key in deck_keys}
+    deck_losses = {key: 0 for key in deck_keys}
+    deck_draws = {key: 0 for key in deck_keys}
+    matchups: dict[str, dict[str, int]] = {}
 
     for game_index in range(games):
+        deck_a, deck_b = selfplay_pair_for_game(plan, game_index)
         deck_a_is_player0 = game_index % 2 == 0
         player0_deck = deck_a if deck_a_is_player0 else deck_b
         player1_deck = deck_b if deck_a_is_player0 else deck_a
+        pair_key = f"{deck_a.index}-vs-{deck_b.index}"
+        matchup = matchups.setdefault(
+            pair_key,
+            {
+                "deck_a_index": deck_a.index,
+                "deck_b_index": deck_b.index,
+                "games": 0,
+                "deck_a_wins": 0,
+                "deck_b_wins": 0,
+                "draws": 0,
+                "errors": 0,
+                "timeouts": 0,
+            },
+        )
+        matchup["games"] += 1
+        for deck in (player0_deck, player1_deck):
+            deck_games[str(deck.index)] = deck_games.get(str(deck.index), 0) + 1
         recorder0 = RecordingPolicyAgent(
             _make_agent(
                 agent_kind,
@@ -369,6 +482,11 @@ def rollout_selfplay_games(
                 "collector": "selfplay",
                 "agent": agent_kind,
                 "image_size": image_size,
+                "selfplay_mode": plan.mode,
+                "selfplay_deck_indices": plan.deck_indices,
+                "selfplay_pair_key": pair_key,
+                "selfplay_deck_a_index": deck_a.index,
+                "selfplay_deck_b_index": deck_b.index,
             },
         )
         recorder1 = RecordingPolicyAgent(
@@ -392,6 +510,11 @@ def rollout_selfplay_games(
                 "collector": "selfplay",
                 "agent": agent_kind,
                 "image_size": image_size,
+                "selfplay_mode": plan.mode,
+                "selfplay_deck_indices": plan.deck_indices,
+                "selfplay_pair_key": pair_key,
+                "selfplay_deck_a_index": deck_a.index,
+                "selfplay_deck_b_index": deck_b.index,
             },
         )
         result = run_battle(
@@ -407,17 +530,34 @@ def rollout_selfplay_games(
         games_started += int(result.started)
         errors += int(result.error is not None)
         timeouts += int(result.started and not result.finished and result.error is None)
+        matchup["errors"] += int(result.error is not None)
+        matchup["timeouts"] += int(result.started and not result.finished and result.error is None)
         winner = result.winner if result.winner is not None else result.leader
         if winner is None or result.error:
             draws += 1
-        elif (winner == 0 and deck_a_is_player0) or (winner == 1 and not deck_a_is_player0):
-            deck_a_wins += 1
+            matchup["draws"] += 1
+            for deck in (player0_deck, player1_deck):
+                deck_draws[str(deck.index)] = deck_draws.get(str(deck.index), 0) + 1
         else:
-            deck_b_wins += 1
+            slot_a_player_index = 0 if deck_a_is_player0 else 1
+            deck_a_won = winner == slot_a_player_index
+            winning_deck = player0_deck if winner == 0 else player1_deck
+            losing_deck = player1_deck if winner == 0 else player0_deck
+            deck_wins[str(winning_deck.index)] = deck_wins.get(str(winning_deck.index), 0) + 1
+            deck_losses[str(losing_deck.index)] = deck_losses.get(str(losing_deck.index), 0) + 1
+            if deck_a_won:
+                deck_a_wins += 1
+                matchup["deck_a_wins"] += 1
+            else:
+                deck_b_wins += 1
+                matchup["deck_b_wins"] += 1
 
         for player_index, recorder in ((0, recorder0), (1, recorder1)):
             final_metadata = _result_metadata(result, player_index) | {
                 "player_index": player_index,
+                "selfplay_mode": plan.mode,
+                "selfplay_deck_indices": plan.deck_indices,
+                "selfplay_pair_key": pair_key,
                 "selfplay_deck_a_index": deck_a.index,
                 "selfplay_deck_b_index": deck_b.index,
             }
@@ -442,12 +582,21 @@ def rollout_selfplay_games(
         games_started=games_started,
         steps=steps_written,
         output_path=str(output_path.as_posix()),
-        deck_a_index=deck_a.index,
-        deck_a_label=deck_a.label,
-        deck_b_index=deck_b.index,
-        deck_b_label=deck_b.label,
+        mode=plan.mode,
+        deck_indices=plan.deck_indices,
+        deck_labels=plan.deck_labels,
+        pair_count=len(plan.pairs),
+        deck_a_index=plan.fixed_deck_a.index if plan.fixed_deck_a else None,
+        deck_a_label=plan.fixed_deck_a.label if plan.fixed_deck_a else None,
+        deck_b_index=plan.fixed_deck_b.index if plan.fixed_deck_b else None,
+        deck_b_label=plan.fixed_deck_b.label if plan.fixed_deck_b else None,
         deck_a_wins=deck_a_wins,
         deck_b_wins=deck_b_wins,
+        deck_games=dict(sorted(deck_games.items(), key=lambda item: int(item[0]))),
+        deck_wins=dict(sorted(deck_wins.items(), key=lambda item: int(item[0]))),
+        deck_losses=dict(sorted(deck_losses.items(), key=lambda item: int(item[0]))),
+        deck_draws=dict(sorted(deck_draws.items(), key=lambda item: int(item[0]))),
+        matchups=dict(sorted(matchups.items())),
         draws=draws,
         errors=errors,
         timeouts=timeouts,
@@ -645,8 +794,9 @@ def run_image_progression_experiment(
     selfplay_games: int = 1000,
     eval_games_per_matchup: int = 100,
     max_steps: int = 600,
-    deck_a_index: int = 9,
-    deck_b_index: int = 9,
+    deck_a_index: int | None = None,
+    deck_b_index: int | None = None,
+    selfplay_deck_indices: Sequence[int] | None = None,
     saved_replays_per_matchup: int = 1,
     replay_trace_limit: int = 60,
     update_epochs: int = 1,
@@ -688,6 +838,7 @@ def run_image_progression_experiment(
             max_steps=max_steps,
             deck_a_index=deck_a_index,
             deck_b_index=deck_b_index,
+            selfplay_deck_indices=selfplay_deck_indices,
             image_size=image_size,
         )
         update = train_ppo_from_rollouts(
@@ -705,8 +856,10 @@ def run_image_progression_experiment(
                 "iteration": iteration,
                 "selfplay_games": selfplay_games,
                 "eval_games_per_matchup": eval_games_per_matchup,
-                "deck_a_index": deck_a_index,
-                "deck_b_index": deck_b_index,
+                "selfplay_mode": selfplay.mode,
+                "selfplay_deck_indices": selfplay.deck_indices,
+                "deck_a_index": selfplay.deck_a_index,
+                "deck_b_index": selfplay.deck_b_index,
                 "board_tensor_note": "Rollout records keep the compact symbolic board tensor; image_size labels the visual replay/model-size sweep.",
             },
         )
