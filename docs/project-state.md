@@ -174,13 +174,33 @@ Representative commit:
 - PyTorch backend trains a dynamic legal-option actor plus value head, then
   exports actor weights to the Kaggle-safe JSON `LinearOptionModel` inference
   format.
+- Upgraded the model board input from the placeholder `16x16` numeric summary to
+  a deterministic `64x64` symbolic board tensor with fixed Active, Bench, Deck,
+  Discard, Prize, Stadium, hand-count, global-state, visible-attachment, HP,
+  damage, energy, tool, stage/ex, and special-condition zones.
+- Updated the optional PyTorch backend to train the planned
+  `CNN(board_image) + MLP(option_features)` actor with a board-value head. The
+  checkpoint keeps the CNN actor/value model, while `model.json` remains a
+  Kaggle-safe linear fallback export.
+- Added a human-inspection board snapshot renderer that uses extracted Kaggle
+  card art, compact tabletop layout, face-down hidden hands, visible attachment
+  stacks, damage/status markers, and active-player perspective snapshots.
+- Accepted the compact first-two-turn snapshot baseline under
+  `reports/phase4_board_snapshots_compact_first2_turns/` with 28 generated PNGs
+  plus `manifest.json`.
 - PyTorch backend now trains on CUDA automatically when available and saves a
   portable CPU checkpoint/export.
 - Added an `rl` optional dependency group for training environments:
   `python -m pip install -e .[rl]`.
 - Added export-equation parity coverage so the PyTorch actor equation and
   exported JSON ranker stay aligned.
-- Updated the BC SLURM template to use the torch backend by default on ERAWAN.
+- Added `scripts/slurm/phase4_bc_conda.sbatch` as the ERAWAN-safe BC job path:
+  direct `.conda_ptcg` Python, CUDA check inside allocation, torch CNN
+  checkpoint output, and Kaggle-safe JSON fallback export.
+- Added `rl-image-progression` and
+  `scripts/slurm/phase4_image_progression_conda.sbatch` for the next experiment:
+  10 rounds of Hybrid-vs-Hybrid self-play, model update, and 9x4 benchmark
+  evaluation, with compact replay traces capped to one per matchup.
 - Ran the Phase 4 local smoke workflow against the copied Kaggle simulator:
   - `rl-collect-bc --games 36 --max-steps 120`: 36 started, 2,218 decisions,
     0 errors, 24 timeouts.
@@ -265,6 +285,7 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
 - `docs/phase-3-conclusion.md`: Phase 3 final rule agent, evaluation, and submission conclusion.
 - `docs/phase-4-rl-plan.md`: Phase 4 rule-guided hybrid RL workflow plan.
+- `docs/erawan-runbook.md`: tested ERAWAN setup, smoke, medium, large, and package commands.
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
 - `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
 - `reports/phase3_closeout.md`: final Phase 3 evaluation report.
@@ -286,8 +307,15 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
   guidance, and workflow helpers.
 - `src/ptcg_abc/rl/torch_backend.py`: optional PyTorch actor/value BC backend and
   JSON export bridge.
+- `src/ptcg_abc/rl/board_image.py`: human-inspection board snapshot renderer.
+- `src/ptcg_abc/rl/snapshots.py`: one-game rule-vs-benchmark snapshot capture.
 - `src/ptcg_abc/agent/hybrid_rl.py`: hybrid RL agent with rule fallback.
 - `scripts/slurm/`: Phase 4 ERAWAN/SLURM job templates.
+- `scripts/slurm/phase4_bc_conda.sbatch`: tested ERAWAN conda BC training job.
+- `scripts/slurm/phase4_image_progression_conda.sbatch`: ERAWAN conda job for
+  the 256/512/1024 image-size progression experiments.
+- `reports/phase4_board_snapshots_compact_first2_turns/`: accepted compact
+  board snapshot sample for the first two turns per player.
 - `tests/`: regression tests.
 
 ## Next Phase Entry Point
@@ -297,14 +325,39 @@ Continue Phase 4 from the implemented workflow in `src/ptcg_abc/rl/` and
 
 Immediate Phase 4 next steps:
 
-- On ERAWAN or another environment with PyTorch installed, run
-  `rl-train-bc --backend torch` and verify the exported JSON model with
-  `rl-evaluate --agent hybrid`.
+- On ERAWAN, use `scripts/slurm/phase4_bc_conda.sbatch` for the next BC run and
+  verify the exported JSON model with `rl-evaluate --agent hybrid`.
+- Run the controlled progression sweep with `rl-image-progression` or
+  `scripts/slurm/phase4_image_progression_conda.sbatch`, then compare
+  `progression_summary.json` across image sizes before changing architecture
+  again.
 - Scale BC collection toward the planned 20,000 rule-agent games on ERAWAN.
 - Use rollout chunks and `rl-train-ppo` as the first resumable reward-weighted
   update loop, then replace the update backend with true PPO.
+- After the current ERAWAN progression run finishes, analyze whether the model is
+  improving before changing architecture. If the trajectory suggests the current
+  linear actor/value shape is too weak, consider the board-image upgrade plan
+  below.
 - Keep the rank 2 legal stand-in in mind: Limitless `Pokemon Center Lady` is not
   present in Kaggle `EN_Card_Data.csv`, so the current simulator deck uses `Cook`.
+
+Implemented model architecture upgrade:
+
+- Replaced the placeholder `16x16` numeric board summary with a deterministic
+  synthetic board renderer inspired by a tabletop Pokemon TCG layout.
+- Normalized perspective so our side is always at the bottom and the opponent is
+  always at the top.
+- Uses fixed slots for Active, Bench 1-5, Deck, Discard, Prize, Stadium, hand
+  summary, turn/global state, and visible attached cards.
+- Renders only legally visible information. Opponent hand, prizes, and hidden deck
+  cards should appear as counts or backs, not card faces.
+- Encodes card identity and state symbolically instead of relying on OCR:
+  card-ID hash/color, card type, Pokemon type, HP/damage bars, energy pips, tool
+  marker, ex/Mega/stage markers, and special conditions.
+- Keeps dynamic legal-option scoring: `CNN(board_image) + MLP(option_features) ->
+  option score`, with a board-value head for PPO.
+- The current Kaggle export remains a lightweight linear fallback; use the torch
+  checkpoint for CNN scoring/training-side analysis.
 
 Latest benchmark checkpoint:
 

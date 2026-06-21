@@ -1,0 +1,331 @@
+{
+  "output_dir": "reports/phase4_board_snapshots_compact_first2_turns",
+  "images": [
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0001_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 1,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        6
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0001_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 1,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0002_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 2,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        2
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0002_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 2,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0003_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 3,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        4
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0003_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 3,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0004_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 4,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0004_p1_benchmark-4-Iono-s-Bellibolt-ex_ENERGY_DISCARD_ENERGY.png",
+      "step": 4,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "ENERGY",
+      "context": "DISCARD_ENERGY",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0005_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 5,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        1
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0005_p1_benchmark-4-Iono-s-Bellibolt-ex_CARD_SWITCH.png",
+      "step": 5,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "CARD",
+      "context": "SWITCH",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0006_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 6,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0006_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 6,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0007_p0_our-9-Ogerpon-Box_ATTACHED_CARD_SWITCH_ENERGY_CARD.png",
+      "step": 7,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "ATTACHED_CARD",
+      "context": "SWITCH_ENERGY_CARD",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0007_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 7,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0008_p0_our-9-Ogerpon-Box_CARD_ATTACH_FROM.png",
+      "step": 8,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "CARD",
+      "context": "ATTACH_FROM",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0008_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 8,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0009_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 9,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0009_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 9,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        4
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0010_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 10,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        7
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0010_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 10,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        1
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0011_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 11,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0011_p1_benchmark-4-Iono-s-Bellibolt-ex_MAIN_MAIN.png",
+      "step": 11,
+      "player_index": 1,
+      "label": "benchmark-4-Iono's Bellibolt ex",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0012_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 12,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0013_p0_our-9-Ogerpon-Box_CARD_TO_HAND.png",
+      "step": 13,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "CARD",
+      "context": "TO_HAND",
+      "selected_indices": [
+        1
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0014_p0_our-9-Ogerpon-Box_CARD_ATTACH_TO.png",
+      "step": 14,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "CARD",
+      "context": "ATTACH_TO",
+      "selected_indices": [
+        2
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0015_p0_our-9-Ogerpon-Box_CARD_ATTACH_FROM.png",
+      "step": 15,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "CARD",
+      "context": "ATTACH_FROM",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0016_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 16,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    },
+    {
+      "path": "reports/phase4_board_snapshots_compact_first2_turns/0017_p0_our-9-Ogerpon-Box_MAIN_MAIN.png",
+      "step": 17,
+      "player_index": 0,
+      "label": "our-9-Ogerpon Box",
+      "select_type": "MAIN",
+      "context": "MAIN",
+      "selected_indices": [
+        0
+      ]
+    }
+  ],
+  "battle_result": {
+    "started": true,
+    "steps": 160,
+    "finished": false,
+    "result": null,
+    "winner": null,
+    "leader": 0,
+    "prize_counts": [
+      1,
+      6
+    ],
+    "start_error_player": -1,
+    "start_error_type": 0,
+    "error": null
+  },
+  "our_deck": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+  "benchmark_deck": "Iono's Bellibolt ex / Required benchmark sample / Required sample Sample",
+  "max_steps": 160
+}

@@ -9,6 +9,7 @@ from typing import Any, Sequence
 
 from ptcg_abc.agent import HybridRlAgent, RuleBasedAgent
 from ptcg_abc.evaluation import (
+    Phase3RequiredDebugGame,
     Phase3RequiredBenchmarkResult,
     Phase3RequiredBenchmarkRow,
     PreparedDeck,
@@ -61,6 +62,65 @@ class RolloutSummary:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class SelfPlaySummary:
+    agent: str
+    games_requested: int
+    games_started: int
+    steps: int
+    output_path: str
+    deck_a_index: int
+    deck_a_label: str
+    deck_b_index: int
+    deck_b_label: str
+    deck_a_wins: int
+    deck_b_wins: int
+    draws: int
+    errors: int
+    timeouts: int
+    image_size: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ProgressionIterationSummary:
+    image_size: int
+    iteration: int
+    selfplay: dict[str, Any]
+    update: dict[str, Any]
+    evaluation: dict[str, Any]
+    model_path: str
+    rollout_path: str
+    replay_dir: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ProgressionExperimentSummary:
+    image_size: int
+    iterations: int
+    summaries: list[ProgressionIterationSummary]
+    output_root: str
+    dataset_root: str
+    model_root: str
+    report_root: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "image_size": self.image_size,
+            "iterations": self.iterations,
+            "summaries": [summary.to_dict() for summary in self.summaries],
+            "output_root": self.output_root,
+            "dataset_root": self.dataset_root,
+            "model_root": self.model_root,
+            "report_root": self.report_root,
+        }
 
 
 def collect_bc_demonstrations(
@@ -259,6 +319,142 @@ def rollout_games(
     )
 
 
+def rollout_selfplay_games(
+    *,
+    sample_dir: Path,
+    output_path: Path,
+    agent_kind: str = "hybrid",
+    model_path: Path | None = None,
+    games: int = 1000,
+    max_steps: int = 600,
+    deck_a_index: int = 9,
+    deck_b_index: int = 9,
+    image_size: int = 1024,
+    guidance_rules: Sequence[str] | None = None,
+) -> SelfPlaySummary:
+    card_data, attack_data = load_engine_metadata(sample_dir)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("", encoding="utf-8")
+    decks = {deck.index: deck for deck in phase3_tournament_559_prepared_decks()}
+    if deck_a_index not in decks:
+        raise ValueError(f"Unknown prepared deck index for deck A: {deck_a_index}.")
+    if deck_b_index not in decks:
+        raise ValueError(f"Unknown prepared deck index for deck B: {deck_b_index}.")
+    deck_a = decks[deck_a_index]
+    deck_b = decks[deck_b_index]
+    games_started = deck_a_wins = deck_b_wins = draws = errors = timeouts = steps_written = 0
+
+    for game_index in range(games):
+        deck_a_is_player0 = game_index % 2 == 0
+        player0_deck = deck_a if deck_a_is_player0 else deck_b
+        player1_deck = deck_b if deck_a_is_player0 else deck_a
+        recorder0 = RecordingPolicyAgent(
+            _make_agent(
+                agent_kind,
+                player0_deck.card_ids,
+                card_data,
+                attack_data,
+                model_path=model_path,
+                guidance_rules=guidance_rules,
+            ),
+            player0_deck.card_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            reward_metadata={
+                "game_index": game_index + 1,
+                "deck_index": player0_deck.index,
+                "deck_label": player0_deck.label,
+                "opponent_deck_index": player1_deck.index,
+                "opponent_deck_label": player1_deck.label,
+                "collector": "selfplay",
+                "agent": agent_kind,
+                "image_size": image_size,
+            },
+        )
+        recorder1 = RecordingPolicyAgent(
+            _make_agent(
+                agent_kind,
+                player1_deck.card_ids,
+                card_data,
+                attack_data,
+                model_path=model_path,
+                guidance_rules=guidance_rules,
+            ),
+            player1_deck.card_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            reward_metadata={
+                "game_index": game_index + 1,
+                "deck_index": player1_deck.index,
+                "deck_label": player1_deck.label,
+                "opponent_deck_index": player0_deck.index,
+                "opponent_deck_label": player0_deck.label,
+                "collector": "selfplay",
+                "agent": agent_kind,
+                "image_size": image_size,
+            },
+        )
+        result = run_battle(
+            player0_deck.card_ids,
+            player1_deck.card_ids,
+            sample_dir=sample_dir,
+            agent0=recorder0,
+            agent1=recorder1,
+            card_data=card_data,
+            attack_data=attack_data,
+            max_steps=max_steps,
+        )
+        games_started += int(result.started)
+        errors += int(result.error is not None)
+        timeouts += int(result.started and not result.finished and result.error is None)
+        winner = result.winner if result.winner is not None else result.leader
+        if winner is None or result.error:
+            draws += 1
+        elif (winner == 0 and deck_a_is_player0) or (winner == 1 and not deck_a_is_player0):
+            deck_a_wins += 1
+        else:
+            deck_b_wins += 1
+
+        for player_index, recorder in ((0, recorder0), (1, recorder1)):
+            final_metadata = _result_metadata(result, player_index) | {
+                "player_index": player_index,
+                "selfplay_deck_a_index": deck_a.index,
+                "selfplay_deck_b_index": deck_b.index,
+            }
+            reward = reward_from_result_metadata(final_metadata)
+            for frame, chosen_indices in recorder.frames:
+                frame = _with_metadata(frame, final_metadata)
+                append_trajectory_jsonl(
+                    TrajectoryStep(
+                        decision=frame,
+                        chosen_indices=chosen_indices,
+                        reward=reward,
+                        terminal=result.finished,
+                        truncated=not result.finished and result.error is None,
+                    ),
+                    output_path,
+                )
+                steps_written += 1
+
+    return SelfPlaySummary(
+        agent=agent_kind,
+        games_requested=games,
+        games_started=games_started,
+        steps=steps_written,
+        output_path=str(output_path.as_posix()),
+        deck_a_index=deck_a.index,
+        deck_a_label=deck_a.label,
+        deck_b_index=deck_b.index,
+        deck_b_label=deck_b.label,
+        deck_a_wins=deck_a_wins,
+        deck_b_wins=deck_b_wins,
+        draws=draws,
+        errors=errors,
+        timeouts=timeouts,
+        image_size=image_size,
+    )
+
+
 def train_ppo_from_rollouts(
     *,
     rollout_path: Path,
@@ -295,11 +491,14 @@ def run_phase4_required_benchmark(
     games_per_matchup: int = 1,
     max_steps: int = 120,
     guidance_rules: Sequence[str] | None = None,
+    debug_limit_per_matchup: int = 0,
+    trace_limit: int = 60,
 ) -> Phase3RequiredBenchmarkResult:
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = phase3_tournament_559_prepared_decks()
     benchmark_decks = required_phase3_prepared_decks(start_index=1)
     rows: list[Phase3RequiredBenchmarkRow] = []
+    debug_games: list[Phase3RequiredDebugGame] = []
 
     for our_deck in our_decks:
         for benchmark_deck in benchmark_decks:
@@ -312,15 +511,36 @@ def run_phase4_required_benchmark(
                 opponent_deck_label=benchmark_deck.label,
                 games=games_per_matchup,
             )
+            kept_debug_games = 0
             for game_index in range(games_per_matchup):
                 our_is_player0 = game_index % 2 == 0
-                our_agent = _make_agent(
+                keep_debug = debug_limit_per_matchup > 0 and kept_debug_games < debug_limit_per_matchup
+                base_our_agent = _make_agent(
                     agent_kind,
                     our_deck.card_ids,
                     card_data,
                     attack_data,
                     model_path=model_path,
                     guidance_rules=guidance_rules,
+                )
+                our_agent = (
+                    RecordingPolicyAgent(
+                        base_our_agent,
+                        our_deck.card_ids,
+                        card_data=card_data,
+                        attack_data=attack_data,
+                        reward_metadata={
+                            "game_index": game_index + 1,
+                            "deck_index": our_deck.index,
+                            "deck_label": our_deck.label,
+                            "opponent": benchmark_deck.archetype,
+                            "collector": "benchmark_replay",
+                            "agent": agent_kind,
+                        },
+                        trace_limit=trace_limit,
+                    )
+                    if keep_debug
+                    else base_our_agent
                 )
                 benchmark_agent = _quiet_rule_agent(
                     benchmark_deck.card_ids,
@@ -338,6 +558,27 @@ def run_phase4_required_benchmark(
                     max_steps=max_steps,
                 )
                 _record_row_outcome(row, result, our_is_player0=our_is_player0)
+                if keep_debug and isinstance(our_agent, RecordingPolicyAgent):
+                    debug_games.append(
+                        Phase3RequiredDebugGame(
+                            deck_index=our_deck.index,
+                            deck_label=our_deck.label,
+                            archetype=our_deck.archetype,
+                            tournament_rank=our_deck.deck.result.placement_rank,
+                            opponent=benchmark_deck.archetype,
+                            game_index=game_index + 1,
+                            outcome=_outcome_label(
+                                result,
+                                player_index=0 if our_is_player0 else 1,
+                            ),
+                            our_player_index=0 if our_is_player0 else 1,
+                            steps=result.steps,
+                            prize_counts=result.prize_counts,
+                            error=result.error,
+                            trace=_compact_replay_trace(our_agent.frames),
+                        )
+                    )
+                    kept_debug_games += 1
             row.win_rate = row.wins / row.games if row.games else 0.0
             rows.append(row)
 
@@ -348,7 +589,7 @@ def run_phase4_required_benchmark(
         games_per_matchup=games_per_matchup,
         max_steps=max_steps,
         rows=rows,
-        debug_games=[],
+        debug_games=debug_games,
     )
 
 
@@ -396,6 +637,137 @@ def write_phase4_benchmark_report(
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def run_image_progression_experiment(
+    *,
+    sample_dir: Path,
+    image_size: int,
+    iterations: int = 10,
+    selfplay_games: int = 1000,
+    eval_games_per_matchup: int = 100,
+    max_steps: int = 600,
+    deck_a_index: int = 9,
+    deck_b_index: int = 9,
+    saved_replays_per_matchup: int = 1,
+    replay_trace_limit: int = 60,
+    update_epochs: int = 1,
+    base_model_path: Path | None = None,
+    dataset_root: Path = Path("data") / "datasets" / "rl" / "image_progression",
+    model_root: Path = Path("models") / "rl" / "image_progression",
+    report_root: Path = Path("experiments") / "rl" / "image_progression",
+    output_root: Path = Path("experiments") / "rl" / "image_progression",
+) -> ProgressionExperimentSummary:
+    if image_size <= 0:
+        raise ValueError("image_size must be positive.")
+    size_key = f"image-{image_size}"
+    dataset_dir = dataset_root / size_key
+    model_dir = model_root / size_key
+    report_dir = report_root / size_key
+    output_dir = output_root / size_key
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    model_dir.mkdir(parents=True, exist_ok=True)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    current_model = base_model_path if base_model_path and base_model_path.exists() else None
+    summaries: list[ProgressionIterationSummary] = []
+    for iteration in range(1, iterations + 1):
+        iteration_key = f"iter-{iteration:02d}"
+        rollout_path = dataset_dir / f"{iteration_key}-selfplay.jsonl"
+        model_path = model_dir / f"{iteration_key}-model.json"
+        update_report_path = report_dir / f"{iteration_key}-update.json"
+        eval_json_path = report_dir / f"{iteration_key}-benchmark.json"
+        eval_md_path = report_dir / f"{iteration_key}-benchmark.md"
+        replay_dir = output_dir / iteration_key / "replays"
+
+        selfplay = rollout_selfplay_games(
+            sample_dir=sample_dir,
+            output_path=rollout_path,
+            agent_kind="hybrid",
+            model_path=current_model,
+            games=selfplay_games,
+            max_steps=max_steps,
+            deck_a_index=deck_a_index,
+            deck_b_index=deck_b_index,
+            image_size=image_size,
+        )
+        update = train_ppo_from_rollouts(
+            rollout_path=rollout_path,
+            model_path=current_model or model_path,
+            output_path=model_path,
+            report_path=update_report_path,
+            epochs=update_epochs,
+        )
+        _attach_model_metadata(
+            model_path,
+            {
+                "experiment": "image_progression",
+                "image_size": image_size,
+                "iteration": iteration,
+                "selfplay_games": selfplay_games,
+                "eval_games_per_matchup": eval_games_per_matchup,
+                "deck_a_index": deck_a_index,
+                "deck_b_index": deck_b_index,
+                "board_tensor_note": "Rollout records keep the compact symbolic board tensor; image_size labels the visual replay/model-size sweep.",
+            },
+        )
+        current_model = model_path
+
+        evaluation = run_phase4_required_benchmark(
+            sample_dir=sample_dir,
+            agent_kind="hybrid",
+            model_path=current_model,
+            games_per_matchup=eval_games_per_matchup,
+            max_steps=max_steps,
+            debug_limit_per_matchup=saved_replays_per_matchup,
+            trace_limit=replay_trace_limit,
+        )
+        write_phase4_benchmark_report(
+            evaluation,
+            json_path=eval_json_path,
+            markdown_path=eval_md_path,
+            agent_kind=f"hybrid:image-{image_size}:iter-{iteration:02d}",
+            model_path=current_model,
+        )
+        replay_paths = _write_debug_replays(evaluation.debug_games, replay_dir)
+        eval_totals = _totals(evaluation.rows) | {
+            "report_json": str(eval_json_path.as_posix()),
+            "report_md": str(eval_md_path.as_posix()),
+            "saved_replays": len(replay_paths),
+            "replay_dir": str(replay_dir.as_posix()),
+        }
+        summary = ProgressionIterationSummary(
+            image_size=image_size,
+            iteration=iteration,
+            selfplay=selfplay.to_dict(),
+            update=update.to_dict(),
+            evaluation=eval_totals,
+            model_path=str(model_path.as_posix()),
+            rollout_path=str(rollout_path.as_posix()),
+            replay_dir=str(replay_dir.as_posix()),
+        )
+        summaries.append(summary)
+        _write_json_report(
+            {
+                "image_size": image_size,
+                "iterations_completed": iteration,
+                "summaries": [item.to_dict() for item in summaries],
+            },
+            output_dir / "progression_summary.json",
+        )
+
+    experiment = ProgressionExperimentSummary(
+        image_size=image_size,
+        iterations=iterations,
+        summaries=summaries,
+        output_root=str(output_root.as_posix()),
+        dataset_root=str(dataset_root.as_posix()),
+        model_root=str(model_root.as_posix()),
+        report_root=str(report_root.as_posix()),
+    )
+    _write_json_report(experiment.to_dict(), output_dir / "progression_summary.json")
+    return experiment
+
+
 class RecordingRuleAgent:
     def __init__(
         self,
@@ -439,16 +811,21 @@ class RecordingPolicyAgent:
         card_data: Sequence[Any],
         attack_data: Sequence[Any],
         reward_metadata: dict[str, Any],
+        trace_limit: int = 0,
     ) -> None:
         self.agent = agent
         self.deck_ids = list(deck_ids)
         self.card_by_id = card_lookup(card_data)
         self.attack_by_id = attack_lookup(attack_data)
         self.reward_metadata = dict(reward_metadata)
+        self.trace_limit = trace_limit
         self.frames: list[tuple[DecisionFrame, list[int]]] = []
 
     def act(self, observation: Any) -> list[int]:
         selected = self.agent.act(observation)
+        should_record = self.trace_limit <= 0 or len(self.frames) < self.trace_limit
+        if not should_record:
+            return selected
         frame = make_decision_frame(
             observation,
             deck_ids=self.deck_ids,
@@ -552,6 +929,145 @@ def _record_row_outcome(
         row.wins += 1
     else:
         row.losses += 1
+
+
+def _outcome_label(result: BattleResult, *, player_index: int) -> str:
+    if result.error:
+        return "error"
+    timeout = result.winner is None and not result.finished
+    effective = result.winner if result.winner is not None else result.leader
+    if effective is None:
+        return "timeout_draw" if timeout else "draw"
+    if effective == player_index:
+        return "timeout_win" if timeout else "win"
+    return "timeout_loss" if timeout else "loss"
+
+
+def _compact_replay_trace(
+    frames: Sequence[tuple[DecisionFrame, list[int]]],
+) -> list[dict[str, Any]]:
+    trace: list[dict[str, Any]] = []
+    for frame, chosen_indices in frames:
+        chosen = set(chosen_indices)
+        ranked = sorted(
+            frame.legal_options,
+            key=lambda action: (action.rule_score, -action.index),
+            reverse=True,
+        )
+        trace.append(
+            {
+                "turn": frame.board.get("turn"),
+                "select_type": frame.select_type,
+                "context": frame.context,
+                "target_count": frame.target_count,
+                "chosen_indices": list(chosen_indices),
+                "chosen_options": [
+                    _compact_action(action)
+                    for action in frame.legal_options
+                    if action.index in chosen
+                ],
+                "top_rule_options": [_compact_action(action) for action in ranked[:5]],
+                "board": _compact_board(frame.board),
+            }
+        )
+    return trace
+
+
+def _compact_action(action: Any) -> dict[str, Any]:
+    return {
+        "index": action.index,
+        "type": action.option_type,
+        "card_id": action.card_id,
+        "card_name": action.card_name,
+        "area": action.area,
+        "area_index": action.area_index,
+        "target_card_id": action.target_card_id,
+        "target_name": action.target_name,
+        "target_area": action.target_area,
+        "target_index": action.target_index,
+        "attack_id": action.attack_id,
+        "rule_score": action.rule_score,
+    }
+
+
+def _compact_board(board: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "turn": board.get("turn"),
+        "your_index": board.get("your_index"),
+        "my_active": _compact_card_state(board.get("my_active_card")),
+        "opponent_active": _compact_card_state(board.get("opponent_active_card")),
+        "my_bench": [
+            _compact_card_state(card) for card in list(board.get("my_bench_cards", []) or [])
+        ],
+        "opponent_bench": [
+            _compact_card_state(card)
+            for card in list(board.get("opponent_bench_cards", []) or [])
+        ],
+        "my_hand_count": board.get("my_hand_count"),
+        "opponent_hand_count": board.get("opponent_hand_count"),
+        "my_deck_count": board.get("my_deck_count"),
+        "opponent_deck_count": board.get("opponent_deck_count"),
+        "my_discard_count": board.get("my_discard_count"),
+        "opponent_discard_count": board.get("opponent_discard_count"),
+        "my_prizes": board.get("my_prizes"),
+        "opponent_prizes": board.get("opponent_prizes"),
+        "stadium": _compact_card_state(board.get("stadium_card")),
+    }
+
+
+def _compact_card_state(card: Any) -> dict[str, Any] | None:
+    if not isinstance(card, dict) or not card:
+        return None
+    return {
+        "card_id": card.get("card_id"),
+        "name": card.get("name"),
+        "hp_ratio": card.get("hp_ratio"),
+        "damage_ratio": card.get("damage_ratio"),
+        "energy_count": card.get("energy_count"),
+        "tool_count": card.get("tool_count"),
+        "stage": card.get("stage"),
+        "is_ex": card.get("is_ex"),
+        "is_mega_ex": card.get("is_mega_ex"),
+        "asleep": card.get("asleep"),
+        "burned": card.get("burned"),
+        "confused": card.get("confused"),
+        "paralyzed": card.get("paralyzed"),
+        "poisoned": card.get("poisoned"),
+    }
+
+
+def _write_debug_replays(
+    debug_games: Sequence[Phase3RequiredDebugGame],
+    replay_dir: Path,
+) -> list[Path]:
+    replay_dir.mkdir(parents=True, exist_ok=True)
+    paths: list[Path] = []
+    for index, game in enumerate(debug_games, start=1):
+        path = replay_dir / (
+            f"{index:02d}_deck-{game.deck_index}_vs_"
+            f"{_safe_slug(game.opponent)}_game-{game.game_index}.json"
+        )
+        path.write_text(json.dumps(game.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+        paths.append(path)
+    return paths
+
+
+def _attach_model_metadata(model_path: Path, metadata: dict[str, Any]) -> None:
+    if not model_path.exists():
+        return
+    model = LinearOptionModel.load(model_path)
+    model.metadata.update(metadata)
+    model.save(model_path)
+
+
+def _safe_slug(value: str) -> str:
+    chars = []
+    for char in value.casefold():
+        if char.isalnum():
+            chars.append(char)
+        elif chars and chars[-1] != "-":
+            chars.append("-")
+    return "".join(chars).strip("-") or "unknown"
 
 
 def _totals(rows: list[Phase3RequiredBenchmarkRow]) -> dict[str, Any]:

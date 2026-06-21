@@ -59,12 +59,14 @@ from ptcg_abc.submission import build_hybrid_rl_submission_bundle, build_submiss
 from ptcg_abc.rl.workflow import (
     collect_bc_demonstrations,
     rollout_games,
+    run_image_progression_experiment,
     run_phase4_required_benchmark,
     train_bc_from_jsonl,
     train_ppo_from_rollouts,
     train_torch_bc_from_jsonl,
     write_phase4_benchmark_report,
 )
+from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
 
 
@@ -581,6 +583,44 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
     return 0 if totals["errors"] == 0 else 1
 
 
+def command_rl_image_progression(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    payload = []
+    image_sizes = args.image_size or [1024, 512, 256]
+    for image_size in image_sizes:
+        try:
+            summary = run_image_progression_experiment(
+                sample_dir=args.sample_dir,
+                image_size=image_size,
+                iterations=args.iterations,
+                selfplay_games=args.selfplay_games,
+                eval_games_per_matchup=args.eval_games_per_matchup,
+                max_steps=args.max_steps,
+                deck_a_index=args.deck_a_index,
+                deck_b_index=args.deck_b_index,
+                saved_replays_per_matchup=args.saved_replays_per_matchup,
+                replay_trace_limit=args.replay_trace_limit,
+                update_epochs=args.update_epochs,
+                base_model_path=args.base_model,
+                dataset_root=args.dataset_root,
+                model_root=args.model_root,
+                report_root=args.report_root,
+                output_root=args.output_root,
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        payload.append(summary.to_dict())
+    print(json.dumps({"experiments": payload}, indent=2))
+    return 0
+
+
 def command_rl_evaluate_guidance(args: argparse.Namespace) -> int:
     if not args.sample_dir.exists():
         print(
@@ -654,6 +694,35 @@ def command_rl_package(args: argparse.Namespace) -> int:
         )
     print(json.dumps({"packages": outputs}, indent=2))
     return 0
+
+
+def command_rl_board_snapshots(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        manifest = run_rule_vs_benchmark_snapshots(
+            sample_dir=args.sample_dir,
+            output_dir=args.output_dir,
+            our_deck_index=args.our_deck_index,
+            benchmark_index=args.benchmark_index,
+            max_steps=args.max_steps,
+            record_player=args.record_player,
+            image_limit=args.image_limit,
+            turns_per_player=args.turns_per_player,
+            card_art_pdf=args.card_art_pdf,
+            card_art_dir=args.card_art_dir,
+        )
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(manifest.to_dict(), indent=2))
+    print(f"Wrote {len(manifest.images)} board snapshots to {args.output_dir}.")
+    return 0 if manifest.battle_result.get("error") is None else 1
 
 
 def _benchmark_totals(rows: list) -> dict[str, float | int]:
@@ -1002,6 +1071,59 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate.set_defaults(func=command_rl_evaluate)
 
+    rl_progression = subparsers.add_parser(
+        "rl-image-progression",
+        help="Run self-play/update/benchmark progression experiments by board image size.",
+    )
+    rl_progression.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_progression.add_argument(
+        "--image-size",
+        type=int,
+        action="append",
+        default=[],
+        help="Image dimension label to run. Repeat for multiple sizes.",
+    )
+    rl_progression.add_argument("--iterations", type=int, default=10)
+    rl_progression.add_argument("--selfplay-games", type=int, default=1000)
+    rl_progression.add_argument("--eval-games-per-matchup", type=int, default=100)
+    rl_progression.add_argument("--max-steps", type=int, default=600)
+    rl_progression.add_argument("--deck-a-index", type=int, default=9)
+    rl_progression.add_argument("--deck-b-index", type=int, default=9)
+    rl_progression.add_argument("--saved-replays-per-matchup", type=int, default=1)
+    rl_progression.add_argument("--replay-trace-limit", type=int, default=60)
+    rl_progression.add_argument("--update-epochs", type=int, default=1)
+    rl_progression.add_argument(
+        "--base-model",
+        type=_path,
+        default=None,
+        help="Optional starting model JSON. If omitted, iteration 1 starts from rule fallback.",
+    )
+    rl_progression.add_argument(
+        "--dataset-root",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "image_progression",
+    )
+    rl_progression.add_argument(
+        "--model-root",
+        type=_path,
+        default=Path("models") / "rl" / "image_progression",
+    )
+    rl_progression.add_argument(
+        "--report-root",
+        type=_path,
+        default=Path("reports") / "image_progression",
+    )
+    rl_progression.add_argument(
+        "--output-root",
+        type=_path,
+        default=Path("experiments") / "rl" / "image_progression",
+    )
+    rl_progression.set_defaults(func=command_rl_image_progression)
+
     rl_guidance = subparsers.add_parser(
         "rl-evaluate-guidance",
         help="Evaluate one Phase 4 rule-guidance intervention against the 9x4 grid.",
@@ -1058,6 +1180,59 @@ def build_parser() -> argparse.ArgumentParser:
         help="Tournament 559 prepared deck index to package. Repeat for multiple decks.",
     )
     rl_package.set_defaults(func=command_rl_package)
+
+    rl_snapshots = subparsers.add_parser(
+        "rl-board-snapshots",
+        help="Run one rule-vs-benchmark game and write synthetic tabletop board snapshots.",
+    )
+    rl_snapshots.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_snapshots.add_argument(
+        "--output-dir",
+        type=_path,
+        default=REPORTS_DIR / "phase4_board_snapshots",
+    )
+    rl_snapshots.add_argument(
+        "--our-deck-index",
+        type=int,
+        default=9,
+        help="Prepared Tournament 559 deck index. Defaults to Ogerpon Box.",
+    )
+    rl_snapshots.add_argument(
+        "--benchmark-index",
+        type=int,
+        default=4,
+        help="Required benchmark deck index: 1 Crustle, 2 Mega Lucario, 3 Mega Abomasnow, 4 Iono.",
+    )
+    rl_snapshots.add_argument("--max-steps", type=int, default=120)
+    rl_snapshots.add_argument("--image-limit", type=int, default=0)
+    rl_snapshots.add_argument(
+        "--turns-per-player",
+        type=int,
+        default=0,
+        help="Only record decisions from the first N non-setup turns per player. 0 records all turns.",
+    )
+    rl_snapshots.add_argument(
+        "--card-art-pdf",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "Card_ID List_EN.pdf",
+        help="Kaggle Card ID PDF used to extract face-up card art.",
+    )
+    rl_snapshots.add_argument(
+        "--card-art-dir",
+        type=_path,
+        default=PROCESSED_DIR / "card_art" / "en",
+        help="Directory for cached card art PNGs extracted from the Card ID PDF.",
+    )
+    rl_snapshots.add_argument(
+        "--record-player",
+        choices=["ours", "benchmark", "both"],
+        default="both",
+    )
+    rl_snapshots.set_defaults(func=command_rl_board_snapshots)
 
     return parser
 

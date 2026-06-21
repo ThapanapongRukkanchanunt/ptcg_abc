@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ptcg_abc.agent import HybridRlAgent
 from ptcg_abc.cli import build_parser
-from ptcg_abc.rl.featurizer import make_decision_frame
+from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_decision_frame
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
 from ptcg_abc.rl.records import DecisionFrame
 from ptcg_abc.rl.rewards import RewardConfig, reward_from_result_metadata
@@ -43,6 +43,17 @@ class FakeCurrent:
 
 
 @dataclass
+class FakePlayer:
+    active: list | None = None
+    bench: list | None = None
+    hand: list | None = None
+    handCount: int = 0
+    discard: list | None = None
+    prize: list | None = None
+    deckCount: int = 0
+
+
+@dataclass
 class FakeObservation:
     select: FakeSelect | None
     current: FakeCurrent
@@ -69,8 +80,31 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(frame.target_count, 1)
         self.assertEqual(len(frame.legal_options), 3)
         self.assertEqual(frame.rule_selected_indices, [2])
-        self.assertEqual(len(frame.board_image), 16)
-        self.assertEqual(len(frame.board_image[0]), 16)
+        self.assertEqual(len(frame.board_image), BOARD_IMAGE_HEIGHT)
+        self.assertEqual(len(frame.board_image[0]), BOARD_IMAGE_WIDTH)
+
+    def test_board_image_uses_opponent_hidden_hand_count(self):
+        obs = FakeObservation(
+            select=FakeSelect(
+                type=0,
+                context=0,
+                minCount=1,
+                maxCount=1,
+                option=[FakeOption(14)],
+            ),
+            current=FakeCurrent(
+                players=[
+                    FakePlayer(hand=[], handCount=0),
+                    FakePlayer(hand=None, handCount=7),
+                ],
+            ),
+        )
+
+        frame = make_decision_frame(obs)
+
+        assert frame is not None
+        self.assertEqual(frame.board["opponent_hand_count"], 7)
+        self.assertTrue(any(value > 0 for row in frame.board_image[:6] for value in row))
 
     def test_decision_frame_round_trips(self):
         obs = FakeObservation(
@@ -161,6 +195,33 @@ class Phase4RlTests(unittest.TestCase):
 
         self.assertEqual(args.command, "rl-train-bc")
         self.assertEqual(args.backend, "torch")
+
+        snapshot_args = parser.parse_args(
+            ["rl-board-snapshots", "--turns-per-player", "2", "--record-player", "both"]
+        )
+
+        self.assertEqual(snapshot_args.command, "rl-board-snapshots")
+        self.assertEqual(snapshot_args.turns_per_player, 2)
+        self.assertEqual(snapshot_args.record_player, "both")
+
+        progression_args = parser.parse_args(
+            [
+                "rl-image-progression",
+                "--image-size",
+                "256",
+                "--iterations",
+                "1",
+                "--selfplay-games",
+                "2",
+                "--eval-games-per-matchup",
+                "1",
+            ]
+        )
+
+        self.assertEqual(progression_args.command, "rl-image-progression")
+        self.assertEqual(progression_args.image_size, [256])
+        self.assertEqual(progression_args.iterations, 1)
+        self.assertEqual(progression_args.selfplay_games, 2)
 
     def test_torch_actor_export_equation_matches_linear_model(self):
         obs = FakeObservation(
