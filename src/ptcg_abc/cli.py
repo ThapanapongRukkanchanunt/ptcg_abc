@@ -66,6 +66,11 @@ from ptcg_abc.rl.workflow import (
     train_torch_bc_from_jsonl,
     write_phase4_benchmark_report,
 )
+from ptcg_abc.rl.phase5_search import (
+    RootSearchConfig,
+    generate_search_improved_data,
+    merge_search_data,
+)
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
 
@@ -537,6 +542,60 @@ def command_rl_rollout(args: argparse.Namespace) -> int:
     )
     print(json.dumps(summary.to_dict(), indent=2))
     return 0 if summary.errors == 0 else 1
+
+
+def command_rl_generate_search_data(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    config = RootSearchConfig(
+        top_k=args.top_k,
+        max_rollout_steps=args.rollout_steps,
+        min_candidates=args.min_candidates,
+    )
+    summary = generate_search_improved_data(
+        sample_dir=args.sample_dir,
+        output_path=args.output,
+        trace_path=args.trace_output,
+        games=args.games,
+        game_offset=args.game_offset,
+        shard_index=args.shard_index,
+        shard_count=args.shard_count,
+        max_steps=args.max_steps,
+        append=args.append,
+        config=config,
+    )
+    print(json.dumps(summary.to_dict(), indent=2))
+    if summary.errors:
+        return 1
+    if args.require_changed and summary.changed_decisions <= 0:
+        print(
+            "No Phase 5 root-search decision changes were observed. "
+            "Increase --games, --max-steps, --top-k, or --rollout-steps.",
+            file=sys.stderr,
+        )
+        return 1
+    return 0
+
+
+def command_rl_merge_search_data(args: argparse.Namespace) -> int:
+    try:
+        summary = merge_search_data(
+            decision_inputs=args.input,
+            trace_inputs=args.trace_input,
+            output_path=args.output,
+            trace_path=args.trace_output,
+            manifest_path=args.manifest,
+        )
+    except FileNotFoundError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
 
 
 def command_rl_train_ppo(args: argparse.Namespace) -> int:
@@ -1015,6 +1074,93 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data") / "datasets" / "rl" / "rollout_steps.jsonl",
     )
     rl_rollout.set_defaults(func=command_rl_rollout)
+
+    rl_search = subparsers.add_parser(
+        "rl-generate-search-data",
+        help="Generate Phase 5 search-improved decision records with one-turn root-search traces.",
+    )
+    rl_search.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_search.add_argument("--games", type=int, default=2)
+    rl_search.add_argument(
+        "--game-offset",
+        type=int,
+        default=0,
+        help="First global game index before shard interleaving.",
+    )
+    rl_search.add_argument(
+        "--shard-index",
+        type=int,
+        default=0,
+        help="Zero-based shard index for deterministic SLURM array generation.",
+    )
+    rl_search.add_argument(
+        "--shard-count",
+        type=int,
+        default=1,
+        help="Total shard count for deterministic SLURM array generation.",
+    )
+    rl_search.add_argument("--max-steps", type=int, default=80)
+    rl_search.add_argument("--top-k", type=int, default=4)
+    rl_search.add_argument("--rollout-steps", type=int, default=18)
+    rl_search.add_argument("--min-candidates", type=int, default=2)
+    rl_search.add_argument(
+        "--append",
+        action="store_true",
+        help="Append to existing output JSONL files instead of overwriting them.",
+    )
+    rl_search.add_argument(
+        "--require-changed",
+        action="store_true",
+        help="Return a failing status if no root-search decision differs from the rule baseline.",
+    )
+    rl_search.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions.jsonl",
+    )
+    rl_search.add_argument(
+        "--trace-output",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_search_traces.jsonl",
+    )
+    rl_search.set_defaults(func=command_rl_generate_search_data)
+
+    rl_merge_search = subparsers.add_parser(
+        "rl-merge-search-data",
+        help="Merge Phase 5 search-data shards into one decision JSONL and one trace JSONL.",
+    )
+    rl_merge_search.add_argument(
+        "--input",
+        action="append",
+        required=True,
+        help="Decision shard path or glob. Repeat for multiple patterns.",
+    )
+    rl_merge_search.add_argument(
+        "--trace-input",
+        action="append",
+        required=True,
+        help="Trace shard path or glob. Repeat for multiple patterns.",
+    )
+    rl_merge_search.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_merged.jsonl",
+    )
+    rl_merge_search.add_argument(
+        "--trace-output",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_search_traces_merged.jsonl",
+    )
+    rl_merge_search.add_argument(
+        "--manifest",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_search_merge_manifest.json",
+    )
+    rl_merge_search.set_defaults(func=command_rl_merge_search_data)
 
     rl_train_ppo = subparsers.add_parser(
         "rl-train-ppo",

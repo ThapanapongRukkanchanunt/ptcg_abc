@@ -4,7 +4,7 @@
 
 Build a reproducible deck corpus for the Pokemon TCG AI Battle Challenge. Kaggle competition files define the legal card list first; Limitless TCG is then used as the source of current `TEF-POR` metagame decks to compare against Kaggle legality.
 
-This milestone stops at data collection and validation. Rule-based play, reinforcement learning, and deck-building experiments come after the corpus is reliable.
+This milestone stops at data collection and validation. Rule-based play and reinforcement learning come after the corpus is reliable; the advanced RL strategy, training, and evaluation track is now documented in the Phase 5 plan files.
 
 ## Success Criteria
 

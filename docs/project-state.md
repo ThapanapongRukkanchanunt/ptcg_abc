@@ -8,9 +8,11 @@ This is the resume point for the project. Start here after switching machines, c
 - Active branch: `main`
 - Selected Limitless format: `TEF-POR`
 - Kaggle legal-card source: `EN_Card_Data.csv`
-- Latest completed phase: Phase 3, generic rule-based agent and Kaggle submission bundle
-- Current phase: Phase 4, rule-guided hybrid reinforcement learning workflow
-  (`docs/phase-4-rl-plan.md`)
+- Latest completed phase: Phase 4, rule-guided hybrid reinforcement learning workflow
+- Current phase: Phase 5, advanced RL one-turn root-search vertical slice
+  (`docs/ptcg_rl_strategy_recommendation.md`,
+  `docs/ptcg_rl_advanced_training_plan.md`,
+  `docs/ptcg_rl_evaluation_plan.md`)
 
 ## Phase Log
 
@@ -21,7 +23,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Deck-building experiments | Deferred | Wildcard/search-based deck construction ideas stay parked until baseline play exists. |
+| Phase 5: Advanced RL strategy, training, and evaluation | Vertical slice implemented | Added bounded one-turn root-search data generation on top of the Phase 4 package, with search-improved `DecisionFrame` JSONL output and trace logs proving changed decisions plus safe probe termination. |
 
 ## Completed Phase Details
 
@@ -285,6 +287,15 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
 - `docs/phase-3-conclusion.md`: Phase 3 final rule agent, evaluation, and submission conclusion.
 - `docs/phase-4-rl-plan.md`: Phase 4 rule-guided hybrid RL workflow plan.
+- `docs/ptcg_rl_strategy_recommendation.md`: Phase 5 strategy for a belief-aware
+  one-turn root-search agent built on simulator legal options.
+- `docs/ptcg_rl_advanced_training_plan.md`: Phase 5 training roadmap covering
+  entity/action models, belief modeling, search distillation, PPO, and policy-pool
+  iteration.
+- `docs/ptcg_rl_evaluation_plan.md`: Phase 5 stage-by-stage evaluation gates,
+  ablations, promotion rules, and reporting format.
+- `docs/phase-5-erawan-runbook.md`: ERAWAN smoke, SLURM array, shard merge, and
+  Torch search-distillation training commands for Phase 5.
 - `docs/erawan-runbook.md`: tested ERAWAN setup, smoke, medium, large, and package commands.
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
 - `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
@@ -305,12 +316,19 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `src/ptcg_abc/`: project code.
 - `src/ptcg_abc/rl/`: Phase 4 RL records, featurization, model export, rewards,
   guidance, and workflow helpers.
+- `src/ptcg_abc/rl/phase5_search.py`: Phase 5 one-turn root-search vertical
+  slice, hidden-state sampler, search trace schema, and search-improved data
+  generator.
 - `src/ptcg_abc/rl/torch_backend.py`: optional PyTorch actor/value BC backend and
   JSON export bridge.
 - `src/ptcg_abc/rl/board_image.py`: human-inspection board snapshot renderer.
 - `src/ptcg_abc/rl/snapshots.py`: one-game rule-vs-benchmark snapshot capture.
 - `src/ptcg_abc/agent/hybrid_rl.py`: hybrid RL agent with rule fallback.
 - `scripts/slurm/`: Phase 4 ERAWAN/SLURM job templates.
+- `scripts/slurm/phase5_search_data_array.sbatch`: Phase 5 one-turn root-search
+  data generation array job.
+- `scripts/slurm/phase5_merge_train_conda.sbatch`: Phase 5 shard merge plus
+  Torch BC/search-distillation training job.
 - `scripts/slurm/phase4_bc_conda.sbatch`: tested ERAWAN conda BC training job.
 - `scripts/slurm/phase4_image_progression_conda.sbatch`: ERAWAN conda job for
   the 256/512/1024 image-size progression experiments.
@@ -389,3 +407,37 @@ Phase 3 completed:
 
 Phase 4 should keep the Phase 3 rule agent as a fixed baseline opponent while building
 state/action/reward traces and training loops.
+
+Phase 5 is now the advanced RL track. Use these docs as the entry point after the
+Phase 4 loop is measurable:
+
+- `docs/ptcg_rl_strategy_recommendation.md`
+- `docs/ptcg_rl_advanced_training_plan.md`
+- `docs/ptcg_rl_evaluation_plan.md`
+
+Implemented Phase 5 vertical-slice command:
+
+```powershell
+python -m ptcg_abc rl-generate-search-data --games 1 --max-steps 60 --top-k 4 --rollout-steps 18 --require-changed --output data/datasets/rl/phase5_search_smoke.jsonl --trace-output experiments/rl/phase5_search_smoke_traces.jsonl
+```
+
+Latest local smoke result:
+
+- Games started: 1
+- Training decisions written: 26
+- Root decisions searched: 12
+- Search-changed decisions: 2
+- Candidate probes: 41
+- Probe errors: 0
+- Truncated search rollouts: 0
+
+Large-scale ERAWAN readiness additions:
+
+- `rl-generate-search-data` supports deterministic `--shard-index`,
+  `--shard-count`, `--game-offset`, and `--append` controls.
+- `rl-merge-search-data` merges decision and trace JSONL shards into one training
+  dataset and writes a manifest.
+- `scripts/slurm/phase5_search_data_array.sbatch` generates search-improved shards.
+- `scripts/slurm/phase5_merge_train_conda.sbatch` merges shards and trains the
+  Torch search-distillation model.
+- Full operating sequence: `docs/phase-5-erawan-runbook.md`.

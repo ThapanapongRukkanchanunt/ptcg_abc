@@ -7,6 +7,17 @@ from ptcg_abc.agent import HybridRlAgent
 from ptcg_abc.cli import build_parser
 from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_decision_frame
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
+from ptcg_abc.rl.phase5_search import (
+    RootSearchConfig,
+    _best_candidate_indices,
+    _candidate_evaluations,
+    _replace_frame_selection,
+    _score_candidates,
+    merge_search_data,
+    phase5_absolute_game_index,
+    phase5_matchup_for_game_index,
+    sample_hidden_state,
+)
 from ptcg_abc.rl.records import DecisionFrame
 from ptcg_abc.rl.rewards import RewardConfig, reward_from_result_metadata
 from ptcg_abc.rl.torch_backend import (
@@ -64,6 +75,21 @@ class FakeObservation:
 class FakePreparedDeck:
     index: int
     label: str
+
+
+@dataclass
+class FakeCard:
+    id: int
+    playerIndex: int
+
+
+@dataclass
+class FakePokemon:
+    id: int
+    playerIndex: int
+    energyCards: list | None = None
+    tools: list | None = None
+    preEvolution: list | None = None
 
 
 class Phase4RlTests(unittest.TestCase):
@@ -244,6 +270,176 @@ class Phase4RlTests(unittest.TestCase):
         )
 
         self.assertEqual(subset_progression_args.selfplay_deck_index, [1, 9])
+
+        search_args = parser.parse_args(
+            [
+                "rl-generate-search-data",
+                "--games",
+                "1",
+                "--top-k",
+                "3",
+                "--shard-index",
+                "2",
+                "--shard-count",
+                "8",
+                "--require-changed",
+            ]
+        )
+
+        self.assertEqual(search_args.command, "rl-generate-search-data")
+        self.assertEqual(search_args.games, 1)
+        self.assertEqual(search_args.top_k, 3)
+        self.assertEqual(search_args.shard_index, 2)
+        self.assertEqual(search_args.shard_count, 8)
+        self.assertTrue(search_args.require_changed)
+
+        merge_args = parser.parse_args(
+            [
+                "rl-merge-search-data",
+                "--input",
+                "data/shard-*.jsonl",
+                "--trace-input",
+                "experiments/trace-*.jsonl",
+            ]
+        )
+
+        self.assertEqual(merge_args.command, "rl-merge-search-data")
+        self.assertEqual(merge_args.input, ["data/shard-*.jsonl"])
+        self.assertEqual(merge_args.trace_input, ["experiments/trace-*.jsonl"])
+
+    def test_phase5_shard_game_indices_interleave_without_overlap(self):
+        shard0 = [
+            phase5_absolute_game_index(local, shard_index=0, shard_count=3)
+            for local in range(4)
+        ]
+        shard1 = [
+            phase5_absolute_game_index(local, shard_index=1, shard_count=3)
+            for local in range(4)
+        ]
+        shard2 = [
+            phase5_absolute_game_index(local, shard_index=2, shard_count=3)
+            for local in range(4)
+        ]
+
+        self.assertEqual(shard0, [0, 3, 6, 9])
+        self.assertEqual(shard1, [1, 4, 7, 10])
+        self.assertEqual(shard2, [2, 5, 8, 11])
+        self.assertEqual(sorted(shard0 + shard1 + shard2), list(range(12)))
+
+    def test_phase5_matchup_rotation_uses_global_game_index(self):
+        matchups = [("deck-a", "bench-1"), ("deck-b", "bench-2")]
+
+        self.assertEqual(phase5_matchup_for_game_index(matchups, 0), ("deck-a", "bench-1", True))
+        self.assertEqual(phase5_matchup_for_game_index(matchups, 1), ("deck-b", "bench-2", False))
+        self.assertEqual(phase5_matchup_for_game_index(matchups, 2), ("deck-a", "bench-1", True))
+
+    def test_phase5_merge_search_data_combines_shards_and_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shard_a = root / "decisions-a.jsonl"
+            shard_b = root / "decisions-b.jsonl"
+            trace_a = root / "traces-a.jsonl"
+            trace_b = root / "traces-b.jsonl"
+            shard_a.write_text('{"decision": 1}\n\n', encoding="utf-8")
+            shard_b.write_text('{"decision": 2}\n', encoding="utf-8")
+            trace_a.write_text('{"trace": 1}\n', encoding="utf-8")
+            trace_b.write_text('{"trace": 2}\n{"trace": 3}\n', encoding="utf-8")
+
+            summary = merge_search_data(
+                decision_inputs=[str(root / "decisions-*.jsonl")],
+                trace_inputs=[str(root / "traces-*.jsonl")],
+                output_path=root / "merged-decisions.jsonl",
+                trace_path=root / "merged-traces.jsonl",
+                manifest_path=root / "manifest.json",
+            )
+
+            self.assertEqual(summary.decision_files, 2)
+            self.assertEqual(summary.trace_files, 2)
+            self.assertEqual(summary.decision_records, 2)
+            self.assertEqual(summary.trace_records, 3)
+            self.assertEqual(
+                (root / "merged-decisions.jsonl").read_text(encoding="utf-8").splitlines(),
+                ['{"decision": 1}', '{"decision": 2}'],
+            )
+            self.assertTrue((root / "manifest.json").exists())
+
+    def test_phase5_candidate_scoring_can_relabel_baseline_choice(self):
+        obs = FakeObservation(
+            select=FakeSelect(
+                type=0,
+                context=0,
+                minCount=1,
+                maxCount=1,
+                option=[FakeOption(14), FakeOption(13), FakeOption(8)],
+            ),
+            current=FakeCurrent(players=[]),
+        )
+        frame = make_decision_frame(obs, selected_indices=[0])
+        assert frame is not None
+        candidates = _candidate_evaluations(frame, [0], top_k=3)
+        for candidate in candidates:
+            candidate.tactical_score = 2.0 if candidate.option_index == 1 else 0.0
+
+        _score_candidates(candidates, RootSearchConfig(rule_prior_weight=0.0))
+        selected = _best_candidate_indices(candidates, [0])
+        relabeled = _replace_frame_selection(
+            frame,
+            selected,
+            {
+                "phase5_baseline_indices": [0],
+                "phase5_search_indices": selected,
+                "phase5_search_changed": selected != [0],
+            },
+        )
+
+        self.assertEqual(selected, [1])
+        self.assertEqual(relabeled.rule_selected_indices, [1])
+        self.assertEqual(relabeled.reward_metadata["phase5_baseline_indices"], [0])
+        self.assertTrue(relabeled.reward_metadata["phase5_search_changed"])
+
+    def test_phase5_hidden_state_sampler_matches_visible_counts(self):
+        own_deck = list(range(1, 61))
+        opponent_deck = list(range(101, 161))
+        obs = FakeObservation(
+            select=FakeSelect(type=0, context=0, minCount=1, maxCount=1, option=[FakeOption(14)]),
+            current=FakeCurrent(
+                yourIndex=0,
+                players=[
+                    FakePlayer(
+                        active=[FakePokemon(1, 0, energyCards=[FakeCard(2, 0)])],
+                        bench=[FakePokemon(3, 0)],
+                        hand=[FakeCard(4, 0), FakeCard(5, 0)],
+                        handCount=2,
+                        discard=[FakeCard(6, 0)],
+                        prize=[None, None, None, None, None, None],
+                        deckCount=50,
+                    ),
+                    FakePlayer(
+                        active=[FakePokemon(101, 1)],
+                        bench=[FakePokemon(102, 1)],
+                        hand=None,
+                        handCount=5,
+                        discard=[FakeCard(103, 1)],
+                        prize=[None, None, None, None, None, None],
+                        deckCount=47,
+                    ),
+                ],
+            ),
+        )
+
+        hidden = sample_hidden_state(
+            obs,
+            own_deck_ids=own_deck,
+            opponent_deck_ids=opponent_deck,
+            card_by_id={},
+        )
+
+        self.assertEqual(len(hidden.your_deck), 50)
+        self.assertEqual(len(hidden.your_prize), 6)
+        self.assertEqual(len(hidden.opponent_deck), 47)
+        self.assertEqual(len(hidden.opponent_prize), 6)
+        self.assertEqual(len(hidden.opponent_hand), 5)
+        self.assertEqual(hidden.opponent_active, [])
 
     def test_selfplay_default_plan_rotates_all_ordered_deck_pairs(self):
         decks = [FakePreparedDeck(index, f"deck-{index}") for index in range(1, 10)]
