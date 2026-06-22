@@ -88,38 +88,129 @@ Pass gate: the manifest shows every expected shard and nonzero `decision_records
 
 ## 5. Large Search-Data Array
 
-Recommended first large run:
+ERAWAN may reject a 32-task array with `QOSMaxSubmitJobPerUserLimit`. The safe
+large-run pattern is:
 
-- 32 shards.
-- 1,000 games per shard.
-- `max_steps=600`.
-- `top_k=4`.
-- `rollout_steps=18`.
+- Keep the logical dataset at 32 shards by setting `SHARD_COUNT=32`.
+- Submit only two array tasks at a time, because this has been accepted by the
+  current QOS.
+- Inspect the first two large shards before submitting the remaining waves.
+- Do not run the full merge/train step until all shard files `0` through `31`
+  exist, unless intentionally training on a partial dataset.
+
+Submit only the first two large shards:
 
 ```bash
 cd ~/ptcg_abc
 JOB=$(
+  SHARD_COUNT=32 \
   GAMES_PER_SHARD=1000 \
   MAX_STEPS=600 \
   TOP_K=4 \
   ROLLOUT_STEPS=18 \
-  sbatch --parsable --array=0-31 scripts/slurm/phase5_search_data_array.sbatch
+  sbatch --parsable --array=0-1 scripts/slurm/phase5_search_data_array.sbatch
 )
-echo "$JOB" | tee experiments/rl/phase5_search/latest_search_large_job.txt
+echo "$JOB" | tee experiments/rl/phase5_search/latest_search_large_job_0_1.txt
 ```
 
-Monitor:
+Monitor the first wave:
 
 ```bash
 cd ~/ptcg_abc
-JOB=$(cat experiments/rl/phase5_search/latest_search_large_job.txt)
+JOB=$(cat experiments/rl/phase5_search/latest_search_large_job_0_1.txt)
 squeue -j "$JOB"
 tail -n 80 experiments/rl/slurm-${JOB}-0-phase5-search.out
+tail -n 80 experiments/rl/slurm-${JOB}-1-phase5-search.out
+tail -n 80 experiments/rl/slurm-${JOB}-0-phase5-search.err
+tail -n 80 experiments/rl/slurm-${JOB}-1-phase5-search.err
 ```
 
-## 6. Merge And Train
+After the first wave finishes, inspect the summaries and shard sizes:
 
-After all shards finish, merge and run Torch BC/search distillation:
+```bash
+cat experiments/rl/phase5_search/summaries/phase5_search_summary_shard-0.json
+cat experiments/rl/phase5_search/summaries/phase5_search_summary_shard-1.json
+ls -lh data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-0.jsonl
+ls -lh data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-1.jsonl
+```
+
+Pass gate for each large shard:
+
+- `games_started` is `1000`.
+- `errors` is `0`.
+- `probe_errors` is `0` or low enough to inspect manually.
+- `decisions` is nonzero.
+- `searched_decisions` is nonzero.
+- `changed_decisions` is nonzero.
+- The decision and trace JSONL files are nonempty.
+
+If the first wave passes, submit the remaining waves two shards at a time. Keep
+`SHARD_COUNT=32` every time:
+
+```bash
+cd ~/ptcg_abc
+
+JOB=$(
+  SHARD_COUNT=32 GAMES_PER_SHARD=1000 MAX_STEPS=600 TOP_K=4 ROLLOUT_STEPS=18 \
+  sbatch --parsable --array=2-3 scripts/slurm/phase5_search_data_array.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search/latest_search_large_job_2_3.txt
+```
+
+Repeat for:
+
+```text
+--array=4-5
+--array=6-7
+--array=8-9
+--array=10-11
+--array=12-13
+--array=14-15
+--array=16-17
+--array=18-19
+--array=20-21
+--array=22-23
+--array=24-25
+--array=26-27
+--array=28-29
+--array=30-31
+```
+
+Check completion before merging:
+
+```bash
+ls data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl | wc -l
+ls experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl | wc -l
+```
+
+Both counts should be `32`.
+
+## 6. Merge Large Shards
+
+After all 32 shards finish, merge the decision and trace JSONL files:
+
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" -m ptcg_abc rl-merge-search-data \
+  --input 'data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl' \
+  --trace-input 'experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl' \
+  --output data/datasets/rl/phase5_search_decisions_merged.jsonl \
+  --trace-output experiments/rl/phase5_search_traces_merged.jsonl \
+  --manifest experiments/rl/phase5_search_merge_manifest.json
+cat experiments/rl/phase5_search_merge_manifest.json
+```
+
+Pass gate:
+
+- `decision_files` is `32`.
+- `trace_files` is `32`.
+- `decision_records` is nonzero.
+- `trace_records` is nonzero.
+
+## 7. Train Search-Distillation Model
+
+After the large merge passes, run Torch BC/search distillation:
 
 ```bash
 cd ~/ptcg_abc
@@ -131,6 +222,16 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job.txt
 ```
 
+Monitor:
+
+```bash
+JOB=$(cat experiments/rl/phase5_search/latest_train_job.txt)
+squeue -j "$JOB"
+tail -n 120 experiments/rl/slurm-${JOB}-phase5-train.out
+tail -n 120 experiments/rl/slurm-${JOB}-phase5-train.err
+cat experiments/rl/phase5_search_distill_report.json
+```
+
 Outputs:
 
 - `data/datasets/rl/phase5_search_decisions_merged.jsonl`
@@ -140,10 +241,12 @@ Outputs:
 - `models/rl/phase5_search_distill.json`
 - `experiments/rl/phase5_search_distill_report.json`
 
-## 7. Ready-To-Train Checklist
+## 8. Ready-To-Train Checklist
 
 - Login-node smoke passes with changed decisions and zero probe errors.
 - Two-shard SLURM smoke produces two nonempty decision shards and two nonempty trace shards.
-- Merge manifest reports the expected shard count.
+- First large two-shard wave passes the large-shard summary gates.
+- All 32 large decision shards and all 32 large trace shards exist before full merge/train.
+- Large merge manifest reports `decision_files: 32` and `trace_files: 32`.
 - Torch import/CUDA check inside the merge/train SLURM output reports the expected device.
 - `rl-train-bc --backend torch` starts from the merged dataset and writes both checkpoint and exported JSON model.
