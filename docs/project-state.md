@@ -499,3 +499,9 @@ Latest Phase 5 reweighted binary diagnostic and smoke:
 - Conclusion: reweighting fixed baseline-copying but introduced third-action
   drift. Next action is pairwise changed-decision training:
   `score(search_action) > score(baseline_action)`.
+
+Operational rule:
+
+- Phase 5 search-distillation diagnostics should always run as SLURM jobs using
+  `scripts/slurm/phase5_diagnose_search_distill_conda.sbatch`; avoid running
+  large diagnostics on the login node.

@@ -295,28 +295,42 @@ before spending more compute. This checks whether model accuracy is coming from
 easy unchanged decisions or whether the model actually learned the
 search-changed labels.
 
-For the 10-shard partial model:
+Always run diagnostics as a SLURM job. For the 10-shard partial model:
 
 ```bash
 cd ~/ptcg_abc
-PY=~/ptcg_abc/.conda_ptcg/bin/python
-"$PY" -m ptcg_abc rl-diagnose-search-distill \
-  --dataset data/datasets/rl/phase5_search_decisions_10shards.jsonl \
-  --model models/rl/phase5_search_distill_10shards.json \
-  --trace-input experiments/rl/phase5_search_traces_10shards.jsonl \
-  --report-json reports/phase5_search_distill_10shards_diagnostics.json \
-  --report-md reports/phase5_search_distill_10shards_diagnostics.md
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards.json \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_diagnostics.md \
+  sbatch --parsable scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_job.txt
 ```
 
 For a full 32-shard model, use the merged full-run paths:
 
 ```bash
-"$PY" -m ptcg_abc rl-diagnose-search-distill \
-  --dataset data/datasets/rl/phase5_search_decisions_merged.jsonl \
-  --model models/rl/phase5_search_distill.json \
-  --trace-input experiments/rl/phase5_search_traces_merged.jsonl \
-  --report-json reports/phase5_search_distill_diagnostics.json \
-  --report-md reports/phase5_search_distill_diagnostics.md
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_merged.jsonl \
+  MODEL=models/rl/phase5_search_distill.json \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_merged.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_diagnostics.md \
+  sbatch --parsable scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_full_job.txt
+```
+
+Monitor any diagnostics job:
+
+```bash
+JOB=$(cat experiments/rl/phase5_diag_10shards_job.txt)
+squeue -j "$JOB"
+tail -n 120 experiments/rl/slurm-${JOB}-phase5-diag.out
+tail -n 120 experiments/rl/slurm-${JOB}-phase5-diag.err
 ```
 
 Key fields to inspect:
@@ -362,16 +376,18 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_changedw.txt
 ```
 
-After it finishes, rerun diagnostics against the reweighted model:
+After it finishes, submit diagnostics against the reweighted model:
 
 ```bash
-PY=~/ptcg_abc/.conda_ptcg/bin/python
-"$PY" -m ptcg_abc rl-diagnose-search-distill \
-  --dataset data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl \
-  --model models/rl/phase5_search_distill_10shards_changedw.json \
-  --trace-input experiments/rl/phase5_search_traces_10shards_reweighted.jsonl \
-  --report-json reports/phase5_search_distill_10shards_changedw_diagnostics.json \
-  --report-md reports/phase5_search_distill_10shards_changedw_diagnostics.md
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards_changedw.json \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_reweighted.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_changedw_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_changedw_diagnostics.md \
+  sbatch --parsable scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_changedw_job.txt
 ```
 
 Then run the same 360-game `rl` and `hybrid` benchmark comparison before
@@ -410,16 +426,18 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_pairwise.txt
 ```
 
-Run diagnostics before battle evaluation:
+Submit diagnostics before battle evaluation:
 
 ```bash
-PY=~/ptcg_abc/.conda_ptcg/bin/python
-"$PY" -m ptcg_abc rl-diagnose-search-distill \
-  --dataset data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl \
-  --model models/rl/phase5_search_distill_10shards_pairwise.json \
-  --trace-input experiments/rl/phase5_search_traces_10shards_pairwise.jsonl \
-  --report-json reports/phase5_search_distill_10shards_pairwise_diagnostics.json \
-  --report-md reports/phase5_search_distill_10shards_pairwise_diagnostics.md
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards_pairwise.json \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_pairwise.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_pairwise_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_pairwise_diagnostics.md \
+  sbatch --parsable scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_pairwise_job.txt
 ```
 
 Only run battle smoke if `search_changed.search_hit_rate` improves without a

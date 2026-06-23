@@ -232,6 +232,7 @@ Use `docs/phase-5-erawan-runbook.md` for commands. The runbook currently covers:
 - Shard merge.
 - Partial 10-shard training.
 - Full-shard training.
+- SLURM diagnostics jobs for search-distillation reports.
 - Artifact locations.
 
 The runbook should stay practical and command-focused. This master plan should
