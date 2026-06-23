@@ -4,7 +4,7 @@ import json
 import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from ptcg_abc.rl.records import ActionFrame, DecisionFrame, TrajectoryStep
 
@@ -73,13 +73,22 @@ def train_behavior_cloning_model(
     *,
     epochs: int = 1,
     learning_rate: float = 0.4,
+    changed_weight: float = 1.0,
+    unchanged_weight: float = 1.0,
+    excluded_features: Sequence[str] = (),
 ) -> tuple[LinearOptionModel, TrainingSummary]:
     model = LinearOptionModel()
     frame_list = list(frames)
+    excluded = set(excluded_features)
     positives = negatives = actions = 0
     for _ in range(max(1, epochs)):
         for frame in frame_list:
             selected = set(frame.rule_selected_indices)
+            frame_weight = _frame_training_weight(
+                frame,
+                changed_weight=changed_weight,
+                unchanged_weight=unchanged_weight,
+            )
             for action in frame.legal_options:
                 if not action.legal_mask:
                     continue
@@ -88,9 +97,11 @@ def train_behavior_cloning_model(
                 positives += int(target == 1.0)
                 negatives += int(target == 0.0)
                 prediction = _sigmoid(model.score_action(action))
-                error = target - prediction
+                error = (target - prediction) * frame_weight
                 model.bias += learning_rate * error
                 for name, value in action.features.items():
+                    if name in excluded:
+                        continue
                     model.weights[name] = model.weights.get(name, 0.0) + learning_rate * error * value
     model.metadata.update(
         {
@@ -100,6 +111,9 @@ def train_behavior_cloning_model(
             "positives": positives,
             "negatives": negatives,
             "epochs": max(1, epochs),
+            "changed_weight": changed_weight,
+            "unchanged_weight": unchanged_weight,
+            "excluded_features": sorted(excluded),
         }
     )
     summary = TrainingSummary(
@@ -184,6 +198,18 @@ def evaluate_topk_accuracy(model: LinearOptionModel, frames: Iterable[DecisionFr
         correct += int(bool(predicted & selected))
         total += 1
     return correct / total if total else 0.0
+
+
+def _frame_training_weight(
+    frame: DecisionFrame,
+    *,
+    changed_weight: float,
+    unchanged_weight: float,
+) -> float:
+    metadata = frame.reward_metadata
+    if bool(metadata.get("phase5_search_changed", False)):
+        return max(0.0, float(changed_weight))
+    return max(0.0, float(unchanged_weight))
 
 
 def _sigmoid(value: float) -> float:

@@ -34,6 +34,9 @@ TRACE_GLOB="${TRACE_GLOB:-experiments/rl/phase5_search/traces/phase5_search_trac
 MERGED_DATASET="${MERGED_DATASET:-data/datasets/rl/phase5_search_decisions_merged.jsonl}"
 MERGED_TRACES="${MERGED_TRACES:-experiments/rl/phase5_search_traces_merged.jsonl}"
 MERGE_MANIFEST="${MERGE_MANIFEST:-experiments/rl/phase5_search_merge_manifest.json}"
+BC_CHANGED_WEIGHT="${BC_CHANGED_WEIGHT:-1.0}"
+BC_UNCHANGED_WEIGHT="${BC_UNCHANGED_WEIGHT:-1.0}"
+BC_EXCLUDE_FEATURES="${BC_EXCLUDE_FEATURES:-}"
 
 "$PY" -m ptcg_abc rl-merge-search-data \
   --input "$DECISION_GLOB" \
@@ -42,10 +45,20 @@ MERGE_MANIFEST="${MERGE_MANIFEST:-experiments/rl/phase5_search_merge_manifest.js
   --trace-output "$MERGED_TRACES" \
   --manifest "$MERGE_MANIFEST"
 
+EXCLUDE_ARGS=()
+if [[ -n "$BC_EXCLUDE_FEATURES" ]]; then
+  for feature in $BC_EXCLUDE_FEATURES; do
+    EXCLUDE_ARGS+=(--exclude-feature "$feature")
+  done
+fi
+
 "$PY" -m ptcg_abc rl-train-bc \
   --backend torch \
   --epochs "${BC_EPOCHS:-2}" \
   --learning-rate "${BC_LEARNING_RATE:-0.02}" \
+  --changed-weight "$BC_CHANGED_WEIGHT" \
+  --unchanged-weight "$BC_UNCHANGED_WEIGHT" \
+  "${EXCLUDE_ARGS[@]}" \
   --dataset "$MERGED_DATASET" \
   --checkpoint "${BC_CHECKPOINT:-models/rl/phase5_search_distill.pt}" \
   --model "${BC_MODEL:-models/rl/phase5_search_distill.json}" \

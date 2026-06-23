@@ -148,6 +148,12 @@ benchmark:
 This makes offline search-distillation diagnostics the next required gate before
 PPO, packaging, or more large-scale data generation.
 
+The first diagnostic result showed the exact failure mode: changed decisions were
+about 9.6% of the dataset, but the model had `0.0` search-hit rate on changed
+decisions and `1.0` baseline-hit rate. The next training slice should therefore
+reweight changed frames and remove direct rule-score features from the exported
+ranker before scaling data.
+
 ## What Is Not Complete Yet
 
 The current Phase 5 vertical slice is not the full Phase 5 agent. In particular,
@@ -187,10 +193,9 @@ spending more compute on PPO.
 
 ## Implementation Priorities
 
-1. Use `rl-diagnose-search-distill` to inspect the 10-shard model. It reports
-   dataset counts, search-change rate, model agreement with search-selected
-   actions, baseline agreement, model margins, trace margins, and
-   changed-decision examples.
+1. Retrain the 10-shard search-distilled model with changed decisions upweighted
+   and direct rule-score features excluded, then rerun `rl-diagnose-search-distill`.
+   Do this before PPO, packaging, or more large-scale data generation.
 2. Add battle evaluation commands for the exported
    `models/rl/phase5_search_distill_10shards.json` model against the current
    required benchmark.

@@ -333,7 +333,51 @@ Key fields to inspect:
 
 Do not start PPO from a checkpoint whose changed-decision diagnostics are poor.
 
-## 9. Ready-To-Train Checklist
+## 9. Reweighted Search-Distillation Retrain
+
+If diagnostics show that `search_changed.search_hit_rate` is poor and the model
+still prefers baseline actions on changed decisions, retrain from the same shards
+with changed decisions upweighted. Exclude direct rule-score features so the
+exported JSON model cannot solve the majority class by simply copying the rule
+baseline.
+
+For the 10-shard partial dataset:
+
+```bash
+cd ~/ptcg_abc
+JOB=$(
+  BC_EPOCHS=2 \
+  BC_LEARNING_RATE=0.02 \
+  BC_CHANGED_WEIGHT=12 \
+  BC_UNCHANGED_WEIGHT=1 \
+  BC_EXCLUDE_FEATURES="rule_score rule_rank_inv" \
+  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl \
+  MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_reweighted.jsonl \
+  MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_reweighted.json \
+  BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_changedw.pt \
+  BC_MODEL=models/rl/phase5_search_distill_10shards_changedw.json \
+  BC_REPORT=experiments/rl/phase5_search_distill_report_10shards_changedw.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_merge_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_changedw.txt
+```
+
+After it finishes, rerun diagnostics against the reweighted model:
+
+```bash
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" -m ptcg_abc rl-diagnose-search-distill \
+  --dataset data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl \
+  --model models/rl/phase5_search_distill_10shards_changedw.json \
+  --trace-input experiments/rl/phase5_search_traces_10shards_reweighted.jsonl \
+  --report-json reports/phase5_search_distill_10shards_changedw_diagnostics.json \
+  --report-md reports/phase5_search_distill_10shards_changedw_diagnostics.md
+```
+
+Then run the same 360-game `rl` and `hybrid` benchmark comparison before
+generating more shards.
+
+## 10. Ready-To-Train Checklist
 
 - Login-node smoke passes with changed decisions and zero probe errors.
 - Two-shard SLURM smoke produces two nonempty decision shards and two nonempty trace shards.
@@ -344,3 +388,5 @@ Do not start PPO from a checkpoint whose changed-decision diagnostics are poor.
 - `rl-train-bc --backend torch` starts from the merged dataset and writes both checkpoint and exported JSON model.
 - `rl-diagnose-search-distill` reports that the model learned search-changed
   decisions before PPO or packaging.
+- If changed-decision diagnostics are poor, use `BC_CHANGED_WEIGHT`,
+  `BC_UNCHANGED_WEIGHT`, and `BC_EXCLUDE_FEATURES` for a reweighted retrain.

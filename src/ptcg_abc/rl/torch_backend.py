@@ -4,7 +4,7 @@ import importlib.util
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from ptcg_abc.rl.model import (
     LinearOptionModel,
@@ -49,10 +49,14 @@ def train_torch_bc_model(
     export_model_path: Path,
     epochs: int = 1,
     learning_rate: float = 0.02,
+    changed_weight: float = 1.0,
+    unchanged_weight: float = 1.0,
+    excluded_features: Sequence[str] = (),
 ) -> TorchTrainingSummary:
     torch, nn = _require_torch()
     frame_list = list(frames)
-    feature_names = collect_feature_names(frame_list)
+    excluded = set(excluded_features)
+    feature_names = collect_feature_names(frame_list, excluded_features=excluded)
     board_shape = _board_shape(frame_list)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network = _make_network(nn, len(feature_names), board_shape).to(device)
@@ -87,11 +91,17 @@ def train_torch_bc_model(
                 dtype=torch.float32,
                 device=device,
             )
+            frame_weight = _frame_training_weight(
+                frame,
+                changed_weight=changed_weight,
+                unchanged_weight=unchanged_weight,
+            )
             positives += int(labels.sum().item())
             negatives += int(labels.numel() - labels.sum().item())
             actions += int(labels.numel())
             logits, value = network(action_x, board_x)
             actor_loss = nn.functional.binary_cross_entropy_with_logits(logits, labels)
+            actor_loss = actor_loss * frame_weight
             value_loss = nn.functional.mse_loss(value.reshape(1), reward)
             loss = actor_loss + 0.2 * value_loss
             optimizer.zero_grad()
@@ -99,7 +109,13 @@ def train_torch_bc_model(
             optimizer.step()
             final_loss = float(loss.detach().item())
 
-    export_model, export_summary = train_behavior_cloning_model(frame_list, epochs=max(1, epochs))
+    export_model, export_summary = train_behavior_cloning_model(
+        frame_list,
+        epochs=max(1, epochs),
+        changed_weight=changed_weight,
+        unchanged_weight=unchanged_weight,
+        excluded_features=excluded,
+    )
     export_model.metadata.update(
         {
             "source_format": CHECKPOINT_FORMAT,
@@ -108,6 +124,9 @@ def train_torch_bc_model(
             "torch_device": str(device),
             "torch_final_loss": final_loss,
             "torch_actions": actions,
+            "changed_weight": changed_weight,
+            "unchanged_weight": unchanged_weight,
+            "excluded_features": sorted(excluded),
         }
     )
     checkpoint = {
@@ -126,6 +145,9 @@ def train_torch_bc_model(
             "final_loss": final_loss,
             "device": str(device),
             "linear_export_accuracy": export_summary.accuracy,
+            "changed_weight": changed_weight,
+            "unchanged_weight": unchanged_weight,
+            "excluded_features": sorted(excluded),
         },
     }
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -198,11 +220,16 @@ def score_frame_with_torch_checkpoint(checkpoint_path: Path, frame: DecisionFram
     return [float(value) for value in logits.tolist()]
 
 
-def collect_feature_names(frames: Iterable[DecisionFrame]) -> list[str]:
+def collect_feature_names(
+    frames: Iterable[DecisionFrame],
+    *,
+    excluded_features: Iterable[str] = (),
+) -> list[str]:
+    excluded = set(excluded_features)
     names = set()
     for frame in frames:
         for action in frame.legal_options:
-            names.update(action.features)
+            names.update(name for name in action.features if name not in excluded)
     return sorted(names)
 
 
@@ -261,6 +288,18 @@ def _checkpoint_board_shape(checkpoint: dict[str, Any]) -> tuple[int, int]:
     if side * side == board_size:
         return side, side
     return 1, board_size
+
+
+def _frame_training_weight(
+    frame: DecisionFrame,
+    *,
+    changed_weight: float,
+    unchanged_weight: float,
+) -> float:
+    metadata = frame.reward_metadata
+    if bool(metadata.get("phase5_search_changed", False)):
+        return max(0.0, float(changed_weight))
+    return max(0.0, float(unchanged_weight))
 
 
 def _make_network(nn: Any, feature_count: int, board_shape: tuple[int, int]) -> Any:

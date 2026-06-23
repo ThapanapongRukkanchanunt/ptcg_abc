@@ -226,6 +226,24 @@ class Phase4RlTests(unittest.TestCase):
         self.assertGreater(summary.actions, 0)
         self.assertEqual(max(range(len(scores)), key=lambda index: scores[index]), 2)
 
+    def test_behavior_cloning_can_overweight_search_changed_frames(self):
+        changed = _diagnostic_frame(baseline=[0], search=[1], changed=True, step_index=1)
+        unchanged = _diagnostic_frame(baseline=[0], search=[0], changed=False, step_index=2)
+
+        model, summary = train_behavior_cloning_model(
+            [changed] + [unchanged] * 10,
+            epochs=5,
+            changed_weight=20.0,
+            unchanged_weight=1.0,
+            excluded_features=["rule_score", "rule_rank_inv"],
+        )
+        scores = model.score_frame(changed)
+
+        self.assertGreater(summary.actions, 0)
+        self.assertGreater(scores[1], scores[0])
+        self.assertNotIn("rule_score", model.weights)
+        self.assertNotIn("rule_rank_inv", model.weights)
+
     def test_hybrid_agent_can_use_exported_model(self):
         obs = FakeObservation(
             select=FakeSelect(
@@ -372,6 +390,24 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(diagnose_args.dataset, Path("data/phase5.jsonl"))
         self.assertEqual(diagnose_args.model, Path("models/phase5.json"))
         self.assertEqual(diagnose_args.trace_input, Path("experiments/traces.jsonl"))
+
+        weighted_train_args = parser.parse_args(
+            [
+                "rl-train-bc",
+                "--changed-weight",
+                "12",
+                "--unchanged-weight",
+                "1",
+                "--exclude-feature",
+                "rule_score",
+                "--exclude-feature",
+                "rule_rank_inv",
+            ]
+        )
+
+        self.assertEqual(weighted_train_args.changed_weight, 12.0)
+        self.assertEqual(weighted_train_args.unchanged_weight, 1.0)
+        self.assertEqual(weighted_train_args.exclude_feature, ["rule_score", "rule_rank_inv"])
 
     def test_phase5_shard_game_indices_interleave_without_overlap(self):
         shard0 = [

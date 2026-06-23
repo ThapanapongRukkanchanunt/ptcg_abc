@@ -510,6 +510,9 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 report_path=args.report_json,
                 epochs=args.epochs,
                 learning_rate=args.learning_rate,
+                changed_weight=args.changed_weight,
+                unchanged_weight=args.unchanged_weight,
+                excluded_features=args.exclude_feature,
             )
         else:
             summary = train_bc_from_jsonl(
@@ -517,6 +520,9 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 model_path=args.model,
                 report_path=args.report_json,
                 epochs=args.epochs,
+                changed_weight=args.changed_weight,
+                unchanged_weight=args.unchanged_weight,
+                excluded_features=args.exclude_feature,
             )
     except TorchBackendUnavailable as exc:
         print(str(exc), file=sys.stderr)
@@ -1074,6 +1080,24 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_bc.add_argument("--backend", choices=["linear", "torch"], default="linear")
     rl_train_bc.add_argument("--epochs", type=int, default=1)
     rl_train_bc.add_argument("--learning-rate", type=float, default=0.02)
+    rl_train_bc.add_argument(
+        "--changed-weight",
+        type=float,
+        default=1.0,
+        help="Frame weight for Phase 5 decisions where root search changed the rule baseline.",
+    )
+    rl_train_bc.add_argument(
+        "--unchanged-weight",
+        type=float,
+        default=1.0,
+        help="Frame weight for unchanged decisions.",
+    )
+    rl_train_bc.add_argument(
+        "--exclude-feature",
+        action="append",
+        default=[],
+        help="Action feature to exclude from training/export. Repeat for multiple features.",
+    )
     rl_train_bc.add_argument(
         "--report-json",
         type=_path,

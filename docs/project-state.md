@@ -473,3 +473,17 @@ Latest Phase 5 10-shard benchmark comparison:
 - Conclusion: the 10-shard checkpoint is valid but not promotable. Next gate is
   `rl-diagnose-search-distill` on changed search decisions before PPO,
   packaging, or additional large-scale data generation.
+
+Latest Phase 5 search-distillation diagnostic:
+
+- Overall frames: 791,974.
+- Search-changed frames: 76,068, about 9.6% of the dataset.
+- Overall search-hit rate: 0.9035637533555394.
+- Search-changed search-hit rate: 0.0.
+- Search-changed baseline-hit rate: 1.0.
+- Search-changed mean model search-minus-baseline score: -6.159176600904512.
+- Trace mean search-minus-baseline combined score: 0.5960886340580955.
+- Trace mean search-minus-baseline tactical score: 0.6037441871567197.
+- Conclusion: the search traces prefer changed labels, but the exported model
+  learned unchanged rule-baseline decisions. Next action is a reweighted retrain
+  with changed decisions upweighted and `rule_score` / `rule_rank_inv` excluded.
