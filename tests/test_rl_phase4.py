@@ -244,6 +244,26 @@ class Phase4RlTests(unittest.TestCase):
         self.assertNotIn("rule_score", model.weights)
         self.assertNotIn("rule_rank_inv", model.weights)
 
+    def test_behavior_cloning_pairwise_changed_prefers_search_over_baseline(self):
+        changed = _diagnostic_frame(baseline=[0], search=[1], changed=True, step_index=1)
+        unchanged = _diagnostic_frame(baseline=[0], search=[0], changed=False, step_index=2)
+
+        model, summary = train_behavior_cloning_model(
+            [changed] + [unchanged] * 10,
+            epochs=8,
+            changed_weight=4.0,
+            unchanged_weight=0.1,
+            excluded_features=["rule_score", "rule_rank_inv"],
+            pairwise_changed=True,
+            pairwise_margin=1.0,
+        )
+        scores = model.score_frame(changed)
+
+        self.assertGreater(summary.actions, 0)
+        self.assertGreater(scores[1] - scores[0], 0.5)
+        self.assertTrue(model.metadata["pairwise_changed"])
+        self.assertGreater(model.metadata["pairwise_pairs"], 0)
+
     def test_hybrid_agent_can_use_exported_model(self):
         obs = FakeObservation(
             select=FakeSelect(
@@ -402,12 +422,17 @@ class Phase4RlTests(unittest.TestCase):
                 "rule_score",
                 "--exclude-feature",
                 "rule_rank_inv",
+                "--pairwise-changed",
+                "--pairwise-margin",
+                "1.5",
             ]
         )
 
         self.assertEqual(weighted_train_args.changed_weight, 12.0)
         self.assertEqual(weighted_train_args.unchanged_weight, 1.0)
         self.assertEqual(weighted_train_args.exclude_feature, ["rule_score", "rule_rank_inv"])
+        self.assertTrue(weighted_train_args.pairwise_changed)
+        self.assertEqual(weighted_train_args.pairwise_margin, 1.5)
 
     def test_phase5_shard_game_indices_interleave_without_overlap(self):
         shard0 = [

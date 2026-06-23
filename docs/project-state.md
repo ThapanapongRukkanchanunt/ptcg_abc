@@ -487,3 +487,15 @@ Latest Phase 5 search-distillation diagnostic:
 - Conclusion: the search traces prefer changed labels, but the exported model
   learned unchanged rule-baseline decisions. Next action is a reweighted retrain
   with changed decisions upweighted and `rule_score` / `rule_rank_inv` excluded.
+
+Latest Phase 5 reweighted binary diagnostic and smoke:
+
+- Search-changed search-hit rate improved from 0.0 to 0.24215175895251617.
+- Search-changed baseline-hit rate fell from 1.0 to 0.19394489141294632.
+- Search-changed mean model search-minus-baseline score improved from
+  -6.159176600904512 to -0.37572557840674975.
+- Changed-weight `rl` smoke: 7 wins / 36 games, 0.194 win rate, 1 timeout.
+- Changed-weight hybrid smoke: 8 wins / 36 games, 0.222 win rate, 1 timeout.
+- Conclusion: reweighting fixed baseline-copying but introduced third-action
+  drift. Next action is pairwise changed-decision training:
+  `score(search_action) > score(baseline_action)`.

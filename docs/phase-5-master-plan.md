@@ -154,6 +154,13 @@ decisions and `1.0` baseline-hit rate. The next training slice should therefore
 reweight changed frames and remove direct rule-score features from the exported
 ranker before scaling data.
 
+The first reweighted binary retrain improved changed-decision learning
+(`search_changed.search_hit_rate` rose to about 0.242 and baseline-hit fell to
+about 0.194), but battle smoke suggested the model often drifted to third
+actions. The next trainer should use a pairwise objective for changed decisions:
+score the search-selected action above the baseline rule action, while keeping
+unchanged decisions as a weak regularizer.
+
 ## What Is Not Complete Yet
 
 The current Phase 5 vertical slice is not the full Phase 5 agent. In particular,
@@ -193,9 +200,11 @@ spending more compute on PPO.
 
 ## Implementation Priorities
 
-1. Retrain the 10-shard search-distilled model with changed decisions upweighted
-   and direct rule-score features excluded, then rerun `rl-diagnose-search-distill`.
-   Do this before PPO, packaging, or more large-scale data generation.
+1. Train the 10-shard pairwise search-distilled model with
+   `--pairwise-changed`, changed decisions upweighted, unchanged decisions as a
+   weak regularizer, and direct rule-score features excluded. Rerun
+   `rl-diagnose-search-distill` before PPO, packaging, or more large-scale data
+   generation.
 2. Add battle evaluation commands for the exported
    `models/rl/phase5_search_distill_10shards.json` model against the current
    required benchmark.

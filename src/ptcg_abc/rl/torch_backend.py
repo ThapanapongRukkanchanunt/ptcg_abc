@@ -52,6 +52,8 @@ def train_torch_bc_model(
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
     excluded_features: Sequence[str] = (),
+    pairwise_changed: bool = False,
+    pairwise_margin: float = 0.0,
 ) -> TorchTrainingSummary:
     torch, nn = _require_torch()
     frame_list = list(frames)
@@ -96,12 +98,26 @@ def train_torch_bc_model(
                 changed_weight=changed_weight,
                 unchanged_weight=unchanged_weight,
             )
-            positives += int(labels.sum().item())
-            negatives += int(labels.numel() - labels.sum().item())
-            actions += int(labels.numel())
             logits, value = network(action_x, board_x)
-            actor_loss = nn.functional.binary_cross_entropy_with_logits(logits, labels)
-            actor_loss = actor_loss * frame_weight
+            pairs = _search_baseline_pairs(frame) if pairwise_changed else []
+            if pairs:
+                pair_losses = [
+                    nn.functional.softplus(
+                        torch.tensor(float(pairwise_margin), dtype=torch.float32, device=device)
+                        - (logits[search_index] - logits[baseline_index])
+                    )
+                    for search_index, baseline_index in pairs
+                ]
+                positives += len(pairs)
+                negatives += len(pairs)
+                actions += 2 * len(pairs)
+                actor_loss = torch.stack(pair_losses).mean() * frame_weight
+            else:
+                positives += int(labels.sum().item())
+                negatives += int(labels.numel() - labels.sum().item())
+                actions += int(labels.numel())
+                actor_loss = nn.functional.binary_cross_entropy_with_logits(logits, labels)
+                actor_loss = actor_loss * frame_weight
             value_loss = nn.functional.mse_loss(value.reshape(1), reward)
             loss = actor_loss + 0.2 * value_loss
             optimizer.zero_grad()
@@ -115,6 +131,8 @@ def train_torch_bc_model(
         changed_weight=changed_weight,
         unchanged_weight=unchanged_weight,
         excluded_features=excluded,
+        pairwise_changed=pairwise_changed,
+        pairwise_margin=pairwise_margin,
     )
     export_model.metadata.update(
         {
@@ -127,6 +145,8 @@ def train_torch_bc_model(
             "changed_weight": changed_weight,
             "unchanged_weight": unchanged_weight,
             "excluded_features": sorted(excluded),
+            "pairwise_changed": pairwise_changed,
+            "pairwise_margin": pairwise_margin,
         }
     )
     checkpoint = {
@@ -148,6 +168,8 @@ def train_torch_bc_model(
             "changed_weight": changed_weight,
             "unchanged_weight": unchanged_weight,
             "excluded_features": sorted(excluded),
+            "pairwise_changed": pairwise_changed,
+            "pairwise_margin": pairwise_margin,
         },
     }
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -300,6 +322,30 @@ def _frame_training_weight(
     if bool(metadata.get("phase5_search_changed", False)):
         return max(0.0, float(changed_weight))
     return max(0.0, float(unchanged_weight))
+
+
+def _search_baseline_pairs(frame: DecisionFrame) -> list[tuple[int, int]]:
+    if not bool(frame.reward_metadata.get("phase5_search_changed", False)):
+        return []
+    size = len(frame.legal_options)
+    metadata = frame.reward_metadata
+    search = _valid_indices(metadata.get("phase5_search_indices", frame.rule_selected_indices), size)
+    baseline = _valid_indices(metadata.get("phase5_baseline_indices", frame.rule_selected_indices), size)
+    return [
+        (search_index, baseline_index)
+        for search_index in search
+        for baseline_index in baseline
+        if search_index != baseline_index
+    ]
+
+
+def _valid_indices(values: Any, size: int) -> list[int]:
+    output: list[int] = []
+    for value in values or []:
+        index = int(value)
+        if 0 <= index < size and index not in output:
+            output.append(index)
+    return output
 
 
 def _make_network(nn: Any, feature_count: int, board_shape: tuple[int, int]) -> Any:

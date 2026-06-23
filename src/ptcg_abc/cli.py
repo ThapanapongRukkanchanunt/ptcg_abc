@@ -513,6 +513,8 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 changed_weight=args.changed_weight,
                 unchanged_weight=args.unchanged_weight,
                 excluded_features=args.exclude_feature,
+                pairwise_changed=args.pairwise_changed,
+                pairwise_margin=args.pairwise_margin,
             )
         else:
             summary = train_bc_from_jsonl(
@@ -523,6 +525,8 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 changed_weight=args.changed_weight,
                 unchanged_weight=args.unchanged_weight,
                 excluded_features=args.exclude_feature,
+                pairwise_changed=args.pairwise_changed,
+                pairwise_margin=args.pairwise_margin,
             )
     except TorchBackendUnavailable as exc:
         print(str(exc), file=sys.stderr)
@@ -1097,6 +1101,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Action feature to exclude from training/export. Repeat for multiple features.",
+    )
+    rl_train_bc.add_argument(
+        "--pairwise-changed",
+        action="store_true",
+        help="Train changed Phase 5 search decisions with search-vs-baseline pairwise updates.",
+    )
+    rl_train_bc.add_argument(
+        "--pairwise-margin",
+        type=float,
+        default=0.0,
+        help="Desired score margin for `--pairwise-changed` updates.",
     )
     rl_train_bc.add_argument(
         "--report-json",

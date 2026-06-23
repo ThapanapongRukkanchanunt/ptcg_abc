@@ -377,7 +377,55 @@ PY=~/ptcg_abc/.conda_ptcg/bin/python
 Then run the same 360-game `rl` and `hybrid` benchmark comparison before
 generating more shards.
 
-## 10. Ready-To-Train Checklist
+## 10. Pairwise Changed-Decision Retrain
+
+If the reweighted binary model starts learning changed decisions but often picks
+third actions that are neither baseline nor search, train changed frames with a
+pairwise search-over-baseline objective:
+
+```text
+score(search_action) > score(baseline_action)
+```
+
+Submit a separate 10-shard pairwise model:
+
+```bash
+cd ~/ptcg_abc
+JOB=$(
+  BC_EPOCHS=2 \
+  BC_LEARNING_RATE=0.02 \
+  BC_CHANGED_WEIGHT=6 \
+  BC_UNCHANGED_WEIGHT=0.25 \
+  BC_EXCLUDE_FEATURES="rule_score rule_rank_inv" \
+  BC_PAIRWISE_CHANGED=1 \
+  BC_PAIRWISE_MARGIN=1.0 \
+  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl \
+  MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_pairwise.jsonl \
+  MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_pairwise.json \
+  BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise.pt \
+  BC_MODEL=models/rl/phase5_search_distill_10shards_pairwise.json \
+  BC_REPORT=experiments/rl/phase5_search_distill_report_10shards_pairwise.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_merge_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_pairwise.txt
+```
+
+Run diagnostics before battle evaluation:
+
+```bash
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" -m ptcg_abc rl-diagnose-search-distill \
+  --dataset data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl \
+  --model models/rl/phase5_search_distill_10shards_pairwise.json \
+  --trace-input experiments/rl/phase5_search_traces_10shards_pairwise.jsonl \
+  --report-json reports/phase5_search_distill_10shards_pairwise_diagnostics.json \
+  --report-md reports/phase5_search_distill_10shards_pairwise_diagnostics.md
+```
+
+Only run battle smoke if `search_changed.search_hit_rate` improves without a
+large rise in third-action drift.
+
+## 11. Ready-To-Train Checklist
 
 - Login-node smoke passes with changed decisions and zero probe errors.
 - Two-shard SLURM smoke produces two nonempty decision shards and two nonempty trace shards.
@@ -390,3 +438,5 @@ generating more shards.
   decisions before PPO or packaging.
 - If changed-decision diagnostics are poor, use `BC_CHANGED_WEIGHT`,
   `BC_UNCHANGED_WEIGHT`, and `BC_EXCLUDE_FEATURES` for a reweighted retrain.
+- If reweighting creates third-action drift, use `BC_PAIRWISE_CHANGED=1` and
+  `BC_PAIRWISE_MARGIN` to train changed frames as search-over-baseline pairs.

@@ -76,11 +76,14 @@ def train_behavior_cloning_model(
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
     excluded_features: Sequence[str] = (),
+    pairwise_changed: bool = False,
+    pairwise_margin: float = 0.0,
 ) -> tuple[LinearOptionModel, TrainingSummary]:
     model = LinearOptionModel()
     frame_list = list(frames)
     excluded = set(excluded_features)
     positives = negatives = actions = 0
+    pairwise_pairs = 0
     for _ in range(max(1, epochs)):
         for frame in frame_list:
             selected = set(frame.rule_selected_indices)
@@ -89,6 +92,29 @@ def train_behavior_cloning_model(
                 changed_weight=changed_weight,
                 unchanged_weight=unchanged_weight,
             )
+            if pairwise_changed and _phase5_search_changed(frame):
+                pairs = _search_baseline_pairs(frame)
+                if pairs:
+                    for search_index, baseline_index in pairs:
+                        search_action = frame.legal_options[search_index]
+                        baseline_action = frame.legal_options[baseline_index]
+                        if not search_action.legal_mask or not baseline_action.legal_mask:
+                            continue
+                        actions += 2
+                        positives += 1
+                        negatives += 1
+                        pairwise_pairs += 1
+                        diff = model.score_action(search_action) - model.score_action(baseline_action)
+                        error = _sigmoid(float(pairwise_margin) - diff) * frame_weight
+                        _apply_pairwise_update(
+                            model,
+                            search_action,
+                            baseline_action,
+                            learning_rate=learning_rate,
+                            error=error,
+                            excluded_features=excluded,
+                        )
+                    continue
             for action in frame.legal_options:
                 if not action.legal_mask:
                     continue
@@ -114,6 +140,9 @@ def train_behavior_cloning_model(
             "changed_weight": changed_weight,
             "unchanged_weight": unchanged_weight,
             "excluded_features": sorted(excluded),
+            "pairwise_changed": pairwise_changed,
+            "pairwise_margin": pairwise_margin,
+            "pairwise_pairs": pairwise_pairs,
         }
     )
     summary = TrainingSummary(
@@ -210,6 +239,50 @@ def _frame_training_weight(
     if bool(metadata.get("phase5_search_changed", False)):
         return max(0.0, float(changed_weight))
     return max(0.0, float(unchanged_weight))
+
+
+def _phase5_search_changed(frame: DecisionFrame) -> bool:
+    return bool(frame.reward_metadata.get("phase5_search_changed", False))
+
+
+def _search_baseline_pairs(frame: DecisionFrame) -> list[tuple[int, int]]:
+    size = len(frame.legal_options)
+    metadata = frame.reward_metadata
+    search = _valid_indices(metadata.get("phase5_search_indices", frame.rule_selected_indices), size)
+    baseline = _valid_indices(metadata.get("phase5_baseline_indices", frame.rule_selected_indices), size)
+    return [
+        (search_index, baseline_index)
+        for search_index in search
+        for baseline_index in baseline
+        if search_index != baseline_index
+    ]
+
+
+def _valid_indices(values: Any, size: int) -> list[int]:
+    output: list[int] = []
+    for value in values or []:
+        index = int(value)
+        if 0 <= index < size and index not in output:
+            output.append(index)
+    return output
+
+
+def _apply_pairwise_update(
+    model: LinearOptionModel,
+    search_action: ActionFrame,
+    baseline_action: ActionFrame,
+    *,
+    learning_rate: float,
+    error: float,
+    excluded_features: set[str],
+) -> None:
+    feature_names = (set(search_action.features) | set(baseline_action.features)) - excluded_features
+    for name in feature_names:
+        delta = float(search_action.features.get(name, 0.0)) - float(
+            baseline_action.features.get(name, 0.0)
+        )
+        if delta:
+            model.weights[name] = model.weights.get(name, 0.0) + learning_rate * error * delta
 
 
 def _sigmoid(value: float) -> float:

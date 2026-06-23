@@ -37,6 +37,8 @@ MERGE_MANIFEST="${MERGE_MANIFEST:-experiments/rl/phase5_search_merge_manifest.js
 BC_CHANGED_WEIGHT="${BC_CHANGED_WEIGHT:-1.0}"
 BC_UNCHANGED_WEIGHT="${BC_UNCHANGED_WEIGHT:-1.0}"
 BC_EXCLUDE_FEATURES="${BC_EXCLUDE_FEATURES:-}"
+BC_PAIRWISE_CHANGED="${BC_PAIRWISE_CHANGED:-0}"
+BC_PAIRWISE_MARGIN="${BC_PAIRWISE_MARGIN:-0.0}"
 
 "$PY" -m ptcg_abc rl-merge-search-data \
   --input "$DECISION_GLOB" \
@@ -51,6 +53,10 @@ if [[ -n "$BC_EXCLUDE_FEATURES" ]]; then
     EXCLUDE_ARGS+=(--exclude-feature "$feature")
   done
 fi
+PAIRWISE_ARGS=()
+if [[ "$BC_PAIRWISE_CHANGED" == "1" || "$BC_PAIRWISE_CHANGED" == "true" || "$BC_PAIRWISE_CHANGED" == "TRUE" ]]; then
+  PAIRWISE_ARGS+=(--pairwise-changed --pairwise-margin "$BC_PAIRWISE_MARGIN")
+fi
 
 "$PY" -m ptcg_abc rl-train-bc \
   --backend torch \
@@ -59,6 +65,7 @@ fi
   --changed-weight "$BC_CHANGED_WEIGHT" \
   --unchanged-weight "$BC_UNCHANGED_WEIGHT" \
   "${EXCLUDE_ARGS[@]}" \
+  "${PAIRWISE_ARGS[@]}" \
   --dataset "$MERGED_DATASET" \
   --checkpoint "${BC_CHECKPOINT:-models/rl/phase5_search_distill.pt}" \
   --model "${BC_MODEL:-models/rl/phase5_search_distill.json}" \

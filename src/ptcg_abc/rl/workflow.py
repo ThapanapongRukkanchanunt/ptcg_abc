@@ -280,6 +280,8 @@ def train_bc_from_jsonl(
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
     excluded_features: Sequence[str] = (),
+    pairwise_changed: bool = False,
+    pairwise_margin: float = 0.0,
 ) -> TrainingSummary:
     frames = read_decision_jsonl(dataset_path)
     model, summary = train_behavior_cloning_model(
@@ -288,6 +290,8 @@ def train_bc_from_jsonl(
         changed_weight=changed_weight,
         unchanged_weight=unchanged_weight,
         excluded_features=excluded_features,
+        pairwise_changed=pairwise_changed,
+        pairwise_margin=pairwise_margin,
     )
     model.save(model_path)
     summary = TrainingSummary(
@@ -315,6 +319,8 @@ def train_torch_bc_from_jsonl(
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
     excluded_features: Sequence[str] = (),
+    pairwise_changed: bool = False,
+    pairwise_margin: float = 0.0,
 ) -> Any:
     frames = read_decision_jsonl(dataset_path)
     summary = train_torch_bc_model(
@@ -326,6 +332,8 @@ def train_torch_bc_from_jsonl(
         changed_weight=changed_weight,
         unchanged_weight=unchanged_weight,
         excluded_features=excluded_features,
+        pairwise_changed=pairwise_changed,
+        pairwise_margin=pairwise_margin,
     )
     if report_path is not None:
         _write_json_report(summary.to_dict(), report_path)
