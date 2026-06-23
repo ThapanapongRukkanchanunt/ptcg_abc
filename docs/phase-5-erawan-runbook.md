@@ -288,7 +288,52 @@ Outputs:
 - `models/rl/phase5_search_distill.json`
 - `experiments/rl/phase5_search_distill_report.json`
 
-## 8. Ready-To-Train Checklist
+## 8. Diagnose Search Distillation
+
+After training a partial or full search-distilled model, run offline diagnostics
+before spending more compute. This checks whether model accuracy is coming from
+easy unchanged decisions or whether the model actually learned the
+search-changed labels.
+
+For the 10-shard partial model:
+
+```bash
+cd ~/ptcg_abc
+PY=~/ptcg_abc/.conda_ptcg/bin/python
+"$PY" -m ptcg_abc rl-diagnose-search-distill \
+  --dataset data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  --model models/rl/phase5_search_distill_10shards.json \
+  --trace-input experiments/rl/phase5_search_traces_10shards.jsonl \
+  --report-json reports/phase5_search_distill_10shards_diagnostics.json \
+  --report-md reports/phase5_search_distill_10shards_diagnostics.md
+```
+
+For a full 32-shard model, use the merged full-run paths:
+
+```bash
+"$PY" -m ptcg_abc rl-diagnose-search-distill \
+  --dataset data/datasets/rl/phase5_search_decisions_merged.jsonl \
+  --model models/rl/phase5_search_distill.json \
+  --trace-input experiments/rl/phase5_search_traces_merged.jsonl \
+  --report-json reports/phase5_search_distill_diagnostics.json \
+  --report-md reports/phase5_search_distill_diagnostics.md
+```
+
+Key fields to inspect:
+
+- `search_changed.frames`: number of changed decisions available for learning.
+- `search_changed.search_hit_rate`: how often the model selects a search label
+  on changed decisions.
+- `search_changed.baseline_hit_rate`: how often the model falls back toward the
+  original rule choice on changed decisions.
+- `search_changed.mean_model_search_minus_baseline_score`: positive means the
+  model scores search labels above rule baseline labels.
+- `trace.mean_search_minus_baseline_combined_score`: positive means the search
+  traces themselves preferred search choices over baseline choices.
+
+Do not start PPO from a checkpoint whose changed-decision diagnostics are poor.
+
+## 9. Ready-To-Train Checklist
 
 - Login-node smoke passes with changed decisions and zero probe errors.
 - Two-shard SLURM smoke produces two nonempty decision shards and two nonempty trace shards.
@@ -297,3 +342,5 @@ Outputs:
 - Large merge manifest reports `decision_files: 32` and `trace_files: 32`.
 - Torch import/CUDA check inside the merge/train SLURM output reports the expected device.
 - `rl-train-bc --backend torch` starts from the merged dataset and writes both checkpoint and exported JSON model.
+- `rl-diagnose-search-distill` reports that the model learned search-changed
+  decisions before PPO or packaging.

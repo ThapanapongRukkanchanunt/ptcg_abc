@@ -123,6 +123,7 @@ The current code intentionally starts with the smallest useful Phase 5 slice:
 Key files:
 
 - `src/ptcg_abc/rl/phase5_search.py`
+- `src/ptcg_abc/rl/phase5_diagnostics.py`
 - `src/ptcg_abc/cli.py`
 - `scripts/slurm/phase5_search_data_array.sbatch`
 - `scripts/slurm/phase5_merge_train_conda.sbatch`
@@ -136,6 +137,16 @@ with CUDA and exported:
 
 That validates the data-generation, merge, Torch training, and JSON export path.
 It does not yet validate that the distilled model improves battle win rate.
+
+The first 10-shard model did not beat the rule baseline in the required
+benchmark:
+
+- Rule baseline: 126 wins / 360 games, 0.350 win rate.
+- Trained `rl` model only: 79 wins / 360 games, 0.219 win rate.
+- Hybrid model plus rule blend: 81 wins / 360 games, 0.225 win rate.
+
+This makes offline search-distillation diagnostics the next required gate before
+PPO, packaging, or more large-scale data generation.
 
 ## What Is Not Complete Yet
 
@@ -176,10 +187,10 @@ spending more compute on PPO.
 
 ## Implementation Priorities
 
-1. Add a Phase 5 offline evaluation/report command for search-distillation output.
-   It should report dataset counts, search-change rate, model agreement with
-   search-selected actions, top-k agreement, loss/accuracy, and changed-decision
-   diagnostics.
+1. Use `rl-diagnose-search-distill` to inspect the 10-shard model. It reports
+   dataset counts, search-change rate, model agreement with search-selected
+   actions, baseline agreement, model margins, trace margins, and
+   changed-decision examples.
 2. Add battle evaluation commands for the exported
    `models/rl/phase5_search_distill_10shards.json` model against the current
    required benchmark.

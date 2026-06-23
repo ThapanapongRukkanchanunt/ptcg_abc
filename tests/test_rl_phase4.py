@@ -5,8 +5,10 @@ from pathlib import Path
 
 from ptcg_abc.agent import HybridRlAgent
 from ptcg_abc.cli import build_parser
+from ptcg_abc.rl.dataset import write_decision_jsonl
 from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_decision_frame
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
+from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation, diagnose_search_traces
 from ptcg_abc.rl.phase5_search import (
     RootSearchConfig,
     _best_candidate_indices,
@@ -18,7 +20,7 @@ from ptcg_abc.rl.phase5_search import (
     phase5_matchup_for_game_index,
     sample_hidden_state,
 )
-from ptcg_abc.rl.records import DecisionFrame
+from ptcg_abc.rl.records import ActionFrame, DecisionFrame
 from ptcg_abc.rl.rewards import RewardConfig, reward_from_result_metadata
 from ptcg_abc.rl.torch_backend import (
     TORCH_AVAILABLE,
@@ -90,6 +92,53 @@ class FakePokemon:
     energyCards: list | None = None
     tools: list | None = None
     preEvolution: list | None = None
+
+
+def _diagnostic_frame(
+    *,
+    baseline: list[int],
+    search: list[int],
+    changed: bool,
+    step_index: int,
+) -> DecisionFrame:
+    return DecisionFrame(
+        select_type="MAIN",
+        context="MAIN",
+        min_count=1,
+        max_count=1,
+        target_count=1,
+        legal_options=[
+            ActionFrame(
+                index=0,
+                option_type="PLAY",
+                features={"prefer_baseline": 1.0, "prefer_search": 0.0},
+                rule_score=1.0,
+                card_name="Baseline Card",
+            ),
+            ActionFrame(
+                index=1,
+                option_type="PLAY",
+                features={"prefer_baseline": 0.0, "prefer_search": 1.0},
+                rule_score=0.1,
+                card_name="Search Card",
+            ),
+        ],
+        rule_selected_indices=list(search),
+        board={},
+        board_image=[],
+        reward_metadata={
+            "collector": "phase5_search",
+            "game_index": 1,
+            "step_index": step_index,
+            "deck_index": 1,
+            "deck_label": "Diagnostic Deck",
+            "opponent": "Diagnostic Opponent",
+            "phase5_search_applied": True,
+            "phase5_baseline_indices": list(baseline),
+            "phase5_search_indices": list(search),
+            "phase5_search_changed": changed,
+        },
+    )
 
 
 class Phase4RlTests(unittest.TestCase):
@@ -307,6 +356,23 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(merge_args.input, ["data/shard-*.jsonl"])
         self.assertEqual(merge_args.trace_input, ["experiments/trace-*.jsonl"])
 
+        diagnose_args = parser.parse_args(
+            [
+                "rl-diagnose-search-distill",
+                "--dataset",
+                "data/phase5.jsonl",
+                "--model",
+                "models/phase5.json",
+                "--trace-input",
+                "experiments/traces.jsonl",
+            ]
+        )
+
+        self.assertEqual(diagnose_args.command, "rl-diagnose-search-distill")
+        self.assertEqual(diagnose_args.dataset, Path("data/phase5.jsonl"))
+        self.assertEqual(diagnose_args.model, Path("models/phase5.json"))
+        self.assertEqual(diagnose_args.trace_input, Path("experiments/traces.jsonl"))
+
     def test_phase5_shard_game_indices_interleave_without_overlap(self):
         shard0 = [
             phase5_absolute_game_index(local, shard_index=0, shard_count=3)
@@ -440,6 +506,95 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(len(hidden.opponent_prize), 6)
         self.assertEqual(len(hidden.opponent_hand), 5)
         self.assertEqual(hidden.opponent_active, [])
+
+    def test_phase5_search_distill_diagnostics_focuses_changed_decisions(self):
+        changed = _diagnostic_frame(
+            baseline=[0],
+            search=[1],
+            changed=True,
+            step_index=1,
+        )
+        unchanged = _diagnostic_frame(
+            baseline=[0],
+            search=[0],
+            changed=False,
+            step_index=2,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dataset = root / "decisions.jsonl"
+            model_path = root / "model.json"
+            trace_path = root / "traces.jsonl"
+            report_json = root / "report.json"
+            report_md = root / "report.md"
+            write_decision_jsonl([changed, unchanged], dataset)
+            LinearOptionModel(weights={"prefer_baseline": 1.0, "prefer_search": -1.0}).save(
+                model_path
+            )
+            trace_path.write_text(
+                "\n".join(
+                    [
+                        '{"baseline_indices":[0],"search_indices":[1],"changed":true,'
+                        '"search_error":null,"candidates":['
+                        '{"indices":[0],"combined_score":0.4,"tactical_score":0.2},'
+                        '{"indices":[1],"combined_score":0.9,"tactical_score":0.7}]}',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            report = diagnose_search_distillation(
+                dataset_path=dataset,
+                model_path=model_path,
+                trace_path=trace_path,
+                report_json_path=report_json,
+                report_md_path=report_md,
+                example_limit=5,
+            )
+
+            payload = report.to_dict()
+            self.assertEqual(payload["overall"]["frames"], 2)
+            self.assertEqual(payload["search_changed"]["frames"], 1)
+            self.assertEqual(payload["search_changed"]["search_hit"], 0)
+            self.assertEqual(payload["search_changed"]["baseline_hit"], 1)
+            self.assertLess(
+                payload["search_changed"]["mean_model_search_minus_baseline_score"],
+                0,
+            )
+            self.assertGreater(
+                payload["trace"]["mean_search_minus_baseline_combined_score"],
+                0,
+            )
+            self.assertTrue(payload["examples"])
+            self.assertTrue(report_json.exists())
+            self.assertTrue(report_md.exists())
+
+    def test_phase5_trace_diagnostics_counts_candidate_failures(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            trace = Path(tmp) / "traces.jsonl"
+            trace.write_text(
+                "\n".join(
+                    [
+                        '{"baseline_indices":[0],"search_indices":[1],"changed":true,'
+                        '"search_error":"boom","candidates":['
+                        '{"indices":[0],"combined_score":1.0,"tactical_score":0.5},'
+                        '{"indices":[1],"combined_score":0.5,"tactical_score":0.25,'
+                        '"error":"bad","truncated":true}]}',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            diagnostics = diagnose_search_traces(trace)
+
+        self.assertEqual(diagnostics.records, 1)
+        self.assertEqual(diagnostics.changed_records, 1)
+        self.assertEqual(diagnostics.search_errors, 1)
+        self.assertEqual(diagnostics.candidate_errors, 1)
+        self.assertEqual(diagnostics.truncated_candidates, 1)
+        self.assertLess(diagnostics.mean_search_minus_baseline_combined_score, 0)
 
     def test_selfplay_default_plan_rotates_all_ordered_deck_pairs(self):
         decks = [FakePreparedDeck(index, f"deck-{index}") for index in range(1, 10)]

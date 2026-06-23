@@ -461,3 +461,15 @@ Latest ERAWAN partial search-distillation training:
 - Accuracy: 0.9039141457203597.
 - Final loss: 0.012990633957087994.
 - Device: `cuda`.
+
+Latest Phase 5 10-shard benchmark comparison:
+
+- Rule baseline: 126 wins, 233 losses, 1 draw, 5 timeouts, 0 errors, 0.350 win
+  rate across 360 games.
+- Trained `rl` model only: 79 wins, 280 losses, 1 draw, 2 timeouts, 0 errors,
+  0.219 win rate across 360 games.
+- Hybrid model plus rule blend: 81 wins, 278 losses, 1 draw, 4 timeouts,
+  0 errors, 0.225 win rate across 360 games.
+- Conclusion: the 10-shard checkpoint is valid but not promotable. Next gate is
+  `rl-diagnose-search-distill` on changed search decisions before PPO,
+  packaging, or additional large-scale data generation.

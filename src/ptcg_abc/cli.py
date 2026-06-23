@@ -71,6 +71,7 @@ from ptcg_abc.rl.phase5_search import (
     generate_search_improved_data,
     merge_search_data,
 )
+from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
 
@@ -595,6 +596,35 @@ def command_rl_merge_search_data(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_diagnose_search_distill(args: argparse.Namespace) -> int:
+    if not args.dataset.exists():
+        print(
+            f"Phase 5 search dataset not found at {args.dataset}. "
+            "Run `rl-merge-search-data` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.model.exists():
+        print(
+            f"Phase 5 exported model not found at {args.model}. "
+            "Run `rl-train-bc --backend torch` first.",
+            file=sys.stderr,
+        )
+        return 2
+    trace_path = args.trace_input if args.trace_input and args.trace_input.exists() else None
+    diagnostics = diagnose_search_distillation(
+        dataset_path=args.dataset,
+        model_path=args.model,
+        trace_path=trace_path,
+        report_json_path=args.report_json,
+        report_md_path=args.report_md,
+        example_limit=args.examples,
+    )
+    print(json.dumps(diagnostics.to_dict(), indent=2))
+    print(f"Wrote Phase 5 search-distillation diagnostics to {args.report_md}.")
     return 0
 
 
@@ -1161,6 +1191,39 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("experiments") / "rl" / "phase5_search_merge_manifest.json",
     )
     rl_merge_search.set_defaults(func=command_rl_merge_search_data)
+
+    rl_diagnose_search = subparsers.add_parser(
+        "rl-diagnose-search-distill",
+        help="Diagnose a Phase 5 search-distilled model against search-improved decision data.",
+    )
+    rl_diagnose_search.add_argument(
+        "--dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_merged.jsonl",
+    )
+    rl_diagnose_search.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_search_distill.json",
+    )
+    rl_diagnose_search.add_argument(
+        "--trace-input",
+        type=_path,
+        default=None,
+        help="Optional merged Phase 5 trace JSONL for rollout-score diagnostics.",
+    )
+    rl_diagnose_search.add_argument("--examples", type=int, default=20)
+    rl_diagnose_search.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("reports") / "phase5_search_distill_diagnostics.json",
+    )
+    rl_diagnose_search.add_argument(
+        "--report-md",
+        type=_path,
+        default=Path("reports") / "phase5_search_distill_diagnostics.md",
+    )
+    rl_diagnose_search.set_defaults(func=command_rl_diagnose_search_distill)
 
     rl_train_ppo = subparsers.add_parser(
         "rl-train-ppo",
