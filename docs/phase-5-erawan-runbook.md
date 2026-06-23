@@ -1,9 +1,13 @@
 # Phase 5 ERAWAN Search-Distillation Runbook
 
-This runbook prepares the Phase 5 vertical slice for large-scale ERAWAN training:
-generate search-improved decision data with bounded one-turn root search, merge the
-array shards, then train the Torch behavior-cloning/distillation model from the
-merged dataset.
+This is the operating runbook for the current Phase 5 vertical slice. The full
+Phase 5 architecture, training, and evaluation map is in
+`docs/phase-5-master-plan.md`.
+
+This runbook prepares the search-distillation slice for large-scale ERAWAN
+training: generate search-improved decision data with bounded one-turn root
+search, merge the array shards, then train the Torch behavior-cloning/distillation
+model from the merged dataset.
 
 Phase 5 builds on the Phase 4 package and uses the existing 9-deck by 4-benchmark
 matchup grid. It does not require integrating the full 13-deck pool before the first
@@ -263,7 +267,12 @@ If the CPU QOS limit appears again, use the same command with
 Monitor:
 
 ```bash
+# Full run:
 JOB=$(cat experiments/rl/phase5_search/latest_train_job.txt)
+
+# Partial 10-shard run:
+# JOB=$(cat experiments/rl/phase5_search/latest_train_job_10shards.txt)
+
 squeue -j "$JOB"
 tail -n 120 experiments/rl/slurm-${JOB}-phase5-train.out
 tail -n 120 experiments/rl/slurm-${JOB}-phase5-train.err

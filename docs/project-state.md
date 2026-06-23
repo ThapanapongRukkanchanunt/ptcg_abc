@@ -10,7 +10,8 @@ This is the resume point for the project. Start here after switching machines, c
 - Kaggle legal-card source: `EN_Card_Data.csv`
 - Latest completed phase: Phase 4, rule-guided hybrid reinforcement learning workflow
 - Current phase: Phase 5, advanced RL one-turn root-search vertical slice
-  (`docs/ptcg_rl_strategy_recommendation.md`,
+  (`docs/phase-5-master-plan.md`,
+  `docs/ptcg_rl_strategy_recommendation.md`,
   `docs/ptcg_rl_advanced_training_plan.md`,
   `docs/ptcg_rl_evaluation_plan.md`)
 
@@ -287,6 +288,9 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-3-baseline.md`: first runnable rule-based baseline checkpoint.
 - `docs/phase-3-conclusion.md`: Phase 3 final rule agent, evaluation, and submission conclusion.
 - `docs/phase-4-rl-plan.md`: Phase 4 rule-guided hybrid RL workflow plan.
+- `docs/phase-5-master-plan.md`: umbrella Phase 5 roadmap consolidating the
+  strategy, advanced training, and evaluation docs into the current
+  implementation plan.
 - `docs/ptcg_rl_strategy_recommendation.md`: Phase 5 strategy for a belief-aware
   one-turn root-search agent built on simulator legal options.
 - `docs/ptcg_rl_advanced_training_plan.md`: Phase 5 training roadmap covering
@@ -294,8 +298,8 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
   iteration.
 - `docs/ptcg_rl_evaluation_plan.md`: Phase 5 stage-by-stage evaluation gates,
   ablations, promotion rules, and reporting format.
-- `docs/phase-5-erawan-runbook.md`: ERAWAN smoke, SLURM array, shard merge, and
-  Torch search-distillation training commands for Phase 5.
+- `docs/phase-5-erawan-runbook.md`: command-focused ERAWAN operating runbook for
+  the current Phase 5 search-distillation vertical slice.
 - `docs/erawan-runbook.md`: tested ERAWAN setup, smoke, medium, large, and package commands.
 - `docs/rule-inventory.md`: current implemented rules and candidate rules learned from example agents.
 - `docs/damage-prevention-pokemon.md`: Pokemon with ability/attack damage prevention and Tera bench-protection watchlist.
@@ -338,10 +342,11 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 
 ## Next Phase Entry Point
 
-Continue Phase 4 from the implemented workflow in `src/ptcg_abc/rl/` and
-`docs/phase-4-rl-plan.md`.
+Continue Phase 5 from `docs/phase-5-master-plan.md`. Use
+`docs/phase-5-erawan-runbook.md` only for the current ERAWAN search-distillation
+operating sequence.
 
-Immediate Phase 4 next steps:
+Historical Phase 4 follow-ups, kept as implementation context:
 
 - On ERAWAN, use `scripts/slurm/phase4_bc_conda.sbatch` for the next BC run and
   verify the exported JSON model with `rl-evaluate --agent hybrid`.
@@ -408,9 +413,10 @@ Phase 3 completed:
 Phase 4 should keep the Phase 3 rule agent as a fixed baseline opponent while building
 state/action/reward traces and training loops.
 
-Phase 5 is now the advanced RL track. Use these docs as the entry point after the
-Phase 4 loop is measurable:
+Phase 5 is now the advanced RL track. Start with the umbrella plan, then use the
+source docs for detailed architecture, training, and evaluation requirements:
 
+- `docs/phase-5-master-plan.md`
 - `docs/ptcg_rl_strategy_recommendation.md`
 - `docs/ptcg_rl_advanced_training_plan.md`
 - `docs/ptcg_rl_evaluation_plan.md`
@@ -441,3 +447,17 @@ Large-scale ERAWAN readiness additions:
 - `scripts/slurm/phase5_merge_train_conda.sbatch` merges shards and trains the
   Torch search-distillation model.
 - Full operating sequence: `docs/phase-5-erawan-runbook.md`.
+
+Latest ERAWAN partial search-distillation training:
+
+- Dataset: 10 completed Phase 5 search shards.
+- Frames: 791,974.
+- Actions: 9,280,556.
+- Positive labels: 1,684,328.
+- Negative labels: 7,596,228.
+- Epochs: 2.
+- Exported checkpoint: `models/rl/phase5_search_distill_10shards.pt`.
+- Exported JSON model: `models/rl/phase5_search_distill_10shards.json`.
+- Accuracy: 0.9039141457203597.
+- Final loss: 0.012990633957087994.
+- Device: `cuda`.
