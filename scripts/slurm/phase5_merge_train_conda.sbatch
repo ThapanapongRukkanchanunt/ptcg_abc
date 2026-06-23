@@ -3,7 +3,7 @@
 #SBATCH --output=experiments/rl/slurm-%j-phase5-train.out
 #SBATCH --error=experiments/rl/slurm-%j-phase5-train.err
 #SBATCH --time=24:00:00
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=48G
 
 set -euo pipefail

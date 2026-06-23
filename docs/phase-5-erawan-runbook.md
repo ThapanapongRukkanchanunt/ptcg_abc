@@ -217,10 +217,48 @@ cd ~/ptcg_abc
 JOB=$(
   BC_EPOCHS=2 \
   BC_LEARNING_RATE=0.02 \
-  sbatch --parsable --gres=gpu:1 scripts/slurm/phase5_merge_train_conda.sbatch
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_merge_train_conda.sbatch
 )
 echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job.txt
 ```
+
+If ERAWAN still rejects this with `QOSMaxCpuPerJobLimit`, retry with two CPUs:
+
+```bash
+JOB=$(
+  BC_EPOCHS=2 \
+  BC_LEARNING_RATE=0.02 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 --mem=32G scripts/slurm/phase5_merge_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job.txt
+```
+
+### Partial 10-Shard Training
+
+If stopping at 10 completed large shards, train a partial model before continuing.
+This is useful for checking the training path and getting a first checkpoint. The
+job below merges whatever shard files currently match the default shard glob, so
+run it when only the intended large shards are present in
+`data/datasets/rl/phase5_search/shards/`.
+
+```bash
+cd ~/ptcg_abc
+JOB=$(
+  BC_EPOCHS=2 \
+  BC_LEARNING_RATE=0.02 \
+  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  MERGED_TRACES=experiments/rl/phase5_search_traces_10shards.jsonl \
+  MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards.json \
+  BC_CHECKPOINT=models/rl/phase5_search_distill_10shards.pt \
+  BC_MODEL=models/rl/phase5_search_distill_10shards.json \
+  BC_REPORT=experiments/rl/phase5_search_distill_report_10shards.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_merge_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards.txt
+```
+
+If the CPU QOS limit appears again, use the same command with
+`--cpus-per-task=2 --mem=32G`.
 
 Monitor:
 
