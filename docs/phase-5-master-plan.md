@@ -27,7 +27,7 @@ work until a later project phase is explicitly opened.
 | `docs/ptcg_rl_advanced_training_plan.md` | Training objectives and staged training flow | Main legal-action policy, value model, Q/action-value head, auxiliary tactical heads, neural belief model, search-imitation policy, PPO, entity Transformer plus action scorer, dataset format, search-improved data generation, search distillation, PPO self-play, policy-pool iteration, and league evaluation. |
 | `docs/ptcg_rl_evaluation_plan.md` | Evaluation gates and reports | Stage 0 data/logging checks, Stage 1 imitation policy checks, Stage 2 value/Q checks, Stage 3 tactical-head checks, Stage 4 belief checks, Stage 5 one-turn root-search checks, Stage 6 search-distillation checks, Stage 7 PPO checks, Stage 8 final inference checks, ablation ladder, and promotion checklist. |
 | `docs/phase-4-rl-plan.md` | Implementation base | Existing DecisionFrame data, option featurization, exported JSON option ranker, HybridRlAgent, rule fallback, RL workflow commands, and Kaggle-compatible packaging. |
-| `docs/phase-5-erawan-runbook.md` | Current ERAWAN operating sequence | Smoke one-turn search, generate search-improved shards, merge shards, train the first Torch search-distillation checkpoint, and export a Kaggle-compatible JSON ranker. |
+| `docs/phase-5-erawan-runbook.md` | Current ERAWAN operating sequence | Historical search-shard commands plus the active adapter/encoder track for symbolic Phase 5 training. |
 
 ## Target Agent
 
@@ -122,6 +122,9 @@ The current code intentionally starts with the smallest useful Phase 5 slice:
 
 Key files:
 
+- `src/ptcg_abc/rl/phase5_adapters.py`
+- `src/ptcg_abc/rl/phase5_encoder.py`
+- `src/ptcg_abc/rl/phase5_policy.py`
 - `src/ptcg_abc/rl/phase5_search.py`
 - `src/ptcg_abc/rl/phase5_diagnostics.py`
 - `src/ptcg_abc/cli.py`
@@ -176,20 +179,32 @@ The first pairwise all-negative torch checkpoint was also not promotable. It
 assigned effectively identical scores to legal actions, so changed-decision
 ranking fell back to rule-score tie-breaking: `search_changed.search_hit_rate`
 was `0.0`, baseline-hit was `1.0`, and the model search-minus-baseline margin
-was `0.0`. The next training slice should use the action-residual torch actor
-format, which adds a direct action-feature scoring path, plus a lower learning
-rate. Diagnostics now report `mean_model_score_range` and
+was `0.0`. An action-residual torch actor format was added as a short-term
+mitigation, and diagnostics now report `mean_model_score_range` and
 `model_score_flat_rate` to catch this failure mode.
+
+After reviewing the strategy recommendation, we are stopping further large
+training on the Phase 4-style model path. The next implementation slice is the
+real Phase 5 adapter/encoder foundation:
+
+- `StateAdapter` and `LegalOptionAdapter` for canonical state and simulator
+  legal-option records.
+- Minimal `GameMemory` and `BeliefState` for observed-card accounting and hidden
+  count/candidate tracking.
+- Symbolic global/entity/legal-action encoders.
+- An AlphaStar-inspired policy module with a transformer entity/state core and
+  an autoregressive previous-action context for turn-level action sequences.
 
 ## What Is Not Complete Yet
 
 The current Phase 5 vertical slice is not the full Phase 5 agent. In particular,
 it does not yet provide:
 
-- Full canonical `GameState` and legal-option adapter modules.
-- Persistent belief memory with exact prize deduction.
+- Complete production hardening of the new `GameState` and legal-option adapter
+  modules.
+- Persistent belief memory with exact own-prize deduction.
 - Neural belief model training.
-- Entity Transformer plus action scorer architecture.
+- A trained entity Transformer plus action scorer.
 - Value, Q, and auxiliary tactical heads.
 - Online `Phase5RootSearchAgent` evaluation mode that combines the exported
   policy with one-turn root search during battles.
@@ -214,31 +229,32 @@ Every Phase 5 substage should produce a report that maps back to
 | Stage 7 | PPO | Reward curves, collapse checks, opponent-pool battle metrics, and promotion rule. |
 | Stage 8 | Final inference | Ablation ladder, full battle matrix, timing, legality, packaging, and final report. |
 
-The most important near-term gate is Stage 6: prove the 10-shard or full-shard
-distilled model beats the previous direct policy or hybrid baseline before
-spending more compute on PPO.
+The most important near-term gate has moved back to Stages 0-1: prove the
+canonical adapter, symbolic encoder, and AlphaStar-style supervised policy can
+consume legal observations and beat or at least approach the rule baseline
+before spending more compute on larger search-distillation runs.
 
 ## Implementation Priorities
 
-1. Train the 10-shard action-residual torch checkpoint with the pairwise-all
-   objective and a lower learning rate, then run
-   `rl-diagnose-search-distill --checkpoint` as a SLURM GPU job. Require non-flat
-   score ranges and improved changed-decision search-hit before battle eval.
-2. Add battle evaluation commands for the promotable model form, starting with
-   the torch checkpoint if checkpoint diagnostics are materially better than the
-   JSON fallback.
-3. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
+1. Complete the real Phase 5 adapter/encoder/model foundation and add smoke
+   tests that prove raw observations become canonical state, legal actions,
+   symbolic tensors, and AlphaStar-style model inputs.
+2. Add dataset conversion from Phase 5 search `DecisionFrame` records and future
+   raw observation traces into symbolic global/entity/action tensors.
+3. Train a small supervised AlphaStar-style legal-action policy on rule/search
+   labels before any more large-scale shard generation.
+4. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
    mode that can compare direct policy, hybrid policy, and policy plus one-turn
    root search.
-4. Refactor reusable search pieces from `phase5_search.py` into stable adapter
+5. Refactor reusable search pieces from `phase5_search.py` into stable adapter
    modules so data generation and online evaluation share the same Search API
    wrapper.
-5. Implement `GameMemory`, `BeliefState`, and own-prize deduction after deck
+6. Implement exact own-prize deduction after deck
    search.
-6. Introduce the entity/action model and auxiliary heads once evaluation shows
-   the current linear JSON ranker is the bottleneck.
-7. Add stage-gated reports that follow the evaluation-plan format.
-8. Expand from the current 9-deck required benchmark to the broader 13-deck
+7. Add value, Q, and auxiliary tactical heads once the symbolic policy input is
+   stable.
+8. Add stage-gated reports that follow the evaluation-plan format.
+9. Expand from the current 9-deck required benchmark to the broader 13-deck
    league when the first slice is measurable and stable.
 
 ## ERAWAN Operating Track

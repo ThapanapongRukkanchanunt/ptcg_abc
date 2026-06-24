@@ -484,10 +484,10 @@ Only run battle smoke if either JSON or checkpoint diagnostics show
 drift. If only the checkpoint passes, the next implementation step is
 torch-checkpoint inference for `rl-evaluate`; do not promote the JSON fallback.
 
-If checkpoint diagnostics show near-constant model scores, retrain with the
-action-residual checkpoint format. This format adds a direct action-feature
-scoring path to the torch actor so it cannot collapse into board-only tie scores
-as easily:
+If checkpoint diagnostics show near-constant model scores, the old mitigation
+was to retrain with the action-residual checkpoint format. That format adds a
+direct action-feature scoring path to the torch actor so it cannot collapse into
+board-only tie scores as easily:
 
 ```bash
 cd ~/ptcg_abc
@@ -526,24 +526,54 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_diag_10shards_residual_checkpoint_job.txt
 ```
 
-## 11. Ready-To-Train Checklist
+As of the adapter/encoder pivot, do not run another large residual retrain before
+the symbolic Phase 5 input stack is wired into training. Keep the commands above
+for reproducibility, but treat them as superseded by the real Phase 5
+adapter/encoder track below.
 
-- Login-node smoke passes with changed decisions and zero probe errors.
-- Two-shard SLURM smoke produces two nonempty decision shards and two nonempty trace shards.
-- First large two-shard wave passes the large-shard summary gates.
-- All 32 large decision shards and all 32 large trace shards exist before full merge/train.
-- Large merge manifest reports `decision_files: 32` and `trace_files: 32`.
-- Torch import/CUDA check inside the merge/train SLURM output reports the expected device.
-- `rl-train-bc --backend torch` starts from the merged dataset and writes both checkpoint and exported JSON model.
-- `rl-diagnose-search-distill` reports that the JSON fallback or torch
-  checkpoint learned search-changed decisions before PPO or packaging.
-- If changed-decision diagnostics are poor, use `BC_CHANGED_WEIGHT`,
-  `BC_UNCHANGED_WEIGHT`, and `BC_EXCLUDE_FEATURES` for a reweighted retrain.
-- If reweighting creates third-action drift, use `BC_PAIRWISE_CHANGED=1` and
-  `BC_PAIRWISE_NEGATIVES=all` to train changed frames as search-over-all-legal
-  action pairs.
-- If the JSON fallback remains poor after pairwise-all training, run checkpoint
-  diagnostics with `CHECKPOINT=...pt` before more training.
-- If checkpoint diagnostics report high `model_score_flat_rate`, retrain with
-  the action-residual checkpoint format and a lower learning rate before battle
-  evaluation.
+## 11. Real Phase 5 Adapter/Encoder Track
+
+The next implementation track follows `docs/ptcg_rl_strategy_recommendation.md`
+more directly:
+
+- Canonical `StateAdapter` and `LegalOptionAdapter`.
+- Minimal `GameMemory` and `BeliefState`.
+- Symbolic global/entity/legal-action tensors.
+- AlphaStar-style policy model with a transformer entity/state core and
+  autoregressive previous-action context for turn-level action sequences.
+
+Do not submit more large search-distillation jobs until this symbolic model has
+a dataset conversion and a small supervised smoke train.
+
+Local smoke after pulling the adapter/encoder slice:
+
+```bash
+"$PY" -m unittest tests.test_rl_phase5_adapters
+```
+
+ERAWAN smoke after pulling the adapter/encoder slice:
+
+```bash
+cd ~/ptcg_abc
+export PYTHONPATH="$PWD/src"
+PY="$PWD/.conda_ptcg/bin/python"
+"$PY" -m unittest tests.test_rl_phase5_adapters
+```
+
+The next missing command is a symbolic dataset builder/trainer. Add that before
+resuming large-scale training.
+
+## 12. Ready-To-Train Checklist
+
+- Adapter smoke proves raw observations become canonical `GameState`,
+  `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.
+- Symbolic dataset builder converts search records or raw observation traces into
+  global/entity/legal-action tensors and action-sequence labels.
+- A small supervised AlphaStar-style policy smoke train completes on a bounded
+  sample and writes a torch checkpoint.
+- Offline evaluation compares the symbolic direct policy against the rule agent
+  and the old Phase 4-style distilled policy.
+- One-turn root search is wired to the symbolic policy/value path before more
+  large-scale shard generation.
+- After the symbolic path exists, diagnostics still run as SLURM jobs, never as
+  large login-node workloads.

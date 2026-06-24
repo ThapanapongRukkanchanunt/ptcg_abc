@@ -24,7 +24,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | Vertical slice implemented | Added bounded one-turn root-search data generation on top of the Phase 4 package, with search-improved `DecisionFrame` JSONL output and trace logs proving changed decisions plus safe probe termination. |
+| Phase 5: Advanced RL strategy, training, and evaluation | Adapter/encoder slice in progress | Search-improved data generation exists; current work is moving from the Phase 4 option-ranker path to canonical adapters, symbolic encoders, and an AlphaStar-style turn policy. |
 
 ## Completed Phase Details
 
@@ -521,8 +521,8 @@ Latest Phase 5 pairwise-all JSON fallback diagnostic:
 - Search-changed mean model search-minus-baseline score: -0.153218.
 - Trace search-minus-baseline combined score remains positive at 0.596089.
 - Conclusion: the exported linear JSON fallback is still not promotable. The
-  next action is to diagnose the actual torch checkpoint using the same SLURM
-  diagnostics job with `CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt`.
+  torch-checkpoint diagnostic below confirmed that this Phase 4-style path is
+  not the right next training target.
 
 Latest Phase 5 pairwise-all torch checkpoint diagnostic:
 
@@ -534,9 +534,21 @@ Latest Phase 5 pairwise-all torch checkpoint diagnostic:
 - Every shown legal option received the same model score, so ranking fell back
   to rule-score tie-breaking.
 - Conclusion: the pairwise-all checkpoint collapsed to flat action scores and
-  is not promotable. The next action is an action-residual torch retrain with a
-  lower learning rate, followed by checkpoint diagnostics that inspect
-  `mean_model_score_range` and `model_score_flat_rate`.
+  is not promotable. Although an action-residual torch checkpoint format was
+  added as a mitigation, the current plan is to skip more Phase 4-style
+  diagnostics/training and move to the real Phase 5 adapter/encoder foundation.
+
+Current Phase 5 adapter/encoder slice:
+
+- Added canonical `StateAdapter`, `LegalOptionAdapter`, `GameMemory`, and
+  `BeliefState` scaffolding.
+- Added symbolic global/entity/legal-action encoder output with masks and
+  simulator legal indices.
+- Added an AlphaStar-inspired torch policy module with a transformer
+  entity/state core and an autoregressive previous-action context for
+  turn-level action sequences.
+- Next action: add dataset conversion and supervised training for this symbolic
+  model, then re-run search distillation on the new representation.
 
 Operational rule:
 
