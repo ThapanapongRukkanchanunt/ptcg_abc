@@ -172,6 +172,15 @@ score the actual torch checkpoint with `rl-diagnose-search-distill --checkpoint`
 before deciding whether to implement torch-checkpoint battle evaluation or return
 to search-label/model-capacity work.
 
+The first pairwise all-negative torch checkpoint was also not promotable. It
+assigned effectively identical scores to legal actions, so changed-decision
+ranking fell back to rule-score tie-breaking: `search_changed.search_hit_rate`
+was `0.0`, baseline-hit was `1.0`, and the model search-minus-baseline margin
+was `0.0`. The next training slice should use the action-residual torch actor
+format, which adds a direct action-feature scoring path, plus a lower learning
+rate. Diagnostics now report `mean_model_score_range` and
+`model_score_flat_rate` to catch this failure mode.
+
 ## What Is Not Complete Yet
 
 The current Phase 5 vertical slice is not the full Phase 5 agent. In particular,
@@ -211,11 +220,10 @@ spending more compute on PPO.
 
 ## Implementation Priorities
 
-1. Diagnose the 10-shard pairwise-all torch checkpoint with
-   `rl-diagnose-search-distill --checkpoint` as a SLURM GPU job. If it passes
-   changed-decision gates, add torch-checkpoint inference to `rl-evaluate`; if it
-   fails, stop retraining the linear fallback and inspect search labels/model
-   capacity.
+1. Train the 10-shard action-residual torch checkpoint with the pairwise-all
+   objective and a lower learning rate, then run
+   `rl-diagnose-search-distill --checkpoint` as a SLURM GPU job. Require non-flat
+   score ranges and improved changed-decision search-hit before battle eval.
 2. Add battle evaluation commands for the promotable model form, starting with
    the torch checkpoint if checkpoint diagnostics are materially better than the
    JSON fallback.

@@ -524,6 +524,20 @@ Latest Phase 5 pairwise-all JSON fallback diagnostic:
   next action is to diagnose the actual torch checkpoint using the same SLURM
   diagnostics job with `CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt`.
 
+Latest Phase 5 pairwise-all torch checkpoint diagnostic:
+
+- Overall search-hit rate: 0.904.
+- Overall baseline-hit rate: 1.0.
+- Search-changed search-hit rate: 0.0.
+- Search-changed baseline-hit rate: 1.0.
+- Search-changed model search-minus-baseline score: 0.0.
+- Every shown legal option received the same model score, so ranking fell back
+  to rule-score tie-breaking.
+- Conclusion: the pairwise-all checkpoint collapsed to flat action scores and
+  is not promotable. The next action is an action-residual torch retrain with a
+  lower learning rate, followed by checkpoint diagnostics that inspect
+  `mean_model_score_range` and `model_score_flat_rate`.
+
 Operational rule:
 
 - Phase 5 search-distillation diagnostics should always run as SLURM jobs using

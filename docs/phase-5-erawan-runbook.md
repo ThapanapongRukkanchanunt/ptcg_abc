@@ -484,6 +484,48 @@ Only run battle smoke if either JSON or checkpoint diagnostics show
 drift. If only the checkpoint passes, the next implementation step is
 torch-checkpoint inference for `rl-evaluate`; do not promote the JSON fallback.
 
+If checkpoint diagnostics show near-constant model scores, retrain with the
+action-residual checkpoint format. This format adds a direct action-feature
+scoring path to the torch actor so it cannot collapse into board-only tie scores
+as easily:
+
+```bash
+cd ~/ptcg_abc
+JOB=$(
+  BC_EPOCHS=2 \
+  BC_LEARNING_RATE=0.005 \
+  BC_CHANGED_WEIGHT=6 \
+  BC_UNCHANGED_WEIGHT=0.25 \
+  BC_EXCLUDE_FEATURES="rule_score rule_rank_inv" \
+  BC_PAIRWISE_CHANGED=1 \
+  BC_PAIRWISE_MARGIN=1.0 \
+  BC_PAIRWISE_NEGATIVES=all \
+  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_residual.jsonl \
+  MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_residual.jsonl \
+  MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_residual.json \
+  BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_residual.pt \
+  BC_MODEL=models/rl/phase5_search_distill_10shards_residual.json \
+  BC_REPORT=experiments/rl/phase5_search_distill_report_10shards_residual.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_merge_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_residual.txt
+```
+
+Then diagnose the residual checkpoint as a job:
+
+```bash
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards_residual.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards_residual.json \
+  CHECKPOINT=models/rl/phase5_search_distill_10shards_residual.pt \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_residual.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_residual_checkpoint_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_residual_checkpoint_diagnostics.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_residual_checkpoint_job.txt
+```
+
 ## 11. Ready-To-Train Checklist
 
 - Login-node smoke passes with changed decisions and zero probe errors.
@@ -502,3 +544,6 @@ torch-checkpoint inference for `rl-evaluate`; do not promote the JSON fallback.
   action pairs.
 - If the JSON fallback remains poor after pairwise-all training, run checkpoint
   diagnostics with `CHECKPOINT=...pt` before more training.
+- If checkpoint diagnostics report high `model_score_flat_rate`, retrain with
+  the action-residual checkpoint format and a lower learning rate before battle
+  evaluation.

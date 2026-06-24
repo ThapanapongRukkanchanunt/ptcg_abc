@@ -26,6 +26,8 @@ class AgreementStats:
     model_search_margin_sum: float = 0.0
     rule_search_margin_sum: float = 0.0
     margin_frames: int = 0
+    model_score_range_sum: float = 0.0
+    model_score_flat_frames: int = 0
 
     def update(
         self,
@@ -37,6 +39,7 @@ class AgreementStats:
         changed: bool,
         model_margin: float | None,
         rule_margin: float | None,
+        model_score_range: float | None,
     ) -> None:
         self.frames += 1
         self.actions += action_count
@@ -56,6 +59,9 @@ class AgreementStats:
                 self.model_ties_search_baseline += 1
         if rule_margin is not None:
             self.rule_search_margin_sum += rule_margin
+        if model_score_range is not None:
+            self.model_score_range_sum += model_score_range
+            self.model_score_flat_frames += int(model_score_range <= 1e-9)
 
     def to_dict(self) -> dict[str, Any]:
         frames = max(1, self.frames)
@@ -90,6 +96,13 @@ class AgreementStats:
                 self.rule_search_margin_sum / margin_frames if self.margin_frames else 0.0
             ),
             "margin_frames": self.margin_frames,
+            "mean_model_score_range": (
+                self.model_score_range_sum / frames if self.frames else 0.0
+            ),
+            "model_score_flat_frames": self.model_score_flat_frames,
+            "model_score_flat_rate": (
+                self.model_score_flat_frames / frames if self.frames else 0.0
+            ),
         }
 
 
@@ -323,6 +336,14 @@ def write_search_distill_diagnostic_markdown(
             f"{diagnostics.search_changed['model_prefers_baseline']} / "
             f"{diagnostics.search_changed['model_ties_search_baseline']}"
         ),
+        (
+            "- Mean model score range: "
+            f"{diagnostics.search_changed['mean_model_score_range']:.6f}"
+        ),
+        (
+            "- Flat model-score frame rate: "
+            f"{diagnostics.search_changed['model_score_flat_rate']:.3f}"
+        ),
         "",
     ]
     if diagnostics.trace is not None:
@@ -420,6 +441,7 @@ def _score_frame(model: Any, frame: DecisionFrame) -> dict[str, Any] | None:
     model_margin = _mean_score(scores, search) - _mean_score(scores, baseline)
     rule_scores = [action.rule_score for action in frame.legal_options]
     rule_margin = _mean_score(rule_scores, search) - _mean_score(rule_scores, baseline)
+    score_range = max(scores) - min(scores) if scores else 0.0
     return {
         "scores": scores,
         "ranked": ranked,
@@ -429,6 +451,7 @@ def _score_frame(model: Any, frame: DecisionFrame) -> dict[str, Any] | None:
         "changed": changed,
         "model_margin": model_margin,
         "rule_margin": rule_margin,
+        "model_score_range": score_range,
     }
 
 
@@ -441,6 +464,7 @@ def _update_stats(stats: AgreementStats, row: dict[str, Any]) -> None:
         changed=bool(row["changed"]),
         model_margin=float(row["model_margin"]),
         rule_margin=float(row["rule_margin"]),
+        model_score_range=float(row["model_score_range"]),
     )
 
 
@@ -516,6 +540,12 @@ def _recommendations(
         output.append(
             "The exported model scores baseline actions above search actions on average for "
             "changed decisions; inspect labels and increase changed-decision loss weight."
+        )
+    if changed["model_score_flat_rate"] > 0.1:
+        output.append(
+            "The model assigns effectively identical scores to many changed-decision action "
+            "sets; retrain with an action-specific residual head or lower learning rate before "
+            "battle evaluation."
         )
     if changed["mean_rule_search_minus_baseline_score"] < 0:
         output.append(

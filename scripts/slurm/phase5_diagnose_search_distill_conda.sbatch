@@ -64,6 +64,8 @@ for section in ["overall", "search_changed", "search_unchanged"]:
         "baseline_hit_rate",
         "mean_model_search_minus_baseline_score",
         "mean_rule_search_minus_baseline_score",
+        "mean_model_score_range",
+        "model_score_flat_rate",
     ]:
         print(" ", key, stats.get(key))
 

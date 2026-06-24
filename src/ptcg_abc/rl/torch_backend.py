@@ -18,7 +18,8 @@ from ptcg_abc.rl.rewards import reward_from_result_metadata
 
 TORCH_AVAILABLE = importlib.util.find_spec("torch") is not None
 LINEAR_CHECKPOINT_FORMAT = "ptcg_abc_torch_actor_value_linear_v1"
-CHECKPOINT_FORMAT = "ptcg_abc_torch_actor_value_cnn_v1"
+CNN_CHECKPOINT_FORMAT = "ptcg_abc_torch_actor_value_cnn_v1"
+CHECKPOINT_FORMAT = "ptcg_abc_torch_actor_value_action_residual_v1"
 
 
 class TorchBackendUnavailable(RuntimeError):
@@ -58,12 +59,17 @@ class TorchCheckpointOptionModel:
             )
             return
 
-        if checkpoint_format != CHECKPOINT_FORMAT:
+        if checkpoint_format not in {CNN_CHECKPOINT_FORMAT, CHECKPOINT_FORMAT}:
             raise ValueError(f"Unsupported torch checkpoint format: {checkpoint.get('format')}")
 
         self._feature_names = [str(name) for name in checkpoint["feature_names"]]
         self._board_shape = _checkpoint_board_shape(checkpoint)
-        self._network = _make_network(nn, len(self._feature_names), self._board_shape)
+        self._network = _make_network(
+            nn,
+            len(self._feature_names),
+            self._board_shape,
+            action_residual=checkpoint_format == CHECKPOINT_FORMAT,
+        )
         self._network.load_state_dict(checkpoint["state_dict"])
         self._network.to(self._device)
         self._network.eval()
@@ -128,7 +134,12 @@ def train_torch_bc_model(
     feature_names = collect_feature_names(frame_list, excluded_features=excluded)
     board_shape = _board_shape(frame_list)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    network = _make_network(nn, len(feature_names), board_shape).to(device)
+    network = _make_network(
+        nn,
+        len(feature_names),
+        board_shape,
+        action_residual=True,
+    ).to(device)
     optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
     positives = negatives = actions = 0
     final_loss = 0.0
@@ -284,12 +295,12 @@ def export_torch_checkpoint(checkpoint_path: Path, export_model_path: Path) -> L
         )
         model.save(export_model_path)
         return model
-    if checkpoint_format != CHECKPOINT_FORMAT:
+    if checkpoint_format not in {CNN_CHECKPOINT_FORMAT, CHECKPOINT_FORMAT}:
         raise ValueError(f"Unsupported torch checkpoint format: {checkpoint.get('format')}")
     model = LinearOptionModel.from_dict(checkpoint["linear_export"])
     model.metadata.update(
         {
-            "source_format": CHECKPOINT_FORMAT,
+            "source_format": checkpoint_format,
             "checkpoint_path": str(checkpoint_path.as_posix()),
             "training": checkpoint.get("metadata", {}),
         }
@@ -423,31 +434,39 @@ def _valid_indices(values: Any, size: int) -> list[int]:
     return output
 
 
-def _make_network(nn: Any, feature_count: int, board_shape: tuple[int, int]) -> Any:
+def _make_network(
+    nn: Any,
+    feature_count: int,
+    board_shape: tuple[int, int],
+    *,
+    action_residual: bool = False,
+) -> Any:
     torch = __import__("torch")
 
     class ActorValueNetwork(nn.Module):
         def __init__(self) -> None:
             super().__init__()
+            activation = nn.LeakyReLU if action_residual else nn.ReLU
             self.board_shape = board_shape
             self.board_encoder = nn.Sequential(
                 nn.Conv2d(1, 8, kernel_size=3, padding=1),
-                nn.ReLU(),
+                activation(),
                 nn.MaxPool2d(2),
                 nn.Conv2d(8, 16, kernel_size=3, padding=1),
-                nn.ReLU(),
+                activation(),
                 nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(),
                 nn.Linear(16, 32),
-                nn.ReLU(),
+                activation(),
             )
             self.option_encoder = nn.Sequential(
                 nn.Linear(feature_count, 32),
-                nn.ReLU(),
+                activation(),
                 nn.Linear(32, 32),
-                nn.ReLU(),
+                activation(),
             )
             self.actor = nn.Linear(64, 1)
+            self.action_residual = nn.Linear(feature_count, 1) if action_residual else None
             self.value = nn.Linear(32, 1)
 
         def forward(self, action_x: Any, board_x: Any) -> tuple[Any, Any]:
@@ -464,6 +483,8 @@ def _make_network(nn: Any, feature_count: int, board_shape: tuple[int, int]) -> 
             else:
                 option_board = board_embedding[:1].expand(option_embedding.shape[0], -1)
             logits = self.actor(torch.cat([option_embedding, option_board], dim=1)).squeeze(-1)
+            if self.action_residual is not None:
+                logits = logits + self.action_residual(action_x).squeeze(-1)
             value = self.value(board_embedding).squeeze(-1)
             return logits, value
 

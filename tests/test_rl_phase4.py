@@ -23,6 +23,7 @@ from ptcg_abc.rl.phase5_search import (
 from ptcg_abc.rl.records import ActionFrame, DecisionFrame
 from ptcg_abc.rl.rewards import RewardConfig, reward_from_result_metadata
 from ptcg_abc.rl.torch_backend import (
+    CHECKPOINT_FORMAT,
     TORCH_AVAILABLE,
     TorchBackendUnavailable,
     collect_feature_names,
@@ -713,6 +714,8 @@ class Phase4RlTests(unittest.TestCase):
                 payload["trace"]["mean_search_minus_baseline_combined_score"],
                 0,
             )
+            self.assertGreaterEqual(payload["search_changed"]["mean_model_score_range"], 0.0)
+            self.assertIn("model_score_flat_rate", payload["search_changed"])
             self.assertTrue(payload["examples"])
             self.assertTrue(report_json.exists())
             self.assertTrue(report_md.exists())
@@ -873,16 +876,23 @@ class Phase4RlTests(unittest.TestCase):
         frame = make_decision_frame(obs)
         assert frame is not None
         with tempfile.TemporaryDirectory() as tmp:
+            checkpoint_path = Path(tmp) / "checkpoint.pt"
+            model_path = Path(tmp) / "model.json"
             summary = train_torch_bc_model(
                 [frame] * 2,
-                checkpoint_path=Path(tmp) / "checkpoint.pt",
-                export_model_path=Path(tmp) / "model.json",
+                checkpoint_path=checkpoint_path,
+                export_model_path=model_path,
                 epochs=1,
             )
 
             self.assertGreater(summary.actions, 0)
-            self.assertTrue((Path(tmp) / "checkpoint.pt").exists())
-            self.assertTrue((Path(tmp) / "model.json").exists())
+            self.assertTrue(checkpoint_path.exists())
+            self.assertTrue(model_path.exists())
+            import torch
+
+            checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+            self.assertEqual(checkpoint["format"], CHECKPOINT_FORMAT)
+            self.assertIn("action_residual.weight", checkpoint["state_dict"])
 
 
 if __name__ == "__main__":
