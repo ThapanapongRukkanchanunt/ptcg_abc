@@ -54,10 +54,12 @@ def train_torch_bc_model(
     excluded_features: Sequence[str] = (),
     pairwise_changed: bool = False,
     pairwise_margin: float = 0.0,
+    pairwise_negatives: str = "baseline",
 ) -> TorchTrainingSummary:
     torch, nn = _require_torch()
     frame_list = list(frames)
     excluded = set(excluded_features)
+    _validate_pairwise_negatives(pairwise_negatives)
     feature_names = collect_feature_names(frame_list, excluded_features=excluded)
     board_shape = _board_shape(frame_list)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -99,7 +101,11 @@ def train_torch_bc_model(
                 unchanged_weight=unchanged_weight,
             )
             logits, value = network(action_x, board_x)
-            pairs = _search_baseline_pairs(frame) if pairwise_changed else []
+            pairs = (
+                _search_pairwise_pairs(frame, negative_mode=pairwise_negatives)
+                if pairwise_changed
+                else []
+            )
             if pairs:
                 pair_losses = [
                     nn.functional.softplus(
@@ -133,6 +139,7 @@ def train_torch_bc_model(
         excluded_features=excluded,
         pairwise_changed=pairwise_changed,
         pairwise_margin=pairwise_margin,
+        pairwise_negatives=pairwise_negatives,
     )
     export_model.metadata.update(
         {
@@ -147,6 +154,7 @@ def train_torch_bc_model(
             "excluded_features": sorted(excluded),
             "pairwise_changed": pairwise_changed,
             "pairwise_margin": pairwise_margin,
+            "pairwise_negatives": pairwise_negatives,
         }
     )
     checkpoint = {
@@ -170,6 +178,7 @@ def train_torch_bc_model(
             "excluded_features": sorted(excluded),
             "pairwise_changed": pairwise_changed,
             "pairwise_margin": pairwise_margin,
+            "pairwise_negatives": pairwise_negatives,
         },
     }
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -324,19 +333,34 @@ def _frame_training_weight(
     return max(0.0, float(unchanged_weight))
 
 
-def _search_baseline_pairs(frame: DecisionFrame) -> list[tuple[int, int]]:
+def _search_pairwise_pairs(
+    frame: DecisionFrame,
+    *,
+    negative_mode: str = "baseline",
+) -> list[tuple[int, int]]:
+    _validate_pairwise_negatives(negative_mode)
     if not bool(frame.reward_metadata.get("phase5_search_changed", False)):
         return []
     size = len(frame.legal_options)
     metadata = frame.reward_metadata
     search = _valid_indices(metadata.get("phase5_search_indices", frame.rule_selected_indices), size)
-    baseline = _valid_indices(metadata.get("phase5_baseline_indices", frame.rule_selected_indices), size)
+    if negative_mode == "baseline":
+        negatives = _valid_indices(
+            metadata.get("phase5_baseline_indices", frame.rule_selected_indices), size
+        )
+    else:
+        negatives = list(range(size))
     return [
-        (search_index, baseline_index)
+        (search_index, negative_index)
         for search_index in search
-        for baseline_index in baseline
-        if search_index != baseline_index
+        for negative_index in negatives
+        if search_index != negative_index
     ]
+
+
+def _validate_pairwise_negatives(mode: str) -> None:
+    if mode not in {"baseline", "all"}:
+        raise ValueError(f"Unsupported pairwise negative mode: {mode}")
 
 
 def _valid_indices(values: Any, size: int) -> list[int]:

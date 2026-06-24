@@ -157,9 +157,12 @@ ranker before scaling data.
 The first reweighted binary retrain improved changed-decision learning
 (`search_changed.search_hit_rate` rose to about 0.242 and baseline-hit fell to
 about 0.194), but battle smoke suggested the model often drifted to third
-actions. The next trainer should use a pairwise objective for changed decisions:
-score the search-selected action above the baseline rule action, while keeping
-unchanged decisions as a weak regularizer.
+actions. The first pairwise search-over-baseline retrain fixed the average
+search-vs-baseline margin on changed decisions (`+0.421`), but diagnostics still
+showed third-action drift: `search_changed.search_hit_rate` was about 0.163 and
+baseline-hit was about 0.093. The next trainer should use pairwise all-negative
+updates for changed decisions: score the search-selected action above every
+other legal action, while keeping unchanged decisions as a weak regularizer.
 
 ## What Is Not Complete Yet
 
@@ -200,11 +203,11 @@ spending more compute on PPO.
 
 ## Implementation Priorities
 
-1. Train the 10-shard pairwise search-distilled model with
-   `--pairwise-changed`, changed decisions upweighted, unchanged decisions as a
-   weak regularizer, and direct rule-score features excluded. Rerun
-   `rl-diagnose-search-distill` before PPO, packaging, or more large-scale data
-   generation.
+1. Train the 10-shard pairwise-all search-distilled model with
+   `--pairwise-changed --pairwise-negatives all`, changed decisions upweighted,
+   unchanged decisions as a weak regularizer, and direct rule-score features
+   excluded. Rerun `rl-diagnose-search-distill` as a SLURM job before PPO,
+   packaging, or more large-scale data generation.
 2. Add battle evaluation commands for the exported
    `models/rl/phase5_search_distill_10shards.json` model against the current
    required benchmark.

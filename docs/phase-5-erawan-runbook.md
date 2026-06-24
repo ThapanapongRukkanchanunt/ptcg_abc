@@ -393,17 +393,22 @@ echo "$JOB" | tee experiments/rl/phase5_diag_10shards_changedw_job.txt
 Then run the same 360-game `rl` and `hybrid` benchmark comparison before
 generating more shards.
 
-## 10. Pairwise Changed-Decision Retrain
+## 10. Pairwise All-Negative Changed-Decision Retrain
 
 If the reweighted binary model starts learning changed decisions but often picks
 third actions that are neither baseline nor search, train changed frames with a
-pairwise search-over-baseline objective:
+pairwise all-negative objective:
 
 ```text
-score(search_action) > score(baseline_action)
+score(search_action) > score(every other legal action)
 ```
 
-Submit a separate 10-shard pairwise model:
+This is stronger than the earlier search-over-baseline pairwise run. Use it when
+diagnostics show third-action drift, for example when the model scores the search
+action above the baseline on average but still predicts a retreat, end turn, or
+another non-search action.
+
+Submit a separate 10-shard pairwise-all model:
 
 ```bash
 cd ~/ptcg_abc
@@ -415,29 +420,30 @@ JOB=$(
   BC_EXCLUDE_FEATURES="rule_score rule_rank_inv" \
   BC_PAIRWISE_CHANGED=1 \
   BC_PAIRWISE_MARGIN=1.0 \
-  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl \
-  MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_pairwise.jsonl \
-  MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_pairwise.json \
-  BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise.pt \
-  BC_MODEL=models/rl/phase5_search_distill_10shards_pairwise.json \
-  BC_REPORT=experiments/rl/phase5_search_distill_report_10shards_pairwise.json \
+  BC_PAIRWISE_NEGATIVES=all \
+  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl \
+  MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_pairwise_all.jsonl \
+  MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_pairwise_all.json \
+  BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt \
+  BC_MODEL=models/rl/phase5_search_distill_10shards_pairwise_all.json \
+  BC_REPORT=experiments/rl/phase5_search_distill_report_10shards_pairwise_all.json \
   sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_merge_train_conda.sbatch
 )
-echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_pairwise.txt
+echo "$JOB" | tee experiments/rl/phase5_search/latest_train_job_10shards_pairwise_all.txt
 ```
 
 Submit diagnostics before battle evaluation:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl \
-  MODEL=models/rl/phase5_search_distill_10shards_pairwise.json \
-  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_pairwise.jsonl \
-  REPORT_JSON=reports/phase5_search_distill_10shards_pairwise_diagnostics.json \
-  REPORT_MD=reports/phase5_search_distill_10shards_pairwise_diagnostics.md \
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards_pairwise_all.json \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_pairwise_all.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_pairwise_all_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_pairwise_all_diagnostics.md \
   sbatch --parsable scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
 )
-echo "$JOB" | tee experiments/rl/phase5_diag_10shards_pairwise_job.txt
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_pairwise_all_job.txt
 ```
 
 Only run battle smoke if `search_changed.search_hit_rate` improves without a
@@ -457,4 +463,5 @@ large rise in third-action drift.
 - If changed-decision diagnostics are poor, use `BC_CHANGED_WEIGHT`,
   `BC_UNCHANGED_WEIGHT`, and `BC_EXCLUDE_FEATURES` for a reweighted retrain.
 - If reweighting creates third-action drift, use `BC_PAIRWISE_CHANGED=1` and
-  `BC_PAIRWISE_MARGIN` to train changed frames as search-over-baseline pairs.
+  `BC_PAIRWISE_NEGATIVES=all` to train changed frames as search-over-all-legal
+  action pairs.

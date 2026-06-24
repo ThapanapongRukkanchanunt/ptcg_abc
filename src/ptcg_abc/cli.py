@@ -515,6 +515,7 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 excluded_features=args.exclude_feature,
                 pairwise_changed=args.pairwise_changed,
                 pairwise_margin=args.pairwise_margin,
+                pairwise_negatives=args.pairwise_negatives,
             )
         else:
             summary = train_bc_from_jsonl(
@@ -527,6 +528,7 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 excluded_features=args.exclude_feature,
                 pairwise_changed=args.pairwise_changed,
                 pairwise_margin=args.pairwise_margin,
+                pairwise_negatives=args.pairwise_negatives,
             )
     except TorchBackendUnavailable as exc:
         print(str(exc), file=sys.stderr)
@@ -1112,6 +1114,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Desired score margin for `--pairwise-changed` updates.",
+    )
+    rl_train_bc.add_argument(
+        "--pairwise-negatives",
+        choices=["baseline", "all"],
+        default="baseline",
+        help="Negative action set for `--pairwise-changed` updates.",
     )
     rl_train_bc.add_argument(
         "--report-json",

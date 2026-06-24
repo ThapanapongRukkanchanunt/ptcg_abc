@@ -39,6 +39,7 @@ BC_UNCHANGED_WEIGHT="${BC_UNCHANGED_WEIGHT:-1.0}"
 BC_EXCLUDE_FEATURES="${BC_EXCLUDE_FEATURES:-}"
 BC_PAIRWISE_CHANGED="${BC_PAIRWISE_CHANGED:-0}"
 BC_PAIRWISE_MARGIN="${BC_PAIRWISE_MARGIN:-0.0}"
+BC_PAIRWISE_NEGATIVES="${BC_PAIRWISE_NEGATIVES:-baseline}"
 
 "$PY" -m ptcg_abc rl-merge-search-data \
   --input "$DECISION_GLOB" \
@@ -55,7 +56,11 @@ if [[ -n "$BC_EXCLUDE_FEATURES" ]]; then
 fi
 PAIRWISE_ARGS=()
 if [[ "$BC_PAIRWISE_CHANGED" == "1" || "$BC_PAIRWISE_CHANGED" == "true" || "$BC_PAIRWISE_CHANGED" == "TRUE" ]]; then
-  PAIRWISE_ARGS+=(--pairwise-changed --pairwise-margin "$BC_PAIRWISE_MARGIN")
+  PAIRWISE_ARGS+=(
+    --pairwise-changed
+    --pairwise-margin "$BC_PAIRWISE_MARGIN"
+    --pairwise-negatives "$BC_PAIRWISE_NEGATIVES"
+  )
 fi
 
 "$PY" -m ptcg_abc rl-train-bc \

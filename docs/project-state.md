@@ -497,8 +497,20 @@ Latest Phase 5 reweighted binary diagnostic and smoke:
 - Changed-weight `rl` smoke: 7 wins / 36 games, 0.194 win rate, 1 timeout.
 - Changed-weight hybrid smoke: 8 wins / 36 games, 0.222 win rate, 1 timeout.
 - Conclusion: reweighting fixed baseline-copying but introduced third-action
-  drift. Next action is pairwise changed-decision training:
-  `score(search_action) > score(baseline_action)`.
+  drift.
+
+Latest Phase 5 search-over-baseline pairwise diagnostic:
+
+- Overall search-hit rate: 0.4358463787952635.
+- Overall baseline-hit rate: 0.42910373320336276.
+- Search-changed search-hit rate: 0.16331440290266602.
+- Search-changed baseline-hit rate: 0.09311405584477046.
+- Search-changed mean model search-minus-baseline score:
+  0.421193684133126.
+- Conclusion: pairwise baseline training now scores search above baseline on
+  average, but still predicts too many third actions. Next action is pairwise
+  all-negative changed-decision training:
+  `score(search_action) > score(every other legal action)`.
 
 Operational rule:
 

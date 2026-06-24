@@ -78,10 +78,12 @@ def train_behavior_cloning_model(
     excluded_features: Sequence[str] = (),
     pairwise_changed: bool = False,
     pairwise_margin: float = 0.0,
+    pairwise_negatives: str = "baseline",
 ) -> tuple[LinearOptionModel, TrainingSummary]:
     model = LinearOptionModel()
     frame_list = list(frames)
     excluded = set(excluded_features)
+    _validate_pairwise_negatives(pairwise_negatives)
     positives = negatives = actions = 0
     pairwise_pairs = 0
     for _ in range(max(1, epochs)):
@@ -93,7 +95,7 @@ def train_behavior_cloning_model(
                 unchanged_weight=unchanged_weight,
             )
             if pairwise_changed and _phase5_search_changed(frame):
-                pairs = _search_baseline_pairs(frame)
+                pairs = _search_pairwise_pairs(frame, negative_mode=pairwise_negatives)
                 if pairs:
                     for search_index, baseline_index in pairs:
                         search_action = frame.legal_options[search_index]
@@ -142,6 +144,7 @@ def train_behavior_cloning_model(
             "excluded_features": sorted(excluded),
             "pairwise_changed": pairwise_changed,
             "pairwise_margin": pairwise_margin,
+            "pairwise_negatives": pairwise_negatives,
             "pairwise_pairs": pairwise_pairs,
         }
     )
@@ -245,17 +248,32 @@ def _phase5_search_changed(frame: DecisionFrame) -> bool:
     return bool(frame.reward_metadata.get("phase5_search_changed", False))
 
 
-def _search_baseline_pairs(frame: DecisionFrame) -> list[tuple[int, int]]:
+def _search_pairwise_pairs(
+    frame: DecisionFrame,
+    *,
+    negative_mode: str = "baseline",
+) -> list[tuple[int, int]]:
+    _validate_pairwise_negatives(negative_mode)
     size = len(frame.legal_options)
     metadata = frame.reward_metadata
     search = _valid_indices(metadata.get("phase5_search_indices", frame.rule_selected_indices), size)
-    baseline = _valid_indices(metadata.get("phase5_baseline_indices", frame.rule_selected_indices), size)
+    if negative_mode == "baseline":
+        negatives = _valid_indices(
+            metadata.get("phase5_baseline_indices", frame.rule_selected_indices), size
+        )
+    else:
+        negatives = list(range(size))
     return [
-        (search_index, baseline_index)
+        (search_index, negative_index)
         for search_index in search
-        for baseline_index in baseline
-        if search_index != baseline_index
+        for negative_index in negatives
+        if search_index != negative_index
     ]
+
+
+def _validate_pairwise_negatives(mode: str) -> None:
+    if mode not in {"baseline", "all"}:
+        raise ValueError(f"Unsupported pairwise negative mode: {mode}")
 
 
 def _valid_indices(values: Any, size: int) -> list[int]:

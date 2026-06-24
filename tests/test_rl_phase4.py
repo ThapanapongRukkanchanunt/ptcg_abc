@@ -141,6 +141,60 @@ def _diagnostic_frame(
     )
 
 
+def _diagnostic_three_action_frame(
+    *,
+    baseline: list[int],
+    search: list[int],
+    changed: bool,
+    step_index: int,
+) -> DecisionFrame:
+    return DecisionFrame(
+        select_type="MAIN",
+        context="MAIN",
+        min_count=1,
+        max_count=1,
+        target_count=1,
+        legal_options=[
+            ActionFrame(
+                index=0,
+                option_type="PLAY",
+                features={"prefer_baseline": 1.0, "prefer_search": 0.0, "prefer_third": 0.0},
+                rule_score=1.0,
+                card_name="Baseline Card",
+            ),
+            ActionFrame(
+                index=1,
+                option_type="PLAY",
+                features={"prefer_baseline": 0.0, "prefer_search": 1.0, "prefer_third": 0.0},
+                rule_score=0.1,
+                card_name="Search Card",
+            ),
+            ActionFrame(
+                index=2,
+                option_type="RETREAT",
+                features={"prefer_baseline": 0.0, "prefer_search": 0.0, "prefer_third": 1.0},
+                rule_score=-1.0,
+                card_name="",
+            ),
+        ],
+        rule_selected_indices=list(search),
+        board={},
+        board_image=[],
+        reward_metadata={
+            "collector": "phase5_search",
+            "game_index": 1,
+            "step_index": step_index,
+            "deck_index": 1,
+            "deck_label": "Diagnostic Deck",
+            "opponent": "Diagnostic Opponent",
+            "phase5_search_applied": True,
+            "phase5_baseline_indices": list(baseline),
+            "phase5_search_indices": list(search),
+            "phase5_search_changed": changed,
+        },
+    )
+
+
 class Phase4RlTests(unittest.TestCase):
     def test_decision_frame_contains_options_scores_and_board_image(self):
         obs = FakeObservation(
@@ -262,6 +316,32 @@ class Phase4RlTests(unittest.TestCase):
         self.assertGreater(summary.actions, 0)
         self.assertGreater(scores[1] - scores[0], 0.5)
         self.assertTrue(model.metadata["pairwise_changed"])
+        self.assertGreater(model.metadata["pairwise_pairs"], 0)
+
+    def test_behavior_cloning_pairwise_all_prefers_search_over_all_legal_actions(self):
+        changed = _diagnostic_three_action_frame(
+            baseline=[0],
+            search=[1],
+            changed=True,
+            step_index=1,
+        )
+
+        model, summary = train_behavior_cloning_model(
+            [changed] * 4,
+            epochs=8,
+            changed_weight=2.0,
+            unchanged_weight=0.1,
+            excluded_features=["rule_score", "rule_rank_inv"],
+            pairwise_changed=True,
+            pairwise_margin=1.0,
+            pairwise_negatives="all",
+        )
+        scores = model.score_frame(changed)
+
+        self.assertGreater(summary.actions, 0)
+        self.assertGreater(scores[1] - scores[0], 0.5)
+        self.assertGreater(scores[1] - scores[2], 0.5)
+        self.assertEqual(model.metadata["pairwise_negatives"], "all")
         self.assertGreater(model.metadata["pairwise_pairs"], 0)
 
     def test_hybrid_agent_can_use_exported_model(self):
@@ -425,6 +505,8 @@ class Phase4RlTests(unittest.TestCase):
                 "--pairwise-changed",
                 "--pairwise-margin",
                 "1.5",
+                "--pairwise-negatives",
+                "all",
             ]
         )
 
@@ -433,6 +515,7 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(weighted_train_args.exclude_feature, ["rule_score", "rule_rank_inv"])
         self.assertTrue(weighted_train_args.pairwise_changed)
         self.assertEqual(weighted_train_args.pairwise_margin, 1.5)
+        self.assertEqual(weighted_train_args.pairwise_negatives, "all")
 
     def test_phase5_shard_game_indices_interleave_without_overlap(self):
         shard0 = [
