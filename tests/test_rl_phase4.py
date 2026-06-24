@@ -481,6 +481,8 @@ class Phase4RlTests(unittest.TestCase):
                 "data/phase5.jsonl",
                 "--model",
                 "models/phase5.json",
+                "--checkpoint",
+                "models/phase5.pt",
                 "--trace-input",
                 "experiments/traces.jsonl",
             ]
@@ -489,6 +491,7 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(diagnose_args.command, "rl-diagnose-search-distill")
         self.assertEqual(diagnose_args.dataset, Path("data/phase5.jsonl"))
         self.assertEqual(diagnose_args.model, Path("models/phase5.json"))
+        self.assertEqual(diagnose_args.checkpoint, Path("models/phase5.pt"))
         self.assertEqual(diagnose_args.trace_input, Path("experiments/traces.jsonl"))
 
         weighted_train_args = parser.parse_args(
@@ -713,6 +716,54 @@ class Phase4RlTests(unittest.TestCase):
             self.assertTrue(payload["examples"])
             self.assertTrue(report_json.exists())
             self.assertTrue(report_md.exists())
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+    def test_phase5_search_distill_diagnostics_can_score_torch_checkpoint(self):
+        frame = _diagnostic_frame(
+            baseline=[0],
+            search=[1],
+            changed=True,
+            step_index=1,
+        )
+        frame = DecisionFrame(
+            select_type=frame.select_type,
+            context=frame.context,
+            min_count=frame.min_count,
+            max_count=frame.max_count,
+            target_count=frame.target_count,
+            legal_options=frame.legal_options,
+            rule_selected_indices=frame.rule_selected_indices,
+            board=frame.board,
+            board_image=[
+                [0.0 for _ in range(BOARD_IMAGE_WIDTH)]
+                for _ in range(BOARD_IMAGE_HEIGHT)
+            ],
+            reward_metadata=frame.reward_metadata,
+            schema_version=frame.schema_version,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dataset = root / "decisions.jsonl"
+            checkpoint = root / "checkpoint.pt"
+            model_path = root / "model.json"
+            write_decision_jsonl([frame], dataset)
+            train_torch_bc_model(
+                [frame] * 2,
+                checkpoint_path=checkpoint,
+                export_model_path=model_path,
+                epochs=1,
+            )
+
+            report = diagnose_search_distillation(
+                dataset_path=dataset,
+                checkpoint_path=checkpoint,
+                example_limit=1,
+            )
+
+            payload = report.to_dict()
+            self.assertEqual(payload["overall"]["frames"], 1)
+            self.assertEqual(payload["checkpoint_path"], checkpoint.as_posix())
+            self.assertIsNone(payload["model_path"])
 
     def test_phase5_trace_diagnostics_counts_candidate_failures(self):
         with tempfile.TemporaryDirectory() as tmp:

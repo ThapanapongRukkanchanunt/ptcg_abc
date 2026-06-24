@@ -18,7 +18,8 @@ export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
 
 DATASET="${DATASET:?Set DATASET to the Phase 5 decision JSONL path.}"
-MODEL="${MODEL:?Set MODEL to the exported Phase 5 JSON model path.}"
+MODEL="${MODEL:-models/rl/phase5_search_distill.json}"
+CHECKPOINT="${CHECKPOINT:-}"
 TRACE_INPUT="${TRACE_INPUT:-}"
 REPORT_JSON="${REPORT_JSON:-reports/phase5_search_distill_diagnostics.json}"
 REPORT_MD="${REPORT_MD:-reports/phase5_search_distill_diagnostics.md}"
@@ -29,13 +30,17 @@ TRACE_ARGS=()
 if [[ -n "$TRACE_INPUT" ]]; then
   TRACE_ARGS+=(--trace-input "$TRACE_INPUT")
 fi
+MODEL_ARGS=(--model "$MODEL")
+if [[ -n "$CHECKPOINT" ]]; then
+  MODEL_ARGS+=(--checkpoint "$CHECKPOINT")
+fi
 
 "$PY" --version
 "$PY" -c "import sys; print(sys.executable)"
 
 "$PY" -m ptcg_abc rl-diagnose-search-distill \
   --dataset "$DATASET" \
-  --model "$MODEL" \
+  "${MODEL_ARGS[@]}" \
   "${TRACE_ARGS[@]}" \
   --examples "$EXAMPLES" \
   --report-json "$REPORT_JSON" \

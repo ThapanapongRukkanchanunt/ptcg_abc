@@ -25,6 +25,71 @@ class TorchBackendUnavailable(RuntimeError):
     pass
 
 
+class TorchCheckpointOptionModel:
+    def __init__(self, checkpoint_path: Path, *, device: str | None = None) -> None:
+        torch, nn = _require_torch()
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        checkpoint_format = checkpoint.get("format")
+        self.checkpoint_path = Path(checkpoint_path)
+        self.metadata = dict(checkpoint.get("metadata", {}))
+        self.metadata.update(
+            {
+                "source_format": checkpoint_format,
+                "checkpoint_path": str(self.checkpoint_path.as_posix()),
+            }
+        )
+        self._torch = torch
+        self._linear_model: LinearOptionModel | None = None
+        self._network: Any | None = None
+        self._feature_names: list[str] = []
+        self._board_shape = (64, 64)
+        self._device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+
+        if checkpoint_format == LINEAR_CHECKPOINT_FORMAT:
+            state = checkpoint["state_dict"]
+            feature_names = [str(name) for name in checkpoint["feature_names"]]
+            actor_weight = state["actor.weight"].detach().reshape(-1).tolist()
+            actor_bias = float(state["actor.bias"].detach().reshape(-1)[0].item())
+            self._linear_model = linear_model_from_actor_params(
+                feature_names,
+                actor_weight,
+                actor_bias,
+                metadata=self.metadata,
+            )
+            return
+
+        if checkpoint_format != CHECKPOINT_FORMAT:
+            raise ValueError(f"Unsupported torch checkpoint format: {checkpoint.get('format')}")
+
+        self._feature_names = [str(name) for name in checkpoint["feature_names"]]
+        self._board_shape = _checkpoint_board_shape(checkpoint)
+        self._network = _make_network(nn, len(self._feature_names), self._board_shape)
+        self._network.load_state_dict(checkpoint["state_dict"])
+        self._network.to(self._device)
+        self._network.eval()
+
+    def score_frame(self, frame: DecisionFrame) -> list[float]:
+        if self._linear_model is not None:
+            return self._linear_model.score_frame(frame)
+        if self._network is None:
+            return []
+        torch = self._torch
+        with torch.no_grad():
+            logits, _ = self._network(
+                torch.tensor(
+                    action_matrix(frame, self._feature_names),
+                    dtype=torch.float32,
+                    device=self._device,
+                ),
+                torch.tensor(
+                    [board_image_matrix(frame)],
+                    dtype=torch.float32,
+                    device=self._device,
+                ),
+            )
+        return [float(value) for value in logits.detach().cpu().tolist()]
+
+
 @dataclass(frozen=True)
 class TorchTrainingSummary:
     frames: int
@@ -234,21 +299,7 @@ def export_torch_checkpoint(checkpoint_path: Path, export_model_path: Path) -> L
 
 
 def score_frame_with_torch_checkpoint(checkpoint_path: Path, frame: DecisionFrame) -> list[float]:
-    torch, nn = _require_torch()
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    if checkpoint.get("format") != CHECKPOINT_FORMAT:
-        raise ValueError(f"Unsupported torch checkpoint format: {checkpoint.get('format')}")
-    feature_names = [str(name) for name in checkpoint["feature_names"]]
-    board_shape = _checkpoint_board_shape(checkpoint)
-    network = _make_network(nn, len(feature_names), board_shape)
-    network.load_state_dict(checkpoint["state_dict"])
-    network.eval()
-    with torch.no_grad():
-        logits, _ = network(
-            torch.tensor(action_matrix(frame, feature_names), dtype=torch.float32),
-            torch.tensor([board_image_matrix(frame)], dtype=torch.float32),
-        )
-    return [float(value) for value in logits.tolist()]
+    return TorchCheckpointOptionModel(checkpoint_path, device="cpu").score_frame(frame)
 
 
 def collect_feature_names(

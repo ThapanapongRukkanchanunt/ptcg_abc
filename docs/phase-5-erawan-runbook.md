@@ -295,7 +295,8 @@ before spending more compute. This checks whether model accuracy is coming from
 easy unchanged decisions or whether the model actually learned the
 search-changed labels.
 
-Always run diagnostics as a SLURM job. For the 10-shard partial model:
+Always run diagnostics as a SLURM job. By default the job diagnoses the exported
+JSON fallback model. For the 10-shard partial model:
 
 ```bash
 cd ~/ptcg_abc
@@ -308,6 +309,22 @@ JOB=$(
   sbatch --parsable scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
 )
 echo "$JOB" | tee experiments/rl/phase5_diag_10shards_job.txt
+```
+
+To diagnose the torch checkpoint from the same run, set `CHECKPOINT` and submit
+the diagnostic job with a GPU:
+
+```bash
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards.json \
+  CHECKPOINT=models/rl/phase5_search_distill_10shards.pt \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_checkpoint_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_checkpoint_diagnostics.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_checkpoint_job.txt
 ```
 
 For a full 32-shard model, use the merged full-run paths:
@@ -446,8 +463,26 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_diag_10shards_pairwise_all_job.txt
 ```
 
-Only run battle smoke if `search_changed.search_hit_rate` improves without a
-large rise in third-action drift.
+If the exported JSON diagnostics are still poor, diagnose the torch checkpoint
+before doing more linear-export retraining:
+
+```bash
+JOB=$(
+  DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl \
+  MODEL=models/rl/phase5_search_distill_10shards_pairwise_all.json \
+  CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt \
+  TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_pairwise_all.jsonl \
+  REPORT_JSON=reports/phase5_search_distill_10shards_pairwise_all_checkpoint_diagnostics.json \
+  REPORT_MD=reports/phase5_search_distill_10shards_pairwise_all_checkpoint_diagnostics.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_diagnose_search_distill_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_diag_10shards_pairwise_all_checkpoint_job.txt
+```
+
+Only run battle smoke if either JSON or checkpoint diagnostics show
+`search_changed.search_hit_rate` improves without a large rise in third-action
+drift. If only the checkpoint passes, the next implementation step is
+torch-checkpoint inference for `rl-evaluate`; do not promote the JSON fallback.
 
 ## 11. Ready-To-Train Checklist
 
@@ -458,10 +493,12 @@ large rise in third-action drift.
 - Large merge manifest reports `decision_files: 32` and `trace_files: 32`.
 - Torch import/CUDA check inside the merge/train SLURM output reports the expected device.
 - `rl-train-bc --backend torch` starts from the merged dataset and writes both checkpoint and exported JSON model.
-- `rl-diagnose-search-distill` reports that the model learned search-changed
-  decisions before PPO or packaging.
+- `rl-diagnose-search-distill` reports that the JSON fallback or torch
+  checkpoint learned search-changed decisions before PPO or packaging.
 - If changed-decision diagnostics are poor, use `BC_CHANGED_WEIGHT`,
   `BC_UNCHANGED_WEIGHT`, and `BC_EXCLUDE_FEATURES` for a reweighted retrain.
 - If reweighting creates third-action drift, use `BC_PAIRWISE_CHANGED=1` and
   `BC_PAIRWISE_NEGATIVES=all` to train changed frames as search-over-all-legal
   action pairs.
+- If the JSON fallback remains poor after pairwise-all training, run checkpoint
+  diagnostics with `CHECKPOINT=...pt` before more training.

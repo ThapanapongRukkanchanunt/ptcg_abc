@@ -164,6 +164,14 @@ baseline-hit was about 0.093. The next trainer should use pairwise all-negative
 updates for changed decisions: score the search-selected action above every
 other legal action, while keeping unchanged decisions as a weak regularizer.
 
+The first pairwise all-negative JSON fallback did not improve the gate:
+`search_changed.search_hit_rate` was about 0.150, baseline-hit was about 0.121,
+and the mean model search-minus-baseline score was about `-0.153`. This means
+the exported linear fallback is not promotable. The next diagnostic slice should
+score the actual torch checkpoint with `rl-diagnose-search-distill --checkpoint`
+before deciding whether to implement torch-checkpoint battle evaluation or return
+to search-label/model-capacity work.
+
 ## What Is Not Complete Yet
 
 The current Phase 5 vertical slice is not the full Phase 5 agent. In particular,
@@ -203,14 +211,14 @@ spending more compute on PPO.
 
 ## Implementation Priorities
 
-1. Train the 10-shard pairwise-all search-distilled model with
-   `--pairwise-changed --pairwise-negatives all`, changed decisions upweighted,
-   unchanged decisions as a weak regularizer, and direct rule-score features
-   excluded. Rerun `rl-diagnose-search-distill` as a SLURM job before PPO,
-   packaging, or more large-scale data generation.
-2. Add battle evaluation commands for the exported
-   `models/rl/phase5_search_distill_10shards.json` model against the current
-   required benchmark.
+1. Diagnose the 10-shard pairwise-all torch checkpoint with
+   `rl-diagnose-search-distill --checkpoint` as a SLURM GPU job. If it passes
+   changed-decision gates, add torch-checkpoint inference to `rl-evaluate`; if it
+   fails, stop retraining the linear fallback and inspect search labels/model
+   capacity.
+2. Add battle evaluation commands for the promotable model form, starting with
+   the torch checkpoint if checkpoint diagnostics are materially better than the
+   JSON fallback.
 3. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
    mode that can compare direct policy, hybrid policy, and policy plus one-turn
    root search.

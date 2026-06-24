@@ -619,22 +619,33 @@ def command_rl_diagnose_search_distill(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    if not args.model.exists():
+    checkpoint_path = args.checkpoint if args.checkpoint and args.checkpoint.exists() else None
+    if args.checkpoint and checkpoint_path is None:
+        print(f"Phase 5 torch checkpoint not found at {args.checkpoint}.", file=sys.stderr)
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    if checkpoint_path is None and model_path is None:
         print(
             f"Phase 5 exported model not found at {args.model}. "
-            "Run `rl-train-bc --backend torch` first.",
+            "Set --checkpoint to diagnose a torch checkpoint, or run "
+            "`rl-train-bc --backend torch` first.",
             file=sys.stderr,
         )
         return 2
     trace_path = args.trace_input if args.trace_input and args.trace_input.exists() else None
-    diagnostics = diagnose_search_distillation(
-        dataset_path=args.dataset,
-        model_path=args.model,
-        trace_path=trace_path,
-        report_json_path=args.report_json,
-        report_md_path=args.report_md,
-        example_limit=args.examples,
-    )
+    try:
+        diagnostics = diagnose_search_distillation(
+            dataset_path=args.dataset,
+            model_path=model_path,
+            checkpoint_path=checkpoint_path,
+            trace_path=trace_path,
+            report_json_path=args.report_json,
+            report_md_path=args.report_md,
+            example_limit=args.examples,
+        )
+    except (TorchBackendUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     print(json.dumps(diagnostics.to_dict(), indent=2))
     print(f"Wrote Phase 5 search-distillation diagnostics to {args.report_md}.")
     return 0
@@ -1252,6 +1263,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--model",
         type=_path,
         default=Path("models") / "rl" / "phase5_search_distill.json",
+    )
+    rl_diagnose_search.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=None,
+        help="Optional torch checkpoint to diagnose instead of the exported JSON model.",
     )
     rl_diagnose_search.add_argument(
         "--trace-input",

@@ -512,6 +512,18 @@ Latest Phase 5 search-over-baseline pairwise diagnostic:
   all-negative changed-decision training:
   `score(search_action) > score(every other legal action)`.
 
+Latest Phase 5 pairwise-all JSON fallback diagnostic:
+
+- Overall search-hit rate: 0.421.
+- Overall baseline-hit rate: 0.418.
+- Search-changed search-hit rate: 0.150.
+- Search-changed baseline-hit rate: 0.121.
+- Search-changed mean model search-minus-baseline score: -0.153218.
+- Trace search-minus-baseline combined score remains positive at 0.596089.
+- Conclusion: the exported linear JSON fallback is still not promotable. The
+  next action is to diagnose the actual torch checkpoint using the same SLURM
+  diagnostics job with `CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt`.
+
 Operational rule:
 
 - Phase 5 search-distillation diagnostics should always run as SLURM jobs using

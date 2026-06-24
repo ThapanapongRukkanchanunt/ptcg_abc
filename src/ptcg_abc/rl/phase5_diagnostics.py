@@ -8,6 +8,7 @@ from typing import Any, Iterable, Sequence
 
 from ptcg_abc.rl.model import LinearOptionModel
 from ptcg_abc.rl.records import DecisionFrame
+from ptcg_abc.rl.torch_backend import TorchCheckpointOptionModel
 
 
 @dataclass
@@ -110,7 +111,8 @@ class TraceDiagnostics:
 @dataclass(frozen=True)
 class SearchDistillDiagnostics:
     dataset_path: str
-    model_path: str
+    model_path: str | None
+    checkpoint_path: str | None
     trace_path: str | None
     model_metadata: dict[str, Any]
     overall: dict[str, Any]
@@ -131,13 +133,17 @@ class SearchDistillDiagnostics:
 def diagnose_search_distillation(
     *,
     dataset_path: Path,
-    model_path: Path,
+    model_path: Path | None = None,
+    checkpoint_path: Path | None = None,
     trace_path: Path | None = None,
     report_json_path: Path | None = None,
     report_md_path: Path | None = None,
     example_limit: int = 20,
 ) -> SearchDistillDiagnostics:
-    model = LinearOptionModel.load(model_path)
+    scorer, model_metadata = _load_diagnostic_scorer(
+        model_path=model_path,
+        checkpoint_path=checkpoint_path,
+    )
 
     overall = AgreementStats()
     changed_stats = AgreementStats()
@@ -149,7 +155,7 @@ def diagnose_search_distillation(
     examples: list[dict[str, Any]] = []
 
     for frame in _iter_decision_jsonl(dataset_path):
-        row = _score_frame(model, frame)
+        row = _score_frame(scorer, frame)
         if row is None:
             metadata_counts["skipped_no_legal_options"] += 1
             continue
@@ -182,9 +188,12 @@ def diagnose_search_distillation(
 
     diagnostics = SearchDistillDiagnostics(
         dataset_path=str(dataset_path.as_posix()),
-        model_path=str(model_path.as_posix()),
+        model_path=str(model_path.as_posix()) if model_path is not None else None,
+        checkpoint_path=(
+            str(checkpoint_path.as_posix()) if checkpoint_path is not None else None
+        ),
         trace_path=str(trace_path.as_posix()) if trace_path is not None else None,
-        model_metadata=dict(model.metadata),
+        model_metadata=model_metadata,
         overall=overall_dict,
         search_changed=changed_dict,
         search_unchanged=unchanged_stats.to_dict(),
@@ -288,7 +297,8 @@ def write_search_distill_diagnostic_markdown(
         "# Phase 5 Search-Distillation Diagnostics",
         "",
         f"- Dataset: `{diagnostics.dataset_path}`",
-        f"- Model: `{diagnostics.model_path}`",
+        f"- Model: `{diagnostics.model_path or 'not provided'}`",
+        f"- Checkpoint: `{diagnostics.checkpoint_path or 'not provided'}`",
         f"- Trace: `{diagnostics.trace_path or 'not provided'}`",
         "",
         "## Summary",
@@ -378,7 +388,21 @@ def write_search_distill_diagnostic_markdown(
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _score_frame(model: LinearOptionModel, frame: DecisionFrame) -> dict[str, Any] | None:
+def _load_diagnostic_scorer(
+    *,
+    model_path: Path | None,
+    checkpoint_path: Path | None,
+) -> tuple[Any, dict[str, Any]]:
+    if checkpoint_path is not None:
+        scorer = TorchCheckpointOptionModel(checkpoint_path)
+        return scorer, dict(scorer.metadata)
+    if model_path is None:
+        raise ValueError("Set either model_path or checkpoint_path for diagnostics.")
+    model = LinearOptionModel.load(model_path)
+    return model, dict(model.metadata)
+
+
+def _score_frame(model: Any, frame: DecisionFrame) -> dict[str, Any] | None:
     if not frame.legal_options:
         return None
     scores = model.score_frame(frame)
