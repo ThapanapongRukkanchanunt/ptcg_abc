@@ -198,6 +198,8 @@ real Phase 5 adapter/encoder foundation:
 - A symbolic supervised trainer that can consume the existing Phase 5
   `DecisionFrame` search dataset without materializing a full expanded tensor
   file.
+- A direct `phase5-symbolic` evaluation agent that loads the symbolic torch
+  checkpoint and runs through the existing 9-deck required benchmark path.
 
 ## What Is Not Complete Yet
 
@@ -243,10 +245,10 @@ before spending more compute on larger search-distillation runs.
 1. Complete the real Phase 5 adapter/encoder/model foundation and add smoke
    tests that prove raw observations become canonical state, legal actions,
    symbolic tensors, and AlphaStar-style model inputs.
-2. Run the bounded symbolic trainer smoke on ERAWAN, then train the first
-   10-shard AlphaStar-style policy checkpoint from the merged search dataset.
-3. Add symbolic checkpoint inference and offline/battle evaluation against the
-   rule agent, old `rl` agent, and old `hybrid` agent.
+2. Run `rl-evaluate --agent phase5-symbolic` on the 10-shard checkpoint and
+   compare against the latest rule, old `rl`, and old `hybrid` reports.
+3. Diagnose the symbolic policy's battle traces if win rate is below the rule
+   baseline, especially search-changed decisions and end-turn/retreat drift.
 4. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
    mode that can compare direct policy, hybrid policy, and policy plus one-turn
    root search.

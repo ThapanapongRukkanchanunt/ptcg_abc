@@ -3,6 +3,7 @@ from ptcg_abc.agent.rule_based import RuleBasedAgent, score_legal_options, selec
 
 __all__ = [
     "HybridRlAgent",
+    "Phase5SymbolicPolicyAgent",
     "RandomAgent",
     "RuleBasedAgent",
     "score_legal_options",
@@ -15,4 +16,8 @@ def __getattr__(name: str):
         from ptcg_abc.agent.hybrid_rl import HybridRlAgent
 
         return HybridRlAgent
+    if name == "Phase5SymbolicPolicyAgent":
+        from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
+
+        return Phase5SymbolicPolicyAgent
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

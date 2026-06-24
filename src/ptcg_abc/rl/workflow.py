@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from ptcg_abc.agent import HybridRlAgent, RuleBasedAgent
+from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
 from ptcg_abc.evaluation import (
     Phase3RequiredDebugGame,
     Phase3RequiredBenchmarkResult,
@@ -1030,6 +1031,13 @@ def _make_agent(
 ) -> Any:
     if agent_kind == "rule":
         return _quiet_rule_agent(deck_ids, card_data, attack_data)
+    if agent_kind == "phase5-symbolic":
+        return Phase5SymbolicPolicyAgent(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=model_path,
+        )
     rules = default_guidance_rules() if guidance_rules is None else tuple(guidance_rules)
     if agent_kind == "rl":
         rules = ()

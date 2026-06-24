@@ -628,6 +628,39 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_symbolic_10shards_job.txt
 ```
 
+After the 10-shard symbolic checkpoint trains, evaluate it as a job. Start with
+one game per matchup:
+
+```bash
+JOB=$(
+  MODEL=models/rl/phase5_symbolic_policy_10shards.pt \
+  GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_symbolic_10shards_smoke.json \
+  REPORT_MD=reports/phase5_symbolic_10shards_smoke.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_eval_smoke_job.txt
+squeue -j "$JOB"
+
+# After the job starts:
+tail -f "experiments/rl/slurm-${JOB}-phase5-symbolic-eval.out"
+```
+
+If the smoke has `errors: 0`, run the 10-game benchmark:
+
+```bash
+JOB=$(
+  MODEL=models/rl/phase5_symbolic_policy_10shards.pt \
+  GAMES_PER_MATCHUP=10 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_symbolic_10shards_10g.json \
+  REPORT_MD=reports/phase5_symbolic_10shards_10g.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_eval_10g_job.txt
+```
+
 After confirming the merged files exist, you may remove the large per-shard
 inputs to reclaim space:
 
@@ -653,7 +686,8 @@ rm -i experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl
 - The direct symbolic trainer can read the merged 10-shard `DecisionFrame` JSONL
   without writing a full expanded symbolic dataset.
 - Offline evaluation compares the symbolic direct policy against the rule agent
-  and the old Phase 4-style distilled policy.
+  and the old Phase 4-style distilled policy using `rl-evaluate --agent
+  phase5-symbolic`.
 - One-turn root search is wired to the symbolic policy/value path before more
   large-scale shard generation.
 - After the symbolic path exists, diagnostics still run as SLURM jobs, never as

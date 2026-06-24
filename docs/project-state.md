@@ -549,8 +549,12 @@ Current Phase 5 adapter/encoder slice:
   turn-level action sequences.
 - Added a symbolic DecisionFrame bridge, bounded symbolic dataset writer, direct
   symbolic supervised trainer, and SLURM job script for the first erawan smoke.
-- Next action: run the bounded symbolic smoke job on erawan, then train the
-  first 10-shard symbolic checkpoint if the smoke report is healthy.
+- The first 10-shard symbolic checkpoint trained on erawan:
+  `models/rl/phase5_symbolic_policy_10shards.pt`, with training accuracy
+  `0.780060`, final loss `0.518950`, and `76,068` changed-search examples.
+- Added direct `phase5-symbolic` checkpoint evaluation support for the existing
+  required benchmark. Next action: run the symbolic smoke and 10-game benchmark
+  jobs, then compare against rule, old `rl`, and old `hybrid`.
 
 Operational rule:
 

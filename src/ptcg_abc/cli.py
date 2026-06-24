@@ -601,11 +601,18 @@ def command_rl_rollout(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    if args.agent == "phase5-symbolic" and model_path is None:
+        print(
+            f"Phase 5 symbolic checkpoint not found at {args.model}.",
+            file=sys.stderr,
+        )
+        return 2
     summary = rollout_games(
         sample_dir=args.sample_dir,
         output_path=args.output,
         agent_kind=args.agent,
-        model_path=args.model if args.model.exists() else None,
+        model_path=model_path,
         games=args.games,
         max_steps=args.max_steps,
     )
@@ -731,6 +738,12 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
+    if args.agent == "phase5-symbolic" and model_path is None:
+        print(
+            f"Phase 5 symbolic checkpoint not found at {args.model}.",
+            file=sys.stderr,
+        )
+        return 2
     result = run_phase4_required_benchmark(
         sample_dir=args.sample_dir,
         agent_kind=args.agent,
@@ -1283,7 +1296,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=_path,
         default=KAGGLE_INPUT_DIR / "sample_submission",
     )
-    rl_rollout.add_argument("--agent", choices=["rule", "rl", "hybrid"], default="hybrid")
+    rl_rollout.add_argument(
+        "--agent",
+        choices=["rule", "rl", "hybrid", "phase5-symbolic"],
+        default="hybrid",
+    )
     rl_rollout.add_argument(
         "--model",
         type=_path,
@@ -1453,14 +1470,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     rl_evaluate = subparsers.add_parser(
         "rl-evaluate",
-        help="Run the Phase 4 9x4 required benchmark for rule, RL, or hybrid agents.",
+        help="Run the 9x4 required benchmark for rule, RL, hybrid, or Phase 5 symbolic agents.",
     )
     rl_evaluate.add_argument(
         "--sample-dir",
         type=_path,
         default=KAGGLE_INPUT_DIR / "sample_submission",
     )
-    rl_evaluate.add_argument("--agent", choices=["rule", "rl", "hybrid"], default="hybrid")
+    rl_evaluate.add_argument(
+        "--agent",
+        choices=["rule", "rl", "hybrid", "phase5-symbolic"],
+        default="hybrid",
+    )
     rl_evaluate.add_argument(
         "--model",
         type=_path,
