@@ -687,6 +687,73 @@ Read the report:
 cat reports/phase5_symbolic_10shards_diagnostics.md
 ```
 
+Your first 10-shard symbolic diagnostic showed the expected Stage 1 failure:
+overall search agreement was reasonable, but search-changed agreement was only
+`0.356`, the model still scored baseline actions above search actions on
+changed frames, and the changed-frame third-action rate was `0.292`. Respond by
+training a changed-frame pairwise/all-negative symbolic checkpoint:
+
+```bash
+JOB=$(
+  DATASET="$DATASET" \
+  LIMIT=0 \
+  EPOCHS=1 \
+  BATCH_SIZE=64 \
+  D_MODEL=128 \
+  CHANGED_WEIGHT=6.0 \
+  UNCHANGED_WEIGHT=0.25 \
+  PAIRWISE_CHANGED=1 \
+  PAIRWISE_WEIGHT=1.0 \
+  PAIRWISE_MARGIN=1.0 \
+  PAIRWISE_NEGATIVES=all \
+  CHECKPOINT=models/rl/phase5_symbolic_policy_10shards_pairwise_all.pt \
+  REPORT_JSON=experiments/rl/phase5_symbolic_train_report_10shards_pairwise_all.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_symbolic_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_pairwise_all_job.txt
+squeue -j "$JOB"
+
+# After the job starts:
+tail -f "experiments/rl/slurm-${JOB}-phase5-symbolic-train.out"
+```
+
+Evaluate the pairwise/all-negative symbolic checkpoint as a job:
+
+```bash
+JOB=$(
+  MODEL=models/rl/phase5_symbolic_policy_10shards_pairwise_all.pt \
+  GAMES_PER_MATCHUP=10 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_symbolic_10shards_pairwise_all_10g.json \
+  REPORT_MD=reports/phase5_symbolic_10shards_pairwise_all_10g.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_pairwise_all_eval_10g_job.txt
+squeue -j "$JOB"
+```
+
+Run diagnostics on the pairwise checkpoint as a job, regardless of the battle
+score:
+
+```bash
+JOB=$(
+  DATASET="$DATASET" \
+  CHECKPOINT=models/rl/phase5_symbolic_policy_10shards_pairwise_all.pt \
+  LIMIT=0 \
+  BATCH_SIZE=128 \
+  REPORT_JSON=reports/phase5_symbolic_10shards_pairwise_all_diagnostics.json \
+  REPORT_MD=reports/phase5_symbolic_10shards_pairwise_all_diagnostics.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_diagnose_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_pairwise_all_diag_job.txt
+squeue -j "$JOB"
+```
+
+Promotion gate for this slice: the pairwise checkpoint should raise
+search-changed hit rate, make the mean model search-minus-baseline margin
+positive, reduce changed third-action rate, and improve the 10-game benchmark
+toward or above the rule baseline.
+
 After confirming the merged files exist, you may remove the large per-shard
 inputs to reclaim space:
 

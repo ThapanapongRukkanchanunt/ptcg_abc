@@ -583,6 +583,10 @@ def command_rl_train_phase5_symbolic(args: argparse.Namespace) -> int:
             target_source=args.target_source,
             changed_weight=args.changed_weight,
             unchanged_weight=args.unchanged_weight,
+            pairwise_changed=args.pairwise_changed,
+            pairwise_weight=args.pairwise_weight,
+            pairwise_margin=args.pairwise_margin,
+            pairwise_negatives=args.pairwise_negatives,
             value_loss_weight=args.value_loss_weight,
             limit=limit,
             changed_only=args.changed_only,
@@ -1300,6 +1304,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_train_phase5_symbolic.add_argument("--changed-weight", type=float, default=1.0)
     rl_train_phase5_symbolic.add_argument("--unchanged-weight", type=float, default=1.0)
+    rl_train_phase5_symbolic.add_argument(
+        "--pairwise-changed",
+        action="store_true",
+        help="Add pairwise ranking loss on root-search changed frames.",
+    )
+    rl_train_phase5_symbolic.add_argument("--pairwise-weight", type=float, default=1.0)
+    rl_train_phase5_symbolic.add_argument("--pairwise-margin", type=float, default=1.0)
+    rl_train_phase5_symbolic.add_argument(
+        "--pairwise-negatives",
+        choices=["all", "baseline"],
+        default="all",
+        help="Negative actions for changed-frame pairwise loss.",
+    )
     rl_train_phase5_symbolic.add_argument("--value-loss-weight", type=float, default=0.0)
     rl_train_phase5_symbolic.add_argument(
         "--limit",

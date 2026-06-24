@@ -10,6 +10,7 @@ from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
     decision_frame_to_legal_actions,
     decision_frame_to_state,
+    phase5_symbolic_pairwise_positions,
     phase5_symbolic_record_from_decision,
     read_phase5_symbolic_jsonl,
     train_phase5_symbolic_policy_from_decisions,
@@ -133,6 +134,32 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertEqual(record.weight, 5.0)
         self.assertEqual(sum(record.previous_action_mask), 0.0)
 
+    def test_pairwise_positions_can_use_baseline_or_all_negatives(self):
+        frame = _phase5_frame(
+            step_index=1,
+            selected=[1],
+            search=[1],
+            baseline=[0],
+            changed=True,
+        )
+        record = phase5_symbolic_record_from_decision(
+            frame,
+            encoder=Phase5SymbolicEncoder(max_entities=8, max_actions=4),
+            previous_action_features=[],
+            max_previous_actions=3,
+        )
+
+        self.assertIsNotNone(record)
+        assert record is not None
+        self.assertEqual(
+            phase5_symbolic_pairwise_positions(record, negative_mode="baseline"),
+            [(1, 0)],
+        )
+        self.assertEqual(
+            phase5_symbolic_pairwise_positions(record, negative_mode="all"),
+            [(1, 0), (1, 2)],
+        )
+
     def test_symbolic_dataset_builder_tracks_previous_turn_actions(self):
         frames = [
             _phase5_frame(step_index=1, selected=[1], search=[1], baseline=[0], changed=True),
@@ -181,11 +208,16 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "in.jsonl",
                 "--checkpoint",
                 "model.pt",
+                "--pairwise-changed",
+                "--pairwise-negatives",
+                "all",
             ]
         )
 
         self.assertEqual(build_args.func.__name__, "command_rl_build_phase5_symbolic")
         self.assertEqual(train_args.func.__name__, "command_rl_train_phase5_symbolic")
+        self.assertTrue(train_args.pairwise_changed)
+        self.assertEqual(train_args.pairwise_negatives, "all")
 
     @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
     def test_symbolic_trainer_writes_checkpoint(self):
@@ -209,9 +241,12 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 max_entities=8,
                 max_actions=4,
                 max_previous_actions=3,
+                pairwise_changed=True,
+                pairwise_negatives="all",
             )
 
             self.assertEqual(summary.examples, 2)
+            self.assertTrue(summary.pairwise_changed)
             self.assertTrue(checkpoint_path.exists())
             self.assertTrue(report_path.exists())
 

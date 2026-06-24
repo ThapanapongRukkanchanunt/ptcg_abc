@@ -42,6 +42,10 @@ MAX_PREVIOUS_ACTIONS="${MAX_PREVIOUS_ACTIONS:-16}"
 TARGET_SOURCE="${TARGET_SOURCE:-search}"
 CHANGED_WEIGHT="${CHANGED_WEIGHT:-4.0}"
 UNCHANGED_WEIGHT="${UNCHANGED_WEIGHT:-0.5}"
+PAIRWISE_CHANGED="${PAIRWISE_CHANGED:-0}"
+PAIRWISE_WEIGHT="${PAIRWISE_WEIGHT:-1.0}"
+PAIRWISE_MARGIN="${PAIRWISE_MARGIN:-1.0}"
+PAIRWISE_NEGATIVES="${PAIRWISE_NEGATIVES:-all}"
 VALUE_LOSS_WEIGHT="${VALUE_LOSS_WEIGHT:-0.0}"
 LIMIT="${LIMIT:-0}"
 CHANGED_ONLY="${CHANGED_ONLY:-0}"
@@ -61,9 +65,16 @@ ARGS=(
   --target-source "$TARGET_SOURCE"
   --changed-weight "$CHANGED_WEIGHT"
   --unchanged-weight "$UNCHANGED_WEIGHT"
+  --pairwise-weight "$PAIRWISE_WEIGHT"
+  --pairwise-margin "$PAIRWISE_MARGIN"
+  --pairwise-negatives "$PAIRWISE_NEGATIVES"
   --value-loss-weight "$VALUE_LOSS_WEIGHT"
   --limit "$LIMIT"
 )
+
+if [[ "$PAIRWISE_CHANGED" == "1" || "$PAIRWISE_CHANGED" == "true" || "$PAIRWISE_CHANGED" == "TRUE" ]]; then
+  ARGS+=(--pairwise-changed)
+fi
 
 if [[ "$CHANGED_ONLY" == "1" || "$CHANGED_ONLY" == "true" || "$CHANGED_ONLY" == "TRUE" ]]; then
   ARGS+=(--changed-only)

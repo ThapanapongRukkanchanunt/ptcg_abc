@@ -251,7 +251,9 @@ before spending more compute on larger search-distillation runs.
    first 10-game symbolic benchmark reached `0.303`, below the rule baseline.
 3. Use the diagnostic split to choose the next train: changed-only warmup,
    pairwise/all-negative symbolic loss, action-type balancing, or label-quality
-   inspection.
+   inspection. The first symbolic diagnostic selected pairwise/all-negative:
+   search-changed agreement was `0.356`, the model search-minus-baseline margin
+   was still negative, and changed-frame third-action rate was `0.292`.
 4. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
    mode that can compare direct policy, hybrid policy, and policy plus one-turn
    root search.
@@ -278,6 +280,7 @@ Use `docs/phase-5-erawan-runbook.md` for commands. The runbook currently covers:
 - Full-shard training.
 - SLURM diagnostics jobs for search-distillation reports.
 - Artifact locations.
+- Symbolic pairwise/all-negative retraining after the first symbolic diagnostic.
 
 The runbook should stay practical and command-focused. This master plan should
 hold the architectural, training, and evaluation context.

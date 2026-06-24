@@ -20,6 +20,7 @@ from ptcg_abc.rl.rewards import reward_from_result_metadata
 
 
 PHASE5_SYMBOLIC_DATASET_FORMAT = "ptcg_abc_phase5_symbolic_decision_v1"
+PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES = ("all", "baseline")
 
 
 @dataclass(frozen=True)
@@ -121,6 +122,10 @@ class Phase5SymbolicTrainingSummary:
     target_source: str
     changed_weight: float
     unchanged_weight: float
+    pairwise_changed: bool
+    pairwise_weight: float
+    pairwise_margin: float
+    pairwise_negatives: str
     max_entities: int
     max_actions: int
     max_previous_actions: int
@@ -352,11 +357,21 @@ def train_phase5_symbolic_policy_from_decisions(
     target_source: str = "search",
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
+    pairwise_changed: bool = False,
+    pairwise_weight: float = 1.0,
+    pairwise_margin: float = 1.0,
+    pairwise_negatives: str = "all",
     value_loss_weight: float = 0.0,
     limit: int | None = None,
     changed_only: bool = False,
 ) -> Phase5SymbolicTrainingSummary:
     torch, nn = _require_torch()
+    if pairwise_negatives not in PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES:
+        raise ValueError(
+            "Unsupported Phase 5 pairwise negative mode: "
+            f"{pairwise_negatives!r}. Expected one of "
+            f"{', '.join(PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES)}."
+        )
     encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
     empty_encoded = encoder.encode(decision_frame_to_state(_empty_frame()), [])
     config = make_phase5_policy_config(
@@ -415,6 +430,10 @@ def train_phase5_symbolic_policy_from_decisions(
                     nn=nn,
                     device=device,
                     value_loss_weight=value_loss_weight,
+                    pairwise_changed=pairwise_changed,
+                    pairwise_weight=pairwise_weight,
+                    pairwise_margin=pairwise_margin,
+                    pairwise_negatives=pairwise_negatives,
                 )
                 final_loss = loss
                 correct += batch_correct
@@ -428,6 +447,10 @@ def train_phase5_symbolic_policy_from_decisions(
                 nn=nn,
                 device=device,
                 value_loss_weight=value_loss_weight,
+                pairwise_changed=pairwise_changed,
+                pairwise_weight=pairwise_weight,
+                pairwise_margin=pairwise_margin,
+                pairwise_negatives=pairwise_negatives,
             )
             final_loss = loss
             correct += batch_correct
@@ -455,6 +478,10 @@ def train_phase5_symbolic_policy_from_decisions(
         "target_source": target_source,
         "changed_weight": changed_weight,
         "unchanged_weight": unchanged_weight,
+        "pairwise_changed": pairwise_changed,
+        "pairwise_weight": pairwise_weight,
+        "pairwise_margin": pairwise_margin,
+        "pairwise_negatives": pairwise_negatives,
         "value_loss_weight": value_loss_weight,
         "limit": limit,
         "changed_only": changed_only,
@@ -480,6 +507,10 @@ def train_phase5_symbolic_policy_from_decisions(
         target_source=target_source,
         changed_weight=changed_weight,
         unchanged_weight=unchanged_weight,
+        pairwise_changed=pairwise_changed,
+        pairwise_weight=pairwise_weight,
+        pairwise_margin=pairwise_margin,
+        pairwise_negatives=pairwise_negatives,
         max_entities=max_entities,
         max_actions=max_actions,
         max_previous_actions=max_previous_actions,
@@ -504,6 +535,48 @@ def read_phase5_symbolic_jsonl(path: Path) -> list[Phase5SymbolicDecisionRecord]
     return records
 
 
+def phase5_symbolic_pairwise_positions(
+    record: Phase5SymbolicDecisionRecord,
+    *,
+    negative_mode: str = "all",
+) -> list[tuple[int, int]]:
+    if negative_mode not in PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES:
+        raise ValueError(
+            "Unsupported Phase 5 pairwise negative mode: "
+            f"{negative_mode!r}. Expected one of "
+            f"{', '.join(PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES)}."
+        )
+    legal_positions = [
+        position
+        for position, mask_value in enumerate(record.encoded.legal_action_mask)
+        if mask_value > 0.0
+    ]
+    legal_set = set(legal_positions)
+    positives = [
+        position
+        for position in record.target_positions
+        if position in legal_set
+    ]
+    if not positives:
+        return []
+    positive_set = set(positives)
+    if negative_mode == "baseline":
+        negative_positions = _baseline_target_positions(record)
+    else:
+        negative_positions = legal_positions
+    pairs: list[tuple[int, int]] = []
+    seen: set[tuple[int, int]] = set()
+    for positive in positives:
+        for negative in negative_positions:
+            if negative not in legal_set or negative in positive_set:
+                continue
+            pair = (positive, negative)
+            if pair not in seen:
+                pairs.append(pair)
+                seen.add(pair)
+    return pairs
+
+
 def _train_symbolic_batch(
     records: Sequence[Phase5SymbolicDecisionRecord],
     *,
@@ -513,6 +586,10 @@ def _train_symbolic_batch(
     nn: Any,
     device: Any,
     value_loss_weight: float,
+    pairwise_changed: bool,
+    pairwise_weight: float,
+    pairwise_margin: float,
+    pairwise_negatives: str,
 ) -> tuple[float, int]:
     global_x = torch.tensor(
         [record.encoded.global_features for record in records],
@@ -571,6 +648,18 @@ def _train_symbolic_batch(
     logits = output["action_logits"]
     actor_loss = nn.functional.cross_entropy(logits, targets, reduction="none")
     loss = (actor_loss * weights).mean()
+    if pairwise_changed and pairwise_weight > 0.0:
+        pairwise_loss = _changed_pairwise_loss(
+            records,
+            logits=logits,
+            torch=torch,
+            nn=nn,
+            device=device,
+            margin=pairwise_margin,
+            negative_mode=pairwise_negatives,
+        )
+        if pairwise_loss is not None:
+            loss = loss + float(pairwise_weight) * pairwise_loss
     if value_loss_weight > 0:
         rewards = torch.tensor(
             [reward_from_result_metadata(record.metadata) for record in records],
@@ -585,6 +674,63 @@ def _train_symbolic_batch(
     predictions = logits.detach().argmax(dim=1)
     correct = int((predictions == targets).sum().item())
     return float(loss.detach().item()), correct
+
+
+def _changed_pairwise_loss(
+    records: Sequence[Phase5SymbolicDecisionRecord],
+    *,
+    logits: Any,
+    torch: Any,
+    nn: Any,
+    device: Any,
+    margin: float,
+    negative_mode: str,
+) -> Any | None:
+    row_indices: list[int] = []
+    positive_indices: list[int] = []
+    negative_indices: list[int] = []
+    weights: list[float] = []
+    for row_index, record in enumerate(records):
+        if not record.changed:
+            continue
+        for positive, negative in phase5_symbolic_pairwise_positions(
+            record,
+            negative_mode=negative_mode,
+        ):
+            row_indices.append(row_index)
+            positive_indices.append(positive)
+            negative_indices.append(negative)
+            weights.append(record.weight)
+    if not row_indices:
+        return None
+    rows = torch.tensor(row_indices, dtype=torch.long, device=device)
+    positives = torch.tensor(positive_indices, dtype=torch.long, device=device)
+    negatives = torch.tensor(negative_indices, dtype=torch.long, device=device)
+    pair_weights = torch.tensor(weights, dtype=torch.float32, device=device)
+    positive_scores = logits[rows, positives]
+    negative_scores = logits[rows, negatives]
+    pair_losses = nn.functional.softplus(
+        float(margin) - (positive_scores - negative_scores)
+    )
+    return (pair_losses * pair_weights).mean()
+
+
+def _baseline_target_positions(record: Phase5SymbolicDecisionRecord) -> list[int]:
+    baseline_indices = record.metadata.get("phase5_baseline_indices", [])
+    index_to_position = {
+        action_index: position
+        for position, action_index in enumerate(record.encoded.legal_action_indices)
+        if action_index >= 0
+    }
+    positions: list[int] = []
+    for raw_index in baseline_indices or []:
+        try:
+            position = index_to_position[int(raw_index)]
+        except (KeyError, TypeError, ValueError):
+            continue
+        if position not in positions:
+            positions.append(position)
+    return positions
 
 
 def _player_from_board(
