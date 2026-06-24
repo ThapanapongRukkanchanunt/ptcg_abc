@@ -661,6 +661,32 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_symbolic_eval_10g_job.txt
 ```
 
+If the 10-game benchmark is below the rule baseline, diagnose the symbolic
+checkpoint against the merged search-decision dataset as a job:
+
+```bash
+JOB=$(
+  DATASET="$DATASET" \
+  CHECKPOINT=models/rl/phase5_symbolic_policy_10shards.pt \
+  LIMIT=0 \
+  BATCH_SIZE=128 \
+  REPORT_JSON=reports/phase5_symbolic_10shards_diagnostics.json \
+  REPORT_MD=reports/phase5_symbolic_10shards_diagnostics.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_diagnose_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_diag_10shards_job.txt
+squeue -j "$JOB"
+
+# After the job starts:
+tail -f "experiments/rl/slurm-${JOB}-phase5-symbolic-diag.out"
+```
+
+Read the report:
+
+```bash
+cat reports/phase5_symbolic_10shards_diagnostics.md
+```
+
 After confirming the merged files exist, you may remove the large per-shard
 inputs to reclaim space:
 

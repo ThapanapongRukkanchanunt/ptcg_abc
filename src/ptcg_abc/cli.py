@@ -74,6 +74,7 @@ from ptcg_abc.rl.phase5_search import (
 from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation
 from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
+from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
 from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
     train_phase5_symbolic_policy_from_decisions,
@@ -711,6 +712,32 @@ def command_rl_diagnose_search_distill(args: argparse.Namespace) -> int:
         return 2
     print(json.dumps(diagnostics.to_dict(), indent=2))
     print(f"Wrote Phase 5 search-distillation diagnostics to {args.report_md}.")
+    return 0
+
+
+def command_rl_diagnose_phase5_symbolic(args: argparse.Namespace) -> int:
+    if not args.dataset.exists():
+        print(f"Phase 5 decision dataset not found at {args.dataset}.", file=sys.stderr)
+        return 2
+    if not args.checkpoint.exists():
+        print(f"Phase 5 symbolic checkpoint not found at {args.checkpoint}.", file=sys.stderr)
+        return 2
+    limit = None if args.limit == 0 else args.limit
+    try:
+        diagnostics = diagnose_phase5_symbolic_policy(
+            dataset_path=args.dataset,
+            checkpoint_path=args.checkpoint,
+            report_json_path=args.report_json,
+            report_md_path=args.report_md,
+            limit=limit,
+            batch_size=args.batch_size,
+            example_limit=args.examples,
+        )
+    except (Phase5PolicyUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(diagnostics.to_dict(), indent=2))
+    print(f"Wrote Phase 5 symbolic diagnostics to {args.report_md}.")
     return 0
 
 
@@ -1440,6 +1467,40 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("reports") / "phase5_search_distill_diagnostics.md",
     )
     rl_diagnose_search.set_defaults(func=command_rl_diagnose_search_distill)
+
+    rl_diagnose_symbolic = subparsers.add_parser(
+        "rl-diagnose-phase5-symbolic",
+        help="Diagnose a Phase 5 symbolic checkpoint against search-improved decisions.",
+    )
+    rl_diagnose_symbolic.add_argument(
+        "--dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_merged.jsonl",
+    )
+    rl_diagnose_symbolic.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_symbolic_policy_10shards.pt",
+    )
+    rl_diagnose_symbolic.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Maximum source frames to diagnose. Use 0 for the full input.",
+    )
+    rl_diagnose_symbolic.add_argument("--batch-size", type=int, default=128)
+    rl_diagnose_symbolic.add_argument("--examples", type=int, default=20)
+    rl_diagnose_symbolic.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("reports") / "phase5_symbolic_diagnostics.json",
+    )
+    rl_diagnose_symbolic.add_argument(
+        "--report-md",
+        type=_path,
+        default=Path("reports") / "phase5_symbolic_diagnostics.md",
+    )
+    rl_diagnose_symbolic.set_defaults(func=command_rl_diagnose_phase5_symbolic)
 
     rl_train_ppo = subparsers.add_parser(
         "rl-train-ppo",

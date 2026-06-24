@@ -553,8 +553,14 @@ Current Phase 5 adapter/encoder slice:
   `models/rl/phase5_symbolic_policy_10shards.pt`, with training accuracy
   `0.780060`, final loss `0.518950`, and `76,068` changed-search examples.
 - Added direct `phase5-symbolic` checkpoint evaluation support for the existing
-  required benchmark. Next action: run the symbolic smoke and 10-game benchmark
-  jobs, then compare against rule, old `rl`, and old `hybrid`.
+  required benchmark.
+- Latest symbolic 10-game benchmark: `109/360` wins, `0.303` win rate,
+  `errors: 0`, `timeouts: 3`. This is better than the old 10-shard `rl/hybrid`
+  path but below the current rule baseline around `0.35`, so it is not yet
+  promotable.
+- Next action: run `rl-diagnose-phase5-symbolic` as a SLURM job to identify
+  whether losses come from weak search-changed agreement, third-action drift,
+  action-type bias, or deck-specific failures.
 
 Operational rule:
 

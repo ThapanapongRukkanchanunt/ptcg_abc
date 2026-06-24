@@ -13,6 +13,7 @@ from ptcg_abc.rl.phase5_adapters import (
 from ptcg_abc.rl.phase5_encoder import EncodedPhase5Turn, Phase5SymbolicEncoder
 from ptcg_abc.rl.phase5_policy import Phase5PolicyConfig
 from ptcg_abc.rl.phase5_search import RootSearchConfig
+from ptcg_abc.rl.phase5_symbolic_diagnostics import Phase5SymbolicDiagnostics
 from ptcg_abc.rl.phase5_symbolic_training import (
     Phase5SymbolicBuildSummary,
     Phase5SymbolicDecisionRecord,
@@ -35,6 +36,7 @@ __all__ = [
     "LinearOptionModel",
     "Phase5PolicyConfig",
     "Phase5SymbolicBuildSummary",
+    "Phase5SymbolicDiagnostics",
     "Phase5SymbolicDecisionRecord",
     "Phase5SymbolicEncoder",
     "Phase5SymbolicTrainingSummary",
