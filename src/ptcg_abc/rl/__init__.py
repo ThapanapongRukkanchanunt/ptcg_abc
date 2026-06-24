@@ -13,6 +13,11 @@ from ptcg_abc.rl.phase5_adapters import (
 from ptcg_abc.rl.phase5_encoder import EncodedPhase5Turn, Phase5SymbolicEncoder
 from ptcg_abc.rl.phase5_policy import Phase5PolicyConfig
 from ptcg_abc.rl.phase5_search import RootSearchConfig
+from ptcg_abc.rl.phase5_symbolic_training import (
+    Phase5SymbolicBuildSummary,
+    Phase5SymbolicDecisionRecord,
+    Phase5SymbolicTrainingSummary,
+)
 from ptcg_abc.rl.records import ActionFrame, DecisionFrame, TrajectoryStep
 from ptcg_abc.rl.rewards import RewardConfig
 from ptcg_abc.rl.torch_backend import TORCH_AVAILABLE, TorchBackendUnavailable
@@ -29,7 +34,10 @@ __all__ = [
     "LegalOptionAdapter",
     "LinearOptionModel",
     "Phase5PolicyConfig",
+    "Phase5SymbolicBuildSummary",
+    "Phase5SymbolicDecisionRecord",
     "Phase5SymbolicEncoder",
+    "Phase5SymbolicTrainingSummary",
     "PlayerState",
     "RootSearchConfig",
     "RewardConfig",

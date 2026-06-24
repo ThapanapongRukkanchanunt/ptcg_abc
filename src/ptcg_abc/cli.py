@@ -72,7 +72,12 @@ from ptcg_abc.rl.phase5_search import (
     merge_search_data,
 )
 from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation
+from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
+from ptcg_abc.rl.phase5_symbolic_training import (
+    build_phase5_symbolic_dataset,
+    train_phase5_symbolic_policy_from_decisions,
+)
 from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
 
 
@@ -531,6 +536,57 @@ def command_rl_train_bc(args: argparse.Namespace) -> int:
                 pairwise_negatives=args.pairwise_negatives,
             )
     except TorchBackendUnavailable as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_build_phase5_symbolic(args: argparse.Namespace) -> int:
+    if not args.dataset.exists():
+        print(f"Phase 5 decision dataset not found at {args.dataset}.", file=sys.stderr)
+        return 2
+    limit = None if args.limit == 0 else args.limit
+    summary = build_phase5_symbolic_dataset(
+        dataset_path=args.dataset,
+        output_path=args.output,
+        limit=limit,
+        max_entities=args.max_entities,
+        max_actions=args.max_actions,
+        max_previous_actions=args.max_previous_actions,
+        target_source=args.target_source,
+        changed_weight=args.changed_weight,
+        unchanged_weight=args.unchanged_weight,
+    )
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_train_phase5_symbolic(args: argparse.Namespace) -> int:
+    if not args.dataset.exists():
+        print(f"Phase 5 decision dataset not found at {args.dataset}.", file=sys.stderr)
+        return 2
+    limit = None if args.limit == 0 else args.limit
+    try:
+        summary = train_phase5_symbolic_policy_from_decisions(
+            dataset_path=args.dataset,
+            checkpoint_path=args.checkpoint,
+            report_path=args.report_json,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            max_entities=args.max_entities,
+            max_actions=args.max_actions,
+            max_previous_actions=args.max_previous_actions,
+            d_model=args.d_model,
+            target_source=args.target_source,
+            changed_weight=args.changed_weight,
+            unchanged_weight=args.unchanged_weight,
+            value_loss_weight=args.value_loss_weight,
+            limit=limit,
+            changed_only=args.changed_only,
+        )
+    except Phase5PolicyUnavailable as exc:
         print(str(exc), file=sys.stderr)
         return 2
     print(json.dumps(summary.to_dict(), indent=2))
@@ -1138,6 +1194,85 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("experiments") / "rl" / "bc_train_report.json",
     )
     rl_train_bc.set_defaults(func=command_rl_train_bc)
+
+    rl_build_phase5_symbolic = subparsers.add_parser(
+        "rl-build-phase5-symbolic-dataset",
+        help="Convert Phase 5 DecisionFrame JSONL into bounded symbolic tensor JSONL.",
+    )
+    rl_build_phase5_symbolic.add_argument(
+        "--dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_merged.jsonl",
+    )
+    rl_build_phase5_symbolic.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_symbolic_decisions_smoke.jsonl",
+    )
+    rl_build_phase5_symbolic.add_argument(
+        "--limit",
+        type=int,
+        default=1000,
+        help="Maximum records to write. Use 0 to convert the full input.",
+    )
+    rl_build_phase5_symbolic.add_argument("--max-entities", type=int, default=96)
+    rl_build_phase5_symbolic.add_argument("--max-actions", type=int, default=128)
+    rl_build_phase5_symbolic.add_argument("--max-previous-actions", type=int, default=16)
+    rl_build_phase5_symbolic.add_argument(
+        "--target-source",
+        choices=["search", "baseline", "rule"],
+        default="search",
+    )
+    rl_build_phase5_symbolic.add_argument("--changed-weight", type=float, default=1.0)
+    rl_build_phase5_symbolic.add_argument("--unchanged-weight", type=float, default=1.0)
+    rl_build_phase5_symbolic.set_defaults(func=command_rl_build_phase5_symbolic)
+
+    rl_train_phase5_symbolic = subparsers.add_parser(
+        "rl-train-phase5-symbolic",
+        help="Train the AlphaStar-style Phase 5 symbolic legal-action policy.",
+    )
+    rl_train_phase5_symbolic.add_argument(
+        "--dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_merged.jsonl",
+    )
+    rl_train_phase5_symbolic.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_symbolic_policy.pt",
+    )
+    rl_train_phase5_symbolic.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_symbolic_train_report.json",
+    )
+    rl_train_phase5_symbolic.add_argument("--epochs", type=int, default=1)
+    rl_train_phase5_symbolic.add_argument("--batch-size", type=int, default=64)
+    rl_train_phase5_symbolic.add_argument("--learning-rate", type=float, default=1.0e-4)
+    rl_train_phase5_symbolic.add_argument("--d-model", type=int, default=128)
+    rl_train_phase5_symbolic.add_argument("--max-entities", type=int, default=96)
+    rl_train_phase5_symbolic.add_argument("--max-actions", type=int, default=128)
+    rl_train_phase5_symbolic.add_argument("--max-previous-actions", type=int, default=16)
+    rl_train_phase5_symbolic.add_argument(
+        "--target-source",
+        choices=["search", "baseline", "rule"],
+        default="search",
+    )
+    rl_train_phase5_symbolic.add_argument("--changed-weight", type=float, default=1.0)
+    rl_train_phase5_symbolic.add_argument("--unchanged-weight", type=float, default=1.0)
+    rl_train_phase5_symbolic.add_argument("--value-loss-weight", type=float, default=0.0)
+    rl_train_phase5_symbolic.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Maximum source frames per epoch. Use 0 for the full input.",
+    )
+    rl_train_phase5_symbolic.add_argument(
+        "--changed-only",
+        action="store_true",
+        help="Train only on root-search changed frames.",
+    )
+    rl_train_phase5_symbolic.set_defaults(func=command_rl_train_phase5_symbolic)
 
     rl_rollout = subparsers.add_parser(
         "rl-rollout",

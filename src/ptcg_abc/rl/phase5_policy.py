@@ -103,11 +103,13 @@ if TORCH_AVAILABLE:
             action_x: Any,
             action_mask: Any,
             previous_action_x: Any | None = None,
+            previous_action_mask: Any | None = None,
         ) -> dict[str, Any]:
             state_embedding = self.encode_state(global_x, entity_x, entity_mask)
             action_embedding = self.action_encoder(action_x)
             turn_embedding = self.encode_turn_context(
                 previous_action_x,
+                previous_action_mask,
                 batch_size=action_x.shape[0],
                 device=action_x.device,
             )
@@ -140,6 +142,7 @@ if TORCH_AVAILABLE:
         def encode_turn_context(
             self,
             previous_action_x: Any | None,
+            previous_action_mask: Any | None = None,
             *,
             batch_size: int,
             device: Any,
@@ -147,7 +150,14 @@ if TORCH_AVAILABLE:
             if previous_action_x is None or previous_action_x.shape[1] == 0:
                 return torch.zeros(batch_size, self.config.turn_hidden_dim, device=device)
             previous_embedding = self.action_encoder(previous_action_x)
-            _, hidden = self.turn_core(previous_embedding)
+            output, hidden = self.turn_core(previous_embedding)
+            if previous_action_mask is not None:
+                lengths = previous_action_mask.sum(dim=1).long().clamp(min=0)
+                if int(lengths.max().item()) == 0:
+                    return torch.zeros(batch_size, self.config.turn_hidden_dim, device=device)
+                gather_index = (lengths - 1).clamp(min=0)
+                gathered = output[torch.arange(batch_size, device=device), gather_index]
+                return gathered * (lengths > 0).float().unsqueeze(1)
             return hidden[-1]
 
         def checkpoint_payload(self) -> dict[str, Any]:

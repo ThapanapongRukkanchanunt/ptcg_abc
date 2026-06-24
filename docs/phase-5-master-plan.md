@@ -125,6 +125,7 @@ Key files:
 - `src/ptcg_abc/rl/phase5_adapters.py`
 - `src/ptcg_abc/rl/phase5_encoder.py`
 - `src/ptcg_abc/rl/phase5_policy.py`
+- `src/ptcg_abc/rl/phase5_symbolic_training.py`
 - `src/ptcg_abc/rl/phase5_search.py`
 - `src/ptcg_abc/rl/phase5_diagnostics.py`
 - `src/ptcg_abc/cli.py`
@@ -194,6 +195,9 @@ real Phase 5 adapter/encoder foundation:
 - Symbolic global/entity/legal-action encoders.
 - An AlphaStar-inspired policy module with a transformer entity/state core and
   an autoregressive previous-action context for turn-level action sequences.
+- A symbolic supervised trainer that can consume the existing Phase 5
+  `DecisionFrame` search dataset without materializing a full expanded tensor
+  file.
 
 ## What Is Not Complete Yet
 
@@ -239,10 +243,10 @@ before spending more compute on larger search-distillation runs.
 1. Complete the real Phase 5 adapter/encoder/model foundation and add smoke
    tests that prove raw observations become canonical state, legal actions,
    symbolic tensors, and AlphaStar-style model inputs.
-2. Add dataset conversion from Phase 5 search `DecisionFrame` records and future
-   raw observation traces into symbolic global/entity/action tensors.
-3. Train a small supervised AlphaStar-style legal-action policy on rule/search
-   labels before any more large-scale shard generation.
+2. Run the bounded symbolic trainer smoke on ERAWAN, then train the first
+   10-shard AlphaStar-style policy checkpoint from the merged search dataset.
+3. Add symbolic checkpoint inference and offline/battle evaluation against the
+   rule agent, old `rl` agent, and old `hybrid` agent.
 4. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
    mode that can compare direct policy, hybrid policy, and policy plus one-turn
    root search.

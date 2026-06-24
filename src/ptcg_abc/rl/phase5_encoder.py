@@ -23,6 +23,8 @@ ACTION_TYPES = (
     "YES",
     "NO",
     "NUMBER",
+    "SKILL",
+    "SPECIAL_CONDITION",
 )
 ENTITY_ZONES = ("ACTIVE", "BENCH", "HAND", "DISCARD", "PRIZE", "STADIUM", "LOOKING")
 CARD_TYPES = (
@@ -34,7 +36,20 @@ CARD_TYPES = (
     "BASIC_ENERGY",
     "SPECIAL_ENERGY",
 )
-ACTION_AREAS = ("DECK", "HAND", "DISCARD", "ACTIVE", "BENCH", "PRIZE", "STADIUM")
+ACTION_AREAS = (
+    "DECK",
+    "HAND",
+    "DISCARD",
+    "ACTIVE",
+    "BENCH",
+    "PRIZE",
+    "STADIUM",
+    "ENERGY",
+    "TOOL",
+    "PRE_EVOLUTION",
+    "PLAYER",
+    "LOOKING",
+)
 
 
 GLOBAL_FEATURE_NAMES = (
@@ -154,7 +169,9 @@ class Phase5SymbolicEncoder:
         )
         entity_mask.extend([0.0] * (self.max_entities - len(entity_mask)))
         action_mask.extend([0.0] * (self.max_actions - len(action_mask)))
-        action_indices = [action.local_index for action in list(legal_actions)[: self.max_actions]]
+        action_indices = [
+            action.local_index for action in list(legal_actions)[: self.max_actions]
+        ]
         action_indices.extend([-1] * (self.max_actions - len(action_indices)))
         return EncodedPhase5Turn(
             global_features=global_features,

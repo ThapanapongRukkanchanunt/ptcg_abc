@@ -531,7 +531,7 @@ the symbolic Phase 5 input stack is wired into training. Keep the commands above
 for reproducibility, but treat them as superseded by the real Phase 5
 adapter/encoder track below.
 
-## 11. Real Phase 5 Adapter/Encoder Track
+## 11. Real Phase 5 Adapter/Encoder And Symbolic Trainer Track
 
 The next implementation track follows `docs/ptcg_rl_strategy_recommendation.md`
 more directly:
@@ -541,27 +541,106 @@ more directly:
 - Symbolic global/entity/legal-action tensors.
 - AlphaStar-style policy model with a transformer entity/state core and
   autoregressive previous-action context for turn-level action sequences.
+- Direct symbolic supervised trainer that reads existing Phase 5 `DecisionFrame`
+  JSONL records and writes a torch checkpoint.
 
-Do not submit more large search-distillation jobs until this symbolic model has
-a dataset conversion and a small supervised smoke train.
+Do not submit more large search-distillation jobs until this symbolic model has a
+small supervised smoke train and an offline/battle evaluation path.
 
-Local smoke after pulling the adapter/encoder slice:
+Local smoke after pulling the symbolic trainer slice:
 
 ```bash
-"$PY" -m unittest tests.test_rl_phase5_adapters
+python -m unittest tests.test_rl_phase5_adapters tests.test_rl_phase5_symbolic_training
 ```
 
-ERAWAN smoke after pulling the adapter/encoder slice:
+ERAWAN smoke after pulling the symbolic trainer slice:
 
 ```bash
 cd ~/ptcg_abc
+git pull --ff-only
 export PYTHONPATH="$PWD/src"
 PY="$PWD/.conda_ptcg/bin/python"
-"$PY" -m unittest tests.test_rl_phase5_adapters
+"$PY" -m unittest tests.test_rl_phase5_adapters tests.test_rl_phase5_symbolic_training
 ```
 
-The next missing command is a symbolic dataset builder/trainer. Add that before
-resuming large-scale training.
+Use the merged 10-shard decision JSONL as the first trainer input. The individual
+per-shard decision files are not needed for this trainer after a successful
+merge, as long as the merged decision JSONL, merged trace JSONL, and merge
+manifest are present.
+
+Set the dataset path to the merged 10-shard file you actually kept:
+
+```bash
+DATASET=data/datasets/rl/phase5_search_decisions_merged.jsonl
+ls -lh "$DATASET" \
+  experiments/rl/phase5_search_traces_merged.jsonl \
+  experiments/rl/phase5_search_merge_manifest.json
+```
+
+Build a small symbolic JSONL only for inspection. Do not build the full symbolic
+JSONL unless you intentionally want a much larger expanded tensor file:
+
+```bash
+"$PY" -m ptcg_abc rl-build-phase5-symbolic-dataset \
+  --dataset "$DATASET" \
+  --limit 1000 \
+  --output data/datasets/rl/phase5_symbolic_decisions_smoke.jsonl
+```
+
+Submit the first bounded symbolic trainer smoke as a job:
+
+```bash
+JOB=$(
+  DATASET="$DATASET" \
+  LIMIT=2000 \
+  EPOCHS=1 \
+  BATCH_SIZE=32 \
+  D_MODEL=64 \
+  CHANGED_WEIGHT=4.0 \
+  UNCHANGED_WEIGHT=0.5 \
+  CHECKPOINT=models/rl/phase5_symbolic_policy_smoke.pt \
+  REPORT_JSON=experiments/rl/phase5_symbolic_train_report_smoke.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_symbolic_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_smoke_job.txt
+squeue -j "$JOB"
+
+# After the job starts:
+tail -f "experiments/rl/slurm-${JOB}-phase5-symbolic-train.out"
+```
+
+If the smoke report has nonzero examples, a finite loss, and a written
+checkpoint, submit the 10-shard pass:
+
+```bash
+JOB=$(
+  DATASET="$DATASET" \
+  LIMIT=0 \
+  EPOCHS=1 \
+  BATCH_SIZE=64 \
+  D_MODEL=128 \
+  CHANGED_WEIGHT=4.0 \
+  UNCHANGED_WEIGHT=0.5 \
+  CHECKPOINT=models/rl/phase5_symbolic_policy_10shards.pt \
+  REPORT_JSON=experiments/rl/phase5_symbolic_train_report_10shards.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_symbolic_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_symbolic_10shards_job.txt
+```
+
+After confirming the merged files exist, you may remove the large per-shard
+inputs to reclaim space:
+
+```bash
+du -sh data/datasets/rl/phase5_search/shards experiments/rl/phase5_search/traces
+ls -lh "$DATASET" \
+  experiments/rl/phase5_search_traces_merged.jsonl \
+  experiments/rl/phase5_search_merge_manifest.json
+
+# Remove only after the merged files above are present and readable.
+rm -i data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl
+rm -i experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl
+```
 
 ## 12. Ready-To-Train Checklist
 
@@ -571,6 +650,8 @@ resuming large-scale training.
   global/entity/legal-action tensors and action-sequence labels.
 - A small supervised AlphaStar-style policy smoke train completes on a bounded
   sample and writes a torch checkpoint.
+- The direct symbolic trainer can read the merged 10-shard `DecisionFrame` JSONL
+  without writing a full expanded symbolic dataset.
 - Offline evaluation compares the symbolic direct policy against the rule agent
   and the old Phase 4-style distilled policy.
 - One-turn root search is wired to the symbolic policy/value path before more

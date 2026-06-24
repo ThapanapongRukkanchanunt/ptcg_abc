@@ -547,8 +547,10 @@ Current Phase 5 adapter/encoder slice:
 - Added an AlphaStar-inspired torch policy module with a transformer
   entity/state core and an autoregressive previous-action context for
   turn-level action sequences.
-- Next action: add dataset conversion and supervised training for this symbolic
-  model, then re-run search distillation on the new representation.
+- Added a symbolic DecisionFrame bridge, bounded symbolic dataset writer, direct
+  symbolic supervised trainer, and SLURM job script for the first erawan smoke.
+- Next action: run the bounded symbolic smoke job on erawan, then train the
+  first 10-shard symbolic checkpoint if the smoke report is healthy.
 
 Operational rule:
 
