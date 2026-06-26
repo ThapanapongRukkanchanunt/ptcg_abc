@@ -978,6 +978,36 @@ Conclusion:
 - The next action is to inspect the JSONL trace examples, especially truncated
   candidates in the concentrated deck/opponent pairs above.
 
+### Trace Example Inspection
+
+Sample inspected:
+
+- First 10 truncated-record examples from
+  `experiments/rl/phase5_search_agent_plain_trace_3g.jsonl`.
+
+Observed in the pasted sample:
+
+- Example objects inspected: 10.
+- Changed examples: 1.
+- Records where all candidates were truncated: 5.
+- Records where the selected candidate was truncated: 5.
+- Changed records where the selected candidate was truncated: 0.
+
+Interpretation:
+
+- The shown changed decision selected a non-truncated Ability candidate over a
+  baseline Evolve candidate, with no search/candidate errors.
+- In the examples where every candidate truncated, search usually returned the
+  policy baseline. Those rows are less dangerous for action selection, but they
+  do not provide meaningful tactical discrimination; the policy prior dominates.
+- Truncated candidates often appear among Evolve/Ability/Attach sequences in
+  mid-turn states. This suggests the current rollout cap can cut off long
+  intra-turn chains, especially for evolution/setup turns.
+- The pasted examples do not show a changed decision caused by a truncated
+  selected candidate. Before changing the scorer, run a full-trace summary for:
+  selected-candidate truncation rate, changed-selected truncation rate, all-
+  candidates-truncated rate, and action-type/deck/opponent concentration.
+
 ## Artifact Notes
 
 Important model artifacts:

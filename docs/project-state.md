@@ -39,6 +39,10 @@ This is the resume point for the project. Start here after switching machines, c
   39 / 108 wins, 0.361 win rate, 0 timeouts, 0 errors, 4,513 searched decisions,
   1,040 search-changed decisions, 0 search/candidate errors, and 699 truncated
   candidates. Next action is to inspect the JSONL trace examples.
+- Latest trace inspection: in the first 10 pasted truncated examples, 5 records
+  had all candidates truncated and 0 changed records selected a truncated
+  candidate. Need full-trace selected-truncation counts before tuning the
+  rollout cap or scorer.
 
 ## Phase Log
 
