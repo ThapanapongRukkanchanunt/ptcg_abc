@@ -30,6 +30,7 @@ from ptcg_abc.rl.model import (
     train_behavior_cloning_model,
     train_reward_weighted_model,
 )
+from ptcg_abc.rl.phase5_search import RootSearchConfig
 from ptcg_abc.rl.records import DecisionFrame, TrajectoryStep
 from ptcg_abc.rl.rewards import reward_from_result_metadata
 from ptcg_abc.rl.torch_backend import train_torch_bc_model
@@ -678,6 +679,7 @@ def run_phase4_required_benchmark(
     debug_limit_per_matchup: int = 0,
     trace_limit: int = 60,
     search_trace_path: Path | None = None,
+    search_config: RootSearchConfig | None = None,
 ) -> Phase3RequiredBenchmarkResult:
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = phase3_tournament_559_prepared_decks()
@@ -714,6 +716,7 @@ def run_phase4_required_benchmark(
                     guidance_rules=guidance_rules,
                     opponent_deck_ids=benchmark_deck.card_ids,
                     sample_dir=sample_dir,
+                    search_config=search_config,
                 )
                 our_agent = (
                     RecordingPolicyAgent(
@@ -1109,6 +1112,7 @@ def _make_agent(
     guidance_rules: Sequence[str] | None = None,
     opponent_deck_ids: Sequence[int] | None = None,
     sample_dir: Path | None = None,
+    search_config: RootSearchConfig | None = None,
 ) -> Any:
     if agent_kind == "rule":
         return _quiet_rule_agent(deck_ids, card_data, attack_data)
@@ -1129,6 +1133,7 @@ def _make_agent(
             card_data=card_data,
             attack_data=attack_data,
             checkpoint_path=model_path,
+            search_config=search_config,
         )
     rules = default_guidance_rules() if guidance_rules is None else tuple(guidance_rules)
     if agent_kind == "rl":

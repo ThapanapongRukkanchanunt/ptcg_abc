@@ -921,6 +921,38 @@ for label, bucket in (("changed", changed), ("truncated", truncated)):
 PY
 ```
 
+If selected-truncated changed decisions remain a concern, compare the default
+rollout cap against a higher cap with another small trace run:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=3 \
+  MAX_STEPS=600 \
+  SEARCH_ROLLOUT_STEPS=30 \
+  REPORT_JSON=reports/phase5_search_agent_plain_trace_3g_cap30.json \
+  REPORT_MD=reports/phase5_search_agent_plain_trace_3g_cap30.md \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_agent_plain_trace_3g_cap30.jsonl \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_trace_3g_cap30_job.txt
+```
+
+Then run the trace diagnostic:
+
+```bash
+"$PY" -m ptcg_abc rl-diagnose-search-traces \
+  --trace-input experiments/rl/phase5_search_agent_plain_trace_3g_cap30.jsonl \
+  --report-json reports/phase5_search_agent_plain_trace_3g_cap30_diagnostics.json \
+  --report-md reports/phase5_search_agent_plain_trace_3g_cap30_diagnostics.md
+```
+
+Compare default cap 18 versus cap 30 on win rate, average search seconds,
+truncated candidate rate, selected-truncated rate, and changed
+selected-truncated rate. Promote the higher cap only if it reduces dangerous
+truncation without hurting win rate or timing.
+
 ## 13. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

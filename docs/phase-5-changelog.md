@@ -1066,6 +1066,35 @@ Verification:
   - `src/ptcg_abc/cli.py`
   - `src/ptcg_abc/rl/phase5_diagnostics.py`
 
+### Search Rollout-Cap Experiment Support
+
+Implementation update:
+
+- Added online `phase5-search` evaluation overrides:
+  - `rl-evaluate --search-top-k N`
+  - `rl-evaluate --search-rollout-steps N`
+- `run_phase4_required_benchmark` now passes an optional `RootSearchConfig` into
+  `Phase5SearchPolicyAgent`.
+- `scripts/slurm/phase5_symbolic_eval_conda.sbatch` now accepts:
+  - `SEARCH_TOP_K`
+  - `SEARCH_ROLLOUT_STEPS`
+- Updated the runbook with a small cap-30 trace/eval comparison against the
+  default cap-18 behavior.
+
+Verification:
+
+- `tests.test_rl_phase5_symbolic_agent` and `tests.test_rl_phase4` passed:
+  34 tests, 2 skipped.
+- `py_compile` passed for:
+  - `src/ptcg_abc/cli.py`
+  - `src/ptcg_abc/rl/workflow.py`
+
+Next ERAWAN use:
+
+- Run a small `SEARCH_ROLLOUT_STEPS=30` trace job and compare against the default
+  cap-18 trace diagnostics on selected-truncated and changed-selected-truncated
+  rates before changing the default search config.
+
 ## Artifact Notes
 
 Important model artifacts:

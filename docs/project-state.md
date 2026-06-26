@@ -47,6 +47,9 @@ This is the resume point for the project. Start here after switching machines, c
   selected-truncation metrics. On the 3-game trace file, 97 / 4,513 records
   selected a truncated candidate and 43 / 1,040 changed records selected a
   truncated candidate. This is meaningful but not dominant.
+- Latest cap-experiment support: `rl-evaluate` now accepts `--search-top-k` and
+  `--search-rollout-steps`; the ERAWAN eval script accepts `SEARCH_TOP_K` and
+  `SEARCH_ROLLOUT_STEPS`. Next run should compare default cap 18 against cap 30.
 
 ## Phase Log
 

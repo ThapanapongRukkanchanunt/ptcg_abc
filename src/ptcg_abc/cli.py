@@ -800,6 +800,17 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
+    search_config = None
+    if args.search_top_k is not None or args.search_rollout_steps is not None:
+        base_config = RootSearchConfig()
+        search_config = RootSearchConfig(
+            top_k=args.search_top_k
+            if args.search_top_k is not None
+            else base_config.top_k,
+            max_rollout_steps=args.search_rollout_steps
+            if args.search_rollout_steps is not None
+            else base_config.max_rollout_steps,
+        )
     result = run_phase4_required_benchmark(
         sample_dir=args.sample_dir,
         agent_kind=args.agent,
@@ -807,6 +818,7 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
         games_per_matchup=args.games_per_matchup,
         max_steps=args.max_steps,
         search_trace_path=args.search_trace_output,
+        search_config=search_config,
     )
     write_phase4_benchmark_report(
         result,
@@ -1616,6 +1628,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate.add_argument("--games-per-matchup", type=int, default=1)
     rl_evaluate.add_argument("--max-steps", type=int, default=120)
+    rl_evaluate.add_argument(
+        "--search-top-k",
+        type=int,
+        default=None,
+        help="Override phase5-search root candidate count.",
+    )
+    rl_evaluate.add_argument(
+        "--search-rollout-steps",
+        type=int,
+        default=None,
+        help="Override phase5-search one-turn rollout step cap.",
+    )
     rl_evaluate.add_argument(
         "--report-json",
         type=_path,

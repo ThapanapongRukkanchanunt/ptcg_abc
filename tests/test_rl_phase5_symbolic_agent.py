@@ -120,6 +120,10 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
                 "models/rl/phase5_symbolic_policy_10shards.pt",
                 "--search-trace-output",
                 "experiments/rl/phase5_search_eval_traces.jsonl",
+                "--search-top-k",
+                "6",
+                "--search-rollout-steps",
+                "30",
             ]
         )
 
@@ -130,6 +134,8 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
             search_eval_args.search_trace_output,
             Path("experiments/rl/phase5_search_eval_traces.jsonl"),
         )
+        self.assertEqual(search_eval_args.search_top_k, 6)
+        self.assertEqual(search_eval_args.search_rollout_steps, 30)
 
     def test_evaluate_fails_cleanly_when_symbolic_checkpoint_missing(self):
         parser = build_parser()

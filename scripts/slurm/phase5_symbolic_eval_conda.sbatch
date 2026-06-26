@@ -32,10 +32,18 @@ MAX_STEPS="${MAX_STEPS:-600}"
 REPORT_JSON="${REPORT_JSON:-reports/phase5_symbolic_10shards_smoke.json}"
 REPORT_MD="${REPORT_MD:-reports/phase5_symbolic_10shards_smoke.md}"
 SEARCH_TRACE_OUTPUT="${SEARCH_TRACE_OUTPUT:-}"
+SEARCH_TOP_K="${SEARCH_TOP_K:-}"
+SEARCH_ROLLOUT_STEPS="${SEARCH_ROLLOUT_STEPS:-}"
 
 EXTRA_ARGS=()
 if [[ -n "$SEARCH_TRACE_OUTPUT" ]]; then
   EXTRA_ARGS+=(--search-trace-output "$SEARCH_TRACE_OUTPUT")
+fi
+if [[ -n "$SEARCH_TOP_K" ]]; then
+  EXTRA_ARGS+=(--search-top-k "$SEARCH_TOP_K")
+fi
+if [[ -n "$SEARCH_ROLLOUT_STEPS" ]]; then
+  EXTRA_ARGS+=(--search-rollout-steps "$SEARCH_ROLLOUT_STEPS")
 fi
 
 "$PY" -m ptcg_abc rl-evaluate \
