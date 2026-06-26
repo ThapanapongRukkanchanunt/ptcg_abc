@@ -24,6 +24,11 @@ This is the resume point for the project. Start here after switching machines, c
 - Latest implementation slice: `phase5-search` reports now include search
   telemetry for searched decisions, search changes, errors, candidate probes,
   truncations, and per-decision search timing.
+- Latest Phase 5 confirmation: the 30-game required benchmark for
+  `phase5-search` reached 408 / 1,080 wins, 0.378 win rate, 1 timeout, and
+  0 errors. Telemetry showed 44,114 searched decisions, 9,685 search-changed
+  decisions, 0 search errors, 0 candidate errors, 6,395 truncated candidates,
+  and 0.0588 average search seconds.
 
 ## Phase Log
 

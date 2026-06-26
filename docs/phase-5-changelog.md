@@ -789,6 +789,57 @@ Next ERAWAN use:
 - Inspect the new report telemetry before promoting the result beyond the
   first positive 10-game benchmark.
 
+### 30-Game Required Benchmark Confirmation
+
+Model:
+
+- `models/rl/phase5_symbolic_policy_10shards.pt`
+
+Command shape:
+
+- `rl-evaluate --agent phase5-search`
+- `--games-per-matchup 30`
+- `--max-steps 600`
+
+Overall result:
+
+- Games: 1,080.
+- Wins: 408.
+- Losses: 670.
+- Draws: 2.
+- Timeouts: 1.
+- Errors: 0.
+- Win rate: 0.378.
+
+Search telemetry:
+
+- Searched decisions: 44,114.
+- Search-started decisions: 44,114.
+- Search-changed decisions: 9,685.
+- Search change rate: 0.21954481570476492.
+- Search errors: 0.
+- Search error rate: 0.0.
+- Candidate probes: 161,386.
+- Candidate errors: 0.
+- Candidate error rate: 0.0.
+- Truncated candidates: 6,395.
+- Truncated candidate rate: 0.03962549415686615.
+- Total search seconds: 2,592.746139023453.
+- Average search seconds: 0.05877377111627721.
+- Max search seconds: 2.4530896823853254.
+
+Conclusion:
+
+- The 30-game confirmation stayed above the rule baseline: `0.378` versus the
+  previous rule baseline of `0.350`.
+- The result is slightly below the first 10-game `phase5-search` benchmark
+  (`0.386`), but still supports the same conclusion: online one-turn root search
+  is better than the direct symbolic policy and current rule baseline.
+- Telemetry is clean: no search errors, no candidate errors, low timeout count,
+  and average search cost under 60 ms per searched decision.
+- Truncation is nonzero at about 3.96% of candidate probes, so truncation
+  examples should be inspected before treating the search scorer as final.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -817,9 +868,10 @@ File-retention decision:
 
 ## Open Questions And Next Work
 
-- Confirm the online `phase5-search` result with a larger run, repeated seeds,
-  or both, because the first 10-game benchmark is positive but still sample
-  limited.
+- Treat online `phase5-search` with the plain symbolic checkpoint as the current
+  best Phase 5 agent path, pending broader/deeper evaluation.
+- Optionally repeat the 30-game benchmark with a different seed once seed control
+  is exposed or if variance remains a concern.
 - Compare online search against:
   - direct `phase5-symbolic`
   - rule baseline
