@@ -840,6 +840,58 @@ Conclusion:
 - Truncation is nonzero at about 3.96% of candidate probes, so truncation
   examples should be inspected before treating the search scorer as final.
 
+### Pairwise-Mid Search-Prior Probe
+
+Model:
+
+- `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_mid.pt`
+
+Command shape:
+
+- `rl-evaluate --agent phase5-search`
+- `--games-per-matchup 10`
+- `--max-steps 600`
+
+Overall result:
+
+- Games: 360.
+- Wins: 138.
+- Losses: 222.
+- Draws: 0.
+- Timeouts: 0.
+- Errors: 0.
+- Win rate: 0.383.
+
+Search telemetry:
+
+- Searched decisions: 14,684.
+- Search-changed decisions: 3,389.
+- Search change rate: about 0.231.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 2,196.
+- Average search seconds: 0.0628.
+- Max search seconds: 1.4773.
+
+Comparison:
+
+- Plain symbolic search prior at 10 games per matchup: 139 / 360 wins, 0.386
+  win rate, 1 timeout, 0 errors.
+- Pairwise-mid search prior at 10 games per matchup: 138 / 360 wins, 0.383 win
+  rate, 0 timeouts, 0 errors.
+- Plain symbolic search prior at 30 games per matchup: 408 / 1,080 wins, 0.378
+  win rate, 1 timeout, 0 errors.
+
+Conclusion:
+
+- Pairwise-mid is a clean and competitive search prior, but it did not beat the
+  plain symbolic prior in the 10-game benchmark.
+- Do not spend a 30-game confirmation on pairwise-mid yet unless we specifically
+  need a variance check. Keep the plain symbolic checkpoint as the current
+  `phase5-search` prior.
+- The next higher-value work is search telemetry analysis, truncation inspection,
+  stable Search API wrapper refactor, and value/Q/tactical heads.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -875,13 +927,11 @@ File-retention decision:
 - Compare online search against:
   - direct `phase5-symbolic`
   - rule baseline
-  - best supervised pairwise checkpoint
-- Run `phase5-search` with the best balanced supervised checkpoint if available,
-  especially the pairwise baseline-mid checkpoint, to test whether better
-  changed-decision logits improve the search prior.
+  - best supervised pairwise checkpoint; pairwise-mid 10g is complete and did
+    not beat the plain symbolic prior.
 - Decide whether one-turn search should use:
   - plain symbolic checkpoint
-  - baseline-mid checkpoint
+  - baseline-mid checkpoint, only if later evidence overturns the first probe
   - a new value/Q/tactical scorer once implemented
 - Refactor reusable Search API code out of `phase5_search.py` into a stable
   wrapper used by both data generation and online evaluation.

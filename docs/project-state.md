@@ -29,6 +29,9 @@ This is the resume point for the project. Start here after switching machines, c
   0 errors. Telemetry showed 44,114 searched decisions, 9,685 search-changed
   decisions, 0 search errors, 0 candidate errors, 6,395 truncated candidates,
   and 0.0588 average search seconds.
+- Latest prior comparison: pairwise-mid as the `phase5-search` prior reached
+  138 / 360 wins, 0.383 win rate, 0 timeouts, and 0 errors, which is clean but
+  does not beat the plain symbolic prior's 139 / 360, 0.386 result.
 
 ## Phase Log
 
