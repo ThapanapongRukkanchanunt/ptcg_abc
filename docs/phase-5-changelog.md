@@ -8,8 +8,8 @@ that a report can be reconstructed without reading chat history.
 
 - Project phase: Phase 5, advanced RL/search-distillation track.
 - Current implementation base: Phase 4 package and workflow.
-- Current active gate: online `phase5-search` evaluation, which combines the
-  symbolic torch policy with bounded one-turn root search.
+- Current active gate: confirm and instrument online `phase5-search`, which
+  combines the symbolic torch policy with bounded one-turn root search.
 - Latest pushed implementation commit: `bd75835 Add Phase 5 online search
   evaluation agent`.
 - Large-scale data state: 10 completed Phase 5 search shards were enough for the
@@ -695,6 +695,62 @@ Promotion condition for this slice:
 - It does not increase errors or timeouts materially.
 - It is preferably competitive with or better than the rule baseline.
 
+### 10-Game Required Benchmark Result
+
+Model:
+
+- `models/rl/phase5_symbolic_policy_10shards.pt`
+
+Command shape:
+
+- `rl-evaluate --agent phase5-search`
+- `--games-per-matchup 10`
+- `--max-steps 600`
+
+Overall result:
+
+- Games: 360.
+- Wins: 139.
+- Losses: 220.
+- Draws: 1.
+- Timeouts: 1.
+- Errors: 0.
+- Win rate: 0.386.
+
+Comparison against prior gates:
+
+- Direct `phase5-symbolic` on the same 10-game benchmark: 109 / 360 wins,
+  0.303 win rate, 3 timeouts, 0 errors.
+- Rule baseline: 126 / 360 wins, 0.350 win rate, 5 timeouts, 0 errors.
+- Old Phase 4-style trained `rl` model: 79 / 360 wins, 0.219 win rate.
+- Old Phase 4-style hybrid model: 81 / 360 wins, 0.225 win rate.
+
+Conclusion:
+
+- This is the first Phase 5 agent in this run to beat the rule baseline on the
+  required 10-game benchmark.
+- Online one-turn root search improved the plain symbolic policy by 30 wins
+  over 360 games, from 0.303 to 0.386 win rate.
+- It also beat the rule baseline by 13 wins over 360 games, from 0.350 to 0.386
+  win rate, with fewer timeouts and no errors.
+- Treat this as a promotable signal for the online-search path, but not yet a
+  final claim. The next step is to confirm robustness with a larger benchmark or
+  repeated seeds and to add search telemetry to the report.
+
+Strong matchups in this run:
+
+- Crustle as our deck: 24 / 40 wins.
+- Dragapult: 23 / 40 wins.
+- Ogerpon Box: 20 / 40 wins.
+- Several Iono's Bellibolt ex benchmark matchups were favorable, including
+  Ogerpon Box at 8 / 10 and multiple decks at 6-7 / 10.
+
+Weak matchups in this run:
+
+- Alakazam Dudunsparce remained poor: 2 / 40 wins.
+- Dragapult Dusknoir remained poor: 6 / 40 wins.
+- Mega Lucario ex benchmark matchups were still difficult for several decks.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -723,11 +779,16 @@ File-retention decision:
 
 ## Open Questions And Next Work
 
-- Run the online `phase5-search` smoke and 10-game benchmark on ERAWAN.
+- Confirm the online `phase5-search` result with a larger run, repeated seeds,
+  or both, because the first 10-game benchmark is positive but still sample
+  limited.
 - Compare online search against:
   - direct `phase5-symbolic`
   - rule baseline
   - best supervised pairwise checkpoint
+- Run `phase5-search` with the best balanced supervised checkpoint if available,
+  especially the pairwise baseline-mid checkpoint, to test whether better
+  changed-decision logits improve the search prior.
 - Decide whether one-turn search should use:
   - plain symbolic checkpoint
   - baseline-mid checkpoint

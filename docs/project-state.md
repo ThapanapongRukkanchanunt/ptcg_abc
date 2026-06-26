@@ -17,6 +17,10 @@ This is the resume point for the project. Start here after switching machines, c
 - Phase 5 reporting rule: record meaningful future implementation updates,
   ERAWAN results, diagnostics, conclusions, artifact decisions, and next steps
   in `docs/phase-5-changelog.md`.
+- Latest Phase 5 benchmark milestone: `phase5-search` using
+  `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
+  0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
+  beating the direct symbolic policy at 0.303 and the rule baseline at 0.350.
 
 ## Phase Log
 
