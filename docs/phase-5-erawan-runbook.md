@@ -768,7 +768,57 @@ rm -i data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.json
 rm -i experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl
 ```
 
-## 12. Ready-To-Train Checklist
+## 12. Online Phase 5 Search Evaluation
+
+The supervised symbolic sweep is complete when no direct policy clears the
+offline gate. The next Phase 5 slice evaluates the actual intended inference
+shape: symbolic policy prior plus one-turn root search.
+
+Start with the plain symbolic checkpoint as the conservative policy prior:
+
+```bash
+MODEL=models/rl/phase5_symbolic_policy_10shards.pt
+```
+
+Submit a one-game-per-matchup search smoke:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_search_agent_plain_smoke.json \
+  REPORT_MD=reports/phase5_search_agent_plain_smoke.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_smoke_job.txt
+squeue -j "$JOB"
+
+# After the job starts:
+tail -f "experiments/rl/slurm-${JOB}-phase5-symbolic-eval.out"
+```
+
+If the smoke has `errors: 0`, run the 10-game benchmark:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=10 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_search_agent_plain_10g.json \
+  REPORT_MD=reports/phase5_search_agent_plain_10g.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_10g_job.txt
+```
+
+Compare against direct symbolic, rule, and the mid pairwise checkpoint. Only
+promote this path if search improves battle win rate without increasing errors
+or timeouts.
+
+## 13. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

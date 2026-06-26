@@ -256,7 +256,11 @@ before spending more compute on larger search-distillation runs.
    was still negative, and changed-frame third-action rate was `0.292`.
 4. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
    mode that can compare direct policy, hybrid policy, and policy plus one-turn
-   root search.
+   root search. The supervised pairwise sweep mapped the tradeoff but did not
+   clear the gate: stronger pairwise improved changed decisions while causing
+   third-action drift, and tiny pairwise preserved imitation while copying the
+   baseline on changed frames. Move to online search evaluation rather than
+   spending more compute on direct-policy losses.
 5. Refactor reusable search pieces from `phase5_search.py` into stable adapter
    modules so data generation and online evaluation share the same Search API
    wrapper.

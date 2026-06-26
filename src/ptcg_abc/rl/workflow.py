@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from ptcg_abc.agent import HybridRlAgent, RuleBasedAgent
+from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
 from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
 from ptcg_abc.evaluation import (
     Phase3RequiredDebugGame,
@@ -375,6 +376,8 @@ def rollout_games(
                 attack_data,
                 model_path=model_path,
                 guidance_rules=guidance_rules,
+                opponent_deck_ids=benchmark_deck.card_ids,
+                sample_dir=sample_dir,
             ),
             our_deck.card_ids,
             card_data=card_data,
@@ -497,6 +500,8 @@ def rollout_selfplay_games(
                 attack_data,
                 model_path=model_path,
                 guidance_rules=guidance_rules,
+                opponent_deck_ids=player1_deck.card_ids,
+                sample_dir=sample_dir,
             ),
             player0_deck.card_ids,
             card_data=card_data,
@@ -525,6 +530,8 @@ def rollout_selfplay_games(
                 attack_data,
                 model_path=model_path,
                 guidance_rules=guidance_rules,
+                opponent_deck_ids=player0_deck.card_ids,
+                sample_dir=sample_dir,
             ),
             player1_deck.card_ids,
             card_data=card_data,
@@ -699,6 +706,8 @@ def run_phase4_required_benchmark(
                     attack_data,
                     model_path=model_path,
                     guidance_rules=guidance_rules,
+                    opponent_deck_ids=benchmark_deck.card_ids,
+                    sample_dir=sample_dir,
                 )
                 our_agent = (
                     RecordingPolicyAgent(
@@ -1028,12 +1037,25 @@ def _make_agent(
     *,
     model_path: Path | None = None,
     guidance_rules: Sequence[str] | None = None,
+    opponent_deck_ids: Sequence[int] | None = None,
+    sample_dir: Path | None = None,
 ) -> Any:
     if agent_kind == "rule":
         return _quiet_rule_agent(deck_ids, card_data, attack_data)
     if agent_kind == "phase5-symbolic":
         return Phase5SymbolicPolicyAgent(
             deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=model_path,
+        )
+    if agent_kind == "phase5-search":
+        if opponent_deck_ids is None or sample_dir is None:
+            raise ValueError("phase5-search requires opponent_deck_ids and sample_dir.")
+        return Phase5SearchPolicyAgent(
+            deck_ids,
+            opponent_deck_ids=opponent_deck_ids,
+            sample_dir=sample_dir,
             card_data=card_data,
             attack_data=attack_data,
             checkpoint_path=model_path,

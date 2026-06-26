@@ -3,15 +3,69 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
+from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
 from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
 from ptcg_abc.cli import build_parser, command_rl_evaluate, command_rl_rollout
+from ptcg_abc.rl.phase5_search import RootSearchConfig
 
 
 class Phase5SymbolicAgentTests(unittest.TestCase):
     def test_agent_requires_checkpoint_path(self):
         with self.assertRaises(ValueError):
             Phase5SymbolicPolicyAgent([1] * 60)
+
+    def test_search_agent_requires_opponent_deck(self):
+        with self.assertRaises(ValueError):
+            Phase5SearchPolicyAgent(
+                [1] * 60,
+                opponent_deck_ids=[2] * 59,
+                sample_dir=".",
+                checkpoint_path="missing.pt",
+            )
+
+    def test_search_agent_keeps_policy_choice_when_root_search_fails(self):
+        agent = object.__new__(Phase5SearchPolicyAgent)
+        agent.deck_ids = [1] * 60
+        agent.opponent_deck_ids = [2] * 60
+        agent.card_by_id = {}
+        agent.config = RootSearchConfig(top_k=2)
+        agent.use_rule_tiebreak = False
+        agent.traces = []
+        agent._search_begin = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
+        agent._search_end = lambda: None
+
+        frame = SimpleNamespace(
+            legal_options=[
+                SimpleNamespace(option_type="PLAY", card_name="A", attack_id=None),
+                SimpleNamespace(option_type="END", card_name="", attack_id=None),
+            ],
+            board={"your_index": 0, "turn": 1},
+            select_type="MAIN",
+            context="MAIN",
+        )
+        encoded = SimpleNamespace(
+            legal_action_indices=[0, 1],
+            legal_action_mask=[1.0, 1.0],
+        )
+        legal_actions = [
+            SimpleNamespace(rule_score=0.0, local_index=0),
+            SimpleNamespace(rule_score=0.0, local_index=1),
+        ]
+
+        selected, trace = agent._search_decision(
+            SimpleNamespace(),
+            frame,
+            baseline=[1],
+            encoded=encoded,
+            legal_actions=legal_actions,
+            scores=[10.0, 0.0],
+        )
+
+        self.assertEqual(selected, [1])
+        self.assertIn("RuntimeError", trace.search_error or "")
+        self.assertFalse(trace.changed)
 
     def test_cli_accepts_phase5_symbolic_agent(self):
         parser = build_parser()
@@ -33,9 +87,19 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
                 "models/rl/phase5_symbolic_policy_10shards.pt",
             ]
         )
+        search_eval_args = parser.parse_args(
+            [
+                "rl-evaluate",
+                "--agent",
+                "phase5-search",
+                "--model",
+                "models/rl/phase5_symbolic_policy_10shards.pt",
+            ]
+        )
 
         self.assertEqual(evaluate_args.agent, "phase5-symbolic")
         self.assertEqual(rollout_args.agent, "phase5-symbolic")
+        self.assertEqual(search_eval_args.agent, "phase5-search")
 
     def test_evaluate_fails_cleanly_when_symbolic_checkpoint_missing(self):
         parser = build_parser()
@@ -47,6 +111,25 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
                     tmp,
                     "--agent",
                     "phase5-symbolic",
+                    "--model",
+                    str(Path(tmp) / "missing.pt"),
+                ]
+            )
+            with contextlib.redirect_stderr(io.StringIO()):
+                status = command_rl_evaluate(args)
+
+        self.assertEqual(status, 2)
+
+    def test_evaluate_fails_cleanly_when_search_checkpoint_missing(self):
+        parser = build_parser()
+        with tempfile.TemporaryDirectory() as tmp:
+            args = parser.parse_args(
+                [
+                    "rl-evaluate",
+                    "--sample-dir",
+                    tmp,
+                    "--agent",
+                    "phase5-search",
                     "--model",
                     str(Path(tmp) / "missing.pt"),
                 ]

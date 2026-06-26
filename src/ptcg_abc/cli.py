@@ -607,9 +607,9 @@ def command_rl_rollout(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.agent == "phase5-symbolic" and model_path is None:
+    if args.agent in {"phase5-symbolic", "phase5-search"} and model_path is None:
         print(
-            f"Phase 5 symbolic checkpoint not found at {args.model}.",
+            f"Phase 5 checkpoint not found at {args.model}.",
             file=sys.stderr,
         )
         return 2
@@ -769,9 +769,9 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.agent == "phase5-symbolic" and model_path is None:
+    if args.agent in {"phase5-symbolic", "phase5-search"} and model_path is None:
         print(
-            f"Phase 5 symbolic checkpoint not found at {args.model}.",
+            f"Phase 5 checkpoint not found at {args.model}.",
             file=sys.stderr,
         )
         return 2
@@ -1342,7 +1342,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_rollout.add_argument(
         "--agent",
-        choices=["rule", "rl", "hybrid", "phase5-symbolic"],
+        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search"],
         default="hybrid",
     )
     rl_rollout.add_argument(
@@ -1557,7 +1557,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate.add_argument(
         "--agent",
-        choices=["rule", "rl", "hybrid", "phase5-symbolic"],
+        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search"],
         default="hybrid",
     )
     rl_evaluate.add_argument(

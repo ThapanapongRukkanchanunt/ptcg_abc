@@ -26,13 +26,14 @@ print("device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else 
 PY
 
 MODEL="${MODEL:-models/rl/phase5_symbolic_policy_10shards.pt}"
+AGENT="${AGENT:-phase5-symbolic}"
 GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-1}"
 MAX_STEPS="${MAX_STEPS:-600}"
 REPORT_JSON="${REPORT_JSON:-reports/phase5_symbolic_10shards_smoke.json}"
 REPORT_MD="${REPORT_MD:-reports/phase5_symbolic_10shards_smoke.md}"
 
 "$PY" -m ptcg_abc rl-evaluate \
-  --agent phase5-symbolic \
+  --agent "$AGENT" \
   --model "$MODEL" \
   --games-per-matchup "$GAMES_PER_MATCHUP" \
   --max-steps "$MAX_STEPS" \
