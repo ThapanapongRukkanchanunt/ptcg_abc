@@ -1242,6 +1242,96 @@ Decision:
 - Next benchmark should be a 30-game required run with the default cap 30,
   including trace output, to confirm win rate and monitor the higher max latency.
 
+### Search Rollout-Cap 30 30-Game Trace Diagnostic
+
+Trace diagnostic:
+
+- Trace: `experiments/rl/phase5_search_agent_plain_30g_cap30_default.jsonl`.
+- Report: `reports/phase5_search_agent_plain_30g_cap30_default_diagnostics.md`.
+
+Observed cap-30 default 30-game trace counts:
+
+- Records: 44,811.
+- Comparable records: 44,811.
+- Changed records: 9,693.
+- Candidate probes: 163,873.
+- Search errors: 0.
+- Candidate errors: 0.
+- All-candidates-truncated records: 133.
+- All-candidates-truncated rate: 0.002968.
+- Truncated candidates: 777.
+- Truncated candidate rate: 0.004741.
+- Selected-truncated records: 140.
+- Selected-truncated rate: 0.003124.
+- Changed selected-truncated records: 32.
+- Changed selected-truncated rate: 0.003301.
+- Mean search-minus-baseline combined score: 0.605419.
+- Mean search-minus-baseline tactical score: 0.612222.
+
+Selected-truncated concentration:
+
+- By action type:
+  - `PLAY`: 61.
+  - `EVOLVE`: 36.
+  - `ATTACH`: 27.
+  - `ABILITY`: 14.
+  - `ATTACK`: 1.
+  - `RETREAT`: 1.
+- By matchup:
+  - Deck 1 vs Mega Lucario ex: 63.
+  - Deck 1 vs Iono's Bellibolt ex: 35.
+  - Deck 1 vs Crustle: 22.
+  - Deck 1 vs Mega Abomasnow ex: 11.
+  - Deck 3 vs Mega Abomasnow ex: 4.
+  - Deck 3 vs Mega Lucario ex: 2.
+  - Deck 5 vs Mega Lucario ex: 1.
+  - Deck 5 vs Iono's Bellibolt ex: 1.
+  - Deck 8 vs Mega Lucario ex: 1.
+
+Interpretation:
+
+- The default cap-30 search remains operationally clean at 30-game scale:
+  no search errors and no candidate errors.
+- Truncation remains low: 777 / 163,873 candidate probes, 140 / 44,811 selected
+  records, and 32 / 9,693 changed records.
+- Remaining selected truncation is strongly concentrated in Deck 1 matchups, so
+  future trace inspection should prioritize Alakazam Dudunsparce lines.
+- The benchmark win/loss/timing summary for the 30-game default-cap run is still
+  needed to complete the confirmation record.
+
+## Next Phase 5 Training Track
+
+The next plan follows this order:
+
+1. Generate `phase5-search` self-play data.
+2. Add value, Q/action-value, and tactical heads to the symbolic model.
+3. Train a generalist model from a mixture of:
+   - rule demonstrations,
+   - search-improved decisions,
+   - search/self-play outcome trajectories.
+4. Evaluate the resulting direct and search agents on the current 9-deck
+   required benchmark.
+5. Expand to more decks only after the 9-deck gate is stable. If the broader
+   deck set exposes capacity limits, increase the model size before scaling
+   reinforcement learning.
+6. Start larger PPO/self-play only after the generalist supervised/value model
+   clears the benchmark gate.
+
+Implementation implications:
+
+- The immediate next code slice should be a Phase 5 self-play collector, not PPO.
+- The collector should run `phase5-search` versus `phase5-search`, write
+  trajectory records with final outcome targets, preserve per-player metadata,
+  and optionally write search traces for sampled games.
+- The multi-head trainer should consume three data families through one symbolic
+  adapter/encoder path:
+  - imitation/action labels from rule demonstrations,
+  - search labels and candidate scores from search-improved data,
+  - value/outcome and tactical targets from self-play trajectories.
+- PPO remains explicitly downstream; it should not start until the supervised
+  generalist model beats or matches the current search baseline on the required
+  benchmark.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1270,23 +1360,13 @@ File-retention decision:
 
 ## Open Questions And Next Work
 
-- Treat online `phase5-search` with the plain symbolic checkpoint as the current
-  best Phase 5 agent path, pending broader/deeper evaluation.
-- Optionally repeat the 30-game benchmark with a different seed once seed control
-  is exposed or if variance remains a concern.
-- Compare online search against:
-  - direct `phase5-symbolic`
-  - rule baseline
-  - best supervised pairwise checkpoint; pairwise-mid 10g is complete and did
-    not beat the plain symbolic prior.
-- Decide whether one-turn search should use:
-  - plain symbolic checkpoint
-  - baseline-mid checkpoint, only if later evidence overturns the first probe
-  - a new value/Q/tactical scorer once implemented
-- Refactor reusable Search API code out of `phase5_search.py` into a stable
-  wrapper used by both data generation and online evaluation.
-- Inspect the captured trace JSONL for truncation examples and search
-  disagreements before tuning search scoring.
-- Implement value, Q, and auxiliary tactical heads after the online search gate.
-- Continue toward the full Phase 5 plan only after the current online search
-  slice produces measurable battle evidence.
+- Record the 30-game default-cap benchmark win/loss/timing summary.
+- Implement Phase 5 search self-play data generation.
+- Add value, Q/action-value, and auxiliary tactical heads.
+- Train the next generalist symbolic model from rule demonstrations,
+  search-improved decisions, and self-play outcomes.
+- Evaluate on the current 9-deck required benchmark before adding more decks.
+- Expand to more decks only after the 9-deck gate is stable; consider a larger
+  model if broader deck diversity exposes capacity limits.
+- Start larger PPO/self-play only after the supervised/value generalist model is
+  stable and measurable.

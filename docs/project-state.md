@@ -66,6 +66,14 @@ This is the resume point for the project. Start here after switching machines, c
   cap-18 10-game result of 139 / 360, 0.386 while keeping average timing flat,
   so `RootSearchConfig.max_rollout_steps` is promoted to 30. Watch max latency
   in the next 30-game default-cap confirmation run.
+- Latest 30-game default-cap trace diagnostic: 44,811 records, 9,693 changed
+  records, 0 search errors, 0 candidate errors, 777 truncated candidates,
+  140 selected-truncated records, and 32 changed selected-truncated records.
+  The 30-game benchmark win/loss/timing summary still needs to be recorded.
+- Next Phase 5 training plan: generate `phase5-search` self-play data, add
+  value/Q/tactical heads, train a generalist model from rule demonstrations plus
+  search-improved decisions plus self-play outcomes, evaluate on the current
+  9-deck benchmark, then expand to more decks before starting larger PPO.
 
 ## Phase Log
 
@@ -76,7 +84,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | Adapter/encoder slice in progress | Search-improved data generation exists; current work is moving from the Phase 4 option-ranker path to canonical adapters, symbolic encoders, and an AlphaStar-style turn policy. |
+| Phase 5: Advanced RL strategy, training, and evaluation | Search-self-play and multi-head planning | Cap-30 online root search is the current best inference path; next work is Phase 5 search self-play data, value/Q/tactical heads, mixed generalist training, 9-deck evaluation, broader deck expansion, then larger PPO. |
 
 ## Completed Phase Details
 

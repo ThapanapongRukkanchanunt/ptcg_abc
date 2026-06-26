@@ -247,29 +247,44 @@ timing.
 
 ## Implementation Priorities
 
-1. Complete the real Phase 5 adapter/encoder/model foundation and add smoke
-   tests that prove raw observations become canonical state, legal actions,
-   symbolic tensors, and AlphaStar-style model inputs.
-2. Run `rl-diagnose-phase5-symbolic` on the 10-shard checkpoint because the
-   first 10-game symbolic benchmark reached `0.303`, below the rule baseline.
-3. Use the diagnostic split to choose the next train: changed-only warmup,
-   pairwise/all-negative symbolic loss, action-type balancing, or label-quality
-   inspection. The first symbolic diagnostic selected pairwise/all-negative:
-   search-changed agreement was `0.356`, the model search-minus-baseline margin
-   was still negative, and changed-frame third-action rate was `0.292`.
-4. Confirm the online `phase5-search` result with larger or repeated
-   benchmarks, and use the new search telemetry report section to track search
-   attempts, changed decisions, errors, truncations, and timing.
-5. Refactor reusable search pieces from `phase5_search.py` into stable adapter
-   modules so data generation and online evaluation share the same Search API
-   wrapper.
-6. Implement exact own-prize deduction after deck
-   search.
-7. Add value, Q, and auxiliary tactical heads once the symbolic policy input is
-   stable.
-8. Add stage-gated reports that follow the evaluation-plan format.
-9. Expand from the current 9-deck required benchmark to the broader 13-deck
-   league when the first slice is measurable and stable.
+1. Generate `phase5-search` self-play data.
+   - Use the promoted cap-30 online search agent.
+   - Keep the current 9-deck deck pool first.
+   - Store per-decision trajectory records with final game outcomes, player
+     perspective, matchup metadata, timeout/error flags, and optional sampled
+     search traces.
+2. Add value, Q/action-value, and auxiliary tactical heads to the symbolic
+   model.
+   - Value head: predicts game outcome or shaped return from the current state.
+   - Q/action-value head: predicts the outcome quality of each legal action.
+   - Tactical heads: predict short-horizon damage, prize change, KO/turn-end
+     events, resource changes, and self-risk from search/self-play rollouts.
+3. Train a generalist model from a supervised mixture:
+   - rule demonstrations for broad legal-action coverage,
+   - search-improved decisions for better root choices,
+   - self-play trajectories for value/Q/tactical outcome targets.
+4. Evaluate on the current 9-deck required benchmark.
+   - Compare direct `phase5-symbolic`, `phase5-search`, rule baseline, and the
+     current cap-30 search baseline.
+   - Keep diagnostics for action agreement, value calibration, Q ranking,
+     tactical-head error, search-change rate, truncation, errors, and timing.
+5. Expand to more decks only after the 9-deck gate is stable.
+   - Use the broader 13-deck league as the next diversity gate.
+   - If broader-deck results regress because of capacity, increase model size
+     before moving to larger reinforcement learning.
+6. Start larger PPO/self-play only after the generalist supervised/value model
+   is stable and measurable.
+   - PPO should use the multi-head model as the initialization, not the current
+     policy-only checkpoint.
+
+Near-term implementation slice:
+
+1. Add a Phase 5 search self-play data command and SLURM script.
+2. Run a small smoke job, then a bounded ERAWAN job.
+3. Add a self-play manifest/report with games, steps, wins by deck, timeouts,
+   errors, search telemetry, and trajectory counts.
+4. Extend the symbolic model/trainer with value/Q/tactical heads once the
+   self-play records exist.
 
 ## ERAWAN Operating Track
 

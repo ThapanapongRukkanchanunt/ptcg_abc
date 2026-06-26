@@ -1025,7 +1025,41 @@ After it finishes, diagnose the 30-game trace:
   --report-md reports/phase5_search_agent_plain_30g_cap30_default_diagnostics.md
 ```
 
-## 13. Ready-To-Train Checklist
+Summarize the benchmark side too:
+
+```bash
+cat reports/phase5_search_agent_plain_30g_cap30_default.json
+grep -E "Games:|Wins:|Losses:|Draws:|Timeouts:|Errors:|Win rate:|Searched decisions:|Search-changed decisions:|Average search seconds:|Max search seconds:" \
+  reports/phase5_search_agent_plain_30g_cap30_default.md
+```
+
+## 13. Next Phase 5 Training Track
+
+The next work is not large PPO yet. Follow this order:
+
+1. Generate `phase5-search` self-play data.
+2. Add value, Q/action-value, and tactical heads.
+3. Train a generalist model from rule demonstrations, search-improved decisions,
+   and self-play outcomes.
+4. Evaluate on the current 9-deck required benchmark.
+5. Expand to more decks if the 9-deck gate is stable.
+6. Start larger PPO/self-play only after the supervised/value generalist model
+   is stable.
+
+Next implementation slice:
+
+- Add a Phase 5 search self-play collector command.
+- Add a SLURM script for small and bounded self-play jobs.
+- Output trajectory JSONL with final outcome targets and per-player metadata.
+- Preserve search telemetry and optional sampled traces.
+- Write a manifest/report with games, steps, timeouts, errors, deck matchup
+  counts, search decisions, search changes, truncation, and output paths.
+
+Do not use old PPO/update commands as the next main step. They remain useful for
+reference, but the next model needs value/Q/tactical targets before larger
+policy optimization.
+
+## 14. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.
@@ -1035,6 +1069,9 @@ After it finishes, diagnose the 30-game trace:
   sample and writes a torch checkpoint.
 - The direct symbolic trainer can read the merged 10-shard `DecisionFrame` JSONL
   without writing a full expanded symbolic dataset.
+- Phase 5 search self-play records exist with final outcome/value targets.
+- Multi-head symbolic trainer can consume rule demonstrations, search-improved
+  decisions, and self-play trajectory records in one mixed run.
 - Offline evaluation compares the symbolic direct policy against the rule agent
   and the old Phase 4-style distilled policy using `rl-evaluate --agent
   phase5-symbolic`.
