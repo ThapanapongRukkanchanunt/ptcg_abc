@@ -82,6 +82,11 @@ This is the resume point for the project. Start here after switching machines, c
   trajectory shards default to
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay/shards`, while
   reports and optional traces stay under `experiments/rl/phase5_search_selfplay`.
+- Latest self-play smoke: 2 / 2 games started, 298 trajectory steps, 0 errors,
+  0 timeouts, 153 search decisions, 24 search-changed decisions, 0 search
+  errors, 0 candidate errors, 1 truncated candidate, 153 trace records. Next
+  action is the bounded two-shard 25-games-per-shard self-play job over the
+  current 9-deck pool.
 
 ## Phase Log
 

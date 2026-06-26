@@ -1405,6 +1405,46 @@ Verification:
 - Parser smoke confirmed `rl-generate-phase5-search-selfplay` accepts game
   offset, deck subset, search overrides, and trace sampling flags.
 
+### Phase 5 Search Self-Play Smoke Result
+
+Run:
+
+- Agent: `phase5-search`.
+- Deck subset: decks 1 and 2.
+- Games requested: 2.
+- Max steps: 600.
+- Trace games: 2.
+- Output:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay/shards/phase5_search_selfplay_shard-0.jsonl`.
+- Trace:
+  `experiments/rl/phase5_search_selfplay/traces/phase5_search_selfplay_traces_shard-0.jsonl`.
+
+Observed summary:
+
+- Games started: 2 / 2.
+- Steps written: 298.
+- Errors: 0.
+- Timeouts: 0.
+- Draws: 0.
+- Trace records: 153.
+- Search decisions: 153.
+- Search-changed decisions: 24.
+- Change rate: 0.156863.
+- Candidate probes: 520.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 1.
+- Average search seconds: 0.019357.
+- Max search seconds: 0.075529.
+
+Interpretation:
+
+- The Phase 5 search self-play collector is working on ERAWAN.
+- It produced valid trajectory records with final outcome targets and sampled
+  search traces.
+- Search telemetry is clean enough to proceed to the bounded two-shard
+  self-play job over the current 9-deck pool.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1434,7 +1474,8 @@ File-retention decision:
 ## Open Questions And Next Work
 
 - Record the 30-game default-cap benchmark win/loss/timing summary.
-- Implement Phase 5 search self-play data generation.
+- Run the bounded two-shard Phase 5 search self-play job over the current 9-deck
+  pool.
 - Add value, Q/action-value, and auxiliary tactical heads.
 - Train the next generalist symbolic model from rule demonstrations,
   search-improved decisions, and self-play outcomes.
