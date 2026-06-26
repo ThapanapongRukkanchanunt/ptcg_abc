@@ -34,6 +34,21 @@ that a report can be reconstructed without reading chat history.
   and terminates safely.
 - Start with one-turn root search before deeper or multi-turn search.
 - Diagnostics should run as SLURM jobs on ERAWAN, not as large login-node jobs.
+- Future project updates and new Codex chats must keep this changelog current.
+  Record meaningful implementation changes, ERAWAN results, diagnostics,
+  conclusions, artifact-retention decisions, and next steps here so reports can
+  be written from the repository instead of chat history.
+
+## Changelog Maintenance
+
+### 2026-06-26
+
+- Added a workspace-level `AGENTS.md` instruction requiring future Phase 5
+  updates to record report-relevant changes in this changelog.
+- Added a repo-level `AGENTS.md` so the changelog discipline travels with the
+  GitHub project and is visible to future project-local Codex chats.
+- Linked this changelog from the master plan, ERAWAN runbook, and project-state
+  document in the previous changelog commit.
 
 ## Phase 5 Plan Recording
 

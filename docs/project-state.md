@@ -14,6 +14,9 @@ This is the resume point for the project. Start here after switching machines, c
   `docs/ptcg_rl_strategy_recommendation.md`,
   `docs/ptcg_rl_advanced_training_plan.md`,
   `docs/ptcg_rl_evaluation_plan.md`)
+- Phase 5 reporting rule: record meaningful future implementation updates,
+  ERAWAN results, diagnostics, conclusions, artifact decisions, and next steps
+  in `docs/phase-5-changelog.md`.
 
 ## Phase Log
 
