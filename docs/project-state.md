@@ -43,6 +43,10 @@ This is the resume point for the project. Start here after switching machines, c
   had all candidates truncated and 0 changed records selected a truncated
   candidate. Need full-trace selected-truncation counts before tuning the
   rollout cap or scorer.
+- Latest full-trace truncation summary: `rl-diagnose-search-traces` now reports
+  selected-truncation metrics. On the 3-game trace file, 97 / 4,513 records
+  selected a truncated candidate and 43 / 1,040 changed records selected a
+  truncated candidate. This is meaningful but not dominant.
 
 ## Phase Log
 

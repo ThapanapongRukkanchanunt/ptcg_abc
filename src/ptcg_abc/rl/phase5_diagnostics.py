@@ -111,8 +111,18 @@ class TraceDiagnostics:
     records: int
     changed_records: int
     search_errors: int
+    candidate_probes: int
     candidate_errors: int
     truncated_candidates: int
+    truncated_candidate_rate: float
+    all_candidates_truncated_records: int
+    all_candidates_truncated_rate: float
+    selected_truncated_records: int
+    selected_truncated_rate: float
+    changed_selected_truncated_records: int
+    changed_selected_truncated_rate: float
+    selected_truncated_by_type: dict[str, int]
+    selected_truncated_by_matchup: list[dict[str, Any]]
     comparable_records: int
     mean_search_minus_baseline_combined_score: float
     mean_search_minus_baseline_tactical_score: float
@@ -239,6 +249,12 @@ def diagnose_search_distillation(
 
 def diagnose_search_traces(path: Path) -> TraceDiagnostics:
     records = changed_records = search_errors = candidate_errors = truncated = 0
+    candidate_probes = 0
+    all_candidates_truncated = 0
+    selected_truncated = 0
+    changed_selected_truncated = 0
+    selected_truncated_by_type: Counter[str] = Counter()
+    selected_truncated_by_matchup: Counter[tuple[int, str]] = Counter()
     comparable = 0
     combined_margin_sum = 0.0
     tactical_margin_sum = 0.0
@@ -253,8 +269,11 @@ def diagnose_search_traces(path: Path) -> TraceDiagnostics:
             changed_records += int(bool(payload.get("changed")))
             search_errors += int(bool(payload.get("search_error")))
             candidates = list(payload.get("candidates", []) or [])
+            candidate_probes += len(candidates)
             candidate_errors += sum(1 for candidate in candidates if candidate.get("error"))
             truncated += sum(1 for candidate in candidates if candidate.get("truncated"))
+            if candidates and all(candidate.get("truncated") for candidate in candidates):
+                all_candidates_truncated += 1
 
             baseline = tuple(int(index) for index in payload.get("baseline_indices", []) or [])
             search = tuple(int(index) for index in payload.get("search_indices", []) or [])
@@ -267,6 +286,17 @@ def diagnose_search_traces(path: Path) -> TraceDiagnostics:
             if baseline_candidate is None or search_candidate is None:
                 continue
             comparable += 1
+            if search_candidate.get("truncated"):
+                selected_truncated += 1
+                selected_truncated_by_type[str(search_candidate.get("option_type", ""))] += 1
+                selected_truncated_by_matchup[
+                    (
+                        int(payload.get("deck_index", 0) or 0),
+                        str(payload.get("opponent", "")),
+                    )
+                ] += 1
+                if bool(payload.get("changed")):
+                    changed_selected_truncated += 1
             combined_margin_sum += _candidate_score(search_candidate, "combined_score") - _candidate_score(
                 baseline_candidate,
                 "combined_score",
@@ -281,8 +311,25 @@ def diagnose_search_traces(path: Path) -> TraceDiagnostics:
         records=records,
         changed_records=changed_records,
         search_errors=search_errors,
+        candidate_probes=candidate_probes,
         candidate_errors=candidate_errors,
         truncated_candidates=truncated,
+        truncated_candidate_rate=truncated / candidate_probes if candidate_probes else 0.0,
+        all_candidates_truncated_records=all_candidates_truncated,
+        all_candidates_truncated_rate=(
+            all_candidates_truncated / records if records else 0.0
+        ),
+        selected_truncated_records=selected_truncated,
+        selected_truncated_rate=selected_truncated / divisor if comparable else 0.0,
+        changed_selected_truncated_records=changed_selected_truncated,
+        changed_selected_truncated_rate=(
+            changed_selected_truncated / changed_records if changed_records else 0.0
+        ),
+        selected_truncated_by_type=dict(selected_truncated_by_type.most_common()),
+        selected_truncated_by_matchup=[
+            {"deck_index": deck_index, "opponent": opponent, "count": count}
+            for (deck_index, opponent), count in selected_truncated_by_matchup.most_common(20)
+        ],
         comparable_records=comparable,
         mean_search_minus_baseline_combined_score=(
             combined_margin_sum / divisor if comparable else 0.0
@@ -355,8 +402,23 @@ def write_search_distill_diagnostic_markdown(
                 f"- Trace records: {trace['records']}",
                 f"- Changed trace records: {trace['changed_records']}",
                 f"- Search errors: {trace['search_errors']}",
+                f"- Candidate probes: {trace['candidate_probes']}",
                 f"- Candidate errors: {trace['candidate_errors']}",
                 f"- Truncated candidates: {trace['truncated_candidates']}",
+                f"- Truncated candidate rate: {trace['truncated_candidate_rate']:.3f}",
+                (
+                    "- All-candidates-truncated records: "
+                    f"{trace['all_candidates_truncated_records']}"
+                ),
+                f"- Selected-truncated records: {trace['selected_truncated_records']}",
+                (
+                    "- Changed selected-truncated records: "
+                    f"{trace['changed_selected_truncated_records']}"
+                ),
+                (
+                    "- Changed selected-truncated rate: "
+                    f"{trace['changed_selected_truncated_rate']:.3f}"
+                ),
                 (
                     "- Mean search-minus-baseline combined score: "
                     f"{trace['mean_search_minus_baseline_combined_score']:.6f}"
@@ -406,6 +468,89 @@ def write_search_distill_diagnostic_markdown(
                 )
             lines.append("")
 
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def write_trace_diagnostic_markdown(
+    diagnostics: TraceDiagnostics,
+    path: Path,
+    *,
+    trace_path: Path | None = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = diagnostics.to_dict()
+    lines = [
+        "# Phase 5 Search Trace Diagnostics",
+        "",
+        f"- Trace: `{trace_path.as_posix() if trace_path is not None else 'not provided'}`",
+        "",
+        "## Summary",
+        "",
+        f"- Records: {payload['records']}",
+        f"- Changed records: {payload['changed_records']}",
+        f"- Search errors: {payload['search_errors']}",
+        f"- Candidate probes: {payload['candidate_probes']}",
+        f"- Candidate errors: {payload['candidate_errors']}",
+        f"- Truncated candidates: {payload['truncated_candidates']}",
+        f"- Truncated candidate rate: {payload['truncated_candidate_rate']:.3f}",
+        (
+            "- All-candidates-truncated records: "
+            f"{payload['all_candidates_truncated_records']}"
+        ),
+        (
+            "- All-candidates-truncated rate: "
+            f"{payload['all_candidates_truncated_rate']:.3f}"
+        ),
+        f"- Selected-truncated records: {payload['selected_truncated_records']}",
+        f"- Selected-truncated rate: {payload['selected_truncated_rate']:.3f}",
+        (
+            "- Changed selected-truncated records: "
+            f"{payload['changed_selected_truncated_records']}"
+        ),
+        (
+            "- Changed selected-truncated rate: "
+            f"{payload['changed_selected_truncated_rate']:.3f}"
+        ),
+        "",
+        "## Selected-Truncated By Type",
+        "",
+    ]
+    by_type = payload["selected_truncated_by_type"]
+    if by_type:
+        for option_type, count in by_type.items():
+            lines.append(f"- {option_type or 'UNKNOWN'}: {count}")
+    else:
+        lines.append("- None")
+
+    lines.extend(["", "## Selected-Truncated By Matchup", ""])
+    by_matchup = payload["selected_truncated_by_matchup"]
+    if by_matchup:
+        lines.extend(
+            [
+                "| Deck | Opponent | Count |",
+                "| ---: | --- | ---: |",
+            ]
+        )
+        for row in by_matchup:
+            lines.append(f"| {row['deck_index']} | {row['opponent']} | {row['count']} |")
+    else:
+        lines.append("- None")
+
+    lines.extend(
+        [
+            "",
+            "## Margins",
+            "",
+            (
+                "- Mean search-minus-baseline combined score: "
+                f"{payload['mean_search_minus_baseline_combined_score']:.6f}"
+            ),
+            (
+                "- Mean search-minus-baseline tactical score: "
+                f"{payload['mean_search_minus_baseline_tactical_score']:.6f}"
+            ),
+        ]
+    )
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 

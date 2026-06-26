@@ -1008,6 +1008,64 @@ Interpretation:
   selected-candidate truncation rate, changed-selected truncation rate, all-
   candidates-truncated rate, and action-type/deck/opponent concentration.
 
+### Full Trace Truncation Summary
+
+Trace:
+
+- `experiments/rl/phase5_search_agent_plain_trace_3g.jsonl`
+
+Observed full-trace counts:
+
+- Records: 4,513.
+- Changed records: 1,040.
+- All-candidates-truncated records: 72.
+- Selected-truncated records: 97.
+- Changed selected-truncated records: 43.
+- Selected-truncated by type:
+  - `PLAY`: 35.
+  - `ABILITY`: 25.
+  - `EVOLVE`: 20.
+  - `ATTACH`: 16.
+  - `RETREAT`: 1.
+- Top selected-truncated matchups:
+  - Deck 3 vs Mega Abomasnow ex: 12.
+  - Deck 8 vs Mega Lucario ex: 11.
+  - Deck 1 vs Mega Abomasnow ex: 7.
+  - Deck 8 vs Mega Abomasnow ex: 7.
+  - Deck 9 vs Iono's Bellibolt ex: 6.
+  - Deck 1 vs Mega Lucario ex: 5.
+  - Deck 3 vs Iono's Bellibolt ex: 5.
+  - Deck 8 vs Iono's Bellibolt ex: 5.
+
+Interpretation:
+
+- Selected-truncated decisions are uncommon overall: 97 / 4,513, about 2.15%.
+- Changed selected-truncated decisions are more relevant: 43 / 1,040 changed
+  records, about 4.13%.
+- This is not large enough to explain the whole search behavior, but it is
+  significant enough to track before tuning the rollout cap or tactical scorer.
+- Truncation affects several action types, especially `PLAY`, `ABILITY`,
+  `EVOLVE`, and `ATTACH`, so the issue is not isolated to one action family.
+
+Implementation update:
+
+- Extended `diagnose_search_traces` with selected-truncation statistics,
+  all-candidates-truncated records, rates, selected-truncated action-type
+  counts, and selected-truncated matchup concentrations.
+- Added standalone CLI:
+  - `rl-diagnose-search-traces`
+- Added Markdown/JSON report output for trace-only diagnostics.
+- Updated the ERAWAN runbook to use the new command before manual example
+  inspection.
+
+Verification:
+
+- `tests.test_rl_phase4` and `tests.test_rl_phase5_symbolic_agent` passed:
+  34 tests, 2 skipped.
+- `py_compile` passed for:
+  - `src/ptcg_abc/cli.py`
+  - `src/ptcg_abc/rl/phase5_diagnostics.py`
+
 ## Artifact Notes
 
 Important model artifacts:

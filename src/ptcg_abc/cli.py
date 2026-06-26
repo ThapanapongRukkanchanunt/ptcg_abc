@@ -71,7 +71,11 @@ from ptcg_abc.rl.phase5_search import (
     generate_search_improved_data,
     merge_search_data,
 )
-from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation
+from ptcg_abc.rl.phase5_diagnostics import (
+    diagnose_search_distillation,
+    diagnose_search_traces,
+    write_trace_diagnostic_markdown,
+)
 from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
@@ -716,6 +720,27 @@ def command_rl_diagnose_search_distill(args: argparse.Namespace) -> int:
         return 2
     print(json.dumps(diagnostics.to_dict(), indent=2))
     print(f"Wrote Phase 5 search-distillation diagnostics to {args.report_md}.")
+    return 0
+
+
+def command_rl_diagnose_search_traces(args: argparse.Namespace) -> int:
+    if not args.trace_input.exists():
+        print(f"Phase 5 search trace file not found at {args.trace_input}.", file=sys.stderr)
+        return 2
+    diagnostics = diagnose_search_traces(args.trace_input)
+    payload = diagnostics.to_dict()
+    args.report_json.parent.mkdir(parents=True, exist_ok=True)
+    args.report_json.write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    write_trace_diagnostic_markdown(
+        diagnostics,
+        args.report_md,
+        trace_path=args.trace_input,
+    )
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    print(f"Wrote Phase 5 search trace diagnostics to {args.report_md}.")
     return 0
 
 
@@ -1487,6 +1512,27 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("reports") / "phase5_search_distill_diagnostics.md",
     )
     rl_diagnose_search.set_defaults(func=command_rl_diagnose_search_distill)
+
+    rl_diagnose_traces = subparsers.add_parser(
+        "rl-diagnose-search-traces",
+        help="Summarize Phase 5 root-search trace JSONL files.",
+    )
+    rl_diagnose_traces.add_argument(
+        "--trace-input",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_search_traces_merged.jsonl",
+    )
+    rl_diagnose_traces.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("reports") / "phase5_search_trace_diagnostics.json",
+    )
+    rl_diagnose_traces.add_argument(
+        "--report-md",
+        type=_path,
+        default=Path("reports") / "phase5_search_trace_diagnostics.md",
+    )
+    rl_diagnose_traces.set_defaults(func=command_rl_diagnose_search_traces)
 
     rl_diagnose_symbolic = subparsers.add_parser(
         "rl-diagnose-phase5-symbolic",

@@ -873,6 +873,11 @@ echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_trace_3g_job.txt
 After the trace job finishes, inspect truncation and search-change examples:
 
 ```bash
+"$PY" -m ptcg_abc rl-diagnose-search-traces \
+  --trace-input experiments/rl/phase5_search_agent_plain_trace_3g.jsonl \
+  --report-json reports/phase5_search_agent_plain_trace_3g_diagnostics.json \
+  --report-md reports/phase5_search_agent_plain_trace_3g_diagnostics.md
+
 "$PY" - <<'PY'
 import json
 from pathlib import Path

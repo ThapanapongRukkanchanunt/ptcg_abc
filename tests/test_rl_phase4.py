@@ -505,6 +505,17 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(diagnose_args.checkpoint, Path("models/phase5.pt"))
         self.assertEqual(diagnose_args.trace_input, Path("experiments/traces.jsonl"))
 
+        trace_diagnose_args = parser.parse_args(
+            [
+                "rl-diagnose-search-traces",
+                "--trace-input",
+                "experiments/eval-traces.jsonl",
+            ]
+        )
+
+        self.assertEqual(trace_diagnose_args.command, "rl-diagnose-search-traces")
+        self.assertEqual(trace_diagnose_args.trace_input, Path("experiments/eval-traces.jsonl"))
+
         weighted_train_args = parser.parse_args(
             [
                 "rl-train-bc",
@@ -897,10 +908,12 @@ class Phase4RlTests(unittest.TestCase):
                 "\n".join(
                     [
                         '{"baseline_indices":[0],"search_indices":[1],"changed":true,'
+                        '"deck_index":3,"opponent":"Mega Abomasnow ex",'
                         '"search_error":"boom","candidates":['
-                        '{"indices":[0],"combined_score":1.0,"tactical_score":0.5},'
+                        '{"indices":[0],"combined_score":1.0,"tactical_score":0.5,'
+                        '"option_type":"PLAY"},'
                         '{"indices":[1],"combined_score":0.5,"tactical_score":0.25,'
-                        '"error":"bad","truncated":true}]}',
+                        '"option_type":"EVOLVE","error":"bad","truncated":true}]}',
                     ]
                 )
                 + "\n",
@@ -912,8 +925,16 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(diagnostics.records, 1)
         self.assertEqual(diagnostics.changed_records, 1)
         self.assertEqual(diagnostics.search_errors, 1)
+        self.assertEqual(diagnostics.candidate_probes, 2)
         self.assertEqual(diagnostics.candidate_errors, 1)
         self.assertEqual(diagnostics.truncated_candidates, 1)
+        self.assertEqual(diagnostics.selected_truncated_records, 1)
+        self.assertEqual(diagnostics.changed_selected_truncated_records, 1)
+        self.assertEqual(diagnostics.selected_truncated_by_type, {"EVOLVE": 1})
+        self.assertEqual(
+            diagnostics.selected_truncated_by_matchup,
+            [{"deck_index": 3, "opponent": "Mega Abomasnow ex", "count": 1}],
+        )
         self.assertLess(diagnostics.mean_search_minus_baseline_combined_score, 0)
 
     def test_selfplay_default_plan_rotates_all_ordered_deck_pairs(self):
