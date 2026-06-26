@@ -751,6 +751,44 @@ Weak matchups in this run:
 - Dragapult Dusknoir remained poor: 6 / 40 wins.
 - Mega Lucario ex benchmark matchups were still difficult for several decks.
 
+### Search Telemetry Implementation
+
+Implementation update:
+
+- Added `Phase5SearchPolicyAgent.search_telemetry()`.
+- The agent now tracks:
+  - searched decisions
+  - Search API start count
+  - search-changed decisions
+  - search setup errors
+  - candidate probes
+  - candidate probe errors
+  - truncated candidates
+  - total, average, and maximum search seconds
+- `run_phase4_required_benchmark` now aggregates telemetry per matchup row and
+  across the whole report when `agent_kind == "phase5-search"`.
+- `write_phase4_benchmark_report` now writes a `Search Telemetry` summary and a
+  `Search Telemetry By Matchup` table in Markdown.
+- The JSON report now includes `search_telemetry` at top level and per row when
+  telemetry exists.
+- Added unit coverage for telemetry rates and benchmark report rendering.
+
+Verification:
+
+- `tests.test_rl_phase5_symbolic_agent` and `tests.test_rl_phase4` passed:
+  33 tests, 2 skipped.
+- `py_compile` passed for:
+  - `src/ptcg_abc/agent/phase5_search.py`
+  - `src/ptcg_abc/rl/workflow.py`
+  - `src/ptcg_abc/evaluation.py`
+
+Next ERAWAN use:
+
+- Pull the telemetry implementation.
+- Re-run or continue confirmation with `AGENT=phase5-search`.
+- Inspect the new report telemetry before promoting the result beyond the
+  first positive 10-game benchmark.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -795,13 +833,8 @@ File-retention decision:
   - a new value/Q/tactical scorer once implemented
 - Refactor reusable Search API code out of `phase5_search.py` into a stable
   wrapper used by both data generation and online evaluation.
-- Add report fields or a separate search-eval trace report for:
-  - search attempt count
-  - changed-decision count
-  - search errors
-  - probe errors
-  - truncation count
-  - time per searched decision
+- Use the new search telemetry fields to decide whether a separate trace report
+  is still needed for per-decision analysis.
 - Implement value, Q, and auxiliary tactical heads after the online search gate.
 - Continue toward the full Phase 5 plan only after the current online search
   slice produces measurable battle evidence.

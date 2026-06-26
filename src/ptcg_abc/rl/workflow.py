@@ -744,6 +744,11 @@ def run_phase4_required_benchmark(
                     max_steps=max_steps,
                 )
                 _record_row_outcome(row, result, our_is_player0=our_is_player0)
+                if isinstance(base_our_agent, Phase5SearchPolicyAgent):
+                    _accumulate_search_telemetry(
+                        row.search_telemetry,
+                        base_our_agent.search_telemetry(),
+                    )
                 if keep_debug and isinstance(our_agent, RecordingPolicyAgent):
                     debug_games.append(
                         Phase3RequiredDebugGame(
@@ -765,8 +770,14 @@ def run_phase4_required_benchmark(
                         )
                     )
                     kept_debug_games += 1
+            row.search_telemetry = _finalize_search_telemetry(row.search_telemetry)
             row.win_rate = row.wins / row.games if row.games else 0.0
             rows.append(row)
+
+    search_telemetry: dict[str, Any] = {}
+    for row in rows:
+        _accumulate_search_telemetry(search_telemetry, row.search_telemetry)
+    search_telemetry = _finalize_search_telemetry(search_telemetry)
 
     return Phase3RequiredBenchmarkResult(
         our_deck_source_url=TOURNAMENT_559_SOURCE_URL,
@@ -776,6 +787,7 @@ def run_phase4_required_benchmark(
         max_steps=max_steps,
         rows=rows,
         debug_games=debug_games,
+        search_telemetry=search_telemetry,
     )
 
 
@@ -809,11 +821,54 @@ def write_phase4_benchmark_report(
         f"- Errors: {totals['errors']}",
         f"- Win rate: {totals['win_rate']:.3f}",
         "",
-        "## Matchups",
-        "",
-        "| Deck | Rank | Archetype | Opponent | Wins | Losses | Draws | Timeouts | Errors | Win rate |",
-        "| ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
+    if result.search_telemetry:
+        telemetry = result.search_telemetry
+        lines.extend(
+            [
+                "## Search Telemetry",
+                "",
+                f"- Searched decisions: {int(telemetry.get('searched_decisions', 0))}",
+                f"- Search-started decisions: {int(telemetry.get('search_started_decisions', 0))}",
+                f"- Search-changed decisions: {int(telemetry.get('changed_decisions', 0))}",
+                f"- Search change rate: {float(telemetry.get('change_rate', 0.0)):.3f}",
+                f"- Search errors: {int(telemetry.get('search_errors', 0))}",
+                f"- Search error rate: {float(telemetry.get('search_error_rate', 0.0)):.3f}",
+                f"- Candidate probes: {int(telemetry.get('candidate_probes', 0))}",
+                f"- Candidate errors: {int(telemetry.get('candidate_errors', 0))}",
+                f"- Truncated candidates: {int(telemetry.get('truncated_candidates', 0))}",
+                f"- Average search seconds: {float(telemetry.get('avg_search_seconds', 0.0)):.4f}",
+                f"- Max search seconds: {float(telemetry.get('max_search_seconds', 0.0)):.4f}",
+                "",
+                "## Search Telemetry By Matchup",
+                "",
+                "| Deck | Opponent | Searched | Changed | Search errors | Candidate probes | Candidate errors | Truncated | Avg seconds |",
+                "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for row in result.rows:
+            row_telemetry = row.search_telemetry
+            if not row_telemetry:
+                continue
+            lines.append(
+                f"| {row.deck_index} | {row.opponent} | "
+                f"{int(row_telemetry.get('searched_decisions', 0))} | "
+                f"{int(row_telemetry.get('changed_decisions', 0))} | "
+                f"{int(row_telemetry.get('search_errors', 0))} | "
+                f"{int(row_telemetry.get('candidate_probes', 0))} | "
+                f"{int(row_telemetry.get('candidate_errors', 0))} | "
+                f"{int(row_telemetry.get('truncated_candidates', 0))} | "
+                f"{float(row_telemetry.get('avg_search_seconds', 0.0)):.4f} |"
+            )
+        lines.append("")
+    lines.extend(
+        [
+            "## Matchups",
+            "",
+            "| Deck | Rank | Archetype | Opponent | Wins | Losses | Draws | Timeouts | Errors | Win rate |",
+            "| ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
     for row in result.rows:
         lines.append(
             f"| {row.deck_index} | {row.tournament_rank} | {row.archetype} | {row.opponent} | "
@@ -1278,6 +1333,62 @@ def _safe_slug(value: str) -> str:
         elif chars and chars[-1] != "-":
             chars.append("-")
     return "".join(chars).strip("-") or "unknown"
+
+
+_SEARCH_TELEMETRY_SUM_FIELDS = (
+    "searched_decisions",
+    "search_started_decisions",
+    "changed_decisions",
+    "search_errors",
+    "candidate_probes",
+    "candidate_errors",
+    "truncated_candidates",
+    "total_search_seconds",
+)
+
+
+def _accumulate_search_telemetry(target: dict[str, Any], source: dict[str, Any]) -> None:
+    if not source:
+        return
+    for field in _SEARCH_TELEMETRY_SUM_FIELDS:
+        target[field] = target.get(field, 0) + source.get(field, 0)
+    target["max_search_seconds"] = max(
+        float(target.get("max_search_seconds", 0.0)),
+        float(source.get("max_search_seconds", 0.0)),
+    )
+
+
+def _finalize_search_telemetry(telemetry: dict[str, Any]) -> dict[str, Any]:
+    if not telemetry:
+        return {}
+    searched = int(telemetry.get("searched_decisions", 0) or 0)
+    candidate_probes = int(telemetry.get("candidate_probes", 0) or 0)
+    changed = int(telemetry.get("changed_decisions", 0) or 0)
+    search_errors = int(telemetry.get("search_errors", 0) or 0)
+    candidate_errors = int(telemetry.get("candidate_errors", 0) or 0)
+    truncated = int(telemetry.get("truncated_candidates", 0) or 0)
+    total_seconds = float(telemetry.get("total_search_seconds", 0.0) or 0.0)
+    finalized = {
+        "searched_decisions": searched,
+        "search_started_decisions": int(telemetry.get("search_started_decisions", 0) or 0),
+        "changed_decisions": changed,
+        "change_rate": changed / searched if searched else 0.0,
+        "search_errors": search_errors,
+        "search_error_rate": search_errors / searched if searched else 0.0,
+        "candidate_probes": candidate_probes,
+        "candidate_errors": candidate_errors,
+        "candidate_error_rate": candidate_errors / candidate_probes
+        if candidate_probes
+        else 0.0,
+        "truncated_candidates": truncated,
+        "truncated_candidate_rate": truncated / candidate_probes
+        if candidate_probes
+        else 0.0,
+        "total_search_seconds": total_seconds,
+        "avg_search_seconds": total_seconds / searched if searched else 0.0,
+        "max_search_seconds": float(telemetry.get("max_search_seconds", 0.0) or 0.0),
+    }
+    return finalized
 
 
 def _totals(rows: list[Phase3RequiredBenchmarkRow]) -> dict[str, Any]:

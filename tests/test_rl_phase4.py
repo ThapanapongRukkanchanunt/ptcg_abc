@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from dataclasses import dataclass
@@ -5,6 +6,7 @@ from pathlib import Path
 
 from ptcg_abc.agent import HybridRlAgent
 from ptcg_abc.cli import build_parser
+from ptcg_abc.evaluation import Phase3RequiredBenchmarkResult, Phase3RequiredBenchmarkRow
 from ptcg_abc.rl.dataset import write_decision_jsonl
 from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_decision_frame
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
@@ -30,7 +32,11 @@ from ptcg_abc.rl.torch_backend import (
     linear_model_from_actor_params,
     train_torch_bc_model,
 )
-from ptcg_abc.rl.workflow import build_selfplay_deck_plan, selfplay_pair_for_game
+from ptcg_abc.rl.workflow import (
+    build_selfplay_deck_plan,
+    selfplay_pair_for_game,
+    write_phase4_benchmark_report,
+)
 
 
 @dataclass
@@ -520,6 +526,65 @@ class Phase4RlTests(unittest.TestCase):
         self.assertTrue(weighted_train_args.pairwise_changed)
         self.assertEqual(weighted_train_args.pairwise_margin, 1.5)
         self.assertEqual(weighted_train_args.pairwise_negatives, "all")
+
+    def test_phase4_required_report_includes_search_telemetry(self):
+        telemetry = {
+            "searched_decisions": 10,
+            "search_started_decisions": 10,
+            "changed_decisions": 3,
+            "change_rate": 0.3,
+            "search_errors": 1,
+            "search_error_rate": 0.1,
+            "candidate_probes": 40,
+            "candidate_errors": 2,
+            "candidate_error_rate": 0.05,
+            "truncated_candidates": 4,
+            "truncated_candidate_rate": 0.1,
+            "total_search_seconds": 2.5,
+            "avg_search_seconds": 0.25,
+            "max_search_seconds": 0.75,
+        }
+        row = Phase3RequiredBenchmarkRow(
+            deck_index=1,
+            deck_label="Deck A",
+            archetype="Deck",
+            tournament_rank=1,
+            opponent="Benchmark",
+            opponent_deck_label="Benchmark / Rank 1",
+            games=2,
+            wins=1,
+            losses=1,
+            win_rate=0.5,
+            search_telemetry=dict(telemetry),
+        )
+        result = Phase3RequiredBenchmarkResult(
+            our_deck_source_url="https://example.invalid",
+            requested_ranks=(1,),
+            substitutions=(),
+            games_per_matchup=2,
+            max_steps=600,
+            rows=[row],
+            search_telemetry=dict(telemetry),
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            json_path = Path(tmp) / "report.json"
+            md_path = Path(tmp) / "report.md"
+            write_phase4_benchmark_report(
+                result,
+                json_path=json_path,
+                markdown_path=md_path,
+                agent_kind="phase5-search",
+                model_path=Path("models/rl/model.pt"),
+            )
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            markdown = md_path.read_text(encoding="utf-8")
+
+        self.assertEqual(payload["search_telemetry"]["searched_decisions"], 10)
+        self.assertEqual(payload["rows"][0]["search_telemetry"]["changed_decisions"], 3)
+        self.assertIn("## Search Telemetry", markdown)
+        self.assertIn("- Search-changed decisions: 3", markdown)
+        self.assertIn("| 1 | Benchmark | 10 | 3 | 1 | 40 | 2 | 4 | 0.2500 |", markdown)
 
     def test_phase5_shard_game_indices_interleave_without_overlap(self):
         shard0 = [

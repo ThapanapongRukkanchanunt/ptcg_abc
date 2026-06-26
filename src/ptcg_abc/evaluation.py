@@ -402,9 +402,13 @@ class Phase3RequiredBenchmarkRow:
     timeouts: int = 0
     errors: int = 0
     win_rate: float = 0.0
+    search_telemetry: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        payload = asdict(self)
+        if not self.search_telemetry:
+            payload.pop("search_telemetry", None)
+        return payload
 
 
 @dataclass
@@ -435,9 +439,10 @@ class Phase3RequiredBenchmarkResult:
     max_steps: int
     rows: list[Phase3RequiredBenchmarkRow]
     debug_games: list[Phase3RequiredDebugGame] = field(default_factory=list)
+    search_telemetry: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "our_deck_source_url": self.our_deck_source_url,
             "requested_ranks": list(self.requested_ranks),
             "substitutions": list(self.substitutions),
@@ -446,6 +451,9 @@ class Phase3RequiredBenchmarkResult:
             "rows": [row.to_dict() for row in self.rows],
             "debug_games": [game.to_dict() for game in self.debug_games],
         }
+        if self.search_telemetry:
+            payload["search_telemetry"] = dict(self.search_telemetry)
+        return payload
 
 
 def phase3_benchmark_deck_coverage(rows: list[SampleDragapultBenchmarkRow]) -> list[dict[str, Any]]:

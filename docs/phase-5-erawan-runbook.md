@@ -817,9 +817,40 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_10g_job.txt
 ```
 
+The generated JSON and Markdown reports now include a `Search Telemetry`
+section for `phase5-search`. Inspect it after the job completes:
+
+```bash
+grep -E "Search Telemetry|Searched decisions|Search-changed decisions|Search errors|Candidate errors|Truncated candidates|Average search seconds|Max search seconds" \
+  reports/phase5_search_agent_plain_10g.md
+
+"$PY" - <<'PY'
+import json
+from pathlib import Path
+report = json.loads(Path("reports/phase5_search_agent_plain_10g.json").read_text())
+print(json.dumps(report.get("search_telemetry", {}), indent=2, sort_keys=True))
+PY
+```
+
 Compare against direct symbolic, rule, and the mid pairwise checkpoint. Only
 promote this path if search improves battle win rate without increasing errors
 or timeouts.
+
+If the 10-game benchmark remains above the rule baseline and telemetry is clean,
+run a larger confirmation benchmark:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_search_agent_plain_30g.json \
+  REPORT_MD=reports/phase5_search_agent_plain_30g.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_30g_job.txt
+```
 
 ## 13. Ready-To-Train Checklist
 

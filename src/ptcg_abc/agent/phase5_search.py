@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -64,6 +65,12 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         self.search_decisions = 0
         self.changed_decisions = 0
         self.search_errors = 0
+        self.search_started_decisions = 0
+        self.candidate_probes = 0
+        self.candidate_errors = 0
+        self.truncated_candidates = 0
+        self.search_elapsed_seconds = 0.0
+        self.max_search_elapsed_seconds = 0.0
         self._search_begin, self._search_step, self._search_end = _load_search_api(
             self.sample_dir
         )
@@ -115,6 +122,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         )
         selected = list(baseline)
         if frame is not None and self._should_search(frame):
+            start = time.perf_counter()
             selected, trace = self._search_decision(
                 observation,
                 frame,
@@ -123,15 +131,57 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
                 legal_actions,
                 scores,
             )
+            elapsed = time.perf_counter() - start
             self.traces.append(trace)
             self.search_decisions += 1
+            self.search_started_decisions += int(trace.search_started)
             self.changed_decisions += int(selected != baseline)
             self.search_errors += int(trace.search_error is not None)
+            self.candidate_probes += len(trace.candidates)
+            self.candidate_errors += sum(
+                1 for candidate in trace.candidates if candidate.error is not None
+            )
+            self.truncated_candidates += sum(
+                1 for candidate in trace.candidates if candidate.truncated
+            )
+            self.search_elapsed_seconds += elapsed
+            self.max_search_elapsed_seconds = max(self.max_search_elapsed_seconds, elapsed)
 
         selected = _valid_indices(selected, len(legal_actions))
         selected_positions = self._positions_for_indices(encoded, selected)
         self._observe_selected_actions(encoded.legal_action_features, selected_positions)
         return selected
+
+    def search_telemetry(self) -> dict[str, Any]:
+        avg_seconds = (
+            self.search_elapsed_seconds / self.search_decisions
+            if self.search_decisions
+            else 0.0
+        )
+        return {
+            "searched_decisions": self.search_decisions,
+            "search_started_decisions": self.search_started_decisions,
+            "changed_decisions": self.changed_decisions,
+            "change_rate": self.changed_decisions / self.search_decisions
+            if self.search_decisions
+            else 0.0,
+            "search_errors": self.search_errors,
+            "search_error_rate": self.search_errors / self.search_decisions
+            if self.search_decisions
+            else 0.0,
+            "candidate_probes": self.candidate_probes,
+            "candidate_errors": self.candidate_errors,
+            "candidate_error_rate": self.candidate_errors / self.candidate_probes
+            if self.candidate_probes
+            else 0.0,
+            "truncated_candidates": self.truncated_candidates,
+            "truncated_candidate_rate": self.truncated_candidates / self.candidate_probes
+            if self.candidate_probes
+            else 0.0,
+            "total_search_seconds": self.search_elapsed_seconds,
+            "avg_search_seconds": avg_seconds,
+            "max_search_seconds": self.max_search_elapsed_seconds,
+        }
 
     def _rank_policy_positions(
         self,

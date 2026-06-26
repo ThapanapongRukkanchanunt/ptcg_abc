@@ -21,6 +21,9 @@ This is the resume point for the project. Start here after switching machines, c
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
   beating the direct symbolic policy at 0.303 and the rule baseline at 0.350.
+- Latest implementation slice: `phase5-search` reports now include search
+  telemetry for searched decisions, search changes, errors, candidate probes,
+  truncations, and per-decision search timing.
 
 ## Phase Log
 

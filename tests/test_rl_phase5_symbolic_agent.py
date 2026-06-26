@@ -67,6 +67,30 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         self.assertIn("RuntimeError", trace.search_error or "")
         self.assertFalse(trace.changed)
 
+    def test_search_agent_reports_telemetry_rates(self):
+        agent = object.__new__(Phase5SearchPolicyAgent)
+        agent.search_decisions = 4
+        agent.search_started_decisions = 4
+        agent.changed_decisions = 1
+        agent.search_errors = 1
+        agent.candidate_probes = 12
+        agent.candidate_errors = 2
+        agent.truncated_candidates = 3
+        agent.search_elapsed_seconds = 2.0
+        agent.max_search_elapsed_seconds = 0.8
+
+        telemetry = agent.search_telemetry()
+
+        self.assertEqual(telemetry["searched_decisions"], 4)
+        self.assertEqual(telemetry["changed_decisions"], 1)
+        self.assertEqual(telemetry["candidate_probes"], 12)
+        self.assertAlmostEqual(telemetry["change_rate"], 0.25)
+        self.assertAlmostEqual(telemetry["search_error_rate"], 0.25)
+        self.assertAlmostEqual(telemetry["candidate_error_rate"], 2 / 12)
+        self.assertAlmostEqual(telemetry["truncated_candidate_rate"], 3 / 12)
+        self.assertAlmostEqual(telemetry["avg_search_seconds"], 0.5)
+        self.assertAlmostEqual(telemetry["max_search_seconds"], 0.8)
+
     def test_cli_accepts_phase5_symbolic_agent(self):
         parser = build_parser()
         evaluate_args = parser.parse_args(

@@ -216,10 +216,9 @@ it does not yet provide:
   modules.
 - Persistent belief memory with exact own-prize deduction.
 - Neural belief model training.
-- A trained entity Transformer plus action scorer.
 - Value, Q, and auxiliary tactical heads.
-- Online `Phase5RootSearchAgent` evaluation mode that combines the exported
-  policy with one-turn root search during battles.
+- Production-hardened online root search with stable Search API wrappers,
+  telemetry, time budgets, and final packaging checks.
 - Stage-gated reports for the evaluation plan.
 - Full 13-deck league integration.
 - PPO or policy-pool iteration.
@@ -241,10 +240,10 @@ Every Phase 5 substage should produce a report that maps back to
 | Stage 7 | PPO | Reward curves, collapse checks, opponent-pool battle metrics, and promotion rule. |
 | Stage 8 | Final inference | Ablation ladder, full battle matrix, timing, legality, packaging, and final report. |
 
-The most important near-term gate has moved back to Stages 0-1: prove the
-canonical adapter, symbolic encoder, and AlphaStar-style supervised policy can
-consume legal observations and beat or at least approach the rule baseline
-before spending more compute on larger search-distillation runs.
+The near-term gate is now Stage 5: confirm that online `phase5-search` remains
+above direct symbolic and rule baseline under larger or repeated benchmarks, and
+collect search telemetry showing clean probes, low truncation, and acceptable
+timing.
 
 ## Implementation Priorities
 
@@ -258,13 +257,9 @@ before spending more compute on larger search-distillation runs.
    inspection. The first symbolic diagnostic selected pairwise/all-negative:
    search-changed agreement was `0.356`, the model search-minus-baseline margin
    was still negative, and changed-frame third-action rate was `0.292`.
-4. Add an online `Phase5RootSearchAgent` or `rl-evaluate --agent phase5-search`
-   mode that can compare direct policy, hybrid policy, and policy plus one-turn
-   root search. The supervised pairwise sweep mapped the tradeoff but did not
-   clear the gate: stronger pairwise improved changed decisions while causing
-   third-action drift, and tiny pairwise preserved imitation while copying the
-   baseline on changed frames. Move to online search evaluation rather than
-   spending more compute on direct-policy losses.
+4. Confirm the online `phase5-search` result with larger or repeated
+   benchmarks, and use the new search telemetry report section to track search
+   attempts, changed decisions, errors, truncations, and timing.
 5. Refactor reusable search pieces from `phase5_search.py` into stable adapter
    modules so data generation and online evaluation share the same Search API
    wrapper.
