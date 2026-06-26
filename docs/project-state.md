@@ -50,6 +50,11 @@ This is the resume point for the project. Start here after switching machines, c
 - Latest cap-experiment support: `rl-evaluate` now accepts `--search-top-k` and
   `--search-rollout-steps`; the ERAWAN eval script accepts `SEARCH_TOP_K` and
   `SEARCH_ROLLOUT_STEPS`. Next run should compare default cap 18 against cap 30.
+- Latest cap-30 trace diagnostic: on the 3-game `phase5-search` trace, cap 30
+  reduced all-candidates-truncated records from 72 / 4,513 to 0 / 4,239,
+  selected-truncated records from 97 / 4,513 to 1 / 4,239, and changed
+  selected-truncated records from 43 / 1,040 to 1 / 927. Next action is a
+  10-game required benchmark with `SEARCH_ROLLOUT_STEPS=30`.
 
 ## Phase Log
 

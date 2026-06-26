@@ -1095,6 +1095,50 @@ Next ERAWAN use:
   cap-18 trace diagnostics on selected-truncated and changed-selected-truncated
   rates before changing the default search config.
 
+### Search Rollout-Cap 30 Trace Result
+
+Trace diagnostic:
+
+- Trace: `experiments/rl/phase5_search_agent_plain_trace_3g_cap30.jsonl`.
+- Report: `reports/phase5_search_agent_plain_trace_3g_cap30_diagnostics.md`.
+
+Observed cap-30 counts:
+
+- Records: 4,239.
+- Comparable records: 4,239.
+- Changed records: 927.
+- Candidate probes: 15,534.
+- Search errors: 0.
+- Candidate errors: 0.
+- All-candidates-truncated records: 0.
+- Truncated candidates: 14.
+- Truncated candidate rate: 0.000901.
+- Selected-truncated records: 1.
+- Selected-truncated rate: 0.000236.
+- Changed selected-truncated records: 1.
+- Changed selected-truncated rate: 0.001079.
+- Mean search-minus-baseline combined score: 0.657376.
+- Mean search-minus-baseline tactical score: 0.664480.
+
+Comparison with the default cap-18 3-game trace:
+
+- All-candidates-truncated records improved from 72 / 4,513 to 0 / 4,239.
+- Selected-truncated records improved from 97 / 4,513 to 1 / 4,239.
+- Changed selected-truncated records improved from 43 / 1,040 changed records to
+  1 / 927 changed records.
+- The remaining selected-truncated case was one `ATTACH` action in Deck 3 vs
+  Mega Abomasnow ex.
+
+Interpretation:
+
+- Cap 30 substantially reduces the trace-risk introduced by rollouts ending
+  before candidate sequences finish.
+- This is strong enough to proceed to a required benchmark comparison with
+  `SEARCH_ROLLOUT_STEPS=30`.
+- Do not change the default yet. First compare cap 30 against the cap-18 10-game
+  result on win rate, timeouts, average search seconds, max search seconds, and
+  trace truncation metrics.
+
 ## Artifact Notes
 
 Important model artifacts:

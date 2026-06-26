@@ -953,6 +953,38 @@ truncated candidate rate, selected-truncated rate, and changed
 selected-truncated rate. Promote the higher cap only if it reduces dangerous
 truncation without hurting win rate or timing.
 
+If the 3-game cap-30 trace looks clean, run the 10-game cap-30 benchmark with a
+trace so the benchmark and truncation diagnostics come from the same job:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=10 \
+  MAX_STEPS=600 \
+  SEARCH_ROLLOUT_STEPS=30 \
+  REPORT_JSON=reports/phase5_search_agent_plain_10g_cap30.json \
+  REPORT_MD=reports/phase5_search_agent_plain_10g_cap30.md \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_agent_plain_10g_cap30.jsonl \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_10g_cap30_job.txt
+```
+
+After it finishes, diagnose the 10-game trace:
+
+```bash
+"$PY" -m ptcg_abc rl-diagnose-search-traces \
+  --trace-input experiments/rl/phase5_search_agent_plain_10g_cap30.jsonl \
+  --report-json reports/phase5_search_agent_plain_10g_cap30_diagnostics.json \
+  --report-md reports/phase5_search_agent_plain_10g_cap30_diagnostics.md
+```
+
+Keep cap 18 as the default unless the cap-30 10-game benchmark is at least
+competitive with the current cap-18 10-game result: 139 / 360 wins, 0.386 win
+rate, 1 timeout, 0 errors, average search 0.0628 seconds, max search 1.4773
+seconds.
+
 ## 13. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
