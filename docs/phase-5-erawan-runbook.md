@@ -4,6 +4,9 @@ This is the operating runbook for the current Phase 5 vertical slice. The full
 Phase 5 architecture, training, and evaluation map is in
 `docs/phase-5-master-plan.md`.
 
+Use `docs/phase-5-changelog.md` as the report-ready history of implementation
+work, ERAWAN results, diagnostics, conclusions, and artifact decisions.
+
 This runbook prepares the search-distillation slice for large-scale ERAWAN
 training: generate search-improved decision data with bounded one-turn root
 search, merge the array shards, then train the Torch behavior-cloning/distillation

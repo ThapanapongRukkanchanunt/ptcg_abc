@@ -6,6 +6,9 @@ strategy, advanced training, and evaluation documents into one implementation ma
 The ERAWAN runbook is an operating procedure for the current vertical slice. It is
 not the full Phase 5 design.
 
+For chronological implementation history, ERAWAN results, diagnostics, and
+report-ready facts, use `docs/phase-5-changelog.md`.
+
 ## Phase Numbering
 
 Project Phase 5 includes the advanced RL work described across:
@@ -28,6 +31,7 @@ work until a later project phase is explicitly opened.
 | `docs/ptcg_rl_evaluation_plan.md` | Evaluation gates and reports | Stage 0 data/logging checks, Stage 1 imitation policy checks, Stage 2 value/Q checks, Stage 3 tactical-head checks, Stage 4 belief checks, Stage 5 one-turn root-search checks, Stage 6 search-distillation checks, Stage 7 PPO checks, Stage 8 final inference checks, ablation ladder, and promotion checklist. |
 | `docs/phase-4-rl-plan.md` | Implementation base | Existing DecisionFrame data, option featurization, exported JSON option ranker, HybridRlAgent, rule fallback, RL workflow commands, and Kaggle-compatible packaging. |
 | `docs/phase-5-erawan-runbook.md` | Current ERAWAN operating sequence | Historical search-shard commands plus the active adapter/encoder track for symbolic Phase 5 training. |
+| `docs/phase-5-changelog.md` | Report source log | Chronological implementation log, ERAWAN results, diagnostics, conclusions, artifact notes, and next steps. |
 
 ## Target Agent
 

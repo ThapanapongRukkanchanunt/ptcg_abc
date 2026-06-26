@@ -291,6 +291,9 @@ If `python` is not on PATH in the Codex desktop workspace, use the bundled Pytho
 - `docs/phase-5-master-plan.md`: umbrella Phase 5 roadmap consolidating the
   strategy, advanced training, and evaluation docs into the current
   implementation plan.
+- `docs/phase-5-changelog.md`: report-ready chronological log of Phase 5
+  implementation, ERAWAN results, diagnostics, conclusions, artifacts, and next
+  steps.
 - `docs/ptcg_rl_strategy_recommendation.md`: Phase 5 strategy for a belief-aware
   one-turn root-search agent built on simulator legal options.
 - `docs/ptcg_rl_advanced_training_plan.md`: Phase 5 training roadmap covering
