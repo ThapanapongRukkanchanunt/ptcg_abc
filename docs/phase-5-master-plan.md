@@ -279,10 +279,12 @@ timing.
 
 Near-term implementation slice:
 
-1. Add a Phase 5 search self-play data command and SLURM script.
+1. Run the Phase 5 search self-play data command and SLURM script:
+   - `rl-generate-phase5-search-selfplay`
+   - `scripts/slurm/phase5_search_selfplay_conda.sbatch`
 2. Run a small smoke job, then a bounded ERAWAN job.
-3. Add a self-play manifest/report with games, steps, wins by deck, timeouts,
-   errors, search telemetry, and trajectory counts.
+3. Inspect the self-play report for games, steps, wins by deck, timeouts,
+   errors, search telemetry, trace records, and trajectory counts.
 4. Extend the symbolic model/trainer with value/Q/tactical heads once the
    self-play records exist.
 

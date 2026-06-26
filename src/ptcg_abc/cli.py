@@ -59,6 +59,7 @@ from ptcg_abc.submission import build_hybrid_rl_submission_bundle, build_submiss
 from ptcg_abc.rl.workflow import (
     collect_bc_demonstrations,
     rollout_games,
+    rollout_selfplay_games,
     run_image_progression_experiment,
     run_phase4_required_benchmark,
     train_bc_from_jsonl,
@@ -626,6 +627,59 @@ def command_rl_rollout(args: argparse.Namespace) -> int:
         max_steps=args.max_steps,
     )
     print(json.dumps(summary.to_dict(), indent=2))
+    return 0 if summary.errors == 0 else 1
+
+
+def command_rl_generate_phase5_search_selfplay(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    if model_path is None:
+        print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
+        return 2
+    search_config = None
+    if args.search_top_k is not None or args.search_rollout_steps is not None:
+        base_config = RootSearchConfig()
+        search_config = RootSearchConfig(
+            top_k=args.search_top_k
+            if args.search_top_k is not None
+            else base_config.top_k,
+            max_rollout_steps=args.search_rollout_steps
+            if args.search_rollout_steps is not None
+            else base_config.max_rollout_steps,
+        )
+    try:
+        summary = rollout_selfplay_games(
+            sample_dir=args.sample_dir,
+            output_path=args.output,
+            agent_kind="phase5-search",
+            model_path=model_path,
+            games=args.games,
+            game_offset=args.game_offset,
+            max_steps=args.max_steps,
+            deck_a_index=args.deck_a_index,
+            deck_b_index=args.deck_b_index,
+            selfplay_deck_indices=args.deck_index or None,
+            search_config=search_config,
+            search_trace_path=args.search_trace_output,
+            search_trace_game_limit=args.search_trace_games,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    payload = summary.to_dict()
+    args.report_json.parent.mkdir(parents=True, exist_ok=True)
+    args.report_json.write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    print(json.dumps(payload, indent=2))
+    print(f"Wrote Phase 5 search self-play report to {args.report_json}.")
     return 0 if summary.errors == 0 else 1
 
 
@@ -1398,6 +1452,86 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data") / "datasets" / "rl" / "rollout_steps.jsonl",
     )
     rl_rollout.set_defaults(func=command_rl_rollout)
+
+    rl_phase5_selfplay = subparsers.add_parser(
+        "rl-generate-phase5-search-selfplay",
+        help="Generate Phase 5 phase5-search self-play trajectory data with outcome targets.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_symbolic_policy_10shards.pt",
+    )
+    rl_phase5_selfplay.add_argument("--games", type=int, default=36)
+    rl_phase5_selfplay.add_argument(
+        "--game-offset",
+        type=int,
+        default=0,
+        help="Absolute game offset for deterministic array shards.",
+    )
+    rl_phase5_selfplay.add_argument("--max-steps", type=int, default=600)
+    rl_phase5_selfplay.add_argument(
+        "--deck-a-index",
+        type=int,
+        default=None,
+        help="Optional fixed self-play deck A index.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--deck-b-index",
+        type=int,
+        default=None,
+        help="Optional fixed self-play deck B index.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Prepared deck index included in rotating self-play. Repeat to choose a subset.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--search-top-k",
+        type=int,
+        default=None,
+        help="Override phase5-search root candidate count.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--search-rollout-steps",
+        type=int,
+        default=None,
+        help="Override phase5-search one-turn rollout step cap.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_selfplay.jsonl",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_search_selfplay_report.json",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--search-trace-output",
+        type=_path,
+        default=None,
+        help="Optional JSONL output for sampled phase5-search self-play traces.",
+    )
+    rl_phase5_selfplay.add_argument(
+        "--search-trace-games",
+        type=int,
+        default=3,
+        help=(
+            "Number of local self-play games to trace when --search-trace-output "
+            "is set; use 0 for all."
+        ),
+    )
+    rl_phase5_selfplay.set_defaults(func=command_rl_generate_phase5_search_selfplay)
 
     rl_search = subparsers.add_parser(
         "rl-generate-search-data",

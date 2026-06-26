@@ -77,6 +77,11 @@ This is the resume point for the project. Start here after switching machines, c
   value/Q/tactical heads, train a generalist model from rule demonstrations plus
   search-improved decisions plus self-play outcomes, evaluate on the current
   9-deck benchmark, then expand to more decks before starting larger PPO.
+- Latest implementation slice: added `rl-generate-phase5-search-selfplay` and
+  `scripts/slurm/phase5_search_selfplay_conda.sbatch`. Future self-play
+  trajectory shards default to
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay/shards`, while
+  reports and optional traces stay under `experiments/rl/phase5_search_selfplay`.
 
 ## Phase Log
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -93,6 +93,9 @@ class SelfPlaySummary:
     errors: int
     timeouts: int
     image_size: int
+    search_telemetry: dict[str, Any] = field(default_factory=dict)
+    trace_path: str | None = None
+    trace_records: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -447,16 +450,23 @@ def rollout_selfplay_games(
     agent_kind: str = "hybrid",
     model_path: Path | None = None,
     games: int = 1000,
+    game_offset: int = 0,
     max_steps: int = 600,
     deck_a_index: int | None = None,
     deck_b_index: int | None = None,
     selfplay_deck_indices: Sequence[int] | None = None,
     image_size: int = 1024,
     guidance_rules: Sequence[str] | None = None,
+    search_config: RootSearchConfig | None = None,
+    search_trace_path: Path | None = None,
+    search_trace_game_limit: int = 0,
 ) -> SelfPlaySummary:
     card_data, attack_data = load_engine_metadata(sample_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("", encoding="utf-8")
+    if search_trace_path is not None:
+        search_trace_path.parent.mkdir(parents=True, exist_ok=True)
+        search_trace_path.write_text("", encoding="utf-8")
     plan = build_selfplay_deck_plan(
         phase3_tournament_559_prepared_decks(),
         deck_a_index=deck_a_index,
@@ -470,10 +480,13 @@ def rollout_selfplay_games(
     deck_losses = {key: 0 for key in deck_keys}
     deck_draws = {key: 0 for key in deck_keys}
     matchups: dict[str, dict[str, int]] = {}
+    search_telemetry: dict[str, Any] = {}
+    trace_records = 0
 
     for game_index in range(games):
-        deck_a, deck_b = selfplay_pair_for_game(plan, game_index)
-        deck_a_is_player0 = game_index % 2 == 0
+        absolute_game_index = game_offset + game_index
+        deck_a, deck_b = selfplay_pair_for_game(plan, absolute_game_index)
+        deck_a_is_player0 = absolute_game_index % 2 == 0
         player0_deck = deck_a if deck_a_is_player0 else deck_b
         player1_deck = deck_b if deck_a_is_player0 else deck_a
         pair_key = f"{deck_a.index}-vs-{deck_b.index}"
@@ -503,12 +516,14 @@ def rollout_selfplay_games(
                 guidance_rules=guidance_rules,
                 opponent_deck_ids=player1_deck.card_ids,
                 sample_dir=sample_dir,
+                search_config=search_config,
             ),
             player0_deck.card_ids,
             card_data=card_data,
             attack_data=attack_data,
             reward_metadata={
-                "game_index": game_index + 1,
+                "game_index": absolute_game_index + 1,
+                "local_game_index": game_index + 1,
                 "deck_index": player0_deck.index,
                 "deck_label": player0_deck.label,
                 "opponent_deck_index": player1_deck.index,
@@ -533,12 +548,14 @@ def rollout_selfplay_games(
                 guidance_rules=guidance_rules,
                 opponent_deck_ids=player0_deck.card_ids,
                 sample_dir=sample_dir,
+                search_config=search_config,
             ),
             player1_deck.card_ids,
             card_data=card_data,
             attack_data=attack_data,
             reward_metadata={
-                "game_index": game_index + 1,
+                "game_index": absolute_game_index + 1,
+                "local_game_index": game_index + 1,
                 "deck_index": player1_deck.index,
                 "deck_label": player1_deck.label,
                 "opponent_deck_index": player0_deck.index,
@@ -563,6 +580,38 @@ def rollout_selfplay_games(
             attack_data=attack_data,
             max_steps=max_steps,
         )
+        if isinstance(recorder0.agent, Phase5SearchPolicyAgent):
+            _accumulate_search_telemetry(search_telemetry, recorder0.agent.search_telemetry())
+            if _should_write_selfplay_trace(
+                search_trace_path,
+                game_index=game_index,
+                trace_game_limit=search_trace_game_limit,
+            ):
+                assert search_trace_path is not None
+                trace_records += _write_phase5_search_eval_traces(
+                    recorder0.agent,
+                    search_trace_path,
+                    game_index=absolute_game_index + 1,
+                    deck_index=player0_deck.index,
+                    deck_label=player0_deck.label,
+                    opponent=player1_deck.label,
+                )
+        if isinstance(recorder1.agent, Phase5SearchPolicyAgent):
+            _accumulate_search_telemetry(search_telemetry, recorder1.agent.search_telemetry())
+            if _should_write_selfplay_trace(
+                search_trace_path,
+                game_index=game_index,
+                trace_game_limit=search_trace_game_limit,
+            ):
+                assert search_trace_path is not None
+                trace_records += _write_phase5_search_eval_traces(
+                    recorder1.agent,
+                    search_trace_path,
+                    game_index=absolute_game_index + 1,
+                    deck_index=player1_deck.index,
+                    deck_label=player1_deck.label,
+                    opponent=player0_deck.label,
+                )
         games_started += int(result.started)
         errors += int(result.error is not None)
         timeouts += int(result.started and not result.finished and result.error is None)
@@ -637,6 +686,9 @@ def rollout_selfplay_games(
         errors=errors,
         timeouts=timeouts,
         image_size=image_size,
+        search_telemetry=_finalize_search_telemetry(search_telemetry),
+        trace_path=str(search_trace_path.as_posix()) if search_trace_path is not None else None,
+        trace_records=trace_records,
     )
 
 
@@ -1411,6 +1463,17 @@ def _finalize_search_telemetry(telemetry: dict[str, Any]) -> dict[str, Any]:
     return finalized
 
 
+def _should_write_selfplay_trace(
+    path: Path | None,
+    *,
+    game_index: int,
+    trace_game_limit: int,
+) -> bool:
+    if path is None:
+        return False
+    return trace_game_limit <= 0 or game_index < trace_game_limit
+
+
 def _write_phase5_search_eval_traces(
     agent: Phase5SearchPolicyAgent,
     path: Path,
@@ -1419,9 +1482,10 @@ def _write_phase5_search_eval_traces(
     deck_index: int,
     deck_label: str,
     opponent: str,
-) -> None:
+) -> int:
     if not agent.traces:
-        return
+        return 0
+    records = 0
     with path.open("a", encoding="utf-8", newline="\n") as handle:
         for trace in agent.traces:
             enriched = replace(
@@ -1432,6 +1496,8 @@ def _write_phase5_search_eval_traces(
                 opponent=opponent,
             )
             handle.write(json.dumps(enriched.to_dict(), sort_keys=True) + "\n")
+            records += 1
+    return records
 
 
 def _totals(rows: list[Phase3RequiredBenchmarkRow]) -> dict[str, Any]:

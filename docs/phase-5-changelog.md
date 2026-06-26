@@ -1361,6 +1361,50 @@ Implementation update:
   `RootSearchConfig` value, currently 30.
 - Updated the ERAWAN runbook and project-state with the storage convention.
 
+### Phase 5 Search Self-Play Collector
+
+Implementation update:
+
+- Added dedicated CLI:
+  - `rl-generate-phase5-search-selfplay`
+- Added SLURM wrapper:
+  - `scripts/slurm/phase5_search_selfplay_conda.sbatch`
+- Extended `rollout_selfplay_games` to support:
+  - `phase5-search` cap-30 self-play,
+  - deterministic `game_offset` for array shards,
+  - optional `RootSearchConfig` overrides,
+  - aggregate search telemetry,
+  - optional sampled search trace JSONL output.
+- Extended `SelfPlaySummary` with:
+  - `search_telemetry`,
+  - `trace_path`,
+  - `trace_records`.
+- Future self-play trajectory shards default to:
+  - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay/shards`.
+- Reports and optional search traces stay under:
+  - `experiments/rl/phase5_search_selfplay`.
+- Updated the ERAWAN runbook with:
+  - a 2-game smoke job on decks 1 and 2,
+  - a bounded two-shard 25-game-per-shard job over the current 9-deck pool,
+  - inspection and pass-gate commands.
+
+Purpose:
+
+- This is the first step of the revised next Phase 5 plan:
+  generate `phase5-search` self-play data before adding value/Q/tactical heads.
+- The collector writes trajectory records with final outcome targets that can
+  train value and action-value heads in the next slice.
+
+Verification:
+
+- `tests.test_rl_phase4` and `tests.test_rl_phase5_symbolic_agent` passed:
+  35 tests, 2 skipped.
+- `py_compile` passed for:
+  - `src/ptcg_abc/cli.py`
+  - `src/ptcg_abc/rl/workflow.py`
+- Parser smoke confirmed `rl-generate-phase5-search-selfplay` accepts game
+  offset, deck subset, search overrides, and trace sampling flags.
+
 ## Artifact Notes
 
 Important model artifacts:

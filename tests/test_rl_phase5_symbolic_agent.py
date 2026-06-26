@@ -129,6 +129,29 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
                 "30",
             ]
         )
+        search_selfplay_args = parser.parse_args(
+            [
+                "rl-generate-phase5-search-selfplay",
+                "--model",
+                "models/rl/phase5_symbolic_policy_10shards.pt",
+                "--games",
+                "4",
+                "--game-offset",
+                "12",
+                "--deck-index",
+                "1",
+                "--deck-index",
+                "3",
+                "--search-top-k",
+                "5",
+                "--search-rollout-steps",
+                "30",
+                "--search-trace-output",
+                "experiments/rl/phase5_search_selfplay/traces.jsonl",
+                "--search-trace-games",
+                "2",
+            ]
+        )
 
         self.assertEqual(evaluate_args.agent, "phase5-symbolic")
         self.assertEqual(rollout_args.agent, "phase5-symbolic")
@@ -139,6 +162,17 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         )
         self.assertEqual(search_eval_args.search_top_k, 6)
         self.assertEqual(search_eval_args.search_rollout_steps, 30)
+        self.assertEqual(search_selfplay_args.command, "rl-generate-phase5-search-selfplay")
+        self.assertEqual(search_selfplay_args.games, 4)
+        self.assertEqual(search_selfplay_args.game_offset, 12)
+        self.assertEqual(search_selfplay_args.deck_index, [1, 3])
+        self.assertEqual(search_selfplay_args.search_top_k, 5)
+        self.assertEqual(search_selfplay_args.search_rollout_steps, 30)
+        self.assertEqual(search_selfplay_args.search_trace_games, 2)
+        self.assertEqual(
+            search_selfplay_args.search_trace_output,
+            Path("experiments/rl/phase5_search_selfplay/traces.jsonl"),
+        )
 
     def test_evaluate_fails_cleanly_when_symbolic_checkpoint_missing(self):
         parser = build_parser()

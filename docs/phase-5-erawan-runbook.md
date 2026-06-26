@@ -1077,16 +1077,94 @@ The next work is not large PPO yet. Follow this order:
 
 Next implementation slice:
 
-- Add a Phase 5 search self-play collector command.
-- Add a SLURM script for small and bounded self-play jobs.
-- Output trajectory JSONL with final outcome targets and per-player metadata.
-- Preserve search telemetry and optional sampled traces.
-- Write a manifest/report with games, steps, timeouts, errors, deck matchup
-  counts, search decisions, search changes, truncation, and output paths.
+- Use the Phase 5 search self-play collector command:
+  - `rl-generate-phase5-search-selfplay`
+- Use the SLURM wrapper:
+  - `scripts/slurm/phase5_search_selfplay_conda.sbatch`
+- Output trajectory JSONL with final outcome targets and per-player metadata
+  under `$GAME_DATA_ROOT`.
+- Preserve search telemetry in the JSON report and optionally write sampled
+  search traces under `experiments/rl/phase5_search_selfplay/traces`.
+- Write a report with games, steps, timeouts, errors, deck matchup counts,
+  search decisions, search changes, truncation, and output paths.
 
 Do not use old PPO/update commands as the next main step. They remain useful for
 reference, but the next model needs value/Q/tactical targets before larger
 policy optimization.
+
+### Phase 5 Search Self-Play Smoke
+
+After pulling the self-play collector slice, run a small job first:
+
+```bash
+cd ~/ptcg_abc
+git pull origin main
+export PYTHONPATH="$PWD/src"
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+MODEL=models/rl/phase5_symbolic_policy_10shards.pt
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  MODEL="$MODEL" \
+  GAMES_PER_SHARD=2 \
+  MAX_STEPS=600 \
+  SELFPLAY_DECK_INDICES="1 2" \
+  SEARCH_TRACE_GAMES=2 \
+  sbatch --parsable --array=0-0 --gres=gpu:1 --cpus-per-task=2 --time=00:30:00 \
+    scripts/slurm/phase5_search_selfplay_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_selfplay/latest_smoke_job.txt
+```
+
+Inspect:
+
+```bash
+JOB=$(cat experiments/rl/phase5_search_selfplay/latest_smoke_job.txt)
+squeue -j "$JOB"
+tail -n 120 "experiments/rl/slurm-${JOB}-0-phase5-search-selfplay.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-0-phase5-search-selfplay.err"
+cat experiments/rl/phase5_search_selfplay/summaries/phase5_search_selfplay_summary_shard-0.json
+ls -lh "$GAME_DATA_ROOT/phase5_search_selfplay/shards/phase5_search_selfplay_shard-0.jsonl"
+ls -lh experiments/rl/phase5_search_selfplay/traces/phase5_search_selfplay_traces_shard-0.jsonl
+```
+
+Pass gate:
+
+- `errors` is `0`.
+- `steps` is nonzero.
+- `search_telemetry.searched_decisions` is nonzero.
+- `search_telemetry.search_errors` is `0`.
+- `search_telemetry.candidate_errors` is `0`.
+- The trajectory JSONL exists under `$GAME_DATA_ROOT`.
+
+If the smoke passes, run a bounded two-shard job:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  MODEL="$MODEL" \
+  SHARD_COUNT=2 \
+  GAMES_PER_SHARD=25 \
+  MAX_STEPS=600 \
+  SELFPLAY_DECK_INDICES="1 2 3 4 5 6 7 8 9" \
+  SEARCH_TRACE_GAMES=1 \
+  sbatch --parsable --array=0-1 --gres=gpu:1 --cpus-per-task=2 \
+    scripts/slurm/phase5_search_selfplay_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_selfplay/latest_2shard_job.txt
+```
+
+This writes game trajectories to:
+
+```bash
+$GAME_DATA_ROOT/phase5_search_selfplay/shards/
+```
+
+Reports and optional traces stay in:
+
+```bash
+experiments/rl/phase5_search_selfplay/
+```
 
 ## 14. Ready-To-Train Checklist
 
