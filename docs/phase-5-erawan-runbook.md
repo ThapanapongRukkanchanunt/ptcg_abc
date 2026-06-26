@@ -852,6 +852,70 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_30g_job.txt
 ```
 
+To inspect one-turn search truncations and disagreements, run a smaller trace
+capture job. Keep this at 1-3 games per matchup unless you explicitly need a
+large trace file:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=3 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_search_agent_plain_trace_3g.json \
+  REPORT_MD=reports/phase5_search_agent_plain_trace_3g.md \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_agent_plain_trace_3g.jsonl \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_trace_3g_job.txt
+```
+
+After the trace job finishes, inspect truncation and search-change examples:
+
+```bash
+"$PY" - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("experiments/rl/phase5_search_agent_plain_trace_3g.jsonl")
+records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+changed = [record for record in records if record.get("changed")]
+truncated = [
+    record for record in records
+    if any(candidate.get("truncated") for candidate in record.get("candidates", []))
+]
+
+print("records", len(records))
+print("changed", len(changed))
+print("truncated_records", len(truncated))
+
+for label, bucket in (("changed", changed), ("truncated", truncated)):
+    print("\\n==", label, "examples ==")
+    for record in bucket[:5]:
+        print(json.dumps({
+            "game_index": record.get("game_index"),
+            "deck_index": record.get("deck_index"),
+            "deck_label": record.get("deck_label"),
+            "opponent": record.get("opponent"),
+            "turn": record.get("turn"),
+            "baseline": record.get("baseline_indices"),
+            "search": record.get("search_indices"),
+            "candidate_summary": [
+                {
+                    "indices": candidate.get("indices"),
+                    "option_type": candidate.get("option_type"),
+                    "card_name": candidate.get("card_name"),
+                    "combined_score": candidate.get("combined_score"),
+                    "tactical_score": candidate.get("tactical_score"),
+                    "truncated": candidate.get("truncated"),
+                    "error": candidate.get("error"),
+                }
+                for candidate in record.get("candidates", [])
+            ],
+        }, indent=2))
+PY
+```
+
 ## 13. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

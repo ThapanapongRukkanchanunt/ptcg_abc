@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -677,12 +677,17 @@ def run_phase4_required_benchmark(
     guidance_rules: Sequence[str] | None = None,
     debug_limit_per_matchup: int = 0,
     trace_limit: int = 60,
+    search_trace_path: Path | None = None,
 ) -> Phase3RequiredBenchmarkResult:
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = phase3_tournament_559_prepared_decks()
     benchmark_decks = required_phase3_prepared_decks(start_index=1)
     rows: list[Phase3RequiredBenchmarkRow] = []
     debug_games: list[Phase3RequiredDebugGame] = []
+    benchmark_game_index = 0
+    if search_trace_path is not None:
+        search_trace_path.parent.mkdir(parents=True, exist_ok=True)
+        search_trace_path.write_text("", encoding="utf-8")
 
     for our_deck in our_decks:
         for benchmark_deck in benchmark_decks:
@@ -697,6 +702,7 @@ def run_phase4_required_benchmark(
             )
             kept_debug_games = 0
             for game_index in range(games_per_matchup):
+                benchmark_game_index += 1
                 our_is_player0 = game_index % 2 == 0
                 keep_debug = debug_limit_per_matchup > 0 and kept_debug_games < debug_limit_per_matchup
                 base_our_agent = _make_agent(
@@ -749,6 +755,15 @@ def run_phase4_required_benchmark(
                         row.search_telemetry,
                         base_our_agent.search_telemetry(),
                     )
+                    if search_trace_path is not None:
+                        _write_phase5_search_eval_traces(
+                            base_our_agent,
+                            search_trace_path,
+                            game_index=benchmark_game_index,
+                            deck_index=our_deck.index,
+                            deck_label=our_deck.label,
+                            opponent=benchmark_deck.archetype,
+                        )
                 if keep_debug and isinstance(our_agent, RecordingPolicyAgent):
                     debug_games.append(
                         Phase3RequiredDebugGame(
@@ -1389,6 +1404,29 @@ def _finalize_search_telemetry(telemetry: dict[str, Any]) -> dict[str, Any]:
         "max_search_seconds": float(telemetry.get("max_search_seconds", 0.0) or 0.0),
     }
     return finalized
+
+
+def _write_phase5_search_eval_traces(
+    agent: Phase5SearchPolicyAgent,
+    path: Path,
+    *,
+    game_index: int,
+    deck_index: int,
+    deck_label: str,
+    opponent: str,
+) -> None:
+    if not agent.traces:
+        return
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        for trace in agent.traces:
+            enriched = replace(
+                trace,
+                game_index=game_index,
+                deck_index=deck_index,
+                deck_label=deck_label,
+                opponent=opponent,
+            )
+            handle.write(json.dumps(enriched.to_dict(), sort_keys=True) + "\n")
 
 
 def _totals(rows: list[Phase3RequiredBenchmarkRow]) -> dict[str, Any]:

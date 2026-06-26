@@ -781,6 +781,7 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
         model_path=model_path,
         games_per_matchup=args.games_per_matchup,
         max_steps=args.max_steps,
+        search_trace_path=args.search_trace_output,
     )
     write_phase4_benchmark_report(
         result,
@@ -792,6 +793,8 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
     totals = _benchmark_totals(result.rows)
     print(json.dumps(totals, indent=2))
     print(f"Wrote Phase 4 benchmark report to {args.report_md}.")
+    if args.search_trace_output is not None:
+        print(f"Wrote Phase 5 search traces to {args.search_trace_output}.")
     return 0 if totals["errors"] == 0 else 1
 
 
@@ -1576,6 +1579,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--report-md",
         type=_path,
         default=REPORTS_DIR / "phase4_required_benchmark.md",
+    )
+    rl_evaluate.add_argument(
+        "--search-trace-output",
+        type=_path,
+        default=None,
+        help="Optional JSONL output for phase5-search root-search traces.",
     )
     rl_evaluate.set_defaults(func=command_rl_evaluate)
 

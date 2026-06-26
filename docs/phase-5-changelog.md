@@ -892,6 +892,35 @@ Conclusion:
 - The next higher-value work is search telemetry analysis, truncation inspection,
   stable Search API wrapper refactor, and value/Q/tactical heads.
 
+### Search Evaluation Trace Output
+
+Implementation update:
+
+- Added optional `rl-evaluate --search-trace-output PATH`.
+- `run_phase4_required_benchmark` now writes `phase5-search` root-search traces
+  to JSONL when a trace output path is provided.
+- The trace writer enriches in-memory search traces with benchmark metadata:
+  game index, deck index, deck label, and benchmark opponent.
+- `scripts/slurm/phase5_symbolic_eval_conda.sbatch` now accepts optional
+  `SEARCH_TRACE_OUTPUT=...`.
+- Added tests for the CLI option and trace metadata enrichment.
+
+Verification:
+
+- `tests.test_rl_phase5_symbolic_agent` and `tests.test_rl_phase4` passed:
+  34 tests, 2 skipped.
+- `py_compile` passed for:
+  - `src/ptcg_abc/cli.py`
+  - `src/ptcg_abc/rl/workflow.py`
+  - `src/ptcg_abc/agent/phase5_search.py`
+  - `src/ptcg_abc/evaluation.py`
+
+Next ERAWAN use:
+
+- Run a small `SEARCH_TRACE_OUTPUT` job, usually 1-3 games per matchup, and
+  inspect changed decisions plus truncated candidates before changing the search
+  scorer.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -935,8 +964,8 @@ File-retention decision:
   - a new value/Q/tactical scorer once implemented
 - Refactor reusable Search API code out of `phase5_search.py` into a stable
   wrapper used by both data generation and online evaluation.
-- Use the new search telemetry fields to decide whether a separate trace report
-  is still needed for per-decision analysis.
+- Use the new `--search-trace-output` path to inspect truncation examples and
+  search disagreements before tuning search scoring.
 - Implement value, Q, and auxiliary tactical heads after the online search gate.
 - Continue toward the full Phase 5 plan only after the current online search
   slice produces measurable battle evidence.

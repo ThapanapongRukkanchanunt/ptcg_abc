@@ -31,6 +31,12 @@ GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-1}"
 MAX_STEPS="${MAX_STEPS:-600}"
 REPORT_JSON="${REPORT_JSON:-reports/phase5_symbolic_10shards_smoke.json}"
 REPORT_MD="${REPORT_MD:-reports/phase5_symbolic_10shards_smoke.md}"
+SEARCH_TRACE_OUTPUT="${SEARCH_TRACE_OUTPUT:-}"
+
+EXTRA_ARGS=()
+if [[ -n "$SEARCH_TRACE_OUTPUT" ]]; then
+  EXTRA_ARGS+=(--search-trace-output "$SEARCH_TRACE_OUTPUT")
+fi
 
 "$PY" -m ptcg_abc rl-evaluate \
   --agent "$AGENT" \
@@ -38,4 +44,5 @@ REPORT_MD="${REPORT_MD:-reports/phase5_symbolic_10shards_smoke.md}"
   --games-per-matchup "$GAMES_PER_MATCHUP" \
   --max-steps "$MAX_STEPS" \
   --report-json "$REPORT_JSON" \
-  --report-md "$REPORT_MD"
+  --report-md "$REPORT_MD" \
+  "${EXTRA_ARGS[@]}"

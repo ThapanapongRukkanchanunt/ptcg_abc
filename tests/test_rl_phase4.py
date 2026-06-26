@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 from ptcg_abc.agent import HybridRlAgent
 from ptcg_abc.cli import build_parser
@@ -12,7 +13,9 @@ from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_d
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
 from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation, diagnose_search_traces
 from ptcg_abc.rl.phase5_search import (
+    CandidateEvaluation,
     RootSearchConfig,
+    RootSearchDecisionTrace,
     _best_candidate_indices,
     _candidate_evaluations,
     _replace_frame_selection,
@@ -33,6 +36,7 @@ from ptcg_abc.rl.torch_backend import (
     train_torch_bc_model,
 )
 from ptcg_abc.rl.workflow import (
+    _write_phase5_search_eval_traces,
     build_selfplay_deck_plan,
     selfplay_pair_for_game,
     write_phase4_benchmark_report,
@@ -585,6 +589,59 @@ class Phase4RlTests(unittest.TestCase):
         self.assertIn("## Search Telemetry", markdown)
         self.assertIn("- Search-changed decisions: 3", markdown)
         self.assertIn("| 1 | Benchmark | 10 | 3 | 1 | 40 | 2 | 4 | 0.2500 |", markdown)
+
+    def test_phase5_search_eval_trace_writer_enriches_metadata(self):
+        trace = RootSearchDecisionTrace(
+            schema_version=1,
+            game_index=0,
+            step_index=7,
+            deck_index=0,
+            deck_label="",
+            opponent="",
+            player_index=0,
+            turn=2,
+            select_type="MAIN",
+            context="MAIN",
+            baseline_indices=[1],
+            search_indices=[2],
+            changed=True,
+            search_started=True,
+            search_error=None,
+            hidden_counts={"your_deck": 12},
+            candidates=[
+                CandidateEvaluation(
+                    indices=[2],
+                    option_index=2,
+                    option_type="PLAY",
+                    card_name="Test Card",
+                    attack_id=None,
+                    rule_score=1.0,
+                    rule_rank=1,
+                    truncated=True,
+                )
+            ],
+            config={"top_k": 4},
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "traces.jsonl"
+            _write_phase5_search_eval_traces(
+                SimpleNamespace(traces=[trace]),
+                path,
+                game_index=42,
+                deck_index=9,
+                deck_label="Deck 9",
+                opponent="Benchmark",
+            )
+            payload = json.loads(path.read_text(encoding="utf-8").strip())
+
+        self.assertEqual(payload["game_index"], 42)
+        self.assertEqual(payload["step_index"], 7)
+        self.assertEqual(payload["deck_index"], 9)
+        self.assertEqual(payload["deck_label"], "Deck 9")
+        self.assertEqual(payload["opponent"], "Benchmark")
+        self.assertTrue(payload["changed"])
+        self.assertTrue(payload["candidates"][0]["truncated"])
 
     def test_phase5_shard_game_indices_interleave_without_overlap(self):
         shard0 = [

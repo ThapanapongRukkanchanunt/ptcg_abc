@@ -32,6 +32,9 @@ This is the resume point for the project. Start here after switching machines, c
 - Latest prior comparison: pairwise-mid as the `phase5-search` prior reached
   138 / 360 wins, 0.383 win rate, 0 timeouts, and 0 errors, which is clean but
   does not beat the plain symbolic prior's 139 / 360, 0.386 result.
+- Latest trace slice: `rl-evaluate` now supports `--search-trace-output` and the
+  ERAWAN eval script accepts `SEARCH_TRACE_OUTPUT` for inspecting changed and
+  truncated one-turn root-search decisions.
 
 ## Phase Log
 
