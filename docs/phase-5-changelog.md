@@ -921,6 +921,63 @@ Next ERAWAN use:
   inspect changed decisions plus truncated candidates before changing the search
   scorer.
 
+### 3-Game Trace-Capture Result
+
+Model:
+
+- `models/rl/phase5_symbolic_policy_10shards.pt`
+
+Command shape:
+
+- `rl-evaluate --agent phase5-search`
+- `--games-per-matchup 3`
+- `--max-steps 600`
+- `--search-trace-output experiments/rl/phase5_search_agent_plain_trace_3g.jsonl`
+
+Overall result:
+
+- Games: 108.
+- Wins: 39.
+- Losses: 69.
+- Draws: 0.
+- Timeouts: 0.
+- Errors: 0.
+- Win rate: 0.361.
+
+Search telemetry:
+
+- Searched decisions: 4,513.
+- Search-started decisions: 4,513.
+- Search-changed decisions: 1,040.
+- Search change rate: 0.230.
+- Search errors: 0.
+- Search error rate: 0.000.
+- Candidate probes: 16,459.
+- Candidate errors: 0.
+- Truncated candidates: 699.
+- Truncated candidate rate: about 0.0425.
+- Average search seconds: 0.0613.
+- Max search seconds: 1.9257.
+
+Notable truncation concentrations:
+
+- Deck 3 vs Mega Abomasnow ex: 67 truncated candidates from 485 probes.
+- Deck 8 vs Mega Lucario ex: 58 from 542.
+- Deck 8 vs Mega Abomasnow ex: 57 from 610.
+- Deck 3 vs Iono's Bellibolt ex: 44 from 476.
+- Deck 1 vs Mega Abomasnow ex: 41 from 602.
+- Deck 5 vs Iono's Bellibolt ex: 41 from 489.
+
+Conclusion:
+
+- The trace-capture run is clean: 0 search errors, 0 candidate errors, 0
+  timeouts, and average search time around 61 ms.
+- The 3-game win rate is lower than the 10-game and 30-game confirmations, but
+  it is only a trace-capture smoke and should not override the larger benchmark
+  conclusions.
+- The next action is to inspect the JSONL trace examples, especially truncated
+  candidates in the concentrated deck/opponent pairs above.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -964,8 +1021,8 @@ File-retention decision:
   - a new value/Q/tactical scorer once implemented
 - Refactor reusable Search API code out of `phase5_search.py` into a stable
   wrapper used by both data generation and online evaluation.
-- Use the new `--search-trace-output` path to inspect truncation examples and
-  search disagreements before tuning search scoring.
+- Inspect the captured trace JSONL for truncation examples and search
+  disagreements before tuning search scoring.
 - Implement value, Q, and auxiliary tactical heads after the online search gate.
 - Continue toward the full Phase 5 plan only after the current online search
   slice produces measurable battle evidence.

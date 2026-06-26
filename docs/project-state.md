@@ -35,6 +35,10 @@ This is the resume point for the project. Start here after switching machines, c
 - Latest trace slice: `rl-evaluate` now supports `--search-trace-output` and the
   ERAWAN eval script accepts `SEARCH_TRACE_OUTPUT` for inspecting changed and
   truncated one-turn root-search decisions.
+- Latest trace-capture result: the 3-game `phase5-search` trace run reached
+  39 / 108 wins, 0.361 win rate, 0 timeouts, 0 errors, 4,513 searched decisions,
+  1,040 search-changed decisions, 0 search/candidate errors, and 699 truncated
+  candidates. Next action is to inspect the JSONL trace examples.
 
 ## Phase Log
 
