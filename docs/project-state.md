@@ -55,6 +55,11 @@ This is the resume point for the project. Start here after switching machines, c
   selected-truncated records from 97 / 4,513 to 1 / 4,239, and changed
   selected-truncated records from 43 / 1,040 to 1 / 927. Next action is a
   10-game required benchmark with `SEARCH_ROLLOUT_STEPS=30`.
+- Latest cap-30 10-game trace diagnostic: 14,680 records, 3,218 changed records,
+  0 search errors, 0 candidate errors, 353 truncated candidates, 64 selected
+  truncated records, and 15 changed selected-truncated records. This is much
+  cleaner than the cap-18 10-game truncated-candidate count of 2,196, but
+  promotion still needs the cap-30 benchmark win-rate and timing summary.
 
 ## Phase Log
 

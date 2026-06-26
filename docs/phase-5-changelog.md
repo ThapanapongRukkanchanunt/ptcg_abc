@@ -1139,6 +1139,59 @@ Interpretation:
   result on win rate, timeouts, average search seconds, max search seconds, and
   trace truncation metrics.
 
+### Search Rollout-Cap 30 10-Game Trace Diagnostic
+
+Trace diagnostic:
+
+- Trace: `experiments/rl/phase5_search_agent_plain_10g_cap30.jsonl`.
+- Report: `reports/phase5_search_agent_plain_10g_cap30_diagnostics.md`.
+
+Observed cap-30 10-game trace counts:
+
+- Records: 14,680.
+- Comparable records: 14,680.
+- Changed records: 3,218.
+- Candidate probes: 53,890.
+- Search errors: 0.
+- Candidate errors: 0.
+- All-candidates-truncated records: 63.
+- All-candidates-truncated rate: 0.004292.
+- Truncated candidates: 353.
+- Truncated candidate rate: 0.006550.
+- Selected-truncated records: 64.
+- Selected-truncated rate: 0.004360.
+- Changed selected-truncated records: 15.
+- Changed selected-truncated rate: 0.004661.
+- Mean search-minus-baseline combined score: 0.628433.
+- Mean search-minus-baseline tactical score: 0.635204.
+
+Selected-truncated concentration:
+
+- By action type:
+  - `PLAY`: 31.
+  - `EVOLVE`: 15.
+  - `ATTACH`: 10.
+  - `ABILITY`: 7.
+  - `ATTACK`: 1.
+- By matchup:
+  - Deck 1 vs Mega Lucario ex: 33.
+  - Deck 1 vs Iono's Bellibolt ex: 26.
+  - Deck 1 vs Crustle: 3.
+  - Deck 3 vs Iono's Bellibolt ex: 2.
+
+Interpretation:
+
+- Cap 30 remains much cleaner than the prior cap-18 10-game telemetry headline:
+  truncated candidates dropped from 2,196 to 353.
+- The remaining selected-truncated risk is low: 64 / 14,680 records overall and
+  15 / 3,218 changed records.
+- The remaining truncation is concentrated in Deck 1 matchups, especially vs
+  Mega Lucario ex and Iono's Bellibolt ex, so future inspection should start
+  there if the cap-30 benchmark underperforms.
+- Promotion is still pending the benchmark report for
+  `reports/phase5_search_agent_plain_10g_cap30.json` or `.md`, especially win
+  rate, timeouts, average search seconds, and max search seconds.
+
 ## Artifact Notes
 
 Important model artifacts:

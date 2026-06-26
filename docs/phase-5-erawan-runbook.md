@@ -985,6 +985,19 @@ competitive with the current cap-18 10-game result: 139 / 360 wins, 0.386 win
 rate, 1 timeout, 0 errors, average search 0.0628 seconds, max search 1.4773
 seconds.
 
+To summarize the benchmark side of the same cap-30 job, inspect:
+
+```bash
+cat reports/phase5_search_agent_plain_10g_cap30.json
+grep -E "Games:|Wins:|Losses:|Draws:|Timeouts:|Errors:|Win rate:|Searched decisions:|Search-changed decisions:|Average search seconds:|Max search seconds:" \
+  reports/phase5_search_agent_plain_10g_cap30.md
+```
+
+Record both the benchmark summary and the trace diagnostic before promoting cap
+30. The first 10-game cap-30 trace diagnostic had 14,680 records, 3,218 changed
+records, 0 search/candidate errors, 353 truncated candidates, 64
+selected-truncated records, and 15 changed selected-truncated records.
+
 ## 13. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
