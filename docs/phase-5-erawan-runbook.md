@@ -16,6 +16,26 @@ Phase 5 builds on the Phase 4 package and uses the existing 9-deck by 4-benchmar
 matchup grid. It does not require integrating the full 13-deck pool before the first
 large run.
 
+## Storage Convention
+
+For future game-data generation on ERAWAN, keep large generated datasets under:
+
+```bash
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+```
+
+Use this root for generated decision/trajectory JSONL shards and merged datasets.
+Keep `reports/`, `models/`, and `experiments/` in the repository as before.
+Trace JSONL files are treated as experiment/debug artifacts and stay under
+`experiments/rl/...` unless explicitly overridden.
+
+The Phase 5 SLURM scripts now default to this convention:
+
+- `scripts/slurm/phase5_search_data_array.sbatch`
+- `scripts/slurm/phase5_merge_train_conda.sbatch`
+- `scripts/slurm/phase5_symbolic_train_conda.sbatch`
+- `scripts/slurm/phase5_symbolic_diagnose_conda.sbatch`
+
 ## 1. Verify The Command Surface
 
 ```bash
@@ -32,13 +52,14 @@ search-improved `DecisionFrame` output, and safe bounded rollout termination.
 ```bash
 cd ~/ptcg_abc
 PY=~/ptcg_abc/.conda_ptcg/bin/python
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
 "$PY" -m ptcg_abc rl-generate-search-data \
   --games 1 \
   --max-steps 60 \
   --top-k 4 \
-  --rollout-steps 18 \
+  --rollout-steps 30 \
   --require-changed \
-  --output data/datasets/rl/phase5_search_smoke.jsonl \
+  --output "$GAME_DATA_ROOT/phase5_search_smoke.jsonl" \
   --trace-output experiments/rl/phase5_search_smoke_traces.jsonl
 ```
 
@@ -56,10 +77,11 @@ Run two shards with two games each before spending a full allocation.
 ```bash
 cd ~/ptcg_abc
 JOB=$(
+  GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th \
   GAMES_PER_SHARD=2 \
   MAX_STEPS=80 \
   TOP_K=4 \
-  ROLLOUT_STEPS=18 \
+  ROLLOUT_STEPS=30 \
   sbatch --parsable --array=0-1 --time=00:30:00 scripts/slurm/phase5_search_data_array.sbatch
 )
 mkdir -p experiments/rl/phase5_search
@@ -83,10 +105,11 @@ cat experiments/rl/phase5_search/summaries/phase5_search_summary_shard-1.json
 ```bash
 cd ~/ptcg_abc
 PY=~/ptcg_abc/.conda_ptcg/bin/python
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
 "$PY" -m ptcg_abc rl-merge-search-data \
-  --input 'data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl' \
+  --input "$GAME_DATA_ROOT/phase5_search/shards/phase5_search_decisions_shard-*.jsonl" \
   --trace-input 'experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl' \
-  --output data/datasets/rl/phase5_search_decisions_merged.jsonl \
+  --output "$GAME_DATA_ROOT/phase5_search_decisions_merged.jsonl" \
   --trace-output experiments/rl/phase5_search_traces_merged.jsonl \
   --manifest experiments/rl/phase5_search_merge_manifest.json
 ```
@@ -110,11 +133,12 @@ Submit only the first two large shards:
 ```bash
 cd ~/ptcg_abc
 JOB=$(
+  GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th \
   SHARD_COUNT=32 \
   GAMES_PER_SHARD=1000 \
   MAX_STEPS=600 \
   TOP_K=4 \
-  ROLLOUT_STEPS=18 \
+  ROLLOUT_STEPS=30 \
   sbatch --parsable --array=0-1 scripts/slurm/phase5_search_data_array.sbatch
 )
 echo "$JOB" | tee experiments/rl/phase5_search/latest_search_large_job_0_1.txt
@@ -137,8 +161,8 @@ After the first wave finishes, inspect the summaries and shard sizes:
 ```bash
 cat experiments/rl/phase5_search/summaries/phase5_search_summary_shard-0.json
 cat experiments/rl/phase5_search/summaries/phase5_search_summary_shard-1.json
-ls -lh data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-0.jsonl
-ls -lh data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-1.jsonl
+ls -lh /project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search/shards/phase5_search_decisions_shard-0.jsonl
+ls -lh /project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search/shards/phase5_search_decisions_shard-1.jsonl
 ```
 
 Pass gate for each large shard:
@@ -158,7 +182,8 @@ If the first wave passes, submit the remaining waves two shards at a time. Keep
 cd ~/ptcg_abc
 
 JOB=$(
-  SHARD_COUNT=32 GAMES_PER_SHARD=1000 MAX_STEPS=600 TOP_K=4 ROLLOUT_STEPS=18 \
+  GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th \
+  SHARD_COUNT=32 GAMES_PER_SHARD=1000 MAX_STEPS=600 TOP_K=4 ROLLOUT_STEPS=30 \
   sbatch --parsable --array=2-3 scripts/slurm/phase5_search_data_array.sbatch
 )
 echo "$JOB" | tee experiments/rl/phase5_search/latest_search_large_job_2_3.txt
@@ -186,7 +211,7 @@ Repeat for:
 Check completion before merging:
 
 ```bash
-ls data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl | wc -l
+ls /project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search/shards/phase5_search_decisions_shard-*.jsonl | wc -l
 ls experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl | wc -l
 ```
 
@@ -199,10 +224,11 @@ After all 32 shards finish, merge the decision and trace JSONL files:
 ```bash
 cd ~/ptcg_abc
 PY=~/ptcg_abc/.conda_ptcg/bin/python
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
 "$PY" -m ptcg_abc rl-merge-search-data \
-  --input 'data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl' \
+  --input "$GAME_DATA_ROOT/phase5_search/shards/phase5_search_decisions_shard-*.jsonl" \
   --trace-input 'experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl' \
-  --output data/datasets/rl/phase5_search_decisions_merged.jsonl \
+  --output "$GAME_DATA_ROOT/phase5_search_decisions_merged.jsonl" \
   --trace-output experiments/rl/phase5_search_traces_merged.jsonl \
   --manifest experiments/rl/phase5_search_merge_manifest.json
 cat experiments/rl/phase5_search_merge_manifest.json
@@ -246,14 +272,15 @@ If stopping at 10 completed large shards, train a partial model before continuin
 This is useful for checking the training path and getting a first checkpoint. The
 job below merges whatever shard files currently match the default shard glob, so
 run it when only the intended large shards are present in
-`data/datasets/rl/phase5_search/shards/`.
+`/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search/shards/`.
 
 ```bash
 cd ~/ptcg_abc
 JOB=$(
+  GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th \
   BC_EPOCHS=2 \
   BC_LEARNING_RATE=0.02 \
-  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  MERGED_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards.jsonl \
   MERGED_TRACES=experiments/rl/phase5_search_traces_10shards.jsonl \
   MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards.json \
   BC_CHECKPOINT=models/rl/phase5_search_distill_10shards.pt \
@@ -284,7 +311,7 @@ cat experiments/rl/phase5_search_distill_report.json
 
 Outputs:
 
-- `data/datasets/rl/phase5_search_decisions_merged.jsonl`
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_merged.jsonl`
 - `experiments/rl/phase5_search_traces_merged.jsonl`
 - `experiments/rl/phase5_search_merge_manifest.json`
 - `models/rl/phase5_search_distill.pt`
@@ -303,8 +330,9 @@ JSON fallback model. For the 10-shard partial model:
 
 ```bash
 cd ~/ptcg_abc
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  DATASET="$GAME_DATA_ROOT/phase5_search_decisions_10shards.jsonl" \
   MODEL=models/rl/phase5_search_distill_10shards.json \
   TRACE_INPUT=experiments/rl/phase5_search_traces_10shards.jsonl \
   REPORT_JSON=reports/phase5_search_distill_10shards_diagnostics.json \
@@ -319,7 +347,7 @@ the diagnostic job with a GPU:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards.jsonl \
+  DATASET="$GAME_DATA_ROOT/phase5_search_decisions_10shards.jsonl" \
   MODEL=models/rl/phase5_search_distill_10shards.json \
   CHECKPOINT=models/rl/phase5_search_distill_10shards.pt \
   TRACE_INPUT=experiments/rl/phase5_search_traces_10shards.jsonl \
@@ -334,7 +362,7 @@ For a full 32-shard model, use the merged full-run paths:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_merged.jsonl \
+  DATASET="$GAME_DATA_ROOT/phase5_search_decisions_merged.jsonl" \
   MODEL=models/rl/phase5_search_distill.json \
   TRACE_INPUT=experiments/rl/phase5_search_traces_merged.jsonl \
   REPORT_JSON=reports/phase5_search_distill_diagnostics.json \
@@ -385,7 +413,7 @@ JOB=$(
   BC_CHANGED_WEIGHT=12 \
   BC_UNCHANGED_WEIGHT=1 \
   BC_EXCLUDE_FEATURES="rule_score rule_rank_inv" \
-  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl \
+  MERGED_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_reweighted.jsonl \
   MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_reweighted.jsonl \
   MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_reweighted.json \
   BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_changedw.pt \
@@ -400,7 +428,7 @@ After it finishes, submit diagnostics against the reweighted model:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl \
+  DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_reweighted.jsonl \
   MODEL=models/rl/phase5_search_distill_10shards_changedw.json \
   TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_reweighted.jsonl \
   REPORT_JSON=reports/phase5_search_distill_10shards_changedw_diagnostics.json \
@@ -441,7 +469,7 @@ JOB=$(
   BC_PAIRWISE_CHANGED=1 \
   BC_PAIRWISE_MARGIN=1.0 \
   BC_PAIRWISE_NEGATIVES=all \
-  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl \
+  MERGED_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_pairwise_all.jsonl \
   MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_pairwise_all.jsonl \
   MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_pairwise_all.json \
   BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt \
@@ -456,7 +484,7 @@ Submit diagnostics before battle evaluation:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl \
+  DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_pairwise_all.jsonl \
   MODEL=models/rl/phase5_search_distill_10shards_pairwise_all.json \
   TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_pairwise_all.jsonl \
   REPORT_JSON=reports/phase5_search_distill_10shards_pairwise_all_diagnostics.json \
@@ -471,7 +499,7 @@ before doing more linear-export retraining:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl \
+  DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_pairwise_all.jsonl \
   MODEL=models/rl/phase5_search_distill_10shards_pairwise_all.json \
   CHECKPOINT=models/rl/phase5_search_distill_10shards_pairwise_all.pt \
   TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_pairwise_all.jsonl \
@@ -503,7 +531,7 @@ JOB=$(
   BC_PAIRWISE_CHANGED=1 \
   BC_PAIRWISE_MARGIN=1.0 \
   BC_PAIRWISE_NEGATIVES=all \
-  MERGED_DATASET=data/datasets/rl/phase5_search_decisions_10shards_residual.jsonl \
+  MERGED_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_residual.jsonl \
   MERGED_TRACES=experiments/rl/phase5_search_traces_10shards_residual.jsonl \
   MERGE_MANIFEST=experiments/rl/phase5_search_merge_manifest_10shards_residual.json \
   BC_CHECKPOINT=models/rl/phase5_search_distill_10shards_residual.pt \
@@ -518,7 +546,7 @@ Then diagnose the residual checkpoint as a job:
 
 ```bash
 JOB=$(
-  DATASET=data/datasets/rl/phase5_search_decisions_10shards_residual.jsonl \
+  DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards_residual.jsonl \
   MODEL=models/rl/phase5_search_distill_10shards_residual.json \
   CHECKPOINT=models/rl/phase5_search_distill_10shards_residual.pt \
   TRACE_INPUT=experiments/rl/phase5_search_traces_10shards_residual.jsonl \
@@ -574,7 +602,8 @@ manifest are present.
 Set the dataset path to the merged 10-shard file you actually kept:
 
 ```bash
-DATASET=data/datasets/rl/phase5_search_decisions_merged.jsonl
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+DATASET="$GAME_DATA_ROOT/phase5_search_decisions_merged.jsonl"
 ls -lh "$DATASET" \
   experiments/rl/phase5_search_traces_merged.jsonl \
   experiments/rl/phase5_search_merge_manifest.json
@@ -587,7 +616,7 @@ JSONL unless you intentionally want a much larger expanded tensor file:
 "$PY" -m ptcg_abc rl-build-phase5-symbolic-dataset \
   --dataset "$DATASET" \
   --limit 1000 \
-  --output data/datasets/rl/phase5_symbolic_decisions_smoke.jsonl
+  --output "$GAME_DATA_ROOT/phase5_symbolic_decisions_smoke.jsonl"
 ```
 
 Submit the first bounded symbolic trainer smoke as a job:
@@ -761,13 +790,13 @@ After confirming the merged files exist, you may remove the large per-shard
 inputs to reclaim space:
 
 ```bash
-du -sh data/datasets/rl/phase5_search/shards experiments/rl/phase5_search/traces
+du -sh "$GAME_DATA_ROOT/phase5_search/shards" experiments/rl/phase5_search/traces
 ls -lh "$DATASET" \
   experiments/rl/phase5_search_traces_merged.jsonl \
   experiments/rl/phase5_search_merge_manifest.json
 
 # Remove only after the merged files above are present and readable.
-rm -i data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl
+rm -i "$GAME_DATA_ROOT"/phase5_search/shards/phase5_search_decisions_shard-*.jsonl
 rm -i experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl
 ```
 

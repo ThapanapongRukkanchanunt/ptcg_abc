@@ -17,6 +17,9 @@ This is the resume point for the project. Start here after switching machines, c
 - Phase 5 reporting rule: record meaningful future implementation updates,
   ERAWAN results, diagnostics, conclusions, artifact decisions, and next steps
   in `docs/phase-5-changelog.md`.
+- Phase 5 ERAWAN storage rule: future generated game datasets should be written
+  under `/project/SIGGI/thapanapong.r@cmu.ac.th`; keep `reports/`, `models/`,
+  and `experiments/` in the repository.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
@@ -487,7 +490,7 @@ source docs for detailed architecture, training, and evaluation requirements:
 Implemented Phase 5 vertical-slice command:
 
 ```powershell
-python -m ptcg_abc rl-generate-search-data --games 1 --max-steps 60 --top-k 4 --rollout-steps 18 --require-changed --output data/datasets/rl/phase5_search_smoke.jsonl --trace-output experiments/rl/phase5_search_smoke_traces.jsonl
+python -m ptcg_abc rl-generate-search-data --games 1 --max-steps 60 --top-k 4 --rollout-steps 30 --require-changed --output /project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_smoke.jsonl --trace-output experiments/rl/phase5_search_smoke_traces.jsonl
 ```
 
 Latest local smoke result:

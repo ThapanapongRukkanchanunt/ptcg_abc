@@ -12,7 +12,8 @@ module purge
 module load miniconda3/3.12
 
 cd "$SLURM_SUBMIT_DIR"
-mkdir -p experiments/rl data/datasets/rl models/rl reports
+GAME_DATA_ROOT="${GAME_DATA_ROOT:-/project/SIGGI/thapanapong.r@cmu.ac.th}"
+mkdir -p experiments/rl "$GAME_DATA_ROOT" models/rl reports
 
 export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
@@ -29,9 +30,9 @@ print("device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else 
 print("checkpoint_format", CHECKPOINT_FORMAT)
 PY
 
-DECISION_GLOB="${DECISION_GLOB:-data/datasets/rl/phase5_search/shards/phase5_search_decisions_shard-*.jsonl}"
+DECISION_GLOB="${DECISION_GLOB:-${GAME_DATA_ROOT}/phase5_search/shards/phase5_search_decisions_shard-*.jsonl}"
 TRACE_GLOB="${TRACE_GLOB:-experiments/rl/phase5_search/traces/phase5_search_traces_shard-*.jsonl}"
-MERGED_DATASET="${MERGED_DATASET:-data/datasets/rl/phase5_search_decisions_merged.jsonl}"
+MERGED_DATASET="${MERGED_DATASET:-${GAME_DATA_ROOT}/phase5_search_decisions_merged.jsonl}"
 MERGED_TRACES="${MERGED_TRACES:-experiments/rl/phase5_search_traces_merged.jsonl}"
 MERGE_MANIFEST="${MERGE_MANIFEST:-experiments/rl/phase5_search_merge_manifest.json}"
 BC_CHANGED_WEIGHT="${BC_CHANGED_WEIGHT:-1.0}"

@@ -1429,7 +1429,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_search.add_argument("--max-steps", type=int, default=80)
     rl_search.add_argument("--top-k", type=int, default=4)
-    rl_search.add_argument("--rollout-steps", type=int, default=18)
+    rl_search.add_argument(
+        "--rollout-steps",
+        type=int,
+        default=RootSearchConfig().max_rollout_steps,
+    )
     rl_search.add_argument("--min-candidates", type=int, default=2)
     rl_search.add_argument(
         "--append",

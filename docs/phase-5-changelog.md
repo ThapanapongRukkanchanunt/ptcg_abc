@@ -1332,6 +1332,35 @@ Implementation implications:
   generalist model beats or matches the current search baseline on the required
   benchmark.
 
+### ERAWAN Game-Data Storage Policy
+
+User directive:
+
+- Future game-data generation should write large generated datasets under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th`.
+- `reports/`, `models/`, and `experiments/` should stay in the repository.
+
+Implementation update:
+
+- Updated `scripts/slurm/phase5_search_data_array.sbatch`:
+  - Adds `GAME_DATA_ROOT`, defaulting to
+    `/project/SIGGI/thapanapong.r@cmu.ac.th`.
+  - Writes future search decision shards to
+    `$GAME_DATA_ROOT/phase5_search/shards`.
+  - Keeps search traces and summaries under `experiments/rl/phase5_search`.
+  - Defaults `ROLLOUT_STEPS` to 30, matching the promoted cap-30 search default.
+- Updated `scripts/slurm/phase5_merge_train_conda.sbatch`:
+  - Reads future decision shards from `$GAME_DATA_ROOT/phase5_search/shards`.
+  - Writes merged decision datasets to `$GAME_DATA_ROOT`.
+  - Keeps merged traces, merge manifests, training reports, model checkpoints,
+    and exported models in their existing `experiments/`, `reports/`, and
+    `models/` locations.
+- Updated symbolic train/diagnostic SLURM defaults to read merged datasets from
+  `$GAME_DATA_ROOT`.
+- Updated `rl-generate-search-data` CLI default rollout cap to the promoted
+  `RootSearchConfig` value, currently 30.
+- Updated the ERAWAN runbook and project-state with the storage convention.
+
 ## Artifact Notes
 
 Important model artifacts:

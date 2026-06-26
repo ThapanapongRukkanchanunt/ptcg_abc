@@ -12,7 +12,8 @@ module purge
 module load miniconda3/3.12
 
 cd "$SLURM_SUBMIT_DIR"
-mkdir -p experiments/rl data/datasets/rl models/rl reports
+GAME_DATA_ROOT="${GAME_DATA_ROOT:-/project/SIGGI/thapanapong.r@cmu.ac.th}"
+mkdir -p experiments/rl "$GAME_DATA_ROOT" models/rl reports
 
 export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
@@ -29,7 +30,7 @@ print("device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else 
 print("checkpoint_format", PHASE5_POLICY_CHECKPOINT_FORMAT)
 PY
 
-DATASET="${DATASET:-data/datasets/rl/phase5_search_decisions_merged.jsonl}"
+DATASET="${DATASET:-${GAME_DATA_ROOT}/phase5_search_decisions_merged.jsonl}"
 CHECKPOINT="${CHECKPOINT:-models/rl/phase5_symbolic_policy_10shards.pt}"
 REPORT_JSON="${REPORT_JSON:-experiments/rl/phase5_symbolic_train_report_10shards.json}"
 EPOCHS="${EPOCHS:-1}"

@@ -467,6 +467,7 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(search_args.command, "rl-generate-search-data")
         self.assertEqual(search_args.games, 1)
         self.assertEqual(search_args.top_k, 3)
+        self.assertEqual(search_args.rollout_steps, 30)
         self.assertEqual(search_args.shard_index, 2)
         self.assertEqual(search_args.shard_count, 8)
         self.assertTrue(search_args.require_changed)

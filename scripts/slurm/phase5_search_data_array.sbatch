@@ -13,7 +13,8 @@ module purge
 module load miniconda3/3.12
 
 cd "$SLURM_SUBMIT_DIR"
-mkdir -p experiments/rl data/datasets/rl reports
+GAME_DATA_ROOT="${GAME_DATA_ROOT:-/project/SIGGI/thapanapong.r@cmu.ac.th}"
+mkdir -p experiments/rl "$GAME_DATA_ROOT" reports
 
 export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
@@ -23,7 +24,7 @@ PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
 
 SHARD_INDEX="${SLURM_ARRAY_TASK_ID:-0}"
 SHARD_COUNT="${SHARD_COUNT:-${SLURM_ARRAY_TASK_COUNT:-32}}"
-DATASET_DIR="${DATASET_DIR:-data/datasets/rl/phase5_search/shards}"
+DATASET_DIR="${DATASET_DIR:-${GAME_DATA_ROOT}/phase5_search/shards}"
 TRACE_DIR="${TRACE_DIR:-experiments/rl/phase5_search/traces}"
 SUMMARY_DIR="${SUMMARY_DIR:-experiments/rl/phase5_search/summaries}"
 
@@ -40,7 +41,7 @@ SUMMARY="${SUMMARY_DIR}/phase5_search_summary_shard-${SHARD_INDEX}.json"
   --shard-count "$SHARD_COUNT" \
   --max-steps "${MAX_STEPS:-600}" \
   --top-k "${TOP_K:-4}" \
-  --rollout-steps "${ROLLOUT_STEPS:-18}" \
+  --rollout-steps "${ROLLOUT_STEPS:-30}" \
   --min-candidates "${MIN_CANDIDATES:-2}" \
   --output "$OUT" \
   --trace-output "$TRACE" \
