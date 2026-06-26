@@ -84,9 +84,19 @@ This is the resume point for the project. Start here after switching machines, c
   reports and optional traces stay under `experiments/rl/phase5_search_selfplay`.
 - Latest self-play smoke: 2 / 2 games started, 298 trajectory steps, 0 errors,
   0 timeouts, 153 search decisions, 24 search-changed decisions, 0 search
-  errors, 0 candidate errors, 1 truncated candidate, 153 trace records. Next
-  action is the bounded two-shard 25-games-per-shard self-play job over the
-  current 9-deck pool.
+  errors, 0 candidate errors, 1 truncated candidate, 153 trace records.
+- Latest bounded self-play gate: two 25-game shards completed over the current
+  9-deck pool with 50 / 50 games started, 8,424 trajectory steps, 0 errors,
+  0 timeouts, 4,468 searched decisions, 942 search-changed decisions,
+  0 search errors, 0 candidate errors, 63 truncated candidates, 0.0813 average
+  search seconds, and 165 sampled trace records.
+- Latest large self-play support: added
+  `scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch`, which runs a
+  two-shard `phase5-search` self-play dataset at about 10,000 total games by
+  default. Game data writes to
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards`;
+  summaries and sampled traces stay under
+  `experiments/rl/phase5_search_selfplay_10k`.
 
 ## Phase Log
 

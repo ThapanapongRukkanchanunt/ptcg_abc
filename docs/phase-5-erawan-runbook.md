@@ -1166,6 +1166,79 @@ Reports and optional traces stay in:
 experiments/rl/phase5_search_selfplay/
 ```
 
+Bounded two-shard result recorded on June 26, 2026:
+
+- Games started: 50 / 50.
+- Steps written: 8,424.
+- Errors: 0.
+- Timeouts: 0.
+- Draws: 0.
+- Search decisions: 4,468.
+- Search-changed decisions: 942.
+- Search-change rate: 0.211.
+- Candidate probes: 16,344.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 63.
+- Truncated-candidate rate: 0.00385.
+- Average search seconds: 0.0813.
+- Max search seconds: 3.8083.
+- Trace records: 165.
+
+After this gate passes, launch the larger two-shard self-play dataset. This
+defaults to about 10,000 total games, split as 5,000 games per shard, and writes
+trajectory data outside the repo under `$GAME_DATA_ROOT`.
+
+```bash
+cd ~/ptcg_abc
+export PYTHONPATH="$PWD/src"
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+MODEL=models/rl/phase5_symbolic_policy_10shards.pt
+mkdir -p experiments/rl/phase5_search_selfplay_10k
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  MODEL="$MODEL" \
+  TOTAL_GAMES=10000 \
+  MAX_STEPS=600 \
+  SELFPLAY_DECK_INDICES="1 2 3 4 5 6 7 8 9" \
+  SEARCH_TRACE_GAMES=1 \
+  sbatch --parsable scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_selfplay_10k/latest_job.txt
+```
+
+If the intended total is 1,000 rather than 10,000, use the same command with
+`TOTAL_GAMES=1000`.
+
+Inspect the large job:
+
+```bash
+JOB=$(cat experiments/rl/phase5_search_selfplay_10k/latest_job.txt)
+squeue -j "$JOB"
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-0-phase5-search-selfplay-10k.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-1-phase5-search-selfplay-10k.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-0-phase5-search-selfplay-10k.err"
+tail -n 120 "experiments/rl/slurm-${JOB}-1-phase5-search-selfplay-10k.err"
+cat experiments/rl/phase5_search_selfplay_10k/summaries/phase5_search_selfplay_summary_shard-0.json
+cat experiments/rl/phase5_search_selfplay_10k/summaries/phase5_search_selfplay_summary_shard-1.json
+wc -l "$GAME_DATA_ROOT"/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-*.jsonl
+ls -lh "$GAME_DATA_ROOT"/phase5_search_selfplay_10k/shards/
+ls -lh experiments/rl/phase5_search_selfplay_10k/traces/
+```
+
+Large-run pass gate:
+
+- Both array tasks complete with `ExitCode` `0:0`.
+- Combined `games_started` is close to `TOTAL_GAMES`.
+- Combined `errors` and `timeouts` are `0` or small enough to explain.
+- Combined `search_telemetry.search_errors` is `0`.
+- Combined `search_telemetry.candidate_errors` is `0`.
+- Trajectory JSONL row count is nonzero for both shards.
+- Traces exist only for the sampled games; do not set `SEARCH_TRACE_GAMES=0`
+  for large runs because the CLI treats `0` as trace all games.
+
 ## 14. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
