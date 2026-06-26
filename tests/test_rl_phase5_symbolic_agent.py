@@ -12,6 +12,9 @@ from ptcg_abc.rl.phase5_search import RootSearchConfig
 
 
 class Phase5SymbolicAgentTests(unittest.TestCase):
+    def test_search_config_default_uses_promoted_rollout_cap(self):
+        self.assertEqual(RootSearchConfig().max_rollout_steps, 30)
+
     def test_agent_requires_checkpoint_path(self):
         with self.assertRaises(ValueError):
             Phase5SymbolicPolicyAgent([1] * 60)

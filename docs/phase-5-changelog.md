@@ -1135,9 +1135,8 @@ Interpretation:
   before candidate sequences finish.
 - This is strong enough to proceed to a required benchmark comparison with
   `SEARCH_ROLLOUT_STEPS=30`.
-- Do not change the default yet. First compare cap 30 against the cap-18 10-game
-  result on win rate, timeouts, average search seconds, max search seconds, and
-  trace truncation metrics.
+- The following 10-game benchmark resolved the promotion gate and made cap 30
+  the current default.
 
 ### Search Rollout-Cap 30 10-Game Trace Diagnostic
 
@@ -1188,9 +1187,60 @@ Interpretation:
 - The remaining truncation is concentrated in Deck 1 matchups, especially vs
   Mega Lucario ex and Iono's Bellibolt ex, so future inspection should start
   there if the cap-30 benchmark underperforms.
-- Promotion is still pending the benchmark report for
-  `reports/phase5_search_agent_plain_10g_cap30.json` or `.md`, especially win
-  rate, timeouts, average search seconds, and max search seconds.
+- The benchmark gate below resolves whether this cleaner cap should become the
+  default.
+
+### Search Rollout-Cap 30 Promotion
+
+Benchmark:
+
+- Agent: `phase5-search`.
+- Model: `models/rl/phase5_symbolic_policy_10shards.pt`.
+- Games per matchup: 10.
+- Max selections per game: 600.
+- Search rollout cap: 30.
+
+Observed benchmark summary:
+
+- Games: 360.
+- Wins: 148.
+- Losses: 211.
+- Draws: 1.
+- Timeouts: 1.
+- Errors: 0.
+- Win rate: 0.411.
+- Searched decisions: 14,680.
+- Search-changed decisions: 3,218.
+- Average search seconds: 0.0631.
+- Max search seconds: 3.4057.
+
+Comparison against the cap-18 10-game result:
+
+- Win rate improved from 0.386 to 0.411.
+- Wins improved from 139 / 360 to 148 / 360.
+- Timeouts stayed at 1.
+- Errors stayed at 0.
+- Average search seconds remained effectively flat: 0.0628 to 0.0631.
+- Max search seconds increased from 1.4773 to 3.4057, so max latency should be
+  monitored in the next 30-game confirmation run.
+- Trace safety improved substantially:
+  - Truncated candidates: 2,196 to 353.
+  - Selected-truncated records: 64 / 14,680 under cap 30.
+  - Changed selected-truncated records: 15 / 3,218 under cap 30.
+
+Implementation update:
+
+- Promoted `RootSearchConfig.max_rollout_steps` from 18 to 30.
+- Kept CLI and SLURM overrides available:
+  - `rl-evaluate --search-rollout-steps N`
+  - `SEARCH_ROLLOUT_STEPS=N`
+- Added a regression test asserting the promoted default cap is 30.
+
+Decision:
+
+- Treat cap 30 as the current default for Phase 5 online one-turn root search.
+- Next benchmark should be a 30-game required run with the default cap 30,
+  including trace output, to confirm win rate and monitor the higher max latency.
 
 ## Artifact Notes
 

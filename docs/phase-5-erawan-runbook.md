@@ -980,10 +980,10 @@ After it finishes, diagnose the 10-game trace:
   --report-md reports/phase5_search_agent_plain_10g_cap30_diagnostics.md
 ```
 
-Keep cap 18 as the default unless the cap-30 10-game benchmark is at least
-competitive with the current cap-18 10-game result: 139 / 360 wins, 0.386 win
-rate, 1 timeout, 0 errors, average search 0.0628 seconds, max search 1.4773
-seconds.
+Cap 30 passed this promotion gate: 148 / 360 wins, 0.411 win rate, 1 timeout,
+0 errors, average search 0.0631 seconds, max search 3.4057 seconds. The default
+`RootSearchConfig.max_rollout_steps` is now 30. Continue to watch max latency in
+larger runs because the cap-30 max was higher than cap 18's 1.4773 seconds.
 
 To summarize the benchmark side of the same cap-30 job, inspect:
 
@@ -993,10 +993,37 @@ grep -E "Games:|Wins:|Losses:|Draws:|Timeouts:|Errors:|Win rate:|Searched decisi
   reports/phase5_search_agent_plain_10g_cap30.md
 ```
 
-Record both the benchmark summary and the trace diagnostic before promoting cap
-30. The first 10-game cap-30 trace diagnostic had 14,680 records, 3,218 changed
-records, 0 search/candidate errors, 353 truncated candidates, 64
-selected-truncated records, and 15 changed selected-truncated records.
+Both the benchmark summary and trace diagnostic are recorded in
+`docs/phase-5-changelog.md`. The first 10-game cap-30 trace diagnostic had
+14,680 records, 3,218 changed records, 0 search/candidate errors, 353 truncated
+candidates, 64 selected-truncated records, and 15 changed selected-truncated
+records.
+
+For the next confirmation run, use the default cap 30 and omit
+`SEARCH_ROLLOUT_STEPS`:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_search_agent_plain_30g_cap30_default.json \
+  REPORT_MD=reports/phase5_search_agent_plain_30g_cap30_default.md \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_agent_plain_30g_cap30_default.jsonl \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_agent_plain_30g_cap30_default_job.txt
+```
+
+After it finishes, diagnose the 30-game trace:
+
+```bash
+"$PY" -m ptcg_abc rl-diagnose-search-traces \
+  --trace-input experiments/rl/phase5_search_agent_plain_30g_cap30_default.jsonl \
+  --report-json reports/phase5_search_agent_plain_30g_cap30_default_diagnostics.json \
+  --report-md reports/phase5_search_agent_plain_30g_cap30_default_diagnostics.md
+```
 
 ## 13. Ready-To-Train Checklist
 

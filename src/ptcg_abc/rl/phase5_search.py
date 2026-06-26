@@ -31,7 +31,7 @@ class RootSearchConfig:
     """Small bounded one-turn root-search configuration for Phase 5 data generation."""
 
     top_k: int = 4
-    max_rollout_steps: int = 18
+    max_rollout_steps: int = 30
     min_candidates: int = 2
     rule_prior_weight: float = 0.08
     damage_weight: float = 0.025

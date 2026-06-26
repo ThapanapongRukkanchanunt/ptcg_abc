@@ -49,7 +49,8 @@ This is the resume point for the project. Start here after switching machines, c
   truncated candidate. This is meaningful but not dominant.
 - Latest cap-experiment support: `rl-evaluate` now accepts `--search-top-k` and
   `--search-rollout-steps`; the ERAWAN eval script accepts `SEARCH_TOP_K` and
-  `SEARCH_ROLLOUT_STEPS`. Next run should compare default cap 18 against cap 30.
+  `SEARCH_ROLLOUT_STEPS`. Cap 30 is now the default, while overrides remain
+  available for experiments.
 - Latest cap-30 trace diagnostic: on the 3-game `phase5-search` trace, cap 30
   reduced all-candidates-truncated records from 72 / 4,513 to 0 / 4,239,
   selected-truncated records from 97 / 4,513 to 1 / 4,239, and changed
@@ -58,8 +59,13 @@ This is the resume point for the project. Start here after switching machines, c
 - Latest cap-30 10-game trace diagnostic: 14,680 records, 3,218 changed records,
   0 search errors, 0 candidate errors, 353 truncated candidates, 64 selected
   truncated records, and 15 changed selected-truncated records. This is much
-  cleaner than the cap-18 10-game truncated-candidate count of 2,196, but
-  promotion still needs the cap-30 benchmark win-rate and timing summary.
+  cleaner than the cap-18 10-game truncated-candidate count of 2,196.
+- Latest cap-30 benchmark decision: cap 30 reached 148 / 360 wins, 0.411 win
+  rate, 1 timeout, 0 errors, 14,680 searched decisions, 3,218 changed decisions,
+  0.0631 average search seconds, and 3.4057 max search seconds. This beats the
+  cap-18 10-game result of 139 / 360, 0.386 while keeping average timing flat,
+  so `RootSearchConfig.max_rollout_steps` is promoted to 30. Watch max latency
+  in the next 30-game default-cap confirmation run.
 
 ## Phase Log
 
