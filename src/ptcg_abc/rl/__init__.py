@@ -15,6 +15,7 @@ from ptcg_abc.rl.phase5_policy import Phase5PolicyConfig
 from ptcg_abc.rl.phase5_search import RootSearchConfig
 from ptcg_abc.rl.phase5_symbolic_diagnostics import Phase5SymbolicDiagnostics
 from ptcg_abc.rl.phase5_symbolic_training import (
+    Phase5GeneralistTrainingSummary,
     Phase5SymbolicBuildSummary,
     Phase5SymbolicDecisionRecord,
     Phase5SymbolicTrainingSummary,
@@ -35,6 +36,7 @@ __all__ = [
     "LegalOptionAdapter",
     "LinearOptionModel",
     "Phase5PolicyConfig",
+    "Phase5GeneralistTrainingSummary",
     "Phase5SymbolicBuildSummary",
     "Phase5SymbolicDiagnostics",
     "Phase5SymbolicDecisionRecord",

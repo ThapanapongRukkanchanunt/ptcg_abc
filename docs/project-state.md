@@ -97,6 +97,19 @@ This is the resume point for the project. Start here after switching machines, c
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards`;
   summaries and sampled traces stay under
   `experiments/rl/phase5_search_selfplay_10k`.
+- Latest 10,000-game self-play result: 10,000 / 10,000 games started,
+  1,597,717 trajectory rows, 0 errors, 50 timeouts, 20 draws, 827,784 searched
+  decisions, 176,728 search-changed decisions, 0 search errors,
+  0 candidate errors, 12,338 truncated candidates, 0.0808 average search
+  seconds, and 4.8117 max search seconds. This completes the 9-deck Phase 5
+  self-play data generation gate.
+- Latest implementation slice: added the Phase 5 mixed generalist trainer.
+  `AlphaStarTurnPolicy` now has policy, state-value, selected-action Q, and
+  tactical scalar outputs. `rl-train-phase5-generalist` and
+  `scripts/slurm/phase5_generalist_train_conda.sbatch` stream the 10-shard
+  search-decision data plus the 10,000-game self-play shards without merging
+  them in memory. The next action is the bounded generalist smoke-train job from
+  `docs/phase-5-erawan-runbook.md`.
 
 ## Phase Log
 
@@ -107,7 +120,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | Search-self-play and multi-head planning | Cap-30 online root search is the current best inference path; next work is Phase 5 search self-play data, value/Q/tactical heads, mixed generalist training, 9-deck evaluation, broader deck expansion, then larger PPO. |
+| Phase 5: Advanced RL strategy, training, and evaluation | Mixed generalist training | Cap-30 online root search is the current best inference path; 10,000 games of 9-deck search self-play are complete, and the next work is smoke/full training of the policy/value/Q/tactical generalist before 9-deck evaluation, broader deck expansion, then larger PPO. |
 
 ## Completed Phase Details
 

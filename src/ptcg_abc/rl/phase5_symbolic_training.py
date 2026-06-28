@@ -15,7 +15,7 @@ from ptcg_abc.rl.phase5_policy import (
     TORCH_AVAILABLE,
     make_phase5_policy_config,
 )
-from ptcg_abc.rl.records import ActionFrame, DecisionFrame
+from ptcg_abc.rl.records import ActionFrame, DecisionFrame, TrajectoryStep
 from ptcg_abc.rl.rewards import reward_from_result_metadata
 
 
@@ -33,10 +33,15 @@ class Phase5SymbolicDecisionRecord:
     weight: float
     changed: bool
     metadata: dict[str, Any]
+    value_target: float | None = None
+    action_value_targets: list[float] | None = None
+    action_value_mask: list[float] | None = None
+    tactical_targets: list[float] | None = None
+    tactical_mask: list[float] | None = None
     source_format: str = PHASE5_SYMBOLIC_DATASET_FORMAT
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "source_format": self.source_format,
             "encoded": self.encoded.to_dict(),
             "target_indices": list(self.target_indices),
@@ -49,6 +54,17 @@ class Phase5SymbolicDecisionRecord:
             "changed": self.changed,
             "metadata": dict(self.metadata),
         }
+        if self.value_target is not None:
+            payload["value_target"] = float(self.value_target)
+        if self.action_value_targets is not None:
+            payload["action_value_targets"] = list(self.action_value_targets)
+        if self.action_value_mask is not None:
+            payload["action_value_mask"] = list(self.action_value_mask)
+        if self.tactical_targets is not None:
+            payload["tactical_targets"] = list(self.tactical_targets)
+        if self.tactical_mask is not None:
+            payload["tactical_mask"] = list(self.tactical_mask)
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Phase5SymbolicDecisionRecord:
@@ -86,6 +102,13 @@ class Phase5SymbolicDecisionRecord:
             weight=float(data.get("weight", 1.0)),
             changed=bool(data.get("changed", False)),
             metadata=dict(data.get("metadata", {})),
+            value_target=(
+                None if data.get("value_target") is None else float(data["value_target"])
+            ),
+            action_value_targets=_optional_float_list(data.get("action_value_targets")),
+            action_value_mask=_optional_float_list(data.get("action_value_mask")),
+            tactical_targets=_optional_float_list(data.get("tactical_targets")),
+            tactical_mask=_optional_float_list(data.get("tactical_mask")),
         )
 
 
@@ -135,6 +158,41 @@ class Phase5SymbolicTrainingSummary:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class Phase5GeneralistTrainingSummary:
+    decision_frames_seen: int
+    decision_examples: int
+    rule_examples: int
+    selfplay_steps_seen: int
+    selfplay_examples: int
+    skipped_no_target: int
+    changed_examples: int
+    actions: int
+    value_examples: int
+    action_value_examples: int
+    tactical_examples: int
+    epochs: int
+    checkpoint_path: str
+    accuracy: float
+    final_loss: float
+    device: str
+    decision_dataset_path: str | None
+    selfplay_dataset_paths: list[str]
+    search_decision_weight: float
+    rule_demo_weight: float
+    selfplay_weight: float
+    value_loss_weight: float
+    action_value_loss_weight: float
+    tactical_loss_weight: float
+    max_entities: int
+    max_actions: int
+    max_previous_actions: int
+    config: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class Phase5TurnContext:
     def __init__(self, *, max_previous_actions: int) -> None:
         self.max_previous_actions = max_previous_actions
@@ -166,6 +224,14 @@ def iter_decision_jsonl(path: Path) -> Iterable[DecisionFrame]:
             stripped = line.strip()
             if stripped:
                 yield DecisionFrame.from_dict(json.loads(stripped))
+
+
+def iter_trajectory_jsonl(path: Path) -> Iterable[TrajectoryStep]:
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if stripped:
+                yield TrajectoryStep.from_dict(json.loads(stripped))
 
 
 def decision_frame_to_state(frame: DecisionFrame) -> GameState:
@@ -249,11 +315,20 @@ def phase5_symbolic_record_from_decision(
     target_source: str = "search",
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
+    target_indices_override: Sequence[int] | None = None,
+    weight_override: float | None = None,
+    value_target: float | None = None,
+    action_value_target: float | None = None,
+    include_tactical_targets: bool = True,
 ) -> Phase5SymbolicDecisionRecord | None:
     state = decision_frame_to_state(frame)
     legal_actions = decision_frame_to_legal_actions(frame)
     encoded = encoder.encode(state, legal_actions)
-    target_indices = phase5_target_indices(frame, target_source=target_source)
+    target_indices = (
+        _valid_indices(target_indices_override, len(frame.legal_options))
+        if target_indices_override is not None
+        else phase5_target_indices(frame, target_source=target_source)
+    )
     position_by_index = {
         action_index: position
         for position, action_index in enumerate(encoded.legal_action_indices)
@@ -272,13 +347,26 @@ def phase5_symbolic_record_from_decision(
         action_dim=len(encoded.legal_action_features[0]) if encoded.legal_action_features else 0,
     )
     changed = bool(frame.reward_metadata.get("phase5_search_changed", False))
+    record_weight = (
+        float(weight_override)
+        if weight_override is not None
+        else float(changed_weight if changed else unchanged_weight)
+    )
+    action_value_targets, action_value_mask = _action_value_targets(
+        encoded,
+        target_positions,
+        action_value_target,
+    )
+    tactical_targets, tactical_mask = (
+        _tactical_targets(encoded) if include_tactical_targets else (None, None)
+    )
     return Phase5SymbolicDecisionRecord(
         encoded=encoded,
         target_indices=target_indices,
         target_positions=target_positions,
         previous_action_features=previous_rows,
         previous_action_mask=previous_mask,
-        weight=float(changed_weight if changed else unchanged_weight),
+        weight=record_weight,
         changed=changed,
         metadata=dict(frame.reward_metadata)
         | {
@@ -286,6 +374,33 @@ def phase5_symbolic_record_from_decision(
             "context": frame.context,
             "target_source": target_source,
         },
+        value_target=value_target,
+        action_value_targets=action_value_targets,
+        action_value_mask=action_value_mask,
+        tactical_targets=tactical_targets,
+        tactical_mask=tactical_mask,
+    )
+
+
+def phase5_symbolic_record_from_trajectory(
+    step: TrajectoryStep,
+    *,
+    encoder: Phase5SymbolicEncoder,
+    previous_action_features: Sequence[Sequence[float]] = (),
+    max_previous_actions: int = 16,
+    weight: float = 1.0,
+) -> Phase5SymbolicDecisionRecord | None:
+    reward = float(step.reward)
+    return phase5_symbolic_record_from_decision(
+        step.decision,
+        encoder=encoder,
+        previous_action_features=previous_action_features,
+        max_previous_actions=max_previous_actions,
+        target_source="selfplay",
+        target_indices_override=step.chosen_indices,
+        weight_override=weight,
+        value_target=reward,
+        action_value_target=reward,
     )
 
 
@@ -525,6 +640,300 @@ def train_phase5_symbolic_policy_from_decisions(
     return summary
 
 
+def train_phase5_generalist_policy(
+    *,
+    decision_dataset_path: Path | None,
+    selfplay_dataset_paths: Sequence[Path] = (),
+    checkpoint_path: Path,
+    report_path: Path | None = None,
+    epochs: int = 1,
+    batch_size: int = 64,
+    learning_rate: float = 1.0e-4,
+    max_entities: int = 96,
+    max_actions: int = 128,
+    max_previous_actions: int = 16,
+    d_model: int = 128,
+    target_source: str = "search",
+    rule_demo_target_source: str = "baseline",
+    changed_weight: float = 2.0,
+    unchanged_weight: float = 0.5,
+    search_decision_weight: float = 1.0,
+    rule_demo_weight: float = 0.25,
+    selfplay_weight: float = 1.0,
+    pairwise_changed: bool = False,
+    pairwise_weight: float = 0.25,
+    pairwise_margin: float = 1.0,
+    pairwise_negatives: str = "baseline",
+    value_loss_weight: float = 0.25,
+    action_value_loss_weight: float = 0.25,
+    tactical_loss_weight: float = 0.05,
+    decision_limit: int | None = None,
+    selfplay_limit: int | None = None,
+) -> Phase5GeneralistTrainingSummary:
+    if decision_dataset_path is None and not selfplay_dataset_paths:
+        raise ValueError("Provide at least one decision or self-play dataset.")
+    torch, nn = _require_torch()
+    if pairwise_negatives not in PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES:
+        raise ValueError(
+            "Unsupported Phase 5 pairwise negative mode: "
+            f"{pairwise_negatives!r}. Expected one of "
+            f"{', '.join(PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES)}."
+        )
+    encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
+    empty_encoded = encoder.encode(decision_frame_to_state(_empty_frame()), [])
+    config = make_phase5_policy_config(
+        global_dim=len(empty_encoded.global_features),
+        entity_dim=_entity_dim(encoder),
+        action_dim=_action_dim(encoder),
+        d_model=d_model,
+    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AlphaStarTurnPolicy(config).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    final_loss = 0.0
+    final_decision_frames_seen = 0
+    final_decision_examples = 0
+    final_rule_examples = 0
+    final_selfplay_steps_seen = 0
+    final_selfplay_examples = 0
+    final_skipped = 0
+    final_changed = 0
+    final_actions = 0
+    final_value_examples = 0
+    final_action_value_examples = 0
+    final_tactical_examples = 0
+    final_correct = 0
+
+    for _ in range(max(1, epochs)):
+        batch: list[Phase5SymbolicDecisionRecord] = []
+        decision_context = Phase5TurnContext(max_previous_actions=max_previous_actions)
+        selfplay_context = Phase5TurnContext(max_previous_actions=max_previous_actions)
+        decision_frames_seen = 0
+        decision_examples = 0
+        rule_examples = 0
+        selfplay_steps_seen = 0
+        selfplay_examples = 0
+        skipped = 0
+        changed_examples = 0
+        actions = 0
+        value_examples = 0
+        action_value_examples = 0
+        tactical_examples = 0
+        correct = 0
+
+        def add_record(record: Phase5SymbolicDecisionRecord | None) -> None:
+            nonlocal actions
+            nonlocal action_value_examples
+            nonlocal tactical_examples
+            nonlocal value_examples
+            nonlocal changed_examples
+            if record is None:
+                return
+            batch.append(record)
+            actions += int(sum(record.encoded.legal_action_mask))
+            changed_examples += int(record.changed)
+            value_examples += int(_record_value_target(record) is not None)
+            action_value_examples += int(sum(record.action_value_mask or []))
+            tactical_examples += int(sum(record.tactical_mask or []))
+
+        def flush_batch() -> None:
+            nonlocal batch, final_loss, correct
+            if not batch:
+                return
+            loss, batch_correct = _train_symbolic_batch(
+                batch,
+                model=model,
+                optimizer=optimizer,
+                torch=torch,
+                nn=nn,
+                device=device,
+                value_loss_weight=value_loss_weight,
+                pairwise_changed=pairwise_changed,
+                pairwise_weight=pairwise_weight,
+                pairwise_margin=pairwise_margin,
+                pairwise_negatives=pairwise_negatives,
+                action_value_loss_weight=action_value_loss_weight,
+                tactical_loss_weight=tactical_loss_weight,
+            )
+            final_loss = loss
+            correct += batch_correct
+            batch = []
+
+        if decision_dataset_path is not None and (
+            search_decision_weight > 0.0 or rule_demo_weight > 0.0
+        ):
+            for frame in iter_decision_jsonl(decision_dataset_path):
+                decision_frames_seen += 1
+                if decision_limit is not None and decision_frames_seen > decision_limit:
+                    break
+                previous_rows = decision_context.previous_rows(frame)
+                if search_decision_weight > 0.0:
+                    search_record = phase5_symbolic_record_from_decision(
+                        frame,
+                        encoder=encoder,
+                        previous_action_features=previous_rows,
+                        max_previous_actions=max_previous_actions,
+                        target_source=target_source,
+                        changed_weight=changed_weight * search_decision_weight,
+                        unchanged_weight=unchanged_weight * search_decision_weight,
+                    )
+                    if search_record is None:
+                        skipped += 1
+                    else:
+                        add_record(search_record)
+                        decision_examples += 1
+                        decision_context.observe(search_record)
+                        if len(batch) >= max(1, batch_size):
+                            flush_batch()
+                if rule_demo_weight > 0.0:
+                    rule_record = phase5_symbolic_record_from_decision(
+                        frame,
+                        encoder=encoder,
+                        previous_action_features=previous_rows,
+                        max_previous_actions=max_previous_actions,
+                        target_source=rule_demo_target_source,
+                        weight_override=rule_demo_weight,
+                    )
+                    if rule_record is None:
+                        skipped += 1
+                    else:
+                        add_record(rule_record)
+                        rule_examples += 1
+                        if len(batch) >= max(1, batch_size):
+                            flush_batch()
+
+        for selfplay_path in selfplay_dataset_paths:
+            for step in iter_trajectory_jsonl(selfplay_path):
+                if selfplay_limit is not None and selfplay_steps_seen >= selfplay_limit:
+                    break
+                selfplay_steps_seen += 1
+                previous_rows = selfplay_context.previous_rows(step.decision)
+                record = phase5_symbolic_record_from_trajectory(
+                    step,
+                    encoder=encoder,
+                    previous_action_features=previous_rows,
+                    max_previous_actions=max_previous_actions,
+                    weight=selfplay_weight,
+                )
+                if record is None:
+                    skipped += 1
+                    continue
+                add_record(record)
+                selfplay_examples += 1
+                selfplay_context.observe(record)
+                if len(batch) >= max(1, batch_size):
+                    flush_batch()
+            if selfplay_limit is not None and selfplay_steps_seen >= selfplay_limit:
+                break
+        flush_batch()
+
+        final_decision_frames_seen = decision_frames_seen
+        final_decision_examples = decision_examples
+        final_rule_examples = rule_examples
+        final_selfplay_steps_seen = selfplay_steps_seen
+        final_selfplay_examples = selfplay_examples
+        final_skipped = skipped
+        final_changed = changed_examples
+        final_actions = actions
+        final_value_examples = value_examples
+        final_action_value_examples = action_value_examples
+        final_tactical_examples = tactical_examples
+        final_correct = correct
+
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint = model.checkpoint_payload()
+    checkpoint["format"] = PHASE5_POLICY_CHECKPOINT_FORMAT
+    checkpoint["encoder"] = {
+        "max_entities": max_entities,
+        "max_actions": max_actions,
+        "max_previous_actions": max_previous_actions,
+    }
+    checkpoint["metadata"] = {
+        "training": "phase5_generalist_mixed",
+        "decision_dataset_path": (
+            str(decision_dataset_path.as_posix()) if decision_dataset_path else None
+        ),
+        "selfplay_dataset_paths": [
+            str(path.as_posix()) for path in selfplay_dataset_paths
+        ],
+        "epochs": max(1, epochs),
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "target_source": target_source,
+        "rule_demo_target_source": rule_demo_target_source,
+        "changed_weight": changed_weight,
+        "unchanged_weight": unchanged_weight,
+        "search_decision_weight": search_decision_weight,
+        "rule_demo_weight": rule_demo_weight,
+        "selfplay_weight": selfplay_weight,
+        "pairwise_changed": pairwise_changed,
+        "pairwise_weight": pairwise_weight,
+        "pairwise_margin": pairwise_margin,
+        "pairwise_negatives": pairwise_negatives,
+        "value_loss_weight": value_loss_weight,
+        "action_value_loss_weight": action_value_loss_weight,
+        "tactical_loss_weight": tactical_loss_weight,
+        "decision_limit": decision_limit,
+        "selfplay_limit": selfplay_limit,
+        "decision_examples": final_decision_examples,
+        "rule_examples": final_rule_examples,
+        "selfplay_examples": final_selfplay_examples,
+        "value_examples": final_value_examples,
+        "action_value_examples": final_action_value_examples,
+        "tactical_examples": final_tactical_examples,
+        "accuracy": (
+            final_correct
+            / (final_decision_examples + final_rule_examples + final_selfplay_examples)
+            if (final_decision_examples + final_rule_examples + final_selfplay_examples)
+            else 0.0
+        ),
+        "final_loss": final_loss,
+        "device": str(device),
+    }
+    torch.save(checkpoint, checkpoint_path)
+    total_examples = final_decision_examples + final_rule_examples + final_selfplay_examples
+    summary = Phase5GeneralistTrainingSummary(
+        decision_frames_seen=final_decision_frames_seen,
+        decision_examples=final_decision_examples,
+        rule_examples=final_rule_examples,
+        selfplay_steps_seen=final_selfplay_steps_seen,
+        selfplay_examples=final_selfplay_examples,
+        skipped_no_target=final_skipped,
+        changed_examples=final_changed,
+        actions=final_actions,
+        value_examples=final_value_examples,
+        action_value_examples=final_action_value_examples,
+        tactical_examples=final_tactical_examples,
+        epochs=max(1, epochs),
+        checkpoint_path=str(checkpoint_path.as_posix()),
+        accuracy=final_correct / total_examples if total_examples else 0.0,
+        final_loss=final_loss,
+        device=str(device),
+        decision_dataset_path=(
+            str(decision_dataset_path.as_posix()) if decision_dataset_path else None
+        ),
+        selfplay_dataset_paths=[str(path.as_posix()) for path in selfplay_dataset_paths],
+        search_decision_weight=search_decision_weight,
+        rule_demo_weight=rule_demo_weight,
+        selfplay_weight=selfplay_weight,
+        value_loss_weight=value_loss_weight,
+        action_value_loss_weight=action_value_loss_weight,
+        tactical_loss_weight=tactical_loss_weight,
+        max_entities=max_entities,
+        max_actions=max_actions,
+        max_previous_actions=max_previous_actions,
+        config=config.to_dict(),
+    )
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    return summary
+
+
 def read_phase5_symbolic_jsonl(path: Path) -> list[Phase5SymbolicDecisionRecord]:
     records: list[Phase5SymbolicDecisionRecord] = []
     with path.open("r", encoding="utf-8") as handle:
@@ -590,6 +999,8 @@ def _train_symbolic_batch(
     pairwise_weight: float,
     pairwise_margin: float,
     pairwise_negatives: str,
+    action_value_loss_weight: float = 0.0,
+    tactical_loss_weight: float = 0.0,
 ) -> tuple[float, int]:
     global_x = torch.tensor(
         [record.encoded.global_features for record in records],
@@ -661,13 +1072,90 @@ def _train_symbolic_batch(
         if pairwise_loss is not None:
             loss = loss + float(pairwise_weight) * pairwise_loss
     if value_loss_weight > 0:
-        rewards = torch.tensor(
-            [reward_from_result_metadata(record.metadata) for record in records],
+        value_rows: list[int] = []
+        value_targets: list[float] = []
+        value_weights: list[float] = []
+        for row_index, record in enumerate(records):
+            target = _record_value_target(record)
+            if target is None:
+                continue
+            value_rows.append(row_index)
+            value_targets.append(float(target))
+            value_weights.append(float(record.weight))
+        if value_rows:
+            rows = torch.tensor(value_rows, dtype=torch.long, device=device)
+            targets_value = torch.tensor(value_targets, dtype=torch.float32, device=device)
+            value_weights_tensor = torch.tensor(value_weights, dtype=torch.float32, device=device)
+            value_losses = nn.functional.mse_loss(
+                output["state_value"][rows],
+                targets_value,
+                reduction="none",
+            )
+            loss = loss + float(value_loss_weight) * (
+                value_losses * value_weights_tensor
+            ).sum() / value_weights_tensor.sum().clamp(min=1.0e-6)
+    if action_value_loss_weight > 0.0:
+        action_value_targets = torch.tensor(
+            [
+                record.action_value_targets
+                if record.action_value_targets is not None
+                else [0.0] * len(record.encoded.legal_action_mask)
+                for record in records
+            ],
             dtype=torch.float32,
             device=device,
         )
-        value_loss = nn.functional.mse_loss(output["state_value"], rewards)
-        loss = loss + float(value_loss_weight) * value_loss
+        action_value_mask = torch.tensor(
+            [
+                record.action_value_mask
+                if record.action_value_mask is not None
+                else [0.0] * len(record.encoded.legal_action_mask)
+                for record in records
+            ],
+            dtype=torch.float32,
+            device=device,
+        )
+        weighted_mask = action_value_mask * weights.unsqueeze(1)
+        if float(weighted_mask.sum().detach().item()) > 0.0:
+            action_value_losses = nn.functional.mse_loss(
+                output["action_q"],
+                action_value_targets,
+                reduction="none",
+            )
+            loss = loss + float(action_value_loss_weight) * (
+                action_value_losses * weighted_mask
+            ).sum() / weighted_mask.sum().clamp(min=1.0e-6)
+    if tactical_loss_weight > 0.0:
+        tactical_targets = torch.tensor(
+            [
+                record.tactical_targets
+                if record.tactical_targets is not None
+                else [0.0] * len(record.encoded.legal_action_mask)
+                for record in records
+            ],
+            dtype=torch.float32,
+            device=device,
+        )
+        tactical_mask = torch.tensor(
+            [
+                record.tactical_mask
+                if record.tactical_mask is not None
+                else [0.0] * len(record.encoded.legal_action_mask)
+                for record in records
+            ],
+            dtype=torch.float32,
+            device=device,
+        )
+        weighted_mask = tactical_mask * weights.unsqueeze(1)
+        if float(weighted_mask.sum().detach().item()) > 0.0:
+            tactical_losses = nn.functional.mse_loss(
+                output["tactical_score"],
+                tactical_targets,
+                reduction="none",
+            )
+            loss = loss + float(tactical_loss_weight) * (
+                tactical_losses * weighted_mask
+            ).sum() / weighted_mask.sum().clamp(min=1.0e-6)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -731,6 +1219,65 @@ def _baseline_target_positions(record: Phase5SymbolicDecisionRecord) -> list[int
         if position not in positions:
             positions.append(position)
     return positions
+
+
+def _valid_indices(values: Sequence[int] | None, size: int) -> list[int]:
+    output: list[int] = []
+    for value in values or []:
+        try:
+            index = int(value)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= index < size and index not in output:
+            output.append(index)
+    return output
+
+
+def _action_value_targets(
+    encoded: EncodedPhase5Turn,
+    target_positions: Sequence[int],
+    target: float | None,
+) -> tuple[list[float] | None, list[float] | None]:
+    if target is None:
+        return None, None
+    width = len(encoded.legal_action_mask)
+    targets = [0.0] * width
+    mask = [0.0] * width
+    for position in target_positions:
+        if 0 <= position < width and encoded.legal_action_mask[position] > 0.0:
+            targets[position] = float(target)
+            mask[position] = 1.0
+    if not any(mask):
+        return None, None
+    return targets, mask
+
+
+def _tactical_targets(
+    encoded: EncodedPhase5Turn,
+) -> tuple[list[float], list[float]]:
+    targets: list[float] = []
+    mask: list[float] = []
+    for row, mask_value in zip(
+        encoded.legal_action_features,
+        encoded.legal_action_mask,
+        strict=False,
+    ):
+        if mask_value > 0.0:
+            targets.append(float(row[0]) if row else 0.0)
+            mask.append(1.0)
+        else:
+            targets.append(0.0)
+            mask.append(0.0)
+    return targets, mask
+
+
+def _record_value_target(record: Phase5SymbolicDecisionRecord) -> float | None:
+    if record.value_target is not None:
+        return float(record.value_target)
+    metadata = record.metadata
+    if not any(key in metadata for key in ("winner", "leader", "finished")):
+        return None
+    return reward_from_result_metadata(metadata)
 
 
 def _player_from_board(
@@ -913,5 +1460,14 @@ def _int(value: Any, default: int = 0) -> int:
 def _optional_int(value: Any) -> int | None:
     try:
         return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_float_list(value: Any) -> list[float] | None:
+    if value is None:
+        return None
+    try:
+        return [float(item) for item in value]
     except (TypeError, ValueError):
         return None

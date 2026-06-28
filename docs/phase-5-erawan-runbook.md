@@ -1239,7 +1239,152 @@ Large-run pass gate:
 - Traces exist only for the sampled games; do not set `SEARCH_TRACE_GAMES=0`
   for large runs because the CLI treats `0` as trace all games.
 
-## 14. Ready-To-Train Checklist
+Recorded 10,000-game result on June 27, 2026:
+
+- Games started: 10,000 / 10,000.
+- Trajectory rows: 1,597,717.
+- Shard rows: 796,919 and 800,798.
+- Shard storage: 61G total, about 31G per shard.
+- Errors: 0.
+- Timeouts: 50.
+- Draws: 20.
+- Deck A wins: 4,919.
+- Deck B wins: 5,061.
+- Search decisions: 827,784.
+- Search-changed decisions: 176,728.
+- Search-change rate: 0.2135.
+- Candidate probes: 3,011,687.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 12,338.
+- Truncated-candidate rate: 0.00410.
+- Average search seconds: 0.0808.
+- Max search seconds: 4.8117.
+- Trace records: 146.
+
+## 14. Phase 5 Generalist Multi-Head Training
+
+The next model uses:
+
+- rule demonstrations from baseline/rule labels in the 10-shard decision data,
+- search-improved decisions from the same 10-shard decision data,
+- self-play outcomes from the 10,000-game `phase5-search` trajectory data.
+
+It trains the shared AlphaStar-style core with:
+
+- autoregressive legal-action policy head,
+- state-value head,
+- selected-action Q head,
+- first tactical scalar head that predicts the normalized rule/tactical prior
+  for each legal action.
+
+Submit a bounded smoke first:
+
+```bash
+cd ~/ptcg_abc
+export PYTHONPATH="$PWD/src"
+GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+mkdir -p experiments/rl/phase5_generalist
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  DECISION_DATASET="$GAME_DATA_ROOT/phase5_search_decisions_10shards.jsonl" \
+  SELFPLAY_DATASETS="$GAME_DATA_ROOT/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-0.jsonl $GAME_DATA_ROOT/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl" \
+  CHECKPOINT=models/rl/phase5_generalist_policy_smoke.pt \
+  REPORT_JSON=experiments/rl/phase5_generalist_train_report_smoke.json \
+  DECISION_LIMIT=2000 \
+  SELFPLAY_LIMIT=2000 \
+  D_MODEL=64 \
+  BATCH_SIZE=32 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_generalist_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_smoke_job.txt
+```
+
+Inspect the smoke:
+
+```bash
+JOB=$(cat experiments/rl/phase5_generalist_smoke_job.txt)
+squeue -j "$JOB"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-train.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-train.err"
+cat experiments/rl/phase5_generalist_train_report_smoke.json
+ls -lh models/rl/phase5_generalist_policy_smoke.pt
+```
+
+Smoke pass gate:
+
+- The job exits with `0:0`.
+- `decision_examples`, `rule_examples`, and `selfplay_examples` are nonzero.
+- `value_examples` and `action_value_examples` are nonzero.
+- `tactical_examples` is nonzero.
+- `final_loss` is finite.
+- A checkpoint is written.
+
+If the smoke passes, submit the full mixed generalist train:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  DECISION_DATASET="$GAME_DATA_ROOT/phase5_search_decisions_10shards.jsonl" \
+  SELFPLAY_DATASETS="$GAME_DATA_ROOT/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-0.jsonl $GAME_DATA_ROOT/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl" \
+  CHECKPOINT=models/rl/phase5_generalist_policy_10k.pt \
+  REPORT_JSON=experiments/rl/phase5_generalist_train_report_10k.json \
+  EPOCHS=1 \
+  BATCH_SIZE=64 \
+  D_MODEL=128 \
+  DECISION_LIMIT=0 \
+  SELFPLAY_LIMIT=0 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_generalist_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_10k_job.txt
+```
+
+Inspect the full train:
+
+```bash
+JOB=$(cat experiments/rl/phase5_generalist_10k_job.txt)
+squeue -j "$JOB"
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-train.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-train.err"
+cat experiments/rl/phase5_generalist_train_report_10k.json
+ls -lh models/rl/phase5_generalist_policy_10k.pt
+```
+
+After the full train finishes, run a one-game smoke benchmark for the direct
+generalist policy and for `phase5-search` using the generalist policy as prior:
+
+```bash
+MODEL=models/rl/phase5_generalist_policy_10k.pt
+
+JOB=$(
+  AGENT=phase5-symbolic \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_generalist_symbolic_smoke.json \
+  REPORT_MD=reports/phase5_generalist_symbolic_smoke.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_symbolic_smoke_eval_job.txt
+
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_generalist_search_smoke.json \
+  REPORT_MD=reports/phase5_generalist_search_smoke.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_search_smoke_eval_job.txt
+```
+
+Only move to the 10-game and 30-game benchmark if both smoke evaluations finish
+with `errors=0`.
+
+## 15. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

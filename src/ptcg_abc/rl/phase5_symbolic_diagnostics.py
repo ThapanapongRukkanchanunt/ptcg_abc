@@ -359,7 +359,7 @@ def _load_symbolic_model(
     max_previous_actions = int(encoder_config.get("max_previous_actions", 16))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = AlphaStarTurnPolicy(config)
-    model.load_state_dict(checkpoint["state_dict"])
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
     model.to(device)
     model.eval()
     metadata = dict(checkpoint.get("metadata", {}))

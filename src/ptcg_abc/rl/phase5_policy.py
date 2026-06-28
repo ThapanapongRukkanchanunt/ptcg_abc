@@ -84,8 +84,19 @@ if TORCH_AVAILABLE:
                 hidden_size=config.turn_hidden_dim,
                 batch_first=True,
             )
+            action_context_dim = config.d_model * 2 + config.turn_hidden_dim
             self.policy_head = nn.Sequential(
-                nn.Linear(config.d_model * 2 + config.turn_hidden_dim, config.d_model),
+                nn.Linear(action_context_dim, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, 1),
+            )
+            self.action_value_head = nn.Sequential(
+                nn.Linear(action_context_dim, config.d_model),
+                nn.GELU(),
+                nn.Linear(config.d_model, 1),
+            )
+            self.tactical_head = nn.Sequential(
+                nn.Linear(action_context_dim, config.d_model),
                 nn.GELU(),
                 nn.Linear(config.d_model, 1),
             )
@@ -115,12 +126,18 @@ if TORCH_AVAILABLE:
             )
             expanded_state = state_embedding.unsqueeze(1).expand(-1, action_x.shape[1], -1)
             expanded_turn = turn_embedding.unsqueeze(1).expand(-1, action_x.shape[1], -1)
-            logits = self.policy_head(
-                torch.cat([expanded_state, action_embedding, expanded_turn], dim=-1)
-            ).squeeze(-1)
+            action_context = torch.cat(
+                [expanded_state, action_embedding, expanded_turn],
+                dim=-1,
+            )
+            logits = self.policy_head(action_context).squeeze(-1)
             logits = logits.masked_fill(action_mask <= 0, -1.0e9)
+            action_q = self.action_value_head(action_context).squeeze(-1)
+            tactical_score = self.tactical_head(action_context).squeeze(-1)
             return {
                 "action_logits": logits,
+                "action_q": action_q.masked_fill(action_mask <= 0, 0.0),
+                "tactical_score": tactical_score.masked_fill(action_mask <= 0, 0.0),
                 "state_value": self.value_head(state_embedding).squeeze(-1),
                 "state_embedding": state_embedding,
                 "turn_embedding": turn_embedding,

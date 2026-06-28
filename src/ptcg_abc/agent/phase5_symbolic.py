@@ -76,7 +76,7 @@ class Phase5SymbolicPolicyAgent:
             max_actions=int(encoder_config.get("max_actions", 128)),
         )
         self.model = AlphaStarTurnPolicy(config)
-        self.model.load_state_dict(checkpoint["state_dict"])
+        self.model.load_state_dict(checkpoint["state_dict"], strict=False)
         self.model.to(self.device)
         self.model.eval()
         with contextlib.redirect_stdout(io.StringIO()):

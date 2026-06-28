@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from ptcg_abc.cli import build_parser
-from ptcg_abc.rl.dataset import write_decision_jsonl
+from ptcg_abc.rl.dataset import append_trajectory_jsonl, write_decision_jsonl
 from ptcg_abc.rl.phase5_encoder import Phase5SymbolicEncoder
 from ptcg_abc.rl.phase5_policy import TORCH_AVAILABLE
 from ptcg_abc.rl.phase5_symbolic_training import (
@@ -12,10 +12,12 @@ from ptcg_abc.rl.phase5_symbolic_training import (
     decision_frame_to_state,
     phase5_symbolic_pairwise_positions,
     phase5_symbolic_record_from_decision,
+    phase5_symbolic_record_from_trajectory,
     read_phase5_symbolic_jsonl,
+    train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
 )
-from ptcg_abc.rl.records import ActionFrame, DecisionFrame
+from ptcg_abc.rl.records import ActionFrame, DecisionFrame, TrajectoryStep
 
 
 def _phase5_frame(
@@ -190,6 +192,38 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertEqual(sum(records[2].previous_action_mask), 0.0)
         self.assertEqual(records[1].weight, 0.5)
 
+    def test_trajectory_record_uses_chosen_indices_and_outcome_targets(self):
+        frame = _phase5_frame(
+            step_index=1,
+            selected=[0],
+            search=[0],
+            baseline=[0],
+        )
+        step = TrajectoryStep(
+            decision=frame,
+            chosen_indices=[2],
+            reward=-1.0,
+            terminal=True,
+        )
+        record = phase5_symbolic_record_from_trajectory(
+            step,
+            encoder=Phase5SymbolicEncoder(max_entities=8, max_actions=4),
+            previous_action_features=[],
+            max_previous_actions=3,
+            weight=2.5,
+        )
+
+        self.assertIsNotNone(record)
+        assert record is not None
+        self.assertEqual(record.target_indices, [2])
+        self.assertEqual(record.target_positions, [2])
+        self.assertEqual(record.value_target, -1.0)
+        self.assertEqual(record.action_value_targets[2], -1.0)
+        self.assertEqual(record.action_value_mask[2], 1.0)
+        self.assertEqual(sum(record.action_value_mask), 1.0)
+        self.assertEqual(sum(record.tactical_mask), 3.0)
+        self.assertEqual(record.weight, 2.5)
+
     def test_cli_exposes_symbolic_commands(self):
         parser = build_parser()
         build_args = parser.parse_args(
@@ -213,11 +247,29 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "all",
             ]
         )
+        generalist_args = parser.parse_args(
+            [
+                "rl-train-phase5-generalist",
+                "--decision-dataset",
+                "decisions.jsonl",
+                "--selfplay-dataset",
+                "selfplay-a.jsonl",
+                "--selfplay-dataset",
+                "selfplay-b.jsonl",
+                "--checkpoint",
+                "generalist.pt",
+            ]
+        )
 
         self.assertEqual(build_args.func.__name__, "command_rl_build_phase5_symbolic")
         self.assertEqual(train_args.func.__name__, "command_rl_train_phase5_symbolic")
         self.assertTrue(train_args.pairwise_changed)
         self.assertEqual(train_args.pairwise_negatives, "all")
+        self.assertEqual(
+            generalist_args.func.__name__,
+            "command_rl_train_phase5_generalist",
+        )
+        self.assertEqual(len(generalist_args.selfplay_dataset), 2)
 
     @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
     def test_symbolic_trainer_writes_checkpoint(self):
@@ -247,6 +299,52 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
 
             self.assertEqual(summary.examples, 2)
             self.assertTrue(summary.pairwise_changed)
+            self.assertTrue(checkpoint_path.exists())
+            self.assertTrue(report_path.exists())
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+    def test_generalist_trainer_mixes_decisions_and_selfplay(self):
+        frames = [
+            _phase5_frame(step_index=1, selected=[1], search=[1], baseline=[0], changed=True),
+            _phase5_frame(step_index=2, selected=[0], search=[0], baseline=[0]),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            decision_path = root / "decisions.jsonl"
+            selfplay_path = root / "selfplay.jsonl"
+            checkpoint_path = root / "generalist.pt"
+            report_path = root / "generalist_report.json"
+            write_decision_jsonl(frames, decision_path)
+            append_trajectory_jsonl(
+                TrajectoryStep(
+                    decision=frames[0],
+                    chosen_indices=[2],
+                    reward=1.0,
+                    terminal=True,
+                ),
+                selfplay_path,
+            )
+
+            summary = train_phase5_generalist_policy(
+                decision_dataset_path=decision_path,
+                selfplay_dataset_paths=[selfplay_path],
+                checkpoint_path=checkpoint_path,
+                report_path=report_path,
+                epochs=1,
+                batch_size=2,
+                d_model=32,
+                max_entities=8,
+                max_actions=4,
+                max_previous_actions=3,
+                pairwise_changed=True,
+            )
+
+            self.assertEqual(summary.decision_examples, 2)
+            self.assertEqual(summary.rule_examples, 2)
+            self.assertEqual(summary.selfplay_examples, 1)
+            self.assertEqual(summary.value_examples, 1)
+            self.assertEqual(summary.action_value_examples, 1)
+            self.assertGreater(summary.tactical_examples, 0)
             self.assertTrue(checkpoint_path.exists())
             self.assertTrue(report_path.exists())
 

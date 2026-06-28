@@ -82,6 +82,7 @@ from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
 from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
+    train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
 )
 from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
@@ -595,6 +596,57 @@ def command_rl_train_phase5_symbolic(args: argparse.Namespace) -> int:
             value_loss_weight=args.value_loss_weight,
             limit=limit,
             changed_only=args.changed_only,
+        )
+    except Phase5PolicyUnavailable as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_train_phase5_generalist(args: argparse.Namespace) -> int:
+    decision_dataset = args.decision_dataset
+    if args.no_decision_dataset:
+        decision_dataset = None
+    if decision_dataset is not None and not decision_dataset.exists():
+        print(f"Phase 5 decision dataset not found at {decision_dataset}.", file=sys.stderr)
+        return 2
+    selfplay_datasets = list(args.selfplay_dataset or [])
+    for path in selfplay_datasets:
+        if not path.exists():
+            print(f"Phase 5 self-play dataset not found at {path}.", file=sys.stderr)
+            return 2
+    decision_limit = None if args.decision_limit == 0 else args.decision_limit
+    selfplay_limit = None if args.selfplay_limit == 0 else args.selfplay_limit
+    try:
+        summary = train_phase5_generalist_policy(
+            decision_dataset_path=decision_dataset,
+            selfplay_dataset_paths=selfplay_datasets,
+            checkpoint_path=args.checkpoint,
+            report_path=args.report_json,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            max_entities=args.max_entities,
+            max_actions=args.max_actions,
+            max_previous_actions=args.max_previous_actions,
+            d_model=args.d_model,
+            target_source=args.target_source,
+            rule_demo_target_source=args.rule_demo_target_source,
+            changed_weight=args.changed_weight,
+            unchanged_weight=args.unchanged_weight,
+            search_decision_weight=args.search_decision_weight,
+            rule_demo_weight=args.rule_demo_weight,
+            selfplay_weight=args.selfplay_weight,
+            pairwise_changed=args.pairwise_changed,
+            pairwise_weight=args.pairwise_weight,
+            pairwise_margin=args.pairwise_margin,
+            pairwise_negatives=args.pairwise_negatives,
+            value_loss_weight=args.value_loss_weight,
+            action_value_loss_weight=args.action_value_loss_weight,
+            tactical_loss_weight=args.tactical_loss_weight,
+            decision_limit=decision_limit,
+            selfplay_limit=selfplay_limit,
         )
     except Phase5PolicyUnavailable as exc:
         print(str(exc), file=sys.stderr)
@@ -1424,6 +1476,95 @@ def build_parser() -> argparse.ArgumentParser:
         help="Train only on root-search changed frames.",
     )
     rl_train_phase5_symbolic.set_defaults(func=command_rl_train_phase5_symbolic)
+
+    rl_train_phase5_generalist = subparsers.add_parser(
+        "rl-train-phase5-generalist",
+        help=(
+            "Train Phase 5 policy/value/Q/tactical heads from search decisions, "
+            "rule demonstrations, and phase5-search self-play trajectories."
+        ),
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--decision-dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_merged.jsonl",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--no-decision-dataset",
+        action="store_true",
+        help="Train only from self-play trajectory datasets.",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--selfplay-dataset",
+        type=_path,
+        action="append",
+        default=[],
+        help="Phase 5 search self-play trajectory JSONL. Repeat for multiple shards.",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy.pt",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_generalist_train_report.json",
+    )
+    rl_train_phase5_generalist.add_argument("--epochs", type=int, default=1)
+    rl_train_phase5_generalist.add_argument("--batch-size", type=int, default=64)
+    rl_train_phase5_generalist.add_argument("--learning-rate", type=float, default=1.0e-4)
+    rl_train_phase5_generalist.add_argument("--d-model", type=int, default=128)
+    rl_train_phase5_generalist.add_argument("--max-entities", type=int, default=96)
+    rl_train_phase5_generalist.add_argument("--max-actions", type=int, default=128)
+    rl_train_phase5_generalist.add_argument("--max-previous-actions", type=int, default=16)
+    rl_train_phase5_generalist.add_argument(
+        "--target-source",
+        choices=["search", "baseline", "rule"],
+        default="search",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--rule-demo-target-source",
+        choices=["baseline", "rule"],
+        default="baseline",
+    )
+    rl_train_phase5_generalist.add_argument("--changed-weight", type=float, default=2.0)
+    rl_train_phase5_generalist.add_argument("--unchanged-weight", type=float, default=0.5)
+    rl_train_phase5_generalist.add_argument("--search-decision-weight", type=float, default=1.0)
+    rl_train_phase5_generalist.add_argument("--rule-demo-weight", type=float, default=0.25)
+    rl_train_phase5_generalist.add_argument("--selfplay-weight", type=float, default=1.0)
+    rl_train_phase5_generalist.add_argument(
+        "--pairwise-changed",
+        action="store_true",
+        help="Add pairwise ranking loss on root-search changed decision frames.",
+    )
+    rl_train_phase5_generalist.add_argument("--pairwise-weight", type=float, default=0.25)
+    rl_train_phase5_generalist.add_argument("--pairwise-margin", type=float, default=1.0)
+    rl_train_phase5_generalist.add_argument(
+        "--pairwise-negatives",
+        choices=["all", "baseline"],
+        default="baseline",
+    )
+    rl_train_phase5_generalist.add_argument("--value-loss-weight", type=float, default=0.25)
+    rl_train_phase5_generalist.add_argument(
+        "--action-value-loss-weight",
+        type=float,
+        default=0.25,
+    )
+    rl_train_phase5_generalist.add_argument("--tactical-loss-weight", type=float, default=0.05)
+    rl_train_phase5_generalist.add_argument(
+        "--decision-limit",
+        type=int,
+        default=0,
+        help="Maximum decision frames per epoch. Use 0 for the full input.",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--selfplay-limit",
+        type=int,
+        default=0,
+        help="Maximum self-play trajectory steps per epoch. Use 0 for the full input.",
+    )
+    rl_train_phase5_generalist.set_defaults(func=command_rl_train_phase5_generalist)
 
     rl_rollout = subparsers.add_parser(
         "rl-rollout",

@@ -234,6 +234,8 @@ class Phase5AdapterEncoderTests(unittest.TestCase):
         )
 
         self.assertEqual(tuple(output["action_logits"].shape), (1, 8))
+        self.assertEqual(tuple(output["action_q"].shape), (1, 8))
+        self.assertEqual(tuple(output["tactical_score"].shape), (1, 8))
         self.assertEqual(tuple(output["state_value"].shape), (1,))
 
     def test_policy_module_reports_missing_torch_cleanly(self):

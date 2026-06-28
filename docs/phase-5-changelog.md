@@ -1538,6 +1538,111 @@ Implementation:
 - The ERAWAN runbook now includes launch, inspection, pass-gate, and
   `TOTAL_GAMES=1000` override guidance.
 
+### Phase 5 10,000-Game Search Self-Play Result
+
+Run:
+
+- Agent: `phase5-search`.
+- Model: `models/rl/phase5_symbolic_policy_10shards.pt`.
+- Deck pool: current 9 prepared decks.
+- Shards: 2.
+- Games per shard: 5,000.
+- Max steps: 600.
+- Data root:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards`.
+- Reports and sampled traces:
+  `experiments/rl/phase5_search_selfplay_10k`.
+
+Combined observed summary:
+
+- Games started: 10,000 / 10,000.
+- Trajectory rows: 1,597,717.
+- Shard rows: 796,919 and 800,798.
+- Shard storage: 61G total, about 31G per shard.
+- Errors: 0.
+- Timeouts: 50.
+- Draws: 20.
+- Deck A wins: 4,919.
+- Deck B wins: 5,061.
+- Search decisions: 827,784.
+- Search-changed decisions: 176,728.
+- Search-change rate: 0.213495.
+- Candidate probes: 3,011,687.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 12,338.
+- Truncated-candidate rate: 0.004097.
+- Average search seconds: 0.080765.
+- Max search seconds: 4.811727.
+- Trace records: 146.
+
+Interpretation:
+
+- Stage 1 self-play data generation is complete for the current 9-deck Phase 5
+  pool.
+- The dataset is large enough for the first value/Q/tactical generalist
+  training slice.
+- Search/candidate errors remained zero at 10,000 games.
+- Timeout rate is low enough to keep the dataset, but timeout matchups should be
+  watched in later deck expansion.
+- Truncation stayed low at about 0.41% of candidate probes.
+
+### Phase 5 Generalist Multi-Head Training Slice
+
+Implementation:
+
+- Extended `AlphaStarTurnPolicy` with action-conditioned auxiliary heads:
+  - `action_q`,
+  - `tactical_score`.
+- Kept the existing checkpoint format and made symbolic inference/diagnostics
+  load checkpoints with `strict=False` so older checkpoints without the new heads
+  still run.
+- Extended `Phase5SymbolicDecisionRecord` with optional:
+  - `value_target`,
+  - `action_value_targets`,
+  - `action_value_mask`,
+  - `tactical_targets`,
+  - `tactical_mask`.
+- Added streaming trajectory reader support for `TrajectoryStep` self-play
+  JSONL.
+- Added `phase5_symbolic_record_from_trajectory`, which uses the recorded
+  `chosen_indices` as policy/Q positives and the stored self-play reward as the
+  state-value and selected-action Q target.
+- Added `train_phase5_generalist_policy`, a streaming mixed trainer for:
+  - search-improved decisions,
+  - baseline/rule demonstration targets,
+  - phase5-search self-play outcomes.
+- Added CLI:
+  - `rl-train-phase5-generalist`.
+- Added SLURM wrapper:
+  - `scripts/slurm/phase5_generalist_train_conda.sbatch`.
+- Updated the ERAWAN runbook with:
+  - bounded smoke-train command,
+  - full 10k mixed generalist-train command,
+  - post-train direct symbolic and `phase5-search` smoke evaluation commands.
+
+Current head targets:
+
+- Policy target:
+  - search-improved target for decision records,
+  - baseline/rule target for rule-demo duplicates,
+  - actual `phase5-search` chosen action for self-play records.
+- State-value target:
+  - terminal/shaped self-play reward.
+- Action-Q target:
+  - terminal/shaped self-play reward on selected actions only.
+- Tactical target:
+  - normalized rule/tactical prior for every legal action. This is a first
+    auxiliary target and can later be augmented with root-search trace tactical
+    scores.
+
+Next operational step:
+
+- Submit the bounded `phase5_generalist_policy_smoke.pt` training job from the
+  runbook.
+- If nonzero decision/rule/self-play/value/Q/tactical counts and finite loss are
+  reported, submit the full `phase5_generalist_policy_10k.pt` job.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1548,6 +1653,9 @@ Important model artifacts:
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_all.pt`
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_soft.pt`
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_tiny.pt`
+- Planned next:
+  - `models/rl/phase5_generalist_policy_smoke.pt`
+  - `models/rl/phase5_generalist_policy_10k.pt`
 
 Important dataset artifacts:
 
@@ -1555,6 +1663,8 @@ Important dataset artifacts:
 - `data/datasets/rl/phase5_search_decisions_10shards_pairwise.jsonl`
 - `data/datasets/rl/phase5_search_decisions_10shards_pairwise_all.jsonl`
 - `data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl`
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-0.jsonl`
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl`
 
 File-retention decision:
 
@@ -1567,11 +1677,9 @@ File-retention decision:
 ## Open Questions And Next Work
 
 - Record the 30-game default-cap benchmark win/loss/timing summary.
-- Run the bounded two-shard Phase 5 search self-play job over the current 9-deck
-  pool.
-- Add value, Q/action-value, and auxiliary tactical heads.
-- Train the next generalist symbolic model from rule demonstrations,
-  search-improved decisions, and self-play outcomes.
+- Submit and inspect the bounded generalist multi-head smoke train.
+- If the smoke passes, train the full 10k mixed generalist model from rule
+  demonstrations, search-improved decisions, and self-play outcomes.
 - Evaluate on the current 9-deck required benchmark before adding more decks.
 - Expand to more decks only after the 9-deck gate is stable; consider a larger
   model if broader deck diversity exposes capacity limits.
