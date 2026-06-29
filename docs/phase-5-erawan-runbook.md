@@ -1484,6 +1484,26 @@ Expected pass criteria:
 - Dataset shards are stored under
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards`.
 
+Recorded 338-game smoke result on June 29, 2026:
+
+- Games requested / started: 338 / 338.
+- Deck pool: `league-13`.
+- Pair count: 169 in each shard.
+- Steps written: 51,945.
+- Draws: 4.
+- Timeouts: 3.
+- Errors: 0.
+- Searched decisions: 26,920.
+- Search-changed decisions: 5,286.
+- Change rate: 0.196.
+- Candidate probes: 97,661.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 641.
+- Truncated-candidate rate: 0.00656.
+- Average search seconds: 0.0539.
+- Max search seconds: 1.6210.
+
 If the 338-game smoke passes, submit the larger 13-deck data run:
 
 ```bash

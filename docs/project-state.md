@@ -130,10 +130,14 @@ This is the resume point for the project. Start here after switching machines, c
   `rl-generate-phase5-search-selfplay` and the self-play SLURM scripts now
   accept `DECK_POOL=league-13` / `--deck-pool league-13`, and self-play records
   include `selfplay_deck_pool` metadata.
-- Next action: run the bounded 338-game `phase5_search_selfplay_13deck_338`
-  smoke on ERAWAN with `models/rl/phase5_generalist_policy_10k.pt` as the
-  `phase5-search` prior. If that passes with no search/candidate errors, submit
-  the larger 13-deck 10k self-play data run.
+- Latest 13-deck smoke: `phase5_search_selfplay_13deck_338` completed 338 /
+  338 games with `deck_pool=league-13`, 51,945 trajectory rows, 4 draws,
+  3 timeouts, 0 errors, 26,920 searched decisions, 5,286 search-changed
+  decisions, 0 search errors, 0 candidate errors, 641 truncated candidates,
+  0.0539 average search seconds, and 1.6210 max search seconds.
+- Next action: submit the larger `phase5_search_selfplay_13deck_10k` data run
+  on ERAWAN with `models/rl/phase5_generalist_policy_10k.pt` as the
+  `phase5-search` prior.
 
 ## Phase Log
 
@@ -144,7 +148,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck self-play smoke ready | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` is the current best inference path; `league-13` self-play data generation is wired for the next ERAWAN smoke. |
+| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck self-play smoke passed | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` is the current best inference path; `league-13` self-play is ready for the 10k ERAWAN data run. |
 
 ## Completed Phase Details
 

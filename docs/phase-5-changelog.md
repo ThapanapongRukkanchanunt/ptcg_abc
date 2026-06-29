@@ -1776,6 +1776,46 @@ Operational plan:
 - Do not remove the existing 9-deck `phase5_search_selfplay_10k` shards yet;
   they remain the source for the current generalist checkpoint and comparisons.
 
+## 2026-06-29 - Phase 5 13-Deck Self-Play Smoke Passed
+
+Artifacts:
+
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-0.jsonl`
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-1.jsonl`
+- `experiments/rl/phase5_search_selfplay_13deck_338/summaries/phase5_search_selfplay_summary_shard-0.json`
+- `experiments/rl/phase5_search_selfplay_13deck_338/summaries/phase5_search_selfplay_summary_shard-1.json`
+- `experiments/rl/phase5_search_selfplay_13deck_338/traces/phase5_search_selfplay_traces_shard-0.jsonl`
+- `experiments/rl/phase5_search_selfplay_13deck_338/traces/phase5_search_selfplay_traces_shard-1.jsonl`
+
+Aggregate result:
+
+- Games requested / started: 338 / 338.
+- Deck pool: `league-13`.
+- Pair count: 169 in each shard.
+- Deck indices: 1-13 in each shard.
+- Steps written: 51,945.
+- Draws: 4.
+- Timeouts: 3.
+- Errors: 0.
+- Searched decisions: 26,920.
+- Search-changed decisions: 5,286.
+- Change rate: 0.196.
+- Candidate probes: 97,661.
+- Search errors: 0.
+- Candidate errors: 0.
+- Truncated candidates: 641.
+- Truncated-candidate rate: 0.00656.
+- Average search seconds: 0.0539.
+- Max search seconds: 1.6210.
+
+Conclusion:
+
+- The expanded 13-deck self-play data path is valid.
+- The low timeout count is acceptable for the smoke and does not indicate a
+  search failure.
+- Proceed to `phase5_search_selfplay_13deck_10k` using
+  `models/rl/phase5_generalist_policy_10k.pt` as the `phase5-search` prior.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1797,6 +1837,8 @@ Important dataset artifacts:
 - `data/datasets/rl/phase5_search_decisions_10shards_reweighted.jsonl`
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-0.jsonl`
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl`
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-0.jsonl`
+- `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-1.jsonl`
 
 File-retention decision:
 
@@ -1810,9 +1852,8 @@ File-retention decision:
 
 - Record the full `phase5_generalist_train_report_10k.json` if needed for the
   final report.
-- Start the deck-expansion slice: add broader prepared-deck coverage, likely the
-  13-deck plan from the Phase 5 documents, without disturbing the current
-  9-deck required benchmark.
+- Submit the 13-deck 10k self-play generation now that the 338-game 13-deck
+  smoke passed.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
 - Add targeted weakness data or weighting for Alakazam Dudunsparce before any
