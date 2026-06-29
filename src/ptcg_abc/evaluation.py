@@ -238,6 +238,13 @@ TOURNAMENT_559_DECKS = (
     ),
 )
 
+PHASE5_LEAGUE_DECK_SOURCE = "tournament_559_plus_required_phase3"
+PHASE5_LEAGUE_TOURNAMENT_DECK_COUNT = len(TOURNAMENT_559_DECKS)
+PHASE5_LEAGUE_REQUIRED_DECK_COUNT = len(REQUIRED_PHASE3_SAMPLE_DECKS)
+PHASE5_LEAGUE_DECK_COUNT = (
+    PHASE5_LEAGUE_TOURNAMENT_DECK_COUNT + PHASE5_LEAGUE_REQUIRED_DECK_COUNT
+)
+
 
 @dataclass
 class PreparedDeck:
@@ -553,6 +560,15 @@ def phase3_tournament_559_prepared_decks(start_index: int = 1) -> list[PreparedD
         )
         prepared.append(PreparedDeck(index=start_index + offset, deck=deck, card_ids=list(card_ids)))
     return prepared
+
+
+def phase5_league_prepared_decks(start_index: int = 1) -> list[PreparedDeck]:
+    """Return the Phase 5 13-deck league pool without changing Phase 4 benchmarks."""
+    tournament_decks = phase3_tournament_559_prepared_decks(start_index=start_index)
+    required_decks = required_phase3_prepared_decks(
+        start_index=start_index + len(tournament_decks)
+    )
+    return tournament_decks + required_decks
 
 
 def prepare_decks(decks: list[Decklist], lookup: CardIdLookup) -> list[PreparedDeck]:

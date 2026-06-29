@@ -18,6 +18,7 @@ from ptcg_abc.evaluation import (
     TOURNAMENT_559_REQUESTED_RANKS,
     TOURNAMENT_559_SOURCE_URL,
     TOURNAMENT_559_SUBSTITUTIONS,
+    phase5_league_prepared_decks,
     phase3_tournament_559_prepared_decks,
     required_phase3_prepared_decks,
 )
@@ -74,6 +75,7 @@ class SelfPlaySummary:
     games_started: int
     steps: int
     output_path: str
+    deck_pool: str
     mode: str
     deck_indices: list[int]
     deck_labels: list[str]
@@ -157,6 +159,25 @@ def _ordered_unique_ints(values: Sequence[int]) -> list[int]:
         seen.add(value)
         ordered.append(value)
     return ordered
+
+
+PHASE5_SELFPLAY_DECK_POOL_TOURNAMENT_9 = "tournament-9"
+PHASE5_SELFPLAY_DECK_POOL_LEAGUE_13 = "league-13"
+PHASE5_SELFPLAY_DECK_POOLS = (
+    PHASE5_SELFPLAY_DECK_POOL_TOURNAMENT_9,
+    PHASE5_SELFPLAY_DECK_POOL_LEAGUE_13,
+)
+
+
+def phase5_selfplay_prepared_decks(deck_pool: str) -> list[PreparedDeck]:
+    if deck_pool == PHASE5_SELFPLAY_DECK_POOL_TOURNAMENT_9:
+        return phase3_tournament_559_prepared_decks()
+    if deck_pool == PHASE5_SELFPLAY_DECK_POOL_LEAGUE_13:
+        return phase5_league_prepared_decks()
+    valid = ", ".join(PHASE5_SELFPLAY_DECK_POOLS)
+    raise ValueError(
+        f"Unknown Phase 5 self-play deck pool {deck_pool!r}; choose one of: {valid}."
+    )
 
 
 def build_selfplay_deck_plan(
@@ -452,6 +473,7 @@ def rollout_selfplay_games(
     games: int = 1000,
     game_offset: int = 0,
     max_steps: int = 600,
+    deck_pool: str = PHASE5_SELFPLAY_DECK_POOL_TOURNAMENT_9,
     deck_a_index: int | None = None,
     deck_b_index: int | None = None,
     selfplay_deck_indices: Sequence[int] | None = None,
@@ -468,7 +490,7 @@ def rollout_selfplay_games(
         search_trace_path.parent.mkdir(parents=True, exist_ok=True)
         search_trace_path.write_text("", encoding="utf-8")
     plan = build_selfplay_deck_plan(
-        phase3_tournament_559_prepared_decks(),
+        phase5_selfplay_prepared_decks(deck_pool),
         deck_a_index=deck_a_index,
         deck_b_index=deck_b_index,
         selfplay_deck_indices=selfplay_deck_indices,
@@ -531,6 +553,7 @@ def rollout_selfplay_games(
                 "collector": "selfplay",
                 "agent": agent_kind,
                 "image_size": image_size,
+                "selfplay_deck_pool": deck_pool,
                 "selfplay_mode": plan.mode,
                 "selfplay_deck_indices": plan.deck_indices,
                 "selfplay_pair_key": pair_key,
@@ -563,6 +586,7 @@ def rollout_selfplay_games(
                 "collector": "selfplay",
                 "agent": agent_kind,
                 "image_size": image_size,
+                "selfplay_deck_pool": deck_pool,
                 "selfplay_mode": plan.mode,
                 "selfplay_deck_indices": plan.deck_indices,
                 "selfplay_pair_key": pair_key,
@@ -640,6 +664,7 @@ def rollout_selfplay_games(
         for player_index, recorder in ((0, recorder0), (1, recorder1)):
             final_metadata = _result_metadata(result, player_index) | {
                 "player_index": player_index,
+                "selfplay_deck_pool": deck_pool,
                 "selfplay_mode": plan.mode,
                 "selfplay_deck_indices": plan.deck_indices,
                 "selfplay_pair_key": pair_key,
@@ -667,6 +692,7 @@ def rollout_selfplay_games(
         games_started=games_started,
         steps=steps_written,
         output_path=str(output_path.as_posix()),
+        deck_pool=deck_pool,
         mode=plan.mode,
         deck_indices=plan.deck_indices,
         deck_labels=plan.deck_labels,

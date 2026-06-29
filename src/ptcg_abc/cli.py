@@ -57,6 +57,7 @@ from ptcg_abc.limitless import (
 from ptcg_abc.simulator import run_battle_smoke
 from ptcg_abc.submission import build_hybrid_rl_submission_bundle, build_submission_bundle
 from ptcg_abc.rl.workflow import (
+    PHASE5_SELFPLAY_DECK_POOLS,
     collect_bc_demonstrations,
     rollout_games,
     rollout_selfplay_games,
@@ -714,6 +715,7 @@ def command_rl_generate_phase5_search_selfplay(args: argparse.Namespace) -> int:
             games=args.games,
             game_offset=args.game_offset,
             max_steps=args.max_steps,
+            deck_pool=args.deck_pool,
             deck_a_index=args.deck_a_index,
             deck_b_index=args.deck_b_index,
             selfplay_deck_indices=args.deck_index or None,
@@ -1616,6 +1618,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Absolute game offset for deterministic array shards.",
     )
     rl_phase5_selfplay.add_argument("--max-steps", type=int, default=600)
+    rl_phase5_selfplay.add_argument(
+        "--deck-pool",
+        choices=PHASE5_SELFPLAY_DECK_POOLS,
+        default="tournament-9",
+        help=(
+            "Prepared deck pool for self-play: tournament-9 preserves the current "
+            "Phase 5 data path; league-13 adds the four required sample decks."
+        ),
+    )
     rl_phase5_selfplay.add_argument(
         "--deck-a-index",
         type=int,

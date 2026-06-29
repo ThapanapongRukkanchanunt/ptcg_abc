@@ -6,6 +6,7 @@ from ptcg_abc.evaluation import (
     TOURNAMENT_559_SUBSTITUTIONS,
     phase3_benchmark_deck_coverage,
     phase3_tournament_559_prepared_decks,
+    phase5_league_prepared_decks,
     required_phase3_prepared_decks,
 )
 
@@ -70,6 +71,21 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(substitutions[0]["rank"], 2)
         self.assertEqual(substitutions[0]["original_card"], "Pokemon Center Lady")
         self.assertEqual(substitutions[0]["replacement_card"], "Cook")
+
+    def test_phase5_league_prepared_decks_extend_tournament_pool(self):
+        decks = phase5_league_prepared_decks()
+
+        self.assertEqual(len(decks), 13)
+        self.assertEqual([deck.index for deck in decks], list(range(1, 14)))
+        self.assertEqual([len(deck.card_ids) for deck in decks], [60] * 13)
+        self.assertEqual(
+            [deck.deck.result.placement_rank for deck in decks[:9]],
+            list(TOURNAMENT_559_REQUESTED_RANKS),
+        )
+        self.assertEqual(
+            [deck.archetype for deck in decks[9:]],
+            ["Crustle", "Mega Lucario ex", "Mega Abomasnow ex", "Iono's Bellibolt ex"],
+        )
 
 
 if __name__ == "__main__":

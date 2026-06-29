@@ -1743,6 +1743,39 @@ Interpretation:
 - The 9-deck generalist/search gate is stable enough to move to the next plan:
   broaden deck coverage and add targeted data/model capacity before PPO.
 
+## 2026-06-29 - Phase 5 13-Deck Self-Play Pool Wired
+
+Implementation:
+
+- Added `phase5_league_prepared_decks()` in `src/ptcg_abc/evaluation.py`.
+- The new pool is opt-in and preserves existing benchmark semantics:
+  - deck indices 1-9 are the current Tournament 559 decks,
+  - deck indices 10-13 are the four required sample decks: Crustle,
+    Mega Lucario ex, Mega Abomasnow ex, and Iono's Bellibolt ex.
+- Added `--deck-pool` to `rl-generate-phase5-search-selfplay`.
+- Added `DECK_POOL` support to:
+  - `scripts/slurm/phase5_search_selfplay_conda.sbatch`,
+  - `scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch`.
+- Self-play summaries now include `deck_pool`.
+- Self-play trajectory metadata now includes `selfplay_deck_pool`, so mixed
+  9-deck and 13-deck training datasets can be separated later.
+- Added unit coverage for the 13-deck pool count, indices, card counts, first
+  nine tournament ranks, and four required sample deck names.
+- Updated `docs/phase-5-erawan-runbook.md` with a bounded 338-game 13-deck
+  smoke and the follow-up 13-deck 10k data command.
+- Updated `docs/project-state.md` with the new state and next ERAWAN action.
+
+Operational plan:
+
+- Keep `models/rl/phase5_generalist_policy_10k.pt` as the default
+  `phase5-search` prior for the expanded self-play data.
+- First run `phase5_search_selfplay_13deck_338`, a 338-game two-shard smoke
+  covering the 13 x 13 ordered pair grid with player-order alternation.
+- If both shards finish with `errors=0`, `search_errors=0`, and
+  `candidate_errors=0`, submit `phase5_search_selfplay_13deck_10k`.
+- Do not remove the existing 9-deck `phase5_search_selfplay_10k` shards yet;
+  they remain the source for the current generalist checkpoint and comparisons.
+
 ## Artifact Notes
 
 Important model artifacts:

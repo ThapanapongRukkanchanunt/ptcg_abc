@@ -27,6 +27,7 @@ SHARD_INDEX="${SLURM_ARRAY_TASK_ID:-0}"
 SHARD_COUNT="${SHARD_COUNT:-${SLURM_ARRAY_TASK_COUNT:-1}}"
 GAME_OFFSET_BASE="${GAME_OFFSET:-0}"
 ABS_GAME_OFFSET=$((GAME_OFFSET_BASE + SHARD_INDEX * GAMES_PER_SHARD))
+DECK_POOL="${DECK_POOL:-tournament-9}"
 
 DATASET_DIR="${DATASET_DIR:-${GAME_DATA_ROOT}/phase5_search_selfplay/shards}"
 SUMMARY_DIR="${SUMMARY_DIR:-experiments/rl/phase5_search_selfplay/summaries}"
@@ -63,11 +64,20 @@ if [[ -n "${SEARCH_TRACE_GAMES:-}" ]]; then
   TRACE_ARGS+=(--search-trace-output "$TRACE" --search-trace-games "$SEARCH_TRACE_GAMES")
 fi
 
+echo "MODEL=$MODEL"
+echo "DECK_POOL=$DECK_POOL"
+echo "GAMES_PER_SHARD=$GAMES_PER_SHARD"
+echo "ABS_GAME_OFFSET=$ABS_GAME_OFFSET"
+echo "DATASET_DIR=$DATASET_DIR"
+echo "SUMMARY_DIR=$SUMMARY_DIR"
+echo "TRACE_DIR=$TRACE_DIR"
+
 "$PY" -m ptcg_abc rl-generate-phase5-search-selfplay \
   --model "$MODEL" \
   --games "$GAMES_PER_SHARD" \
   --game-offset "$ABS_GAME_OFFSET" \
   --max-steps "${MAX_STEPS:-600}" \
+  --deck-pool "$DECK_POOL" \
   --output "$OUT" \
   --report-json "$SUMMARY" \
   "${DECK_ARGS[@]}" \

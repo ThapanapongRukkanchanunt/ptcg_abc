@@ -1416,7 +1416,97 @@ Next operational step:
   `phase5-search` prior for new data generation and comparison.
 - Add targeted data/model treatment for Alakazam Dudunsparce before larger PPO.
 
-## 15. Ready-To-Train Checklist
+## 15. Phase 5 13-Deck League Self-Play Smoke
+
+This slice expands data generation from the current 9 Tournament 559 decks to a
+13-deck Phase 5 league pool:
+
+- Decks 1-9: the current Tournament 559 required evaluation decks.
+- Decks 10-13: the four required sample/benchmark decks: Crustle, Mega Lucario
+  ex, Mega Abomasnow ex, and Iono's Bellibolt ex.
+
+The existing required benchmark remains unchanged. Use this deck pool only when
+generating expanded self-play data.
+
+After pulling the latest code on ERAWAN, set the environment:
+
+```bash
+export PYTHONPATH="$PWD/src"
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+MODEL=models/rl/phase5_generalist_policy_10k.pt
+
+test -f "$MODEL"
+```
+
+Submit the bounded 13-deck smoke. This requests 338 games: 13 x 13 ordered deck
+pairs with the two player-order passes distributed across two shards.
+
+```bash
+mkdir -p experiments/rl/phase5_search_selfplay_13deck_338
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PHASE5_SELFPLAY_RUN_NAME=phase5_search_selfplay_13deck_338 \
+  TOTAL_GAMES=338 \
+  MODEL="$MODEL" \
+  DECK_POOL=league-13 \
+  SELFPLAY_DECK_INDICES="1 2 3 4 5 6 7 8 9 10 11 12 13" \
+  SEARCH_TRACE_GAMES=2 \
+  sbatch --parsable scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_selfplay_13deck_338/latest_job.txt
+```
+
+Inspect it as a normal job:
+
+```bash
+JOB=$(cat experiments/rl/phase5_search_selfplay_13deck_338/latest_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+
+tail -n 120 "experiments/rl/slurm-${JOB}-0-phase5-search-selfplay-10k.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-1-phase5-search-selfplay-10k.out"
+
+cat experiments/rl/phase5_search_selfplay_13deck_338/summaries/phase5_search_selfplay_summary_shard-0.json
+cat experiments/rl/phase5_search_selfplay_13deck_338/summaries/phase5_search_selfplay_summary_shard-1.json
+wc -l "$GAME_DATA_ROOT"/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-*.jsonl
+ls -lh "$GAME_DATA_ROOT"/phase5_search_selfplay_13deck_338/shards/
+ls -lh experiments/rl/phase5_search_selfplay_13deck_338/traces/
+```
+
+Expected pass criteria:
+
+- Both shards complete with `errors=0`.
+- Each summary reports `"deck_pool": "league-13"`, `pair_count=169`, and deck
+  indices 1 through 13.
+- Search telemetry has `search_errors=0` and `candidate_errors=0`.
+- Timeouts are low enough to treat as simulator/game-length noise, not a failed
+  run.
+- Dataset shards are stored under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards`.
+
+If the 338-game smoke passes, submit the larger 13-deck data run:
+
+```bash
+mkdir -p experiments/rl/phase5_search_selfplay_13deck_10k
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PHASE5_SELFPLAY_RUN_NAME=phase5_search_selfplay_13deck_10k \
+  TOTAL_GAMES=10000 \
+  MODEL="$MODEL" \
+  DECK_POOL=league-13 \
+  SELFPLAY_DECK_INDICES="1 2 3 4 5 6 7 8 9 10 11 12 13" \
+  SEARCH_TRACE_GAMES=3 \
+  sbatch --parsable scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_search_selfplay_13deck_10k/latest_job.txt
+```
+
+Do not remove the existing 9-deck `phase5_search_selfplay_10k` shards yet. They
+are the completed source for `models/rl/phase5_generalist_policy_10k.pt` and are
+still useful for comparisons.
+
+## 16. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.
