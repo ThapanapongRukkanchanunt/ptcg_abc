@@ -1384,6 +1384,38 @@ echo "$JOB" | tee experiments/rl/phase5_generalist_search_smoke_eval_job.txt
 Only move to the 10-game and 30-game benchmark if both smoke evaluations finish
 with `errors=0`.
 
+Recorded generalist benchmark result on June 29, 2026:
+
+- Direct `phase5-symbolic`, `models/rl/phase5_generalist_policy_10k.pt`:
+  - 10-game benchmark: 117 / 360 wins, 0.325 win rate, 4 timeouts, 0 errors.
+  - 30-game benchmark: 361 / 1,080 wins, 0.334 win rate, 12 timeouts, 0 errors.
+- `phase5-search`, `models/rl/phase5_generalist_policy_10k.pt` as prior:
+  - 10-game benchmark: 138 / 360 wins, 0.383 win rate, 0 timeouts, 0 errors.
+  - 30-game benchmark: 414 / 1,080 wins, 0.383 win rate, 5 timeouts, 0 errors.
+  - 30-game search telemetry: 44,267 searched decisions, 8,584 changed
+    decisions, 0 search errors, 0 candidate errors, 677 truncated candidates,
+    0.0514 average search seconds, 2.4492 max search seconds.
+
+Interpretation:
+
+- Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
+  current best 9-deck inference path.
+- Do not promote the direct `phase5-symbolic` generalist as a standalone policy;
+  it improved over the first symbolic model but remains below the rule baseline.
+- The 30-game `phase5-search` generalist-prior result slightly beats the prior
+  30-game search benchmark, 414 / 1,080 vs. 408 / 1,080, and reduces truncation
+  from 6,395 to 677 candidates.
+- Deck 1, Alakazam Dudunsparce, remains the main weakness at only 4 / 120 wins
+  in the 30-game `phase5-search` generalist-prior benchmark.
+
+Next operational step:
+
+- Start the Phase 5 deck-expansion slice while preserving the current 9-deck
+  required benchmark.
+- Use `models/rl/phase5_generalist_policy_10k.pt` as the default
+  `phase5-search` prior for new data generation and comparison.
+- Add targeted data/model treatment for Alakazam Dudunsparce before larger PPO.
+
 ## 15. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

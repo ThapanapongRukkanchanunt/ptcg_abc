@@ -1643,6 +1643,106 @@ Next operational step:
 - If nonzero decision/rule/self-play/value/Q/tactical counts and finite loss are
   reported, submit the full `phase5_generalist_policy_10k.pt` job.
 
+### Phase 5 Generalist Evaluation Result
+
+Artifacts evaluated:
+
+- Model:
+  - `models/rl/phase5_generalist_policy_10k.pt`.
+- Direct policy reports:
+  - `reports/phase5_generalist_symbolic_10g.json`
+  - `reports/phase5_generalist_symbolic_10g.md`
+  - `reports/phase5_generalist_symbolic_30g.json`
+  - `reports/phase5_generalist_symbolic_30g.md`
+- Search policy reports:
+  - `reports/phase5_generalist_search_10g.json`
+  - `reports/phase5_generalist_search_10g.md`
+  - `reports/phase5_generalist_search_30g.json`
+  - `reports/phase5_generalist_search_30g.md`
+
+Direct `phase5-symbolic` with the generalist checkpoint:
+
+- 10-game benchmark:
+  - Games: 360.
+  - Wins: 117.
+  - Losses: 242.
+  - Draws: 1.
+  - Timeouts: 4.
+  - Errors: 0.
+  - Win rate: 0.325.
+- 30-game benchmark:
+  - Games: 1,080.
+  - Wins: 361.
+  - Losses: 716.
+  - Draws: 3.
+  - Timeouts: 12.
+  - Errors: 0.
+  - Win rate: 0.334.
+
+`phase5-search` with the generalist checkpoint as prior:
+
+- 10-game benchmark:
+  - Games: 360.
+  - Wins: 138.
+  - Losses: 222.
+  - Draws: 0.
+  - Timeouts: 0.
+  - Errors: 0.
+  - Win rate: 0.383.
+  - Searched decisions: 14,661.
+  - Search-changed decisions: 3,002.
+  - Change rate: 0.205.
+  - Search errors: 0.
+  - Candidate errors: 0.
+  - Truncated candidates: 261.
+  - Truncated-candidate rate: 0.00487.
+  - Average search seconds: 0.0536.
+  - Max search seconds: 1.4181.
+- 30-game benchmark:
+  - Games: 1,080.
+  - Wins: 414.
+  - Losses: 665.
+  - Draws: 1.
+  - Timeouts: 5.
+  - Errors: 0.
+  - Win rate: 0.383.
+  - Searched decisions: 44,267.
+  - Search-changed decisions: 8,584.
+  - Change rate: 0.194.
+  - Search errors: 0.
+  - Candidate errors: 0.
+  - Truncated candidates: 677.
+  - Truncated-candidate rate: 0.00419.
+  - Average search seconds: 0.0514.
+  - Max search seconds: 2.4492.
+
+Comparison to earlier gates:
+
+- Direct generalist improved over the first direct symbolic 10-game benchmark:
+  - 117 / 360, 0.325 vs. 109 / 360, 0.303.
+- Direct generalist is still below the rule baseline:
+  - 117 / 360, 0.325 vs. rule baseline 126 / 360, 0.350.
+- `phase5-search` with the generalist prior is slightly above the previous
+  30-game search benchmark:
+  - 414 / 1,080, 0.383 vs. 408 / 1,080, 0.378.
+- The generalist prior materially reduced truncation in the 30-game search run:
+  - 677 truncated candidates vs. the prior default-cap 30-game run's 6,395.
+- Average search latency also improved:
+  - 0.0514 seconds vs. 0.0588 seconds.
+
+Interpretation:
+
+- The multi-head generalist is useful as a search prior, but not yet strong
+  enough as a standalone direct policy.
+- The new best 9-deck inference path is `phase5-search` with
+  `models/rl/phase5_generalist_policy_10k.pt`.
+- The 30-game result is a small but real improvement over the previous
+  `phase5-search` 30-game benchmark, with much cleaner truncation telemetry.
+- Deck 1, Alakazam Dudunsparce, remains the largest weakness. It produced only
+  4 / 120 wins under the 30-game `phase5-search` generalist-prior benchmark.
+- The 9-deck generalist/search gate is stable enough to move to the next plan:
+  broaden deck coverage and add targeted data/model capacity before PPO.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1653,9 +1753,8 @@ Important model artifacts:
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_all.pt`
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_soft.pt`
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_tiny.pt`
-- Planned next:
-  - `models/rl/phase5_generalist_policy_smoke.pt`
-  - `models/rl/phase5_generalist_policy_10k.pt`
+- `models/rl/phase5_generalist_policy_smoke.pt`
+- `models/rl/phase5_generalist_policy_10k.pt`
 
 Important dataset artifacts:
 
@@ -1676,12 +1775,16 @@ File-retention decision:
 
 ## Open Questions And Next Work
 
-- Record the 30-game default-cap benchmark win/loss/timing summary.
-- Submit and inspect the bounded generalist multi-head smoke train.
-- If the smoke passes, train the full 10k mixed generalist model from rule
-  demonstrations, search-improved decisions, and self-play outcomes.
-- Evaluate on the current 9-deck required benchmark before adding more decks.
-- Expand to more decks only after the 9-deck gate is stable; consider a larger
-  model if broader deck diversity exposes capacity limits.
+- Record the full `phase5_generalist_train_report_10k.json` if needed for the
+  final report.
+- Start the deck-expansion slice: add broader prepared-deck coverage, likely the
+  13-deck plan from the Phase 5 documents, without disturbing the current
+  9-deck required benchmark.
+- Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
+  current best 9-deck inference path.
+- Add targeted weakness data or weighting for Alakazam Dudunsparce before any
+  claim that the generalist direct policy is robust.
+- Consider a larger model only after the expanded deck pool exposes clear
+  capacity limits.
 - Start larger PPO/self-play only after the supervised/value generalist model is
-  stable and measurable.
+  stable on the broader deck pool.

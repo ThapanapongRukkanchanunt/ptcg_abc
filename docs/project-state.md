@@ -108,8 +108,25 @@ This is the resume point for the project. Start here after switching machines, c
   tactical scalar outputs. `rl-train-phase5-generalist` and
   `scripts/slurm/phase5_generalist_train_conda.sbatch` stream the 10-shard
   search-decision data plus the 10,000-game self-play shards without merging
-  them in memory. The next action is the bounded generalist smoke-train job from
-  `docs/phase-5-erawan-runbook.md`.
+  them in memory.
+- Latest generalist evaluation: direct `phase5-symbolic` with
+  `models/rl/phase5_generalist_policy_10k.pt` reached 117 / 360 wins
+  (0.325) at 10 games per matchup and 361 / 1,080 wins (0.334) at 30 games per
+  matchup. It improves over the first direct symbolic model but remains below
+  the rule baseline.
+- Latest best inference path: `phase5-search` with
+  `models/rl/phase5_generalist_policy_10k.pt` reached 138 / 360 wins (0.383)
+  at 10 games per matchup and 414 / 1,080 wins (0.383) at 30 games per matchup,
+  with 0 search errors, 0 candidate errors, 677 truncated candidates, 0.0514
+  average search seconds, and 2.4492 max search seconds in the 30-game run.
+  This slightly beats the prior 30-game `phase5-search` result of 408 / 1,080
+  while greatly reducing truncation.
+- Latest weakness: Alakazam Dudunsparce remains poor under the generalist search
+  prior, at 4 / 120 wins in the 30-game benchmark. Treat it as the main targeted
+  data/model issue before claiming robust direct-policy strength.
+- Next action: start the deck-expansion slice from the Phase 5 plan, keeping the
+  current 9-deck required benchmark intact and using
+  `models/rl/phase5_generalist_policy_10k.pt` as the default search prior.
 
 ## Phase Log
 
@@ -120,7 +137,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | Mixed generalist training | Cap-30 online root search is the current best inference path; 10,000 games of 9-deck search self-play are complete, and the next work is smoke/full training of the policy/value/Q/tactical generalist before 9-deck evaluation, broader deck expansion, then larger PPO. |
+| Phase 5: Advanced RL strategy, training, and evaluation | 9-deck generalist evaluated | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` is the current best inference path; next work is broader deck coverage and targeted weakness handling before larger PPO/self-play. |
 
 ## Completed Phase Details
 
