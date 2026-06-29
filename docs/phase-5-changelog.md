@@ -1816,6 +1816,101 @@ Conclusion:
 - Proceed to `phase5_search_selfplay_13deck_10k` using
   `models/rl/phase5_generalist_policy_10k.pt` as the `phase5-search` prior.
 
+## 2026-06-29 - Phase 5 Kaggle Package Candidates
+
+Decision:
+
+- Use the current best recorded inference path for Kaggle package candidates:
+  `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt`.
+- Package two Tournament 559 decks based on the 30-game per-matchup
+  `phase5-search` generalist-prior per-deck totals:
+  - Deck 2, Crustle, 68 / 120 wins, 0.567 win rate, 0 errors.
+  - Deck 8, Dragapult Blaziken, 56 / 120 wins, 0.467 win rate, 0 errors.
+- Hydrapple tied Dragapult Blaziken at 56 / 120, but Dragapult Blaziken was
+  selected as the second package for deck-profile diversity.
+
+Implementation:
+
+- Added `phase5-package`, a dedicated packaging command for Phase 5
+  `phase5-search` submission bundles.
+- The package builder includes:
+  - `main.py`,
+  - `deck.csv`,
+  - `model.pt`,
+  - the Kaggle `cg` package,
+  - the full local `ptcg_abc` package needed by Phase 5 symbolic/search
+    inference.
+- Submission `main.py` resolves bundled files relative to itself and chooses a
+  submission-safe opponent prior from the Phase 5 13-deck pool using visible
+  opponent card IDs. If no opponent cards are visible yet, it defaults to the
+  required-sample Crustle prior.
+
+Local artifacts:
+
+- `submissions/phase5_search_generalist_10k/deck-02-crustle/submission.tar.gz`
+- `submissions/phase5_search_generalist_10k/deck-08-dragapult-blaziken/submission.tar.gz`
+- `submissions/phase5_search_generalist_10k/deck-02-crustle-phase5-search-submission.zip`
+- `submissions/phase5_search_generalist_10k/deck-08-dragapult-blaziken-phase5-search-submission.zip`
+
+Packaging correction:
+
+- The zip artifacts were rewritten as direct Kaggle archives after an upload
+  failure showed that wrapping `submission.tar.gz` inside a zip does not expose
+  root-level `main.py`.
+- The corrected zip archive roots contain `main.py`, `deck.csv`, `model.pt`,
+  `cg/`, and `ptcg_abc/`.
+
+Verification:
+
+- `py_compile` passed for modified packaging files.
+- `phase5-package --help` is available through the CLI.
+- Both generated packages contain `main.py`, `deck.csv`, `model.pt`, `cg`,
+  `ptcg_abc/agent/phase5_search.py`, `ptcg_abc/agent/phase5_symbolic.py`,
+  `ptcg_abc/rl/phase5_policy.py`, and `ptcg_abc/rl/phase5_search.py`.
+- Both `deck.csv` files contain exactly 60 cards.
+- Local Python does not have PyTorch installed, so full checkpoint inference
+  and battle validation must run on ERAWAN or Kaggle.
+
+## 2026-06-29 - Phase 5 13-Deck Generalist Train Prep
+
+Inspection:
+
+- The generalist trainer already consumes multiple self-play trajectory shards:
+  the CLI repeats `--selfplay-dataset`, and
+  `scripts/slurm/phase5_generalist_train_conda.sbatch` expands the
+  space-separated `SELFPLAY_DATASETS` environment variable.
+- No trainer code change is required to mix:
+  - the existing 10-shard search-decision data,
+  - the completed 9-deck `phase5_search_selfplay_10k` shards,
+  - the pending 13-deck `phase5_search_selfplay_13deck_10k` shards.
+
+Implementation:
+
+- Added `scripts/slurm/phase5_generalist_train_13deck_10k.sbatch`, a thin
+  wrapper around the existing generalist trainer with explicit 13-deck artifact
+  defaults:
+  - `models/rl/phase5_generalist_policy_13deck_10k.pt`,
+  - `experiments/rl/phase5_generalist_train_report_13deck_10k.json`.
+- Extended `docs/phase-5-erawan-runbook.md` with:
+  - recovery guidance for the 13-deck self-play `sbatch --parsable` socket
+    timeout case,
+  - shard existence checks before training,
+  - bounded 13-deck mixed-train smoke commands,
+  - full 13-deck mixed-train commands,
+  - required-benchmark smoke evaluation commands for the new checkpoint.
+
+Decision:
+
+- Preserve the existing `models/rl/phase5_generalist_policy_10k.pt` and
+  `experiments/rl/phase5_generalist_train_report_10k.json` artifacts.
+- Treat the 13-deck league self-play as a training expansion, not a replacement
+  evaluation gate.
+- Keep the existing required 9x4 benchmark as the first promotion gate for
+  `models/rl/phase5_generalist_policy_13deck_10k.pt`.
+- Define a separate 13x13 evaluation only after choosing the intended target
+  shape, such as agent-vs-rule or head-to-head self-play with player-order
+  balance.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1828,6 +1923,8 @@ Important model artifacts:
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_tiny.pt`
 - `models/rl/phase5_generalist_policy_smoke.pt`
 - `models/rl/phase5_generalist_policy_10k.pt`
+- Pending next checkpoint:
+  `models/rl/phase5_generalist_policy_13deck_10k.pt`
 
 Important dataset artifacts:
 
@@ -1839,6 +1936,8 @@ Important dataset artifacts:
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl`
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-0.jsonl`
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-1.jsonl`
+- Pending next dataset:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_10k/shards/phase5_search_selfplay_shard-*.jsonl`
 
 File-retention decision:
 
@@ -1852,8 +1951,12 @@ File-retention decision:
 
 - Record the full `phase5_generalist_train_report_10k.json` if needed for the
   final report.
-- Submit the 13-deck 10k self-play generation now that the 338-game 13-deck
-  smoke passed.
+- Monitor the 13-deck 10k self-play generation. If `latest_job.txt` is missing
+  because `sbatch --parsable` timed out after submission, recover the base array
+  job ID from `squeue` instead of resubmitting.
+- After the 13-deck 10k shards complete, run the bounded
+  `phase5_generalist_policy_13deck_smoke.pt` train and then the full
+  `phase5_generalist_policy_13deck_10k.pt` train.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
 - Add targeted weakness data or weighting for Alakazam Dudunsparce before any

@@ -689,6 +689,34 @@ Current Phase 5 adapter/encoder slice:
   whether losses come from weak search-changed agreement, third-action drift,
   action-type bias, or deck-specific failures.
 
+Current Phase 5 generalist/search state as of June 29, 2026:
+
+- Current best inference path is `phase5-search` with
+  `models/rl/phase5_generalist_policy_10k.pt` as prior.
+- Required 9x4 benchmark with that path:
+  - 10 games per matchup: 138 / 360 wins, 0.383 win rate, 0 errors.
+  - 30 games per matchup: 414 / 1,080 wins, 0.383 win rate, 0 errors,
+    677 truncated candidates, 0.0514 average search seconds.
+- Main weakness remains Alakazam Dudunsparce.
+- The 13-deck `league-13` self-play smoke passed:
+  `phase5_search_selfplay_13deck_338`, 338 / 338 games, 51,945 trajectory rows,
+  4 draws, 3 timeouts, 0 errors, 0 search errors, 0 candidate errors.
+- The next self-play data target is
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_10k`.
+  It is submitted as one two-task SLURM array; if `latest_job.txt` is missing
+  after an `sbatch --parsable` socket timeout, recover the base job ID from
+  `squeue` instead of resubmitting.
+- The trainer already supports multiple self-play shards. Use
+  `scripts/slurm/phase5_generalist_train_13deck_10k.sbatch` after the 13-deck
+  shards complete to mix the 10-shard decision dataset, existing 9-deck 10k
+  self-play shards, and new 13-deck 10k self-play shards.
+- Keep the new artifacts explicit:
+  `models/rl/phase5_generalist_policy_13deck_10k.pt` and
+  `experiments/rl/phase5_generalist_train_report_13deck_10k.json`.
+- The 13-deck league data is a training expansion. The existing required 9x4
+  benchmark remains the first promotion gate for the new checkpoint; define a
+  separate 13x13 evaluation only after choosing its target shape.
+
 Operational rule:
 
 - Phase 5 search-distillation diagnostics should always run as SLURM jobs using

@@ -55,7 +55,11 @@ from ptcg_abc.limitless import (
     write_missing_report,
 )
 from ptcg_abc.simulator import run_battle_smoke
-from ptcg_abc.submission import build_hybrid_rl_submission_bundle, build_submission_bundle
+from ptcg_abc.submission import (
+    build_hybrid_rl_submission_bundle,
+    build_phase5_search_submission_bundle,
+    build_submission_bundle,
+)
 from ptcg_abc.rl.workflow import (
     PHASE5_SELFPLAY_DECK_POOLS,
     collect_bc_demonstrations,
@@ -91,6 +95,11 @@ from ptcg_abc.rl.torch_backend import TorchBackendUnavailable
 
 def _path(value: str) -> Path:
     return Path(value)
+
+
+def _slug(value: str) -> str:
+    chars = [char.lower() if char.isalnum() else "-" for char in value]
+    return "-".join(part for part in "".join(chars).split("-") if part)
 
 
 def _add_common_limitless_args(parser: argparse.ArgumentParser) -> None:
@@ -1050,6 +1059,47 @@ def command_rl_package(args: argparse.Namespace) -> int:
             {
                 "deck_index": deck.index,
                 "deck_label": deck.label,
+                "tar_path": str(result.tar_path.as_posix()),
+            }
+        )
+    print(json.dumps({"packages": outputs}, indent=2))
+    return 0
+
+
+def command_phase5_package(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.model.exists():
+        print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
+        return 2
+    decks = {deck.index: deck for deck in phase3_tournament_559_prepared_decks()}
+    selected_indices = args.deck_index or [2, 8]
+    outputs = []
+    for deck_index in selected_indices:
+        if deck_index not in decks:
+            print(f"Unknown Tournament 559 deck index: {deck_index}", file=sys.stderr)
+            return 2
+        deck = decks[deck_index]
+        deck_dir = args.output_dir / f"deck-{deck.index:02d}-{_slug(deck.archetype)}"
+        tar_path = deck_dir / "submission.tar.gz"
+        result = build_phase5_search_submission_bundle(
+            deck_ids=deck.card_ids,
+            sample_dir=args.sample_dir,
+            output_dir=deck_dir,
+            model_path=args.model,
+            tar_path=tar_path,
+        )
+        outputs.append(
+            {
+                "deck_index": deck.index,
+                "deck_label": deck.label,
+                "agent": "phase5-search",
+                "model": str(args.model.as_posix()),
                 "tar_path": str(result.tar_path.as_posix()),
             }
         )
@@ -2074,6 +2124,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Tournament 559 prepared deck index to package. Repeat for multiple decks.",
     )
     rl_package.set_defaults(func=command_rl_package)
+
+    phase5_package = subparsers.add_parser(
+        "phase5-package",
+        help="Build Phase 5 phase5-search Kaggle submission bundles.",
+    )
+    phase5_package.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    phase5_package.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_10k.pt",
+    )
+    phase5_package.add_argument(
+        "--output-dir",
+        type=_path,
+        default=Path("submissions") / "phase5_search_generalist_10k",
+    )
+    phase5_package.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        help="Tournament 559 prepared deck index to package. Defaults to decks 2 and 8.",
+    )
+    phase5_package.set_defaults(func=command_phase5_package)
 
     rl_snapshots = subparsers.add_parser(
         "rl-board-snapshots",

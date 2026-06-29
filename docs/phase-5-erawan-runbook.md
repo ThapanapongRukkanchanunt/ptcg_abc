@@ -1522,11 +1522,135 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_search_selfplay_13deck_10k/latest_job.txt
 ```
 
+This submits one SLURM array job with two array tasks. Seeing two running tasks,
+for example `${JOB}_0` and `${JOB}_1`, is expected. If `sbatch --parsable`
+times out after the scheduler accepted the job and `latest_job.txt` was not
+written, do not resubmit immediately. Recover the base job ID from `squeue`:
+
+```bash
+squeue -u "$USER" --name=ptcg-p5-search-selfplay-10k --format="%i %j %T %M %R"
+
+# Example: if squeue shows 72810_0 and 72810_1, persist the base job ID.
+printf "%s\n" 72810 | tee experiments/rl/phase5_search_selfplay_13deck_10k/latest_job.txt
+```
+
 Do not remove the existing 9-deck `phase5_search_selfplay_10k` shards yet. They
 are the completed source for `models/rl/phase5_generalist_policy_10k.pt` and are
 still useful for comparisons.
 
-## 16. Ready-To-Train Checklist
+## 16. Phase 5 13-Deck Mixed Generalist Train
+
+The generalist trainer already accepts repeated `--selfplay-dataset` arguments,
+and `scripts/slurm/phase5_generalist_train_conda.sbatch` expands a
+space-separated `SELFPLAY_DATASETS` list into those repeated arguments. Use the
+13-deck train as a new artifact family, not an overwrite of the current 9-deck
+checkpoint.
+
+Training inputs:
+
+- Search-decision data:
+  `$GAME_DATA_ROOT/phase5_search_decisions_10shards.jsonl`.
+- Existing 9-deck self-play:
+  `$GAME_DATA_ROOT/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-0.jsonl`
+  and
+  `$GAME_DATA_ROOT/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl`.
+- New 13-deck self-play, after the run completes:
+  `$GAME_DATA_ROOT/phase5_search_selfplay_13deck_10k/shards/phase5_search_selfplay_shard-0.jsonl`
+  and
+  `$GAME_DATA_ROOT/phase5_search_selfplay_13deck_10k/shards/phase5_search_selfplay_shard-1.jsonl`.
+
+Before training, verify all four self-play shards exist:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+
+ls -lh "$GAME_DATA_ROOT"/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-*.jsonl
+ls -lh "$GAME_DATA_ROOT"/phase5_search_selfplay_13deck_10k/shards/phase5_search_selfplay_shard-*.jsonl
+wc -l "$GAME_DATA_ROOT"/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-*.jsonl
+wc -l "$GAME_DATA_ROOT"/phase5_search_selfplay_13deck_10k/shards/phase5_search_selfplay_shard-*.jsonl
+```
+
+Submit a bounded mixed-train smoke first:
+
+```bash
+mkdir -p experiments/rl models/rl
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  CHECKPOINT=models/rl/phase5_generalist_policy_13deck_smoke.pt \
+  REPORT_JSON=experiments/rl/phase5_generalist_train_report_13deck_smoke.json \
+  DECISION_LIMIT=5000 \
+  SELFPLAY_LIMIT=5000 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_generalist_train_13deck_10k.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_smoke_job.txt
+```
+
+Inspect the smoke:
+
+```bash
+JOB=$(cat experiments/rl/phase5_generalist_13deck_smoke_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-13deck-train.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-13deck-train.err"
+cat experiments/rl/phase5_generalist_train_report_13deck_smoke.json
+ls -lh models/rl/phase5_generalist_policy_13deck_smoke.pt
+```
+
+Pass criteria:
+
+- The job exits successfully.
+- `decision_examples`, `rule_examples`, and `selfplay_examples` are nonzero.
+- The report lists all four self-play dataset paths.
+- No artifact path uses the existing `phase5_generalist_policy_10k.pt` or
+  `phase5_generalist_train_report_10k.json` names.
+
+If the smoke passes, submit the full mixed train:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_generalist_train_13deck_10k.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_10k_job.txt
+```
+
+Inspect the full train:
+
+```bash
+JOB=$(cat experiments/rl/phase5_generalist_13deck_10k_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-13deck-train.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-generalist-13deck-train.err"
+cat experiments/rl/phase5_generalist_train_report_13deck_10k.json
+ls -lh models/rl/phase5_generalist_policy_13deck_10k.pt
+```
+
+The 13-deck league data is a training expansion, not a replacement evaluation
+gate. After the full train, evaluate the new checkpoint on the existing required
+9x4 benchmark first:
+
+```bash
+MODEL=models/rl/phase5_generalist_policy_13deck_10k.pt
+
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_generalist_13deck_search_smoke.json \
+  REPORT_MD=reports/phase5_generalist_13deck_search_smoke.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_search_smoke_eval_job.txt
+```
+
+Only move to 10-game and 30-game required benchmarks if the smoke has
+`errors=0`. Define a separate 13x13 evaluation only after deciding whether that
+evaluation should be agent-vs-rule, head-to-head self-play, player-order
+balanced, or another target; do not blend it into the required gate silently.
+
+## 17. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.
