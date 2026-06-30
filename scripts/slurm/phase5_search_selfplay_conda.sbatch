@@ -58,6 +58,22 @@ fi
 if [[ -n "${SEARCH_ROLLOUT_STEPS:-}" ]]; then
   SEARCH_ARGS+=(--search-rollout-steps "$SEARCH_ROLLOUT_STEPS")
 fi
+if [[ -n "${POLICY_PRIOR_WEIGHT:-}" ]]; then
+  SEARCH_ARGS+=(--policy-prior-weight "$POLICY_PRIOR_WEIGHT")
+fi
+if [[ -n "${NEURAL_ACTION_VALUE_WEIGHT:-}" ]]; then
+  SEARCH_ARGS+=(--neural-action-value-weight "$NEURAL_ACTION_VALUE_WEIGHT")
+fi
+if [[ -n "${NEURAL_TACTICAL_WEIGHT:-}" ]]; then
+  SEARCH_ARGS+=(--neural-tactical-weight "$NEURAL_TACTICAL_WEIGHT")
+fi
+
+POOL_ARGS=()
+if [[ -n "${POLICY_POOL_MODELS:-}" ]]; then
+  for path in $POLICY_POOL_MODELS; do
+    POOL_ARGS+=(--policy-pool-model "$path")
+  done
+fi
 
 TRACE_ARGS=()
 if [[ -n "${SEARCH_TRACE_GAMES:-}" ]]; then
@@ -71,6 +87,7 @@ echo "ABS_GAME_OFFSET=$ABS_GAME_OFFSET"
 echo "DATASET_DIR=$DATASET_DIR"
 echo "SUMMARY_DIR=$SUMMARY_DIR"
 echo "TRACE_DIR=$TRACE_DIR"
+echo "POLICY_POOL_MODELS=${POLICY_POOL_MODELS:-<unset>}"
 
 "$PY" -m ptcg_abc rl-generate-phase5-search-selfplay \
   --model "$MODEL" \
@@ -82,4 +99,5 @@ echo "TRACE_DIR=$TRACE_DIR"
   --report-json "$SUMMARY" \
   "${DECK_ARGS[@]}" \
   "${SEARCH_ARGS[@]}" \
+  "${POOL_ARGS[@]}" \
   "${TRACE_ARGS[@]}"

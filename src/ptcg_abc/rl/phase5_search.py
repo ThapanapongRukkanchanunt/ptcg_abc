@@ -43,6 +43,9 @@ class RootSearchConfig:
     terminal_win_score: float = 100.0
     terminal_loss_score: float = -100.0
     truncated_penalty: float = 0.25
+    policy_prior_weight: float = 0.0
+    neural_action_value_weight: float = 0.0
+    neural_tactical_weight: float = 0.0
     root_select_types: tuple[str, ...] = ("MAIN",)
     root_contexts: tuple[str, ...] = ("MAIN",)
 
@@ -82,6 +85,13 @@ class CandidateEvaluation:
     error: str | None = None
     tactical_score: float = 0.0
     rule_prior: float = 0.0
+    policy_score: float = 0.0
+    policy_prior: float = 0.0
+    neural_action_value: float = 0.0
+    neural_action_value_prior: float = 0.0
+    neural_tactical_score: float = 0.0
+    neural_tactical_prior: float = 0.0
+    prior_score: float = 0.0
     combined_score: float = 0.0
     end_turn: int | None = None
     end_result: int | None = None
@@ -755,19 +765,48 @@ def _candidate_evaluations(
 
 
 def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSearchConfig) -> None:
-    valid_scores = [candidate.rule_score for candidate in candidates if candidate.error is None]
-    low = min(valid_scores) if valid_scores else 0.0
-    high = max(valid_scores) if valid_scores else 0.0
+    successful = [candidate for candidate in candidates if candidate.error is None]
+    rule_norm = _normalized_candidate_values(successful, "rule_score")
+    policy_norm = _normalized_candidate_values(successful, "policy_score")
+    q_norm = _normalized_candidate_values(successful, "neural_action_value")
+    tactical_norm = _normalized_candidate_values(successful, "neural_tactical_score")
     for candidate in candidates:
         if candidate.error is not None:
             candidate.rule_prior = 0.0
+            candidate.policy_prior = 0.0
+            candidate.neural_action_value_prior = 0.0
+            candidate.neural_tactical_prior = 0.0
+            candidate.prior_score = 0.0
             candidate.combined_score = candidate.tactical_score
             continue
-        if high == low:
-            candidate.rule_prior = 0.0
-        else:
-            candidate.rule_prior = (candidate.rule_score - low) / (high - low)
-        candidate.combined_score = candidate.tactical_score + config.rule_prior_weight * candidate.rule_prior
+        candidate.rule_prior = rule_norm.get(id(candidate), 0.0)
+        candidate.policy_prior = policy_norm.get(id(candidate), 0.0)
+        candidate.neural_action_value_prior = q_norm.get(id(candidate), 0.0)
+        candidate.neural_tactical_prior = tactical_norm.get(id(candidate), 0.0)
+        candidate.prior_score = (
+            config.rule_prior_weight * candidate.rule_prior
+            + config.policy_prior_weight * candidate.policy_prior
+            + config.neural_action_value_weight * candidate.neural_action_value_prior
+            + config.neural_tactical_weight * candidate.neural_tactical_prior
+        )
+        candidate.combined_score = candidate.tactical_score + candidate.prior_score
+
+
+def _normalized_candidate_values(
+    candidates: Sequence[CandidateEvaluation],
+    field_name: str,
+) -> dict[int, float]:
+    values = [float(getattr(candidate, field_name, 0.0) or 0.0) for candidate in candidates]
+    if not values:
+        return {}
+    low = min(values)
+    high = max(values)
+    if high == low:
+        return {id(candidate): 0.0 for candidate in candidates}
+    return {
+        id(candidate): (float(getattr(candidate, field_name, 0.0) or 0.0) - low) / (high - low)
+        for candidate in candidates
+    }
 
 
 def _best_candidate_indices(

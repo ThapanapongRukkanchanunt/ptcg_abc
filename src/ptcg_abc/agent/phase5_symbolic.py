@@ -131,6 +131,9 @@ class Phase5SymbolicPolicyAgent:
         return selected
 
     def _score_encoded(self, encoded: Any) -> list[float]:
+        return self._score_model_outputs(encoded)["action_logits"]
+
+    def _score_model_outputs(self, encoded: Any) -> dict[str, Any]:
         torch = self.torch
         previous_x, previous_mask = self._previous_action_tensors(
             action_dim=len(encoded.legal_action_features[0])
@@ -149,7 +152,20 @@ class Phase5SymbolicPolicyAgent:
                 previous_x,
                 previous_mask,
             )
-        return [float(value) for value in output["action_logits"][0].detach().cpu().tolist()]
+        payload = {
+            "action_logits": [
+                float(value) for value in output["action_logits"][0].detach().cpu().tolist()
+            ],
+            "action_q": [
+                float(value) for value in output["action_q"][0].detach().cpu().tolist()
+            ],
+            "tactical_score": [
+                float(value)
+                for value in output["tactical_score"][0].detach().cpu().tolist()
+            ],
+            "state_value": float(output["state_value"][0].detach().cpu().item()),
+        }
+        return payload
 
     def _previous_action_tensors(self, *, action_dim: int) -> tuple[Any, Any]:
         rows = [list(row) for row in self._previous_actions[-self.max_previous_actions :]]

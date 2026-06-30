@@ -98,6 +98,7 @@ class SelfPlaySummary:
     search_telemetry: dict[str, Any] = field(default_factory=dict)
     trace_path: str | None = None
     trace_records: int = 0
+    policy_pool_paths: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -482,6 +483,7 @@ def rollout_selfplay_games(
     search_config: RootSearchConfig | None = None,
     search_trace_path: Path | None = None,
     search_trace_game_limit: int = 0,
+    policy_pool_paths: Sequence[Path] = (),
 ) -> SelfPlaySummary:
     card_data, attack_data = load_engine_metadata(sample_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -528,13 +530,25 @@ def rollout_selfplay_games(
         matchup["games"] += 1
         for deck in (player0_deck, player1_deck):
             deck_games[str(deck.index)] = deck_games.get(str(deck.index), 0) + 1
+        player0_model_path = _policy_pool_model_path(
+            policy_pool_paths,
+            absolute_game_index=absolute_game_index,
+            player_slot=0,
+            default_model_path=model_path,
+        )
+        player1_model_path = _policy_pool_model_path(
+            policy_pool_paths,
+            absolute_game_index=absolute_game_index,
+            player_slot=1,
+            default_model_path=model_path,
+        )
         recorder0 = RecordingPolicyAgent(
             _make_agent(
                 agent_kind,
                 player0_deck.card_ids,
                 card_data,
                 attack_data,
-                model_path=model_path,
+                model_path=player0_model_path,
                 guidance_rules=guidance_rules,
                 opponent_deck_ids=player1_deck.card_ids,
                 sample_dir=sample_dir,
@@ -559,6 +573,9 @@ def rollout_selfplay_games(
                 "selfplay_pair_key": pair_key,
                 "selfplay_deck_a_index": deck_a.index,
                 "selfplay_deck_b_index": deck_b.index,
+                "policy_pool_model": (
+                    player0_model_path.as_posix() if player0_model_path else None
+                ),
             },
         )
         recorder1 = RecordingPolicyAgent(
@@ -567,7 +584,7 @@ def rollout_selfplay_games(
                 player1_deck.card_ids,
                 card_data,
                 attack_data,
-                model_path=model_path,
+                model_path=player1_model_path,
                 guidance_rules=guidance_rules,
                 opponent_deck_ids=player0_deck.card_ids,
                 sample_dir=sample_dir,
@@ -592,6 +609,9 @@ def rollout_selfplay_games(
                 "selfplay_pair_key": pair_key,
                 "selfplay_deck_a_index": deck_a.index,
                 "selfplay_deck_b_index": deck_b.index,
+                "policy_pool_model": (
+                    player1_model_path.as_posix() if player1_model_path else None
+                ),
             },
         )
         result = run_battle(
@@ -670,6 +690,13 @@ def rollout_selfplay_games(
                 "selfplay_pair_key": pair_key,
                 "selfplay_deck_a_index": deck_a.index,
                 "selfplay_deck_b_index": deck_b.index,
+                "policy_pool_model": (
+                    player0_model_path.as_posix()
+                    if player_index == 0 and player0_model_path
+                    else player1_model_path.as_posix()
+                    if player_index == 1 and player1_model_path
+                    else None
+                ),
             }
             reward = reward_from_result_metadata(final_metadata)
             for frame, chosen_indices in recorder.frames:
@@ -715,6 +742,146 @@ def rollout_selfplay_games(
         search_telemetry=_finalize_search_telemetry(search_telemetry),
         trace_path=str(search_trace_path.as_posix()) if search_trace_path is not None else None,
         trace_records=trace_records,
+        policy_pool_paths=[path.as_posix() for path in policy_pool_paths],
+    )
+
+
+def run_phase5_league_benchmark(
+    *,
+    sample_dir: Path,
+    agent_kind: str = "phase5-search",
+    model_path: Path | None = None,
+    games_per_matchup: int = 2,
+    max_steps: int = 600,
+    debug_limit_per_matchup: int = 0,
+    trace_limit: int = 60,
+    search_trace_path: Path | None = None,
+    search_config: RootSearchConfig | None = None,
+) -> Phase3RequiredBenchmarkResult:
+    card_data, attack_data = load_engine_metadata(sample_dir)
+    league_decks = phase5_league_prepared_decks()
+    rows: list[Phase3RequiredBenchmarkRow] = []
+    debug_games: list[Phase3RequiredDebugGame] = []
+    benchmark_game_index = 0
+    if search_trace_path is not None:
+        search_trace_path.parent.mkdir(parents=True, exist_ok=True)
+        search_trace_path.write_text("", encoding="utf-8")
+
+    for our_deck in league_decks:
+        for opponent_deck in league_decks:
+            row = Phase3RequiredBenchmarkRow(
+                deck_index=our_deck.index,
+                deck_label=our_deck.label,
+                archetype=our_deck.archetype,
+                tournament_rank=our_deck.deck.result.placement_rank,
+                opponent=opponent_deck.archetype,
+                opponent_deck_label=opponent_deck.label,
+                games=games_per_matchup,
+            )
+            kept_debug_games = 0
+            for game_index in range(games_per_matchup):
+                benchmark_game_index += 1
+                our_is_player0 = game_index % 2 == 0
+                keep_debug = (
+                    debug_limit_per_matchup > 0
+                    and kept_debug_games < debug_limit_per_matchup
+                )
+                base_our_agent = _make_agent(
+                    agent_kind,
+                    our_deck.card_ids,
+                    card_data,
+                    attack_data,
+                    model_path=model_path,
+                    opponent_deck_ids=opponent_deck.card_ids,
+                    sample_dir=sample_dir,
+                    search_config=search_config,
+                )
+                our_agent = (
+                    RecordingPolicyAgent(
+                        base_our_agent,
+                        our_deck.card_ids,
+                        card_data=card_data,
+                        attack_data=attack_data,
+                        reward_metadata={
+                            "game_index": game_index + 1,
+                            "deck_index": our_deck.index,
+                            "deck_label": our_deck.label,
+                            "opponent": opponent_deck.archetype,
+                            "collector": "phase5_league_benchmark",
+                            "agent": agent_kind,
+                        },
+                        trace_limit=trace_limit,
+                    )
+                    if keep_debug
+                    else base_our_agent
+                )
+                opponent_agent = _quiet_rule_agent(
+                    opponent_deck.card_ids,
+                    card_data,
+                    attack_data,
+                )
+                result = run_battle(
+                    our_deck.card_ids if our_is_player0 else opponent_deck.card_ids,
+                    opponent_deck.card_ids if our_is_player0 else our_deck.card_ids,
+                    sample_dir=sample_dir,
+                    agent0=our_agent if our_is_player0 else opponent_agent,
+                    agent1=opponent_agent if our_is_player0 else our_agent,
+                    card_data=card_data,
+                    attack_data=attack_data,
+                    max_steps=max_steps,
+                )
+                _record_row_outcome(row, result, our_is_player0=our_is_player0)
+                if isinstance(base_our_agent, Phase5SearchPolicyAgent):
+                    _accumulate_search_telemetry(
+                        row.search_telemetry,
+                        base_our_agent.search_telemetry(),
+                    )
+                    if search_trace_path is not None:
+                        _write_phase5_search_eval_traces(
+                            base_our_agent,
+                            search_trace_path,
+                            game_index=benchmark_game_index,
+                            deck_index=our_deck.index,
+                            deck_label=our_deck.label,
+                            opponent=opponent_deck.archetype,
+                        )
+                if keep_debug and isinstance(our_agent, RecordingPolicyAgent):
+                    debug_games.append(
+                        Phase3RequiredDebugGame(
+                            deck_index=our_deck.index,
+                            deck_label=our_deck.label,
+                            archetype=our_deck.archetype,
+                            tournament_rank=our_deck.deck.result.placement_rank,
+                            opponent=opponent_deck.archetype,
+                            game_index=game_index + 1,
+                            outcome=_outcome_label(
+                                result,
+                                player_index=0 if our_is_player0 else 1,
+                            ),
+                            our_player_index=0 if our_is_player0 else 1,
+                            steps=result.steps,
+                            prize_counts=result.prize_counts,
+                            error=result.error,
+                            trace=_compact_replay_trace(our_agent.frames),
+                        )
+                    )
+                    kept_debug_games += 1
+            row.search_telemetry = _finalize_search_telemetry(row.search_telemetry)
+            row.win_rate = row.wins / row.games if row.games else 0.0
+            rows.append(row)
+
+    search_telemetry: dict[str, Any] = {}
+    for row in rows:
+        _accumulate_search_telemetry(search_telemetry, row.search_telemetry)
+    return Phase3RequiredBenchmarkResult(
+        our_deck_source_url=TOURNAMENT_559_SOURCE_URL,
+        requested_ranks=TOURNAMENT_559_REQUESTED_RANKS,
+        substitutions=TOURNAMENT_559_SUBSTITUTIONS,
+        games_per_matchup=games_per_matchup,
+        max_steps=max_steps,
+        rows=rows,
+        debug_games=debug_games,
+        search_telemetry=_finalize_search_telemetry(search_telemetry),
     )
 
 
@@ -1524,6 +1691,21 @@ def _write_phase5_search_eval_traces(
             handle.write(json.dumps(enriched.to_dict(), sort_keys=True) + "\n")
             records += 1
     return records
+
+
+def _policy_pool_model_path(
+    policy_pool_paths: Sequence[Path],
+    *,
+    absolute_game_index: int,
+    player_slot: int,
+    default_model_path: Path | None,
+) -> Path | None:
+    if not policy_pool_paths:
+        return default_model_path
+    if absolute_game_index < 0:
+        raise ValueError("absolute_game_index must be non-negative.")
+    index = (absolute_game_index * 2 + player_slot) % len(policy_pool_paths)
+    return policy_pool_paths[index]
 
 
 def _totals(rows: list[Phase3RequiredBenchmarkRow]) -> dict[str, Any]:

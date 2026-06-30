@@ -1646,9 +1646,80 @@ echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_search_smoke_eval_job.
 ```
 
 Only move to 10-game and 30-game required benchmarks if the smoke has
-`errors=0`. Define a separate 13x13 evaluation only after deciding whether that
-evaluation should be agent-vs-rule, head-to-head self-play, player-order
-balanced, or another target; do not blend it into the required gate silently.
+`errors=0`.
+
+After the new checkpoint passes the required 9x4 gate, run the 13-deck league
+benchmark. This is intentionally separate from the required gate: each Phase 5
+league deck is controlled by the selected agent against each Phase 5 league deck
+controlled by the rule agent, with player-order balance across games per
+matchup.
+
+```bash
+MODEL=models/rl/phase5_generalist_policy_13deck_10k.pt
+
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=2 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_generalist_13deck_league_search_2g.json \
+  REPORT_MD=reports/phase5_generalist_13deck_league_search_2g.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_league_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_league_eval_job.txt
+```
+
+To test neural value/Q/tactical priors inside root search, keep this as a
+separate comparison run:
+
+```bash
+JOB=$(
+  AGENT=phase5-search \
+  MODEL="$MODEL" \
+  GAMES_PER_MATCHUP=1 \
+  MAX_STEPS=600 \
+  POLICY_PRIOR_WEIGHT=0.05 \
+  NEURAL_ACTION_VALUE_WEIGHT=0.05 \
+  NEURAL_TACTICAL_WEIGHT=0.05 \
+  REPORT_JSON=reports/phase5_generalist_13deck_search_neural_prior_smoke.json \
+  REPORT_MD=reports/phase5_generalist_13deck_search_neural_prior_smoke.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_symbolic_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_neural_prior_smoke_eval_job.txt
+```
+
+Compare any old/new benchmark reports locally or on ERAWAN:
+
+```bash
+"$PY" -m ptcg_abc phase5-compare-benchmarks \
+  --baseline reports/phase5_generalist_search_30g.json \
+  --candidate reports/phase5_generalist_13deck_search_30g.json \
+  --report-json reports/phase5_generalist_13deck_vs_10k_comparison.json \
+  --report-md reports/phase5_generalist_13deck_vs_10k_comparison.md
+```
+
+Once the 13-deck generalist checkpoint is stable, run a bounded PPO smoke:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  CHECKPOINT=models/rl/phase5_generalist_policy_13deck_10k.pt \
+  OUTPUT_CHECKPOINT=models/rl/phase5_generalist_policy_13deck_ppo_smoke.pt \
+  REPORT_JSON=experiments/rl/phase5_ppo_train_report_13deck_smoke.json \
+  SELFPLAY_LIMIT=5000 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_ppo_train_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_ppo_13deck_smoke_job.txt
+```
+
+Policy-pool self-play is now available for future data generation:
+
+```bash
+POLICY_POOL_MODELS="models/rl/phase5_generalist_policy_10k.pt models/rl/phase5_generalist_policy_13deck_10k.pt" \
+  DECK_POOL=league-13 \
+  PHASE5_SELFPLAY_RUN_NAME=phase5_search_selfplay_policy_pool_13deck \
+  sbatch --parsable scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch
+```
 
 ## 17. Ready-To-Train Checklist
 

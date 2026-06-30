@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=ptcg-p5-symbolic-eval
-#SBATCH --output=experiments/rl/slurm-%j-phase5-symbolic-eval.out
-#SBATCH --error=experiments/rl/slurm-%j-phase5-symbolic-eval.err
-#SBATCH --time=12:00:00
+#SBATCH --job-name=ptcg-p5-league-eval
+#SBATCH --output=experiments/rl/slurm-%j-phase5-league-eval.out
+#SBATCH --error=experiments/rl/slurm-%j-phase5-league-eval.err
+#SBATCH --time=24:00:00
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=32G
 
@@ -17,20 +17,12 @@ mkdir -p experiments/rl reports
 export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
 
-"$PY" --version
-"$PY" - <<'PY'
-import torch
-print("torch", torch.__version__)
-print("cuda", torch.cuda.is_available())
-print("device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)
-PY
-
-MODEL="${MODEL:-models/rl/phase5_symbolic_policy_10shards.pt}"
-AGENT="${AGENT:-phase5-symbolic}"
-GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-1}"
+MODEL="${MODEL:-models/rl/phase5_generalist_policy_13deck_10k.pt}"
+AGENT="${AGENT:-phase5-search}"
+GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-2}"
 MAX_STEPS="${MAX_STEPS:-600}"
-REPORT_JSON="${REPORT_JSON:-reports/phase5_symbolic_10shards_smoke.json}"
-REPORT_MD="${REPORT_MD:-reports/phase5_symbolic_10shards_smoke.md}"
+REPORT_JSON="${REPORT_JSON:-reports/phase5_league_benchmark.json}"
+REPORT_MD="${REPORT_MD:-reports/phase5_league_benchmark.md}"
 SEARCH_TRACE_OUTPUT="${SEARCH_TRACE_OUTPUT:-}"
 SEARCH_TOP_K="${SEARCH_TOP_K:-}"
 SEARCH_ROLLOUT_STEPS="${SEARCH_ROLLOUT_STEPS:-}"
@@ -58,7 +50,7 @@ if [[ -n "$NEURAL_TACTICAL_WEIGHT" ]]; then
   EXTRA_ARGS+=(--neural-tactical-weight "$NEURAL_TACTICAL_WEIGHT")
 fi
 
-"$PY" -m ptcg_abc rl-evaluate \
+"$PY" -m ptcg_abc rl-evaluate-phase5-league \
   --agent "$AGENT" \
   --model "$MODEL" \
   --games-per-matchup "$GAMES_PER_MATCHUP" \

@@ -66,6 +66,7 @@ from ptcg_abc.rl.workflow import (
     rollout_games,
     rollout_selfplay_games,
     run_image_progression_experiment,
+    run_phase5_league_benchmark,
     run_phase4_required_benchmark,
     train_bc_from_jsonl,
     train_ppo_from_rollouts,
@@ -83,10 +84,12 @@ from ptcg_abc.rl.phase5_diagnostics import (
     write_trace_diagnostic_markdown,
 )
 from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
+from ptcg_abc.rl.phase5_reports import compare_benchmark_reports
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
 from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
+    train_phase5_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
 )
@@ -102,6 +105,42 @@ def _slug(value: str) -> str:
     return "-".join(part for part in "".join(chars).split("-") if part)
 
 
+def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig | None:
+    fields = {
+        "top_k": getattr(args, "search_top_k", None),
+        "max_rollout_steps": getattr(args, "search_rollout_steps", None),
+        "policy_prior_weight": getattr(args, "policy_prior_weight", None),
+        "neural_action_value_weight": getattr(args, "neural_action_value_weight", None),
+        "neural_tactical_weight": getattr(args, "neural_tactical_weight", None),
+    }
+    if all(value is None for value in fields.values()):
+        return None
+    base_config = RootSearchConfig()
+    return RootSearchConfig(
+        top_k=fields["top_k"] if fields["top_k"] is not None else base_config.top_k,
+        max_rollout_steps=(
+            fields["max_rollout_steps"]
+            if fields["max_rollout_steps"] is not None
+            else base_config.max_rollout_steps
+        ),
+        policy_prior_weight=(
+            fields["policy_prior_weight"]
+            if fields["policy_prior_weight"] is not None
+            else base_config.policy_prior_weight
+        ),
+        neural_action_value_weight=(
+            fields["neural_action_value_weight"]
+            if fields["neural_action_value_weight"] is not None
+            else base_config.neural_action_value_weight
+        ),
+        neural_tactical_weight=(
+            fields["neural_tactical_weight"]
+            if fields["neural_tactical_weight"] is not None
+            else base_config.neural_tactical_weight
+        ),
+    )
+
+
 def _add_common_limitless_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--snapshot-date", default=date.today().isoformat())
     parser.add_argument("--top-archetypes", type=int, default=10)
@@ -110,6 +149,39 @@ def _add_common_limitless_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--delay-seconds", type=float, default=0.2)
     parser.add_argument("--limitless-format", default=LIMITLESS_FORMAT)
     parser.add_argument("--refresh", action="store_true")
+
+
+def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--search-top-k",
+        type=int,
+        default=None,
+        help="Override phase5-search root candidate count.",
+    )
+    parser.add_argument(
+        "--search-rollout-steps",
+        type=int,
+        default=None,
+        help="Override phase5-search one-turn rollout step cap.",
+    )
+    parser.add_argument(
+        "--policy-prior-weight",
+        type=float,
+        default=None,
+        help="Optional normalized policy-logit prior weight inside root-search scoring.",
+    )
+    parser.add_argument(
+        "--neural-action-value-weight",
+        type=float,
+        default=None,
+        help="Optional normalized action-Q prior weight inside root-search scoring.",
+    )
+    parser.add_argument(
+        "--neural-tactical-weight",
+        type=float,
+        default=None,
+        help="Optional normalized neural tactical-head prior weight inside root-search scoring.",
+    )
 
 
 def command_kaggle_setup(args: argparse.Namespace) -> int:
@@ -704,17 +776,7 @@ def command_rl_generate_phase5_search_selfplay(args: argparse.Namespace) -> int:
     if model_path is None:
         print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
         return 2
-    search_config = None
-    if args.search_top_k is not None or args.search_rollout_steps is not None:
-        base_config = RootSearchConfig()
-        search_config = RootSearchConfig(
-            top_k=args.search_top_k
-            if args.search_top_k is not None
-            else base_config.top_k,
-            max_rollout_steps=args.search_rollout_steps
-            if args.search_rollout_steps is not None
-            else base_config.max_rollout_steps,
-        )
+    search_config = _root_search_config_from_args(args)
     try:
         summary = rollout_selfplay_games(
             sample_dir=args.sample_dir,
@@ -731,6 +793,7 @@ def command_rl_generate_phase5_search_selfplay(args: argparse.Namespace) -> int:
             search_config=search_config,
             search_trace_path=args.search_trace_output,
             search_trace_game_limit=args.search_trace_games,
+            policy_pool_paths=args.policy_pool_model or (),
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -902,6 +965,38 @@ def command_rl_train_ppo(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_rl_train_phase5_ppo(args: argparse.Namespace) -> int:
+    if not args.checkpoint.exists():
+        print(f"Phase 5 checkpoint not found at {args.checkpoint}.", file=sys.stderr)
+        return 2
+    trajectory_datasets = list(args.trajectory_dataset or [])
+    for path in trajectory_datasets:
+        if not path.exists():
+            print(f"Phase 5 trajectory dataset not found at {path}.", file=sys.stderr)
+            return 2
+    selfplay_limit = None if args.selfplay_limit == 0 else args.selfplay_limit
+    try:
+        summary = train_phase5_ppo_policy_from_trajectories(
+            trajectory_dataset_paths=trajectory_datasets,
+            checkpoint_path=args.checkpoint,
+            output_checkpoint_path=args.output_checkpoint,
+            report_path=args.report_json,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            clip_epsilon=args.clip_epsilon,
+            policy_loss_weight=args.policy_loss_weight,
+            value_loss_weight=args.value_loss_weight,
+            entropy_weight=args.entropy_weight,
+            selfplay_limit=selfplay_limit,
+        )
+    except (Phase5PolicyUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
 def command_rl_evaluate(args: argparse.Namespace) -> int:
     if not args.sample_dir.exists():
         print(
@@ -917,17 +1012,7 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    search_config = None
-    if args.search_top_k is not None or args.search_rollout_steps is not None:
-        base_config = RootSearchConfig()
-        search_config = RootSearchConfig(
-            top_k=args.search_top_k
-            if args.search_top_k is not None
-            else base_config.top_k,
-            max_rollout_steps=args.search_rollout_steps
-            if args.search_rollout_steps is not None
-            else base_config.max_rollout_steps,
-        )
+    search_config = _root_search_config_from_args(args)
     result = run_phase4_required_benchmark(
         sample_dir=args.sample_dir,
         agent_kind=args.agent,
@@ -949,6 +1034,40 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
     print(f"Wrote Phase 4 benchmark report to {args.report_md}.")
     if args.search_trace_output is not None:
         print(f"Wrote Phase 5 search traces to {args.search_trace_output}.")
+    return 0 if totals["errors"] == 0 else 1
+
+
+def command_rl_evaluate_phase5_league(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    if args.agent in {"phase5-symbolic", "phase5-search"} and model_path is None:
+        print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
+        return 2
+    result = run_phase5_league_benchmark(
+        sample_dir=args.sample_dir,
+        agent_kind=args.agent,
+        model_path=model_path,
+        games_per_matchup=args.games_per_matchup,
+        max_steps=args.max_steps,
+        search_trace_path=args.search_trace_output,
+        search_config=_root_search_config_from_args(args),
+    )
+    write_phase4_benchmark_report(
+        result,
+        json_path=args.report_json,
+        markdown_path=args.report_md,
+        agent_kind=f"phase5-league:{args.agent}",
+        model_path=model_path,
+    )
+    totals = _benchmark_totals(result.rows)
+    print(json.dumps(totals, indent=2))
+    print(f"Wrote Phase 5 league benchmark report to {args.report_md}.")
     return 0 if totals["errors"] == 0 else 1
 
 
@@ -1087,12 +1206,14 @@ def command_phase5_package(args: argparse.Namespace) -> int:
         deck = decks[deck_index]
         deck_dir = args.output_dir / f"deck-{deck.index:02d}-{_slug(deck.archetype)}"
         tar_path = deck_dir / "submission.tar.gz"
+        zip_path = args.output_dir / f"deck-{deck.index:02d}-{_slug(deck.archetype)}-phase5-search-submission.zip"
         result = build_phase5_search_submission_bundle(
             deck_ids=deck.card_ids,
             sample_dir=args.sample_dir,
             output_dir=deck_dir,
             model_path=args.model,
             tar_path=tar_path,
+            zip_path=zip_path,
         )
         outputs.append(
             {
@@ -1101,9 +1222,28 @@ def command_phase5_package(args: argparse.Namespace) -> int:
                 "agent": "phase5-search",
                 "model": str(args.model.as_posix()),
                 "tar_path": str(result.tar_path.as_posix()),
+                "zip_path": str(result.zip_path.as_posix()) if result.zip_path else None,
             }
         )
     print(json.dumps({"packages": outputs}, indent=2))
+    return 0
+
+
+def command_phase5_compare_benchmarks(args: argparse.Namespace) -> int:
+    if not args.baseline.exists():
+        print(f"Baseline report not found at {args.baseline}.", file=sys.stderr)
+        return 2
+    if not args.candidate.exists():
+        print(f"Candidate report not found at {args.candidate}.", file=sys.stderr)
+        return 2
+    payload = compare_benchmark_reports(
+        baseline_path=args.baseline,
+        candidate_path=args.candidate,
+        output_json=args.report_json,
+        output_md=args.report_md,
+    )
+    print(json.dumps(payload["overall_delta"], indent=2))
+    print(f"Wrote Phase 5 benchmark comparison to {args.report_md}.")
     return 0
 
 
@@ -1696,17 +1836,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Prepared deck index included in rotating self-play. Repeat to choose a subset.",
     )
+    _add_phase5_search_config_args(rl_phase5_selfplay)
     rl_phase5_selfplay.add_argument(
-        "--search-top-k",
-        type=int,
-        default=None,
-        help="Override phase5-search root candidate count.",
-    )
-    rl_phase5_selfplay.add_argument(
-        "--search-rollout-steps",
-        type=int,
-        default=None,
-        help="Override phase5-search one-turn rollout step cap.",
+        "--policy-pool-model",
+        type=_path,
+        action="append",
+        default=[],
+        help=(
+            "Checkpoint path included in the self-play policy pool. Repeat to "
+            "rotate older/current policies by game and player slot."
+        ),
     )
     rl_phase5_selfplay.add_argument(
         "--output",
@@ -1947,6 +2086,47 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_train_ppo.set_defaults(func=command_rl_train_ppo)
 
+    rl_train_phase5_ppo = subparsers.add_parser(
+        "rl-train-phase5-ppo",
+        help="Apply a Phase 5 legal-action PPO-style update from trajectory JSONL.",
+    )
+    rl_train_phase5_ppo.add_argument(
+        "--trajectory-dataset",
+        type=_path,
+        action="append",
+        default=[],
+        help="Phase 5 trajectory JSONL. Repeat for multiple self-play shards.",
+    )
+    rl_train_phase5_ppo.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_13deck_10k.pt",
+    )
+    rl_train_phase5_ppo.add_argument(
+        "--output-checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_13deck_ppo.pt",
+    )
+    rl_train_phase5_ppo.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_ppo_train_report.json",
+    )
+    rl_train_phase5_ppo.add_argument("--epochs", type=int, default=1)
+    rl_train_phase5_ppo.add_argument("--batch-size", type=int, default=64)
+    rl_train_phase5_ppo.add_argument("--learning-rate", type=float, default=5.0e-5)
+    rl_train_phase5_ppo.add_argument("--clip-epsilon", type=float, default=0.2)
+    rl_train_phase5_ppo.add_argument("--policy-loss-weight", type=float, default=1.0)
+    rl_train_phase5_ppo.add_argument("--value-loss-weight", type=float, default=0.5)
+    rl_train_phase5_ppo.add_argument("--entropy-weight", type=float, default=0.01)
+    rl_train_phase5_ppo.add_argument(
+        "--selfplay-limit",
+        type=int,
+        default=0,
+        help="Maximum trajectory steps per epoch. Use 0 for all input.",
+    )
+    rl_train_phase5_ppo.set_defaults(func=command_rl_train_phase5_ppo)
+
     rl_evaluate = subparsers.add_parser(
         "rl-evaluate",
         help="Run the 9x4 required benchmark for rule, RL, hybrid, or Phase 5 symbolic agents.",
@@ -1968,18 +2148,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate.add_argument("--games-per-matchup", type=int, default=1)
     rl_evaluate.add_argument("--max-steps", type=int, default=120)
-    rl_evaluate.add_argument(
-        "--search-top-k",
-        type=int,
-        default=None,
-        help="Override phase5-search root candidate count.",
-    )
-    rl_evaluate.add_argument(
-        "--search-rollout-steps",
-        type=int,
-        default=None,
-        help="Override phase5-search one-turn rollout step cap.",
-    )
+    _add_phase5_search_config_args(rl_evaluate)
     rl_evaluate.add_argument(
         "--report-json",
         type=_path,
@@ -1997,6 +2166,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional JSONL output for phase5-search root-search traces.",
     )
     rl_evaluate.set_defaults(func=command_rl_evaluate)
+
+    rl_evaluate_league = subparsers.add_parser(
+        "rl-evaluate-phase5-league",
+        help="Run the 13x13 Phase 5 league benchmark against rule-agent opponents.",
+    )
+    rl_evaluate_league.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_evaluate_league.add_argument(
+        "--agent",
+        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search"],
+        default="phase5-search",
+    )
+    rl_evaluate_league.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_13deck_10k.pt",
+    )
+    rl_evaluate_league.add_argument("--games-per-matchup", type=int, default=2)
+    rl_evaluate_league.add_argument("--max-steps", type=int, default=600)
+    _add_phase5_search_config_args(rl_evaluate_league)
+    rl_evaluate_league.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase5_league_benchmark.json",
+    )
+    rl_evaluate_league.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase5_league_benchmark.md",
+    )
+    rl_evaluate_league.add_argument(
+        "--search-trace-output",
+        type=_path,
+        default=None,
+        help="Optional JSONL output for phase5-search root-search traces.",
+    )
+    rl_evaluate_league.set_defaults(func=command_rl_evaluate_phase5_league)
 
     rl_progression = subparsers.add_parser(
         "rl-image-progression",
@@ -2151,6 +2360,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Tournament 559 prepared deck index to package. Defaults to decks 2 and 8.",
     )
     phase5_package.set_defaults(func=command_phase5_package)
+
+    phase5_compare = subparsers.add_parser(
+        "phase5-compare-benchmarks",
+        help="Compare two Phase 5 benchmark JSON reports for promotion review.",
+    )
+    phase5_compare.add_argument("--baseline", type=_path, required=True)
+    phase5_compare.add_argument("--candidate", type=_path, required=True)
+    phase5_compare.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase5_benchmark_comparison.json",
+    )
+    phase5_compare.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase5_benchmark_comparison.md",
+    )
+    phase5_compare.set_defaults(func=command_phase5_compare_benchmarks)
 
     rl_snapshots = subparsers.add_parser(
         "rl-board-snapshots",

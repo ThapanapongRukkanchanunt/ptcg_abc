@@ -1859,6 +1859,14 @@ Packaging correction:
   root-level `main.py`.
 - The corrected zip archive roots contain `main.py`, `deck.csv`, `model.pt`,
   `cg/`, and `ptcg_abc/`.
+- A later submit attempt failed because Kaggle raw-exec did not define
+  `__file__`, while generated `main.py` used `__file__` during module import.
+  The package template now discovers the agent root from safe candidates:
+  generated-file directory when available, current working directory, and
+  `/kaggle_simulations/agent`.
+- The corrected zips were rebuilt and smoke-tested by executing `main.py`
+  without `__file__` in globals. Both packages loaded, exposed callable
+  `agent`, resolved their package root, and read 60-card `deck.csv` files.
 
 Verification:
 
@@ -1911,6 +1919,82 @@ Decision:
   shape, such as agent-vs-rule or head-to-head self-play with player-order
   balance.
 
+## 2026-06-30 - Phase 5 Full-Agent Scaffolds
+
+Implementation:
+
+- Added reusable opponent-prior inference in
+  `src/ptcg_abc/rl/phase5_belief.py`.
+  - It scores Phase 5 league deck priors from visible opponent active, bench,
+    discard, and lost-zone cards.
+  - The Kaggle package template now uses this shared inference path instead of
+    duplicating visible-card matching logic.
+- Hardened Phase 5 package generation:
+  - `phase5-package` now builds direct root-level Kaggle zip artifacts as part
+    of the package command.
+  - Generated `main.py` supports Kaggle raw execution without `__file__` by
+    probing generated-file directory, current working directory, and
+    `/kaggle_simulations/agent`.
+- Added optional neural search priors:
+  - `RootSearchConfig.policy_prior_weight`,
+  - `RootSearchConfig.neural_action_value_weight`,
+  - `RootSearchConfig.neural_tactical_weight`.
+  Defaults are zero, preserving existing benchmark behavior.
+  `phase5-search` traces now retain policy logits, action-Q, tactical-head
+  scores, normalized priors, and combined prior contribution per candidate.
+- Added Phase 5 policy-pool self-play support:
+  - CLI: repeat `--policy-pool-model` on
+    `rl-generate-phase5-search-selfplay`.
+  - SLURM: set `POLICY_POOL_MODELS="old.pt new.pt ..."`.
+  - Trajectory metadata records the selected `policy_pool_model` for each
+    player side.
+- Added a Phase 5 legal-action PPO-style update:
+  - CLI: `rl-train-phase5-ppo`.
+  - SLURM: `scripts/slurm/phase5_ppo_train_conda.sbatch`.
+  - It loads a Phase 5 checkpoint, streams trajectory JSONL shards, applies a
+    clipped legal-action policy objective with value and entropy terms, and
+    writes a new Phase 5 checkpoint.
+- Added a concrete 13-deck league evaluation:
+  - CLI: `rl-evaluate-phase5-league`.
+  - SLURM: `scripts/slurm/phase5_league_eval_conda.sbatch`.
+  - The default target is our selected agent on each of the 13 league decks
+    against a rule-agent opponent on each of the 13 league decks, with
+    player-order balance across games per matchup.
+- Added automated promotion comparison reports:
+  - CLI: `phase5-compare-benchmarks`.
+  - Report helper: `src/ptcg_abc/rl/phase5_reports.py`.
+  - Outputs overall, per-deck, and per-matchup deltas from two benchmark JSON
+    reports.
+
+Verification:
+
+- `py_compile` passed for modified Phase 5 modules using an isolated pycache.
+- Unit tests passed:
+  - `tests.test_phase5_full_agent_scaffolds`,
+  - `tests.test_rl_phase5_symbolic_agent`,
+  - `tests.test_rl_phase5_symbolic_training`,
+  - `tests.test_rl_phase4`,
+  - `tests.test_evaluation`.
+- Git Bash `bash -n` passed for:
+  - `scripts/slurm/phase5_ppo_train_conda.sbatch`,
+  - `scripts/slurm/phase5_league_eval_conda.sbatch`,
+  - `scripts/slurm/phase5_search_selfplay_conda.sbatch`,
+  - `scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch`.
+- CLI help checks passed for:
+  - `rl-train-phase5-ppo`,
+  - `rl-evaluate-phase5-league`,
+  - `phase5-compare-benchmarks`,
+  - `rl-generate-phase5-search-selfplay`.
+
+Decision:
+
+- Existing `phase5-search` defaults remain unchanged so current benchmark
+  comparisons stay valid.
+- Neural value/Q/tactical priors are opt-in until an ERAWAN benchmark proves
+  they improve the required 9x4 gate.
+- PPO should start from `models/rl/phase5_generalist_policy_13deck_10k.pt`
+  after the 13-deck mixed supervised/value train completes.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -1925,6 +2009,8 @@ Important model artifacts:
 - `models/rl/phase5_generalist_policy_10k.pt`
 - Pending next checkpoint:
   `models/rl/phase5_generalist_policy_13deck_10k.pt`
+- Pending PPO checkpoint:
+  `models/rl/phase5_generalist_policy_13deck_ppo.pt`
 
 Important dataset artifacts:
 
@@ -1957,6 +2043,11 @@ File-retention decision:
 - After the 13-deck 10k shards complete, run the bounded
   `phase5_generalist_policy_13deck_smoke.pt` train and then the full
   `phase5_generalist_policy_13deck_10k.pt` train.
+- After the 13-deck generalist train passes the required 9x4 gate, run the
+  13-deck league evaluation and compare reports with
+  `phase5-compare-benchmarks`.
+- Start Phase 5 PPO only after the 13-deck generalist checkpoint is stable;
+  run a bounded `SELFPLAY_LIMIT` smoke first.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
 - Add targeted weakness data or weighting for Alakazam Dudunsparce before any

@@ -92,7 +92,8 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         if target_count <= 0:
             return []
 
-        scores = self._score_encoded(encoded)
+        model_outputs = self._score_model_outputs(encoded)
+        scores = model_outputs["action_logits"]
         baseline_positions = self._rank_policy_positions(
             encoded,
             legal_actions,
@@ -130,6 +131,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
                 encoded,
                 legal_actions,
                 scores,
+                model_outputs,
             )
             elapsed = time.perf_counter() - start
             self.traces.append(trace)
@@ -238,6 +240,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         encoded: Any,
         legal_actions: Sequence[Any],
         scores: Sequence[float],
+        model_outputs: dict[str, Any] | None = None,
     ) -> tuple[list[int], RootSearchDecisionTrace]:
         candidates = self._policy_candidates(
             frame,
@@ -245,6 +248,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             encoded,
             legal_actions,
             scores,
+            model_outputs,
         )
         search_started = False
         search_error: str | None = None
@@ -319,6 +323,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         encoded: Any,
         legal_actions: Sequence[Any],
         scores: Sequence[float],
+        model_outputs: dict[str, Any] | None = None,
     ) -> list[CandidateEvaluation]:
         ordered_indices: list[int] = []
         for index in baseline:
@@ -341,6 +346,16 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             action = frame.legal_options[index]
             position = position_by_index.get(index)
             policy_score = float(scores[position]) if position is not None else 0.0
+            action_q = (
+                float(model_outputs["action_q"][position])
+                if model_outputs is not None and position is not None
+                else 0.0
+            )
+            tactical_score = (
+                float(model_outputs["tactical_score"][position])
+                if model_outputs is not None and position is not None
+                else 0.0
+            )
             candidates.append(
                 CandidateEvaluation(
                     indices=[index],
@@ -350,6 +365,9 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
                     attack_id=action.attack_id,
                     rule_score=policy_score,
                     rule_rank=policy_rank,
+                    policy_score=policy_score,
+                    neural_action_value=action_q,
+                    neural_tactical_score=tactical_score,
                 )
             )
         return candidates

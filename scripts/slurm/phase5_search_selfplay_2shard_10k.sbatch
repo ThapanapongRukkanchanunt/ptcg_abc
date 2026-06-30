@@ -47,5 +47,6 @@ echo "SUMMARY_DIR=$SUMMARY_DIR"
 echo "TRACE_DIR=$TRACE_DIR"
 echo "SELFPLAY_DECK_INDICES=$SELFPLAY_DECK_INDICES"
 echo "SEARCH_TRACE_GAMES=${SEARCH_TRACE_GAMES:-<unset>}"
+echo "POLICY_POOL_MODELS=${POLICY_POOL_MODELS:-<unset>}"
 
 exec bash scripts/slurm/phase5_search_selfplay_conda.sbatch

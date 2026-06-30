@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import tarfile
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -86,24 +87,26 @@ def agent(obs_dict: dict) -> list[int]:
 PHASE5_SEARCH_MAIN_PY = '''from __future__ import annotations
 
 import os
-from collections import Counter
-from typing import Any
 
 from cg.api import all_attack, all_card_data, to_observation_class
 from ptcg_abc.agent import Phase5SearchPolicyAgent
-from ptcg_abc.evaluation import phase5_league_prepared_decks
+from ptcg_abc.rl.phase5_belief import infer_opponent_deck, phase5_league_opponent_priors
 
 
 _AGENT = None
 _OPPONENT_PRIORS = None
-_HERE = os.path.dirname(os.path.abspath(__file__))
+_HERE = os.path.dirname(os.path.abspath(globals().get("__file__", "")))
 
 
 def _agent_root() -> str:
-    if os.path.exists(os.path.join(_HERE, "cg")):
-        return _HERE
-    if os.path.exists("cg"):
-        return os.getcwd()
+    candidates = [
+        _HERE,
+        os.getcwd(),
+        "/kaggle_simulations/agent",
+    ]
+    for candidate in candidates:
+        if candidate and os.path.exists(os.path.join(candidate, "cg")):
+            return candidate
     return "/kaggle_simulations/agent"
 
 
@@ -124,76 +127,15 @@ def model_path() -> str:
     return _local_path("model.pt")
 
 
-def opponent_priors() -> list[tuple[str, list[int]]]:
+def opponent_priors():
     global _OPPONENT_PRIORS
     if _OPPONENT_PRIORS is None:
-        _OPPONENT_PRIORS = [
-            (deck.label, list(deck.card_ids))
-            for deck in phase5_league_prepared_decks()
-        ]
+        _OPPONENT_PRIORS = phase5_league_opponent_priors()
     return _OPPONENT_PRIORS
 
 
-def _card_ids(value: Any) -> list[int]:
-    if value is None:
-        return []
-    if isinstance(value, int):
-        return [int(value)]
-    if isinstance(value, dict):
-        output: list[int] = []
-        for key in ("id", "cardID", "cardId", "card_ids", "cards"):
-            if key in value:
-                output.extend(_card_ids(value[key]))
-        return output
-    if isinstance(value, (list, tuple)):
-        output = []
-        for item in value:
-            output.extend(_card_ids(item))
-        return output
-    for name in ("id", "cardID", "cardId"):
-        if hasattr(value, name):
-            try:
-                return [int(getattr(value, name))]
-            except (TypeError, ValueError):
-                return []
-    for name in ("cards", "card_ids"):
-        if hasattr(value, name):
-            return _card_ids(getattr(value, name))
-    return []
-
-
-def _visible_opponent_ids(obs: Any) -> list[int]:
-    current = getattr(obs, "current", None)
-    players = list(getattr(current, "players", []) or [])
-    your_index = int(getattr(current, "yourIndex", 0) or 0)
-    opponent_index = 1 - your_index
-    opponent = players[opponent_index] if 0 <= opponent_index < len(players) else None
-    ids: list[int] = []
-    for zone_name in ("active", "bench", "discard", "lostZone"):
-        ids.extend(_card_ids(getattr(opponent, zone_name, None)))
-    return ids
-
-
 def choose_opponent_deck(obs: Any) -> list[int]:
-    priors = opponent_priors()
-    visible = _visible_opponent_ids(obs)
-    if not visible:
-        for label, deck in priors:
-            if label.startswith("Crustle / Required benchmark sample"):
-                return list(deck)
-        return list(priors[0][1])
-    visible_counts = Counter(visible)
-    best_score = None
-    best_deck = priors[0][1]
-    for _, deck in priors:
-        deck_counts = Counter(deck)
-        overlap = sum(min(count, deck_counts.get(card_id, 0)) for card_id, count in visible_counts.items())
-        coverage = sum(1 for card_id in visible_counts if card_id in deck_counts)
-        score = (overlap, coverage)
-        if best_score is None or score > best_score:
-            best_score = score
-            best_deck = deck
-    return list(best_deck)
+    return list(infer_opponent_deck(obs, opponent_priors()).card_ids)
 
 
 def agent(obs_dict: dict) -> list[int]:
@@ -219,6 +161,7 @@ class SubmissionBuildResult:
     tar_path: Path
     main_path: Path
     deck_path: Path
+    zip_path: Path | None = None
 
 
 def _ignore_generated(dir_name: str, names: list[str]) -> set[str]:
@@ -255,6 +198,19 @@ def _copy_full_package(src_root: Path, output_dir: Path) -> None:
         dirs_exist_ok=True,
         ignore=_ignore_generated,
     )
+
+
+def _write_direct_zip(output_dir: Path, zip_path: Path, names: list[str]) -> None:
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name in names:
+            path = output_dir / name
+            if path.is_dir():
+                for child in path.rglob("*"):
+                    if child.is_file():
+                        archive.write(child, child.relative_to(output_dir).as_posix())
+            else:
+                archive.write(path, name)
 
 
 def build_submission_bundle(
@@ -346,6 +302,7 @@ def build_phase5_search_submission_bundle(
     output_dir: Path,
     model_path: Path,
     tar_path: Path | None = None,
+    zip_path: Path | None = None,
     src_root: Path = Path("src"),
 ) -> SubmissionBuildResult:
     if not (sample_dir / "cg").exists():
@@ -369,13 +326,17 @@ def build_phase5_search_submission_bundle(
 
     tar_path = tar_path or (output_dir / "submission.tar.gz")
     tar_path.parent.mkdir(parents=True, exist_ok=True)
+    names = ["main.py", "deck.csv", "model.pt", "cg", "ptcg_abc"]
     with tarfile.open(tar_path, "w:gz") as tar:
-        for name in ["main.py", "deck.csv", "model.pt", "cg", "ptcg_abc"]:
+        for name in names:
             tar.add(output_dir / name, arcname=name)
+    if zip_path is not None:
+        _write_direct_zip(output_dir, zip_path, names)
 
     return SubmissionBuildResult(
         output_dir=output_dir,
         tar_path=tar_path,
         main_path=main_path,
         deck_path=deck_path,
+        zip_path=zip_path,
     )

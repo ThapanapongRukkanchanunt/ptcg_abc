@@ -193,6 +193,31 @@ class Phase5GeneralistTrainingSummary:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class Phase5PPOTrainingSummary:
+    trajectory_dataset_paths: list[str]
+    steps_seen: int
+    examples: int
+    skipped_no_target: int
+    epochs: int
+    checkpoint_path: str
+    output_checkpoint_path: str
+    final_loss: float
+    mean_advantage: float
+    device: str
+    clip_epsilon: float
+    policy_loss_weight: float
+    value_loss_weight: float
+    entropy_weight: float
+    max_entities: int
+    max_actions: int
+    max_previous_actions: int
+    config: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class Phase5TurnContext:
     def __init__(self, *, max_previous_actions: int) -> None:
         self.max_previous_actions = max_previous_actions
@@ -934,6 +959,161 @@ def train_phase5_generalist_policy(
     return summary
 
 
+def train_phase5_ppo_policy_from_trajectories(
+    *,
+    trajectory_dataset_paths: Sequence[Path],
+    checkpoint_path: Path,
+    output_checkpoint_path: Path,
+    report_path: Path | None = None,
+    epochs: int = 1,
+    batch_size: int = 64,
+    learning_rate: float = 5.0e-5,
+    clip_epsilon: float = 0.2,
+    policy_loss_weight: float = 1.0,
+    value_loss_weight: float = 0.5,
+    entropy_weight: float = 0.01,
+    selfplay_limit: int | None = None,
+) -> Phase5PPOTrainingSummary:
+    if not trajectory_dataset_paths:
+        raise ValueError("Provide at least one trajectory dataset.")
+    torch, nn = _require_torch()
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    if checkpoint.get("format") != PHASE5_POLICY_CHECKPOINT_FORMAT:
+        raise ValueError(
+            f"Unsupported Phase 5 checkpoint format: {checkpoint.get('format')}"
+        )
+    config = Phase5PolicyConfig(**checkpoint["config"])
+    encoder_config = checkpoint.get("encoder", {})
+    max_entities = int(encoder_config.get("max_entities", 96))
+    max_actions = int(encoder_config.get("max_actions", 128))
+    max_previous_actions = int(encoder_config.get("max_previous_actions", 16))
+    encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AlphaStarTurnPolicy(config).to(device)
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    final_loss = 0.0
+    final_steps_seen = 0
+    final_examples = 0
+    final_skipped = 0
+    final_advantage_sum = 0.0
+
+    for _ in range(max(1, epochs)):
+        batch: list[tuple[Phase5SymbolicDecisionRecord, float, float]] = []
+        context = Phase5TurnContext(max_previous_actions=max_previous_actions)
+        steps_seen = 0
+        examples = 0
+        skipped = 0
+        advantage_sum = 0.0
+
+        def flush_batch() -> None:
+            nonlocal batch, final_loss
+            if not batch:
+                return
+            final_loss = _train_ppo_batch(
+                batch,
+                model=model,
+                optimizer=optimizer,
+                torch=torch,
+                nn=nn,
+                device=device,
+                clip_epsilon=clip_epsilon,
+                policy_loss_weight=policy_loss_weight,
+                value_loss_weight=value_loss_weight,
+                entropy_weight=entropy_weight,
+            )
+            batch = []
+
+        for trajectory_path in trajectory_dataset_paths:
+            for step in iter_trajectory_jsonl(trajectory_path):
+                if selfplay_limit is not None and steps_seen >= selfplay_limit:
+                    break
+                steps_seen += 1
+                previous_rows = context.previous_rows(step.decision)
+                record = phase5_symbolic_record_from_trajectory(
+                    step,
+                    encoder=encoder,
+                    previous_action_features=previous_rows,
+                    max_previous_actions=max_previous_actions,
+                    weight=1.0,
+                )
+                if record is None:
+                    skipped += 1
+                    continue
+                advantage = float(step.reward) - float(step.value)
+                batch.append((record, float(step.logprob), advantage))
+                examples += 1
+                advantage_sum += advantage
+                context.observe(record)
+                if len(batch) >= max(1, batch_size):
+                    flush_batch()
+            if selfplay_limit is not None and steps_seen >= selfplay_limit:
+                break
+        flush_batch()
+        final_steps_seen = steps_seen
+        final_examples = examples
+        final_skipped = skipped
+        final_advantage_sum = advantage_sum
+
+    output_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    output = model.checkpoint_payload()
+    output["format"] = PHASE5_POLICY_CHECKPOINT_FORMAT
+    output["encoder"] = {
+        "max_entities": max_entities,
+        "max_actions": max_actions,
+        "max_previous_actions": max_previous_actions,
+    }
+    output["metadata"] = checkpoint.get("metadata", {}) | {
+        "training": "phase5_ppo_trajectory_update",
+        "source_checkpoint": checkpoint_path.as_posix(),
+        "trajectory_dataset_paths": [
+            path.as_posix() for path in trajectory_dataset_paths
+        ],
+        "epochs": max(1, epochs),
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "clip_epsilon": clip_epsilon,
+        "policy_loss_weight": policy_loss_weight,
+        "value_loss_weight": value_loss_weight,
+        "entropy_weight": entropy_weight,
+        "selfplay_limit": selfplay_limit,
+        "examples": final_examples,
+        "mean_advantage": final_advantage_sum / final_examples
+        if final_examples
+        else 0.0,
+    }
+    torch.save(output, output_checkpoint_path)
+    summary = Phase5PPOTrainingSummary(
+        trajectory_dataset_paths=[path.as_posix() for path in trajectory_dataset_paths],
+        steps_seen=final_steps_seen,
+        examples=final_examples,
+        skipped_no_target=final_skipped,
+        epochs=max(1, epochs),
+        checkpoint_path=checkpoint_path.as_posix(),
+        output_checkpoint_path=output_checkpoint_path.as_posix(),
+        final_loss=final_loss,
+        mean_advantage=final_advantage_sum / final_examples if final_examples else 0.0,
+        device=str(device),
+        clip_epsilon=clip_epsilon,
+        policy_loss_weight=policy_loss_weight,
+        value_loss_weight=value_loss_weight,
+        entropy_weight=entropy_weight,
+        max_entities=max_entities,
+        max_actions=max_actions,
+        max_previous_actions=max_previous_actions,
+        config=config.to_dict(),
+    )
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    return summary
+
+
 def read_phase5_symbolic_jsonl(path: Path) -> list[Phase5SymbolicDecisionRecord]:
     records: list[Phase5SymbolicDecisionRecord] = []
     with path.open("r", encoding="utf-8") as handle:
@@ -1162,6 +1342,109 @@ def _train_symbolic_batch(
     predictions = logits.detach().argmax(dim=1)
     correct = int((predictions == targets).sum().item())
     return float(loss.detach().item()), correct
+
+
+def _train_ppo_batch(
+    examples: Sequence[tuple[Phase5SymbolicDecisionRecord, float, float]],
+    *,
+    model: Any,
+    optimizer: Any,
+    torch: Any,
+    nn: Any,
+    device: Any,
+    clip_epsilon: float,
+    policy_loss_weight: float,
+    value_loss_weight: float,
+    entropy_weight: float,
+) -> float:
+    records = [example[0] for example in examples]
+    global_x = torch.tensor(
+        [record.encoded.global_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    entity_x = torch.tensor(
+        [record.encoded.entity_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    entity_mask = torch.tensor(
+        [record.encoded.entity_mask for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    action_x = torch.tensor(
+        [record.encoded.legal_action_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    action_mask = torch.tensor(
+        [record.encoded.legal_action_mask for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    previous_action_x = torch.tensor(
+        [record.previous_action_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    previous_action_mask = torch.tensor(
+        [record.previous_action_mask for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    targets = torch.tensor(
+        [record.target_positions[0] for record in records],
+        dtype=torch.long,
+        device=device,
+    )
+    old_logprobs = torch.tensor(
+        [example[1] for example in examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    advantages = torch.tensor(
+        [example[2] for example in examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    if advantages.numel() > 1:
+        advantages = (advantages - advantages.mean()) / advantages.std().clamp(min=1.0e-6)
+    output = model(
+        global_x,
+        entity_x,
+        entity_mask,
+        action_x,
+        action_mask,
+        previous_action_x,
+        previous_action_mask,
+    )
+    logits = output["action_logits"]
+    log_probs = nn.functional.log_softmax(logits, dim=1)
+    selected_log_probs = log_probs[
+        torch.arange(len(records), device=device),
+        targets,
+    ]
+    ratios = torch.exp(selected_log_probs - old_logprobs)
+    clipped = torch.clamp(ratios, 1.0 - clip_epsilon, 1.0 + clip_epsilon)
+    policy_loss = -torch.minimum(ratios * advantages, clipped * advantages).mean()
+    value_target_values: list[float] = []
+    for record, _, advantage in examples:
+        target = _record_value_target(record)
+        value_target_values.append(float(target) if target is not None else float(advantage))
+    value_targets = torch.tensor(value_target_values, dtype=torch.float32, device=device)
+    value_loss = nn.functional.mse_loss(output["state_value"], value_targets)
+    probs = torch.exp(log_probs) * action_mask
+    entropy = -(probs * log_probs.masked_fill(action_mask <= 0, 0.0)).sum(dim=1).mean()
+    loss = (
+        float(policy_loss_weight) * policy_loss
+        + float(value_loss_weight) * value_loss
+        - float(entropy_weight) * entropy
+    )
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    return float(loss.detach().item())
 
 
 def _changed_pairwise_loss(

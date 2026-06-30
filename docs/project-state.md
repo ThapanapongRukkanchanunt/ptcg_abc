@@ -714,8 +714,18 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_generalist_policy_13deck_10k.pt` and
   `experiments/rl/phase5_generalist_train_report_13deck_10k.json`.
 - The 13-deck league data is a training expansion. The existing required 9x4
-  benchmark remains the first promotion gate for the new checkpoint; define a
-  separate 13x13 evaluation only after choosing its target shape.
+  benchmark remains the first promotion gate for the new checkpoint.
+- Full-agent scaffolds added on June 30, 2026:
+  - reusable Phase 5 opponent-prior inference,
+  - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
+  - optional policy/action-Q/tactical neural priors inside root-search scoring,
+  - self-play policy-pool checkpoint rotation and metadata,
+  - `rl-train-phase5-ppo` plus `scripts/slurm/phase5_ppo_train_conda.sbatch`,
+  - `rl-evaluate-phase5-league` plus `scripts/slurm/phase5_league_eval_conda.sbatch`,
+  - `phase5-compare-benchmarks` for promotion report deltas.
+- The concrete 13x13 league evaluation is agent-vs-rule: each of the 13 league
+  decks controlled by the selected agent against each 13-deck rule-agent
+  opponent, with player-order balance across games per matchup.
 
 Operational rule:
 
