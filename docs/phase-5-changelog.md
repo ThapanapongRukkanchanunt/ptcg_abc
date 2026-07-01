@@ -1995,6 +1995,28 @@ Decision:
 - PPO should start from `models/rl/phase5_generalist_policy_13deck_10k.pt`
   after the 13-deck mixed supervised/value train completes.
 
+## 2026-07-01 - ERAWAN 13-Deck Data Sync Unblock
+
+Context:
+
+- The larger `phase5_search_selfplay_13deck_10k` self-play run was reported
+  complete after ERAWAN came back online.
+- The first ERAWAN `git pull --ff-only origin main` stopped while updating from
+  `1411cb3` to `586cedc` because these local untracked report artifacts would
+  be overwritten by newly tracked files:
+  - `reports/phase5_generalist_search_10g.json`,
+  - `reports/phase5_generalist_search_10g.md`,
+  - `reports/phase5_generalist_search_30g.json`,
+  - `reports/phase5_generalist_search_30g.md`.
+
+Decision:
+
+- Do not delete or overwrite the ERAWAN copies blindly. Archive or move those
+  four untracked files, then rerun the fast-forward pull.
+- After ERAWAN reaches `586cedc`, verify both 13-deck shard summaries and shard
+  line counts before starting the bounded
+  `phase5_generalist_policy_13deck_smoke.pt` train.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2022,7 +2044,7 @@ Important dataset artifacts:
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_10k/shards/phase5_search_selfplay_shard-1.jsonl`
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-0.jsonl`
 - `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_338/shards/phase5_search_selfplay_shard-1.jsonl`
-- Pending next dataset:
+- User reported complete; pending summary verification:
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_10k/shards/phase5_search_selfplay_shard-*.jsonl`
 
 File-retention decision:
@@ -2037,10 +2059,11 @@ File-retention decision:
 
 - Record the full `phase5_generalist_train_report_10k.json` if needed for the
   final report.
-- Monitor the 13-deck 10k self-play generation. If `latest_job.txt` is missing
-  because `sbatch --parsable` timed out after submission, recover the base array
-  job ID from `squeue` instead of resubmitting.
-- After the 13-deck 10k shards complete, run the bounded
+- On ERAWAN, archive the four untracked
+  `reports/phase5_generalist_search_*` artifacts that block pulling `586cedc`,
+  then rerun `git pull --ff-only origin main`.
+- Verify the completed 13-deck 10k shard summaries and line counts.
+- After the 13-deck 10k shards pass the data gate, run the bounded
   `phase5_generalist_policy_13deck_smoke.pt` train and then the full
   `phase5_generalist_policy_13deck_10k.pt` train.
 - After the 13-deck generalist train passes the required 9x4 gate, run the

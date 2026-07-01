@@ -135,9 +135,18 @@ This is the resume point for the project. Start here after switching machines, c
   3 timeouts, 0 errors, 26,920 searched decisions, 5,286 search-changed
   decisions, 0 search errors, 0 candidate errors, 641 truncated candidates,
   0.0539 average search seconds, and 1.6210 max search seconds.
-- Next action: submit the larger `phase5_search_selfplay_13deck_10k` data run
-  on ERAWAN with `models/rl/phase5_generalist_policy_10k.pt` as the
-  `phase5-search` prior.
+- Current ERAWAN state as of July 1, 2026: the larger
+  `phase5_search_selfplay_13deck_10k` data run was reported complete, but
+  ERAWAN still needs a code sync before training. Pulling `origin/main` from
+  `1411cb3` to `586cedc` was blocked by four untracked local report artifacts:
+  `reports/phase5_generalist_search_10g.json`,
+  `reports/phase5_generalist_search_10g.md`,
+  `reports/phase5_generalist_search_30g.json`, and
+  `reports/phase5_generalist_search_30g.md`.
+- Next action: archive those four untracked ERAWAN report files, rerun
+  `git pull --ff-only origin main`, verify both 13-deck shard summaries and
+  line counts, then start the bounded
+  `phase5_generalist_policy_13deck_smoke.pt` train.
 
 ## Phase Log
 
@@ -148,7 +157,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck self-play smoke passed | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` is the current best inference path; `league-13` self-play is ready for the 10k ERAWAN data run. |
+| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck 10k self-play reported complete | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` is the current best inference path; ERAWAN sync and shard verification are next before 13-deck mixed training. |
 
 ## Completed Phase Details
 
@@ -701,11 +710,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
 - The 13-deck `league-13` self-play smoke passed:
   `phase5_search_selfplay_13deck_338`, 338 / 338 games, 51,945 trajectory rows,
   4 draws, 3 timeouts, 0 errors, 0 search errors, 0 candidate errors.
-- The next self-play data target is
+- The next self-play data target was
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_selfplay_13deck_10k`.
-  It is submitted as one two-task SLURM array; if `latest_job.txt` is missing
-  after an `sbatch --parsable` socket timeout, recover the base job ID from
-  `squeue` instead of resubmitting.
+  It was reported complete on July 1, 2026, and still needs summary and shard
+  line-count verification before training.
+- ERAWAN code sync from `1411cb3` to `586cedc` was blocked by four untracked
+  report artifacts under `reports/phase5_generalist_search_*`; archive them
+  before rerunning `git pull --ff-only origin main`.
 - The trainer already supports multiple self-play shards. Use
   `scripts/slurm/phase5_generalist_train_13deck_10k.sbatch` after the 13-deck
   shards complete to mix the 10-shard decision dataset, existing 9-deck 10k
