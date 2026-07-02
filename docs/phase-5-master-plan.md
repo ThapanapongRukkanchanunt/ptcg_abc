@@ -240,53 +240,82 @@ Every Phase 5 substage should produce a report that maps back to
 | Stage 7 | PPO | Reward curves, collapse checks, opponent-pool battle metrics, and promotion rule. |
 | Stage 8 | Final inference | Ablation ladder, full battle matrix, timing, legality, packaging, and final report. |
 
-The near-term gate is now Stage 5: confirm that online `phase5-search` remains
-above direct symbolic and rule baseline under larger or repeated benchmarks, and
-collect search telemetry showing clean probes, low truncation, and acceptable
-timing.
+The previous near-term gate was Stage 5, centered on a single generalist
+checkpoint and required-gate promotion. That path is now superseded by the
+league-first replacement plan below.
 
 ## Implementation Priorities
 
-1. Generate `phase5-search` self-play data.
-   - Use the promoted cap-30 online search agent.
-   - Keep the current 9-deck deck pool first.
-   - Store per-decision trajectory records with final game outcomes, player
-     perspective, matchup metadata, timeout/error flags, and optional sampled
-     search traces.
-2. Add value, Q/action-value, and auxiliary tactical heads to the symbolic
-   model.
-   - Value head: predicts game outcome or shaped return from the current state.
-   - Q/action-value head: predicts the outcome quality of each legal action.
-   - Tactical heads: predict short-horizon damage, prize change, KO/turn-end
-     events, resource changes, and self-risk from search/self-play rollouts.
-3. Train a generalist model from a supervised mixture:
-   - rule demonstrations for broad legal-action coverage,
-   - search-improved decisions for better root choices,
-   - self-play trajectories for value/Q/tactical outcome targets.
-4. Evaluate on the current 9-deck required benchmark.
-   - Compare direct `phase5-symbolic`, `phase5-search`, rule baseline, and the
-     current cap-30 search baseline.
-   - Keep diagnostics for action agreement, value calibration, Q ranking,
-     tactical-head error, search-change rate, truncation, errors, and timing.
-5. Expand to more decks only after the 9-deck gate is stable.
-   - Use the broader 13-deck league as the next diversity gate.
-   - If broader-deck results regress because of capacity, increase model size
-     before moving to larger reinforcement learning.
-6. Start larger PPO/self-play only after the generalist supervised/value model
-   is stable and measurable.
-   - PPO should use the multi-head model as the initialization, not the current
-     policy-only checkpoint.
+Active replacement plan:
+
+1. Implement the full Phase 5 agent runtime before more checkpoint chasing.
+   - Single inference surface for full agent, rule fallback, per-deck model
+     selection, belief/opponent-prior inference, neural priors, root search,
+     telemetry, and Kaggle-safe packaging.
+   - Stop adding new ad-hoc direct/generalist/search variants unless they feed
+     this runtime.
+2. Train every model that does not require fresh learned-agent gameplay.
+   - Shared foundation encoder from existing rule, search, and self-play data.
+   - Per-deck behavior-cloning heads for all 13 league decks.
+   - Value, selected-action Q, tactical, and belief heads from existing
+     trajectory/search records where labels already exist.
+3. Generate clean rule-based 13-deck bootstrap gameplay.
+   - 13 agent decks x 13 opponent decks.
+   - Balanced player order.
+   - Full trajectories only for the bounded bootstrap train window.
+4. Train one model/policy per deck.
+   - Initialize from the shared foundation.
+   - Keep separate checkpoints and optimizer state for deck 1 through deck 13.
+   - Mix mostly same-deck data with a smaller shared/general replay slice.
+5. Run an AlphaStar-like league.
+   - Population includes 13 main deck specialists, historical snapshots, fixed
+     rule agents, and later exploiters if diagnostics justify them.
+   - Matchmaking prioritizes current main-vs-main, current-vs-history,
+     weakness-targeted opponents, and rule-agent calibration.
+6. Update every deck policy after every 100 games played by that deck.
+   - A global league iteration is 13 x 100 training games = 1,300 games before
+     update.
+   - Each iteration writes one checkpoint family and one compact train report.
+7. Evaluate every iteration with full agent vs rule-based for all 13 x 13
+   matchups.
+   - 30 games per matchup, balanced player order.
+   - 5,070 evaluation games per iteration.
+   - Evaluation writes aggregate reports and small sampled traces only, not
+     full raw trajectory shards.
+8. Promotion is based on the league trend and required-gate health.
+   - The 13x13 rule-agent league is the primary breadth signal.
+   - The existing required 9x4 gate remains a regression check.
+   - A checkpoint is promotable only with 0 critical errors, acceptable timeout
+     rate, no severe deck collapse, and improvement over the prior iteration.
+
+Data-retention rule:
+
+- The project folder has about 400 GB of practical capacity. Previous Phase 5
+  search self-play shards were about 30 GB each, so raw league gameplay cannot
+  accumulate across iterations.
+- Generated league gameplay under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th` is ephemeral. Remove each raw league
+  iteration after the corresponding model/policy update succeeds and the train
+  report, model checkpoints, optimizer states, manifests, and aggregate eval
+  reports are written.
+- Keep reports, manifests, small sampled traces, model checkpoints, and
+  comparison summaries in the repo. Do not keep full raw evaluation trajectories
+  unless explicitly running a bounded diagnostic.
+- At most one active league-training data window should exist at a time. Never
+  launch the next league iteration if the previous raw league data has not been
+  cleaned or intentionally retained with a written reason.
 
 Near-term implementation slice:
 
-1. Run the Phase 5 search self-play data command and SLURM script:
-   - `rl-generate-phase5-search-selfplay`
-   - `scripts/slurm/phase5_search_selfplay_conda.sbatch`
-2. Run a small smoke job, then a bounded ERAWAN job.
-3. Inspect the self-play report for games, steps, wins by deck, timeouts,
-   errors, search telemetry, trace records, and trajectory counts.
-4. Extend the symbolic model/trainer with value/Q/tactical heads once the
-   self-play records exist.
+1. Add the full-agent runtime command and package path.
+2. Add a rule-based 13-deck bootstrap trajectory generator.
+3. Add a deck-specialist offline trainer that writes 13 checkpoints from the
+   bootstrap/existing data.
+4. Add a league-iteration runner that collects 100 games per deck, updates all
+   13 specialists, writes reports/checkpoints, and then cleans raw iteration
+   data.
+5. Add an iteration evaluation runner for 13 x 13 x 30 full-agent-vs-rule
+   reporting.
 
 ## ERAWAN Operating Track
 

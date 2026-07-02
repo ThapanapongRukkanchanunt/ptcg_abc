@@ -1301,6 +1301,10 @@ Interpretation:
 
 ## Next Phase 5 Training Track
 
+Historical note: this was the active plan before the July 2, 2026
+AlphaStar-like league replacement plan below. It is retained for context but is
+no longer the current next-action track.
+
 The next plan follows this order:
 
 1. Generate `phase5-search` self-play data.
@@ -2101,6 +2105,64 @@ Conclusion:
   required 9x4 gate and the known weak Alakazam Dudunsparce line, rather than
   treating the 13-deck expansion as a replacement objective.
 
+## 2026-07-02 - Phase 5 AlphaStar-Like League Replacement Plan
+
+Decision:
+
+- Replace the slow single-generalist promotion plan with a full-agent,
+  league-first schedule.
+- Implement the full Phase 5 runtime as the single inference surface:
+  per-deck model selection, belief/opponent-prior inference, legal-action
+  encoder, neural value/Q/tactical priors, one-turn root search, rule fallback,
+  telemetry, and Kaggle-safe packaging.
+- Train every model that does not require fresh learned-agent gameplay before
+  launching the league:
+  - shared foundation encoder,
+  - 13 per-deck behavior-cloning/specialist policies,
+  - value, selected-action Q, tactical, and belief heads from existing labels.
+- Bootstrap with rule-based gameplay over all 13 x 13 league matchups, balanced
+  by player order, then train one policy/model per deck.
+- Run an AlphaStar-like league:
+  - 13 main deck specialists,
+  - historical snapshots,
+  - fixed rule-agent anchors,
+  - later exploiters if diagnostics justify them.
+- Update schedule:
+  - each deck plays 100 league-training games,
+  - one global iteration is 13 x 100 = 1,300 training games,
+  - update all 13 deck specialists once per global iteration.
+- Evaluation schedule:
+  - after every iteration, evaluate full agent vs rule-based across all
+    13 x 13 matchups,
+  - 30 games per matchup,
+  - balanced player order,
+  - 5,070 evaluation games per iteration.
+
+Data-retention rule:
+
+- Keep league data clean and bounded. The project folder has about 400 GB of
+  practical capacity, and previous Phase 5 search self-play shards were about
+  30 GB each.
+- Generated league gameplay on ERAWAN goes under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/`.
+- Raw league training data is ephemeral: remove each iteration's raw gameplay
+  after the corresponding model/policy update succeeds and reports/checkpoints
+  are written.
+- Keep only model checkpoints, optimizer states, manifests/checksums, row
+  counts, train reports, aggregate evaluation reports, comparison reports, and
+  bounded sampled traces.
+- Do not write full raw evaluation trajectories by default. Evaluation should
+  emit reports and tiny sampled traces only.
+- Do not launch a new league iteration while the previous iteration's raw data
+  remains, unless a written diagnostic-retention reason is recorded here.
+
+Updated docs:
+
+- `docs/phase-5-master-plan.md` now marks the old single-generalist gate as
+  superseded by the full-agent league plan.
+- `docs/phase-5-erawan-runbook.md` now includes the AlphaStar-like league
+  replacement track and mandatory cleanup rules.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2156,9 +2218,6 @@ File-retention decision:
   required 9x4 benchmark.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
-- Add targeted weakness data or weighting for Alakazam Dudunsparce before any
-  claim that the generalist direct policy is robust.
-- Consider a larger model only after the expanded deck pool exposes clear
-  capacity limits.
-- Start larger PPO/self-play only after the supervised/value generalist model is
-  stable on the broader deck pool.
+- Implement the full-agent runtime, rule-based 13-deck bootstrap generator,
+  deck-specialist offline trainer, league-iteration runner, mandatory raw-data
+  cleanup, and 13 x 13 x 30 full-agent-vs-rule evaluation runner.

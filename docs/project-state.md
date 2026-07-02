@@ -73,10 +73,22 @@ This is the resume point for the project. Start here after switching machines, c
   records, 0 search errors, 0 candidate errors, 777 truncated candidates,
   140 selected-truncated records, and 32 changed selected-truncated records.
   The 30-game benchmark win/loss/timing summary still needs to be recorded.
-- Next Phase 5 training plan: generate `phase5-search` self-play data, add
-  value/Q/tactical heads, train a generalist model from rule demonstrations plus
-  search-improved decisions plus self-play outcomes, evaluate on the current
-  9-deck benchmark, then expand to more decks before starting larger PPO.
+- Active Phase 5 training plan as of July 2, 2026: replace the slow
+  single-generalist promotion track with a full-agent, AlphaStar-like 13-deck
+  league. Implement the full runtime first, train every model that does not
+  require fresh learned-agent gameplay, bootstrap with rule-based 13 x 13
+  gameplay, train one specialist policy per deck, then run league iterations.
+  Each deck updates after 100 training games, so one global iteration is
+  1,300 training games followed by updates for all 13 specialists. Every
+  iteration is evaluated as full agent vs rule-based across all 13 x 13 matchups
+  at 30 games per matchup, for 5,070 evaluation games per iteration.
+- Active Phase 5 data-retention rule: keep league data clean and bounded. The
+  project folder has about 400 GB of practical capacity, and prior Phase 5
+  search self-play shards were about 30 GB each. New raw league gameplay is
+  ephemeral: remove each iteration's raw training data after the model/policy
+  update succeeds and reports/checkpoints/manifests are written. Evaluation
+  should write aggregate reports and tiny sampled traces only, not full raw
+  trajectories by default.
 - Latest implementation slice: added `rl-generate-phase5-search-selfplay` and
   `scripts/slurm/phase5_search_selfplay_conda.sbatch`. Future self-play
   trajectory shards default to
@@ -152,12 +164,13 @@ This is the resume point for the project. Start here after switching machines, c
   reached 399 / 1,080 wins, 0.369 win rate, 6 timeouts, and 0 errors.
   Overall delta: -15 wins, -0.014 win rate, +1 timeout, +0 errors.
 - Current decision: keep `phase5_generalist_policy_10k.pt` as the default
-  `phase5-search` prior. Treat the 13-deck checkpoint as a retained training
-  artifact, not a promotion candidate or mainline PPO seed.
-- Next action: inspect candidate benchmark telemetry if available, record the
-  13-deck shard summaries and train report if available, then run a targeted
-  follow-up that preserves the required 9x4 gate while addressing Alakazam
-  Dudunsparce and the largest 13-deck regression matchups.
+  `phase5-search` prior for existing comparisons. Treat the 13-deck checkpoint
+  as a retained training artifact, not a promotion candidate or mainline PPO
+  seed.
+- Next action: implement the full-agent runtime, rule-based 13-deck bootstrap
+  generator, deck-specialist offline trainer, league-iteration runner with
+  mandatory post-update raw-data cleanup, and 13 x 13 x 30 full-agent-vs-rule
+  evaluation runner.
 
 ## Phase Log
 
@@ -168,7 +181,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck checkpoint not promoted | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` remains the current best inference path; the 13-deck checkpoint regressed by 15 wins on the required 30-game gate. |
+| Phase 5: Advanced RL strategy, training, and evaluation | League-first replacement plan active | Full-agent runtime, offline pretraining, 13 deck specialists, AlphaStar-like league iteration, and strict raw-data cleanup replace the slow single-generalist promotion track. |
 
 ## Completed Phase Details
 
@@ -752,6 +765,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
 - The 13-deck league data remains useful as training expansion and breadth
   diagnostic material. The existing required 9x4 benchmark remains the first
   promotion gate for follow-up checkpoints.
+- The active plan has shifted to a full-agent AlphaStar-like league:
+  - implement the full agent as the single inference surface,
+  - train non-gameplay models offline first,
+  - generate rule-based 13 x 13 bootstrap gameplay,
+  - train one specialist policy per deck,
+  - run league iterations where each deck plays 100 training games before
+    all 13 specialists update,
+  - evaluate every iteration as full agent vs rule-based over 13 x 13 x 30
+    games.
+- League storage must stay bounded. Raw league training data is deleted after a
+  successful model/policy update and report/checkpoint write. Keep only
+  checkpoints, optimizer states, manifests, row counts, train reports,
+  aggregate eval reports, comparison reports, and small sampled traces.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

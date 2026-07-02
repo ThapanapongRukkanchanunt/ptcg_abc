@@ -1064,7 +1064,12 @@ grep -E "Games:|Wins:|Losses:|Draws:|Timeouts:|Errors:|Win rate:|Searched decisi
 
 ## 13. Next Phase 5 Training Track
 
-The next work is not large PPO yet. Follow this order:
+Historical note: this section records the previous single-generalist training
+track. It is retained for artifact reproducibility, but it is no longer the
+active next-action plan after the July 2, 2026 switch to the full-agent
+AlphaStar-like league track in section 17.
+
+The previous order was:
 
 1. Generate `phase5-search` self-play data.
 2. Add value, Q/action-value, and tactical heads.
@@ -1540,6 +1545,11 @@ still useful for comparisons.
 
 ## 16. Phase 5 13-Deck Mixed Generalist Train
 
+Historical note: this section records the completed 13-deck mixed-generalist
+artifact path. The resulting checkpoint was clean but not promoted on the
+required 9x4 30-game gate, so do not use this as the active mainline path or
+the mainline PPO seed. The active replacement track is section 17.
+
 The generalist trainer already accepts repeated `--selfplay-dataset` arguments,
 and `scripts/slurm/phase5_generalist_train_conda.sbatch` expands a
 space-separated `SELFPLAY_DATASETS` list into those repeated arguments. Use the
@@ -1704,7 +1714,10 @@ If this report-only command fails with `No module named 'lxml'`, pull the
 latest `main`. The CLI now imports the Limitless scraper lazily so
 `phase5-compare-benchmarks` does not require scraper dependencies.
 
-Once the 13-deck generalist checkpoint is stable, run a bounded PPO smoke:
+Deprecated follow-up: this PPO smoke command is retained only for
+reproducibility. Do not run it as the mainline next step unless a later
+promotable checkpoint is selected and the decision is recorded in
+`docs/phase-5-changelog.md`.
 
 ```bash
 JOB=$(
@@ -1727,7 +1740,55 @@ POLICY_POOL_MODELS="models/rl/phase5_generalist_policy_10k.pt models/rl/phase5_g
   sbatch --parsable scripts/slurm/phase5_search_selfplay_2shard_10k.sbatch
 ```
 
-## 17. Ready-To-Train Checklist
+## 17. AlphaStar-Like League Replacement Track
+
+The single-generalist promotion track is no longer the active pacing plan. The
+new track is to implement the full agent, pretrain all non-gameplay models, then
+run a compact AlphaStar-like 13-deck league.
+
+Training schedule:
+
+- Bootstrap: generate rule-based 13-deck gameplay for all 13 x 13 matchups with
+  balanced player order, then train one specialist policy per deck.
+- League iteration: each deck specialist plays 100 training games.
+- Update point: after 13 x 100 = 1,300 training games, update all 13 deck
+  specialists and write one checkpoint family.
+- Evaluation point: after each update, run full agent vs rule-based for all
+  13 x 13 matchups, 30 games per matchup, balanced player order. This is 5,070
+  evaluation games per iteration.
+
+Storage and cleanup are mandatory:
+
+- ERAWAN generated league data goes under:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-XXXX`.
+- Raw training gameplay for an iteration goes under that iteration's
+  `raw_train/` directory.
+- Raw evaluation trajectories should not be written by default. Evaluation
+  should write aggregate reports and a tiny sampled trace only.
+- After the model/policy update succeeds, remove that iteration's `raw_train/`
+  data. Keep only:
+  - model checkpoints and optimizer states under `models/rl/phase5_league_alpha/`,
+  - train reports under `experiments/rl/phase5_league_alpha/`,
+  - evaluation reports under `reports/`,
+  - manifests/checksums/row counts that prove what was consumed,
+  - bounded sampled traces for diagnostics.
+- Do not launch the next league iteration while the previous iteration's raw
+  gameplay still exists, unless a written diagnostic reason is added to
+  `docs/phase-5-changelog.md`.
+
+Reason:
+
+- The project folder has about 400 GB of practical capacity.
+- Previous Phase 5 search self-play shards were about 30 GB each.
+- A league that keeps raw gameplay for every iteration will fill the project
+  space quickly and make the experiment state hard to audit.
+
+This replacement track supersedes the older instruction to start PPO from
+`models/rl/phase5_generalist_policy_13deck_10k.pt`. That checkpoint is retained
+as a non-promoted artifact, but the next active work is full-agent runtime,
+offline pretraining, per-deck specialists, and clean league iteration.
+
+## 18. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.
