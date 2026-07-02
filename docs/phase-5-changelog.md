@@ -2017,6 +2017,22 @@ Decision:
   line counts before starting the bounded
   `phase5_generalist_policy_13deck_smoke.pt` train.
 
+## 2026-07-02 - ERAWAN Compare Import-Path Note
+
+Diagnostic:
+
+- Running `python -m ptcg_abc phase5-compare-benchmarks` on ERAWAN failed with
+  `No module named ptcg_abc`.
+- Cause: the active conda environment had not installed the repo package, and
+  the command was missing `PYTHONPATH="$PWD/src"`.
+
+Decision:
+
+- Run lightweight repo CLI report tools from the repository root with
+  `export PYTHONPATH="$PWD/src"` or inline `PYTHONPATH="$PWD/src" python -m ...`.
+- Updated the ERAWAN runbook comparison block to export `PYTHONPATH` before
+  invoking `phase5-compare-benchmarks`.
+
 ## Artifact Notes
 
 Important model artifacts:

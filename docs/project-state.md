@@ -717,6 +717,10 @@ Current Phase 5 generalist/search state as of June 29, 2026:
 - ERAWAN code sync from `1411cb3` to `586cedc` was blocked by four untracked
   report artifacts under `reports/phase5_generalist_search_*`; archive them
   before rerunning `git pull --ff-only origin main`.
+- ERAWAN lightweight repo CLI commands such as `phase5-compare-benchmarks` need
+  `PYTHONPATH="$PWD/src"` unless the active conda environment has installed the
+  package. A `No module named ptcg_abc` error is an import-path issue, not a
+  benchmark failure.
 - The trainer already supports multiple self-play shards. Use
   `scripts/slurm/phase5_generalist_train_13deck_10k.sbatch` after the 13-deck
   shards complete to mix the 10-shard decision dataset, existing 9-deck 10k

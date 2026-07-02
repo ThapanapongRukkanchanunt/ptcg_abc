@@ -1691,6 +1691,8 @@ echo "$JOB" | tee experiments/rl/phase5_generalist_13deck_neural_prior_smoke_eva
 Compare any old/new benchmark reports locally or on ERAWAN:
 
 ```bash
+export PYTHONPATH="$PWD/src"
+
 "$PY" -m ptcg_abc phase5-compare-benchmarks \
   --baseline reports/phase5_generalist_search_30g.json \
   --candidate reports/phase5_generalist_13deck_search_30g.json \
