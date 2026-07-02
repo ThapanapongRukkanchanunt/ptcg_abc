@@ -2025,6 +2025,10 @@ Diagnostic:
   `No module named ptcg_abc`.
 - Cause: the active conda environment had not installed the repo package, and
   the command was missing `PYTHONPATH="$PWD/src"`.
+- After adding `PYTHONPATH`, the same command failed during CLI import with
+  `ModuleNotFoundError: No module named 'lxml'`.
+- Cause: `ptcg_abc.cli` imported the Limitless scraper at module import time,
+  even though `phase5-compare-benchmarks` only needs local JSON reports.
 
 Decision:
 
@@ -2032,6 +2036,11 @@ Decision:
   `export PYTHONPATH="$PWD/src"` or inline `PYTHONPATH="$PWD/src" python -m ...`.
 - Updated the ERAWAN runbook comparison block to export `PYTHONPATH` before
   invoking `phase5-compare-benchmarks`.
+- Moved the `ptcg_abc.limitless` imports into the two scraper-dependent
+  commands, `missing-limitless` and `collect-corpus`, so lightweight report
+  commands no longer require `lxml`.
+- Added a regression test that blocks `lxml`, imports the CLI, and parses
+  `phase5-compare-benchmarks`.
 
 ## Artifact Notes
 

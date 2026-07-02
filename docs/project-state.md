@@ -721,6 +721,10 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `PYTHONPATH="$PWD/src"` unless the active conda environment has installed the
   package. A `No module named ptcg_abc` error is an import-path issue, not a
   benchmark failure.
+- `phase5-compare-benchmarks` should not require scraper dependencies. The CLI
+  now imports `ptcg_abc.limitless` lazily only for `missing-limitless` and
+  `collect-corpus`, after an ERAWAN compare attempt exposed a missing `lxml`
+  import at top-level CLI load time.
 - The trainer already supports multiple self-play shards. Use
   `scripts/slurm/phase5_generalist_train_13deck_10k.sbatch` after the 13-deck
   shards complete to mix the 10-shard decision dataset, existing 9-deck 10k

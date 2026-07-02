@@ -1700,6 +1700,10 @@ export PYTHONPATH="$PWD/src"
   --report-md reports/phase5_generalist_13deck_vs_10k_comparison.md
 ```
 
+If this report-only command fails with `No module named 'lxml'`, pull the
+latest `main`. The CLI now imports the Limitless scraper lazily so
+`phase5-compare-benchmarks` does not require scraper dependencies.
+
 Once the 13-deck generalist checkpoint is stable, run a bounded PPO smoke:
 
 ```bash

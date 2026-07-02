@@ -48,12 +48,6 @@ from ptcg_abc.legal_cards import (
     write_candidate_report,
     write_legal_cards,
 )
-from ptcg_abc.limitless import (
-    collect_limitless_decks,
-    deck_collection_summary,
-    write_deck_collection,
-    write_missing_report,
-)
 from ptcg_abc.simulator import run_battle_smoke
 from ptcg_abc.submission import (
     build_hybrid_rl_submission_bundle,
@@ -225,6 +219,13 @@ def command_discover_legal_cards(args: argparse.Namespace) -> int:
 
 
 def command_missing_limitless(args: argparse.Namespace) -> int:
+    from ptcg_abc.limitless import (
+        collect_limitless_decks,
+        deck_collection_summary,
+        write_deck_collection,
+        write_missing_report,
+    )
+
     if not args.legal_cards.exists():
         print(
             f"Legal card list not found at {args.legal_cards}. "
@@ -260,6 +261,12 @@ def command_missing_limitless(args: argparse.Namespace) -> int:
 
 
 def command_collect_corpus(args: argparse.Namespace) -> int:
+    from ptcg_abc.limitless import (
+        collect_limitless_decks,
+        deck_collection_summary,
+        write_deck_collection,
+    )
+
     collection = collect_limitless_decks(
         snapshot_date=args.snapshot_date,
         top_archetypes=args.top_archetypes,
