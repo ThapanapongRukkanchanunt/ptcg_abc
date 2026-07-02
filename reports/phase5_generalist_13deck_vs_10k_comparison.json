@@ -1,0 +1,1835 @@
+{
+  "baseline": {
+    "draws": 1,
+    "errors": 0,
+    "games": 1080,
+    "losses": 665,
+    "timeouts": 5,
+    "win_rate": 0.38333333333333336,
+    "wins": 414
+  },
+  "baseline_path": "reports/phase5_generalist_search_30g.json",
+  "candidate": {
+    "draws": 5,
+    "errors": 0,
+    "games": 1080,
+    "losses": 676,
+    "timeouts": 6,
+    "win_rate": 0.36944444444444446,
+    "wins": 399
+  },
+  "candidate_path": "reports/phase5_generalist_13deck_search_30g.json",
+  "deck_deltas": [
+    {
+      "baseline": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 1,
+        "errors": 0,
+        "games": 120,
+        "key": "1",
+        "losses": 115,
+        "opponent": "Crustle",
+        "timeouts": 5,
+        "win_rate": 0.03333333333333333,
+        "wins": 4
+      },
+      "candidate": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 4,
+        "errors": 0,
+        "games": 120,
+        "key": "1",
+        "losses": 112,
+        "opponent": "Crustle",
+        "timeouts": 6,
+        "win_rate": 0.03333333333333333,
+        "wins": 4
+      },
+      "delta": {
+        "draws": 3,
+        "errors": 0,
+        "games": 0,
+        "losses": -3,
+        "timeouts": 1,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "key": "1"
+    },
+    {
+      "baseline": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "2",
+        "losses": 52,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.5666666666666667,
+        "wins": 68
+      },
+      "candidate": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 1,
+        "errors": 0,
+        "games": 120,
+        "key": "2",
+        "losses": 54,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.5416666666666666,
+        "wins": 65
+      },
+      "delta": {
+        "draws": 1,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.025000000000000022,
+        "wins": -3
+      },
+      "key": "2"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "3",
+        "losses": 87,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.275,
+        "wins": 33
+      },
+      "candidate": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "3",
+        "losses": 79,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.3416666666666667,
+        "wins": 41
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -8,
+        "timeouts": 0,
+        "win_rate": 0.06666666666666665,
+        "wins": 8
+      },
+      "key": "3"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "4",
+        "losses": 68,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.43333333333333335,
+        "wins": 52
+      },
+      "candidate": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "4",
+        "losses": 73,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.39166666666666666,
+        "wins": 47
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 5,
+        "timeouts": 0,
+        "win_rate": -0.041666666666666685,
+        "wins": -5
+      },
+      "key": "4"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "5",
+        "losses": 77,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.35833333333333334,
+        "wins": 43
+      },
+      "candidate": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "5",
+        "losses": 80,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 40
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 3,
+        "timeouts": 0,
+        "win_rate": -0.025000000000000022,
+        "wins": -3
+      },
+      "key": "5"
+    },
+    {
+      "baseline": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "6",
+        "losses": 64,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 56
+      },
+      "candidate": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "6",
+        "losses": 69,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.425,
+        "wins": 51
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 5,
+        "timeouts": 0,
+        "win_rate": -0.041666666666666685,
+        "wins": -5
+      },
+      "key": "6"
+    },
+    {
+      "baseline": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "7",
+        "losses": 71,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4083333333333333,
+        "wins": 49
+      },
+      "candidate": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "7",
+        "losses": 75,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.375,
+        "wins": 45
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 4,
+        "timeouts": 0,
+        "win_rate": -0.033333333333333326,
+        "wins": -4
+      },
+      "key": "7"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "8",
+        "losses": 64,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 56
+      },
+      "candidate": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "8",
+        "losses": 60,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.5,
+        "wins": 60
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -4,
+        "timeouts": 0,
+        "win_rate": 0.033333333333333326,
+        "wins": 4
+      },
+      "key": "8"
+    },
+    {
+      "baseline": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "9",
+        "losses": 67,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.44166666666666665,
+        "wins": 53
+      },
+      "candidate": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 120,
+        "key": "9",
+        "losses": 74,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.38333333333333336,
+        "wins": 46
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 7,
+        "timeouts": 0,
+        "win_rate": -0.05833333333333329,
+        "wins": -7
+      },
+      "key": "9"
+    }
+  ],
+  "matchup_deltas": [
+    {
+      "baseline": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Crustle",
+        "losses": 27,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.1,
+        "wins": 3
+      },
+      "candidate": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 1,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Crustle",
+        "losses": 27,
+        "opponent": "Crustle",
+        "timeouts": 2,
+        "win_rate": 0.06666666666666667,
+        "wins": 2
+      },
+      "delta": {
+        "draws": 1,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": 2,
+        "win_rate": -0.03333333333333334,
+        "wins": -1
+      },
+      "key": "1|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Iono's Bellibolt ex",
+        "losses": 29,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 2,
+        "win_rate": 0.03333333333333333,
+        "wins": 1
+      },
+      "candidate": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 2,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Iono's Bellibolt ex",
+        "losses": 28,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 2,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "delta": {
+        "draws": 2,
+        "errors": 0,
+        "games": 0,
+        "losses": -1,
+        "timeouts": 0,
+        "win_rate": -0.03333333333333333,
+        "wins": -1
+      },
+      "key": "1|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Mega Abomasnow ex",
+        "losses": 30,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "candidate": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 1,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Mega Abomasnow ex",
+        "losses": 28,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 1,
+        "win_rate": 0.03333333333333333,
+        "wins": 1
+      },
+      "delta": {
+        "draws": 1,
+        "errors": 0,
+        "games": 0,
+        "losses": -2,
+        "timeouts": 1,
+        "win_rate": 0.03333333333333333,
+        "wins": 1
+      },
+      "key": "1|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 1,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Mega Lucario ex",
+        "losses": 29,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 3,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "candidate": {
+        "archetype": "Alakazam Dudunsparce",
+        "deck_index": 1,
+        "deck_label": "Alakazam Dudunsparce / Rank 1 / Cerys Jones Rank 1",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "1|Mega Lucario ex",
+        "losses": 29,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 1,
+        "win_rate": 0.03333333333333333,
+        "wins": 1
+      },
+      "delta": {
+        "draws": -1,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": -2,
+        "win_rate": 0.03333333333333333,
+        "wins": 1
+      },
+      "key": "1|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Crustle",
+        "losses": 7,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.7666666666666667,
+        "wins": 23
+      },
+      "candidate": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Crustle",
+        "losses": 12,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.6,
+        "wins": 18
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 5,
+        "timeouts": 0,
+        "win_rate": -0.16666666666666674,
+        "wins": -5
+      },
+      "key": "2|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Iono's Bellibolt ex",
+        "losses": 12,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.6,
+        "wins": 18
+      },
+      "candidate": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Iono's Bellibolt ex",
+        "losses": 4,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.8666666666666667,
+        "wins": 26
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -8,
+        "timeouts": 0,
+        "win_rate": 0.2666666666666667,
+        "wins": 8
+      },
+      "key": "2|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Mega Abomasnow ex",
+        "losses": 13,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.5666666666666667,
+        "wins": 17
+      },
+      "candidate": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Mega Abomasnow ex",
+        "losses": 12,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.6,
+        "wins": 18
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -1,
+        "timeouts": 0,
+        "win_rate": 0.033333333333333326,
+        "wins": 1
+      },
+      "key": "2|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Mega Lucario ex",
+        "losses": 20,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 10
+      },
+      "candidate": {
+        "archetype": "Crustle",
+        "deck_index": 2,
+        "deck_label": "Crustle / Rank 2 / Rahul Reddy Rank 2",
+        "draws": 1,
+        "errors": 0,
+        "games": 30,
+        "key": "2|Mega Lucario ex",
+        "losses": 26,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.1,
+        "wins": 3
+      },
+      "delta": {
+        "draws": 1,
+        "errors": 0,
+        "games": 0,
+        "losses": 6,
+        "timeouts": 0,
+        "win_rate": -0.2333333333333333,
+        "wins": -7
+      },
+      "key": "2|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Crustle",
+        "losses": 20,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 10
+      },
+      "candidate": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Crustle",
+        "losses": 19,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.36666666666666664,
+        "wins": 11
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -1,
+        "timeouts": 0,
+        "win_rate": 0.033333333333333326,
+        "wins": 1
+      },
+      "key": "3|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Iono's Bellibolt ex",
+        "losses": 15,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.5,
+        "wins": 15
+      },
+      "candidate": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Iono's Bellibolt ex",
+        "losses": 17,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.43333333333333335,
+        "wins": 13
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.06666666666666665,
+        "wins": -2
+      },
+      "key": "3|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Mega Abomasnow ex",
+        "losses": 27,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.1,
+        "wins": 3
+      },
+      "candidate": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Mega Abomasnow ex",
+        "losses": 20,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 10
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -7,
+        "timeouts": 0,
+        "win_rate": 0.2333333333333333,
+        "wins": 7
+      },
+      "key": "3|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Mega Lucario ex",
+        "losses": 25,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.16666666666666666,
+        "wins": 5
+      },
+      "candidate": {
+        "archetype": "Dragapult Dusknoir",
+        "deck_index": 3,
+        "deck_label": "Dragapult Dusknoir / Rank 3 / Justin Newdorf Rank 3",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "3|Mega Lucario ex",
+        "losses": 23,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.23333333333333334,
+        "wins": 7
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -2,
+        "timeouts": 0,
+        "win_rate": 0.06666666666666668,
+        "wins": 2
+      },
+      "key": "3|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Crustle",
+        "losses": 16,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 14
+      },
+      "candidate": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Crustle",
+        "losses": 16,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 14
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": 0,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "key": "4|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Iono's Bellibolt ex",
+        "losses": 8,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.7333333333333333,
+        "wins": 22
+      },
+      "candidate": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Iono's Bellibolt ex",
+        "losses": 10,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.6666666666666666,
+        "wins": 20
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.06666666666666665,
+        "wins": -2
+      },
+      "key": "4|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Mega Abomasnow ex",
+        "losses": 24,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.2,
+        "wins": 6
+      },
+      "candidate": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Mega Abomasnow ex",
+        "losses": 24,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.2,
+        "wins": 6
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": 0,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "key": "4|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Mega Lucario ex",
+        "losses": 20,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 10
+      },
+      "candidate": {
+        "archetype": "Dragapult",
+        "deck_index": 4,
+        "deck_label": "Dragapult / Rank 4 / Kira Melville Rank 4",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "4|Mega Lucario ex",
+        "losses": 23,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.23333333333333334,
+        "wins": 7
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 3,
+        "timeouts": 0,
+        "win_rate": -0.09999999999999998,
+        "wins": -3
+      },
+      "key": "4|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Crustle",
+        "losses": 17,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.43333333333333335,
+        "wins": 13
+      },
+      "candidate": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Crustle",
+        "losses": 18,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4,
+        "wins": 12
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 1,
+        "timeouts": 0,
+        "win_rate": -0.033333333333333326,
+        "wins": -1
+      },
+      "key": "5|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Iono's Bellibolt ex",
+        "losses": 12,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.6,
+        "wins": 18
+      },
+      "candidate": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Iono's Bellibolt ex",
+        "losses": 16,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 14
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 4,
+        "timeouts": 0,
+        "win_rate": -0.1333333333333333,
+        "wins": -4
+      },
+      "key": "5|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Mega Abomasnow ex",
+        "losses": 25,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.16666666666666666,
+        "wins": 5
+      },
+      "candidate": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Mega Abomasnow ex",
+        "losses": 24,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.2,
+        "wins": 6
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -1,
+        "timeouts": 0,
+        "win_rate": 0.033333333333333354,
+        "wins": 1
+      },
+      "key": "5|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Mega Lucario ex",
+        "losses": 23,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.23333333333333334,
+        "wins": 7
+      },
+      "candidate": {
+        "archetype": "Dragapult Dudunsparce",
+        "deck_index": 5,
+        "deck_label": "Dragapult Dudunsparce / Rank 9 / Alex Engeriser Rank 9",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "5|Mega Lucario ex",
+        "losses": 22,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.26666666666666666,
+        "wins": 8
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -1,
+        "timeouts": 0,
+        "win_rate": 0.033333333333333326,
+        "wins": 1
+      },
+      "key": "5|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Crustle",
+        "losses": 16,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 14
+      },
+      "candidate": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Crustle",
+        "losses": 18,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4,
+        "wins": 12
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.06666666666666665,
+        "wins": -2
+      },
+      "key": "6|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Iono's Bellibolt ex",
+        "losses": 13,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.5666666666666667,
+        "wins": 17
+      },
+      "candidate": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Iono's Bellibolt ex",
+        "losses": 13,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.5666666666666667,
+        "wins": 17
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": 0,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "key": "6|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Mega Abomasnow ex",
+        "losses": 13,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.5666666666666667,
+        "wins": 17
+      },
+      "candidate": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Mega Abomasnow ex",
+        "losses": 16,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 14
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 3,
+        "timeouts": 0,
+        "win_rate": -0.09999999999999998,
+        "wins": -3
+      },
+      "key": "6|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Mega Lucario ex",
+        "losses": 22,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.26666666666666666,
+        "wins": 8
+      },
+      "candidate": {
+        "archetype": "Hydrapple",
+        "deck_index": 6,
+        "deck_label": "Hydrapple / Rank 10 / Cody Hope Rank 10",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "6|Mega Lucario ex",
+        "losses": 22,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.26666666666666666,
+        "wins": 8
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": 0,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "key": "6|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Crustle",
+        "losses": 16,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.4666666666666667,
+        "wins": 14
+      },
+      "candidate": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Crustle",
+        "losses": 22,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.26666666666666666,
+        "wins": 8
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 6,
+        "timeouts": 0,
+        "win_rate": -0.2,
+        "wins": -6
+      },
+      "key": "7|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Iono's Bellibolt ex",
+        "losses": 12,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.6,
+        "wins": 18
+      },
+      "candidate": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Iono's Bellibolt ex",
+        "losses": 10,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.6666666666666666,
+        "wins": 20
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -2,
+        "timeouts": 0,
+        "win_rate": 0.06666666666666665,
+        "wins": 2
+      },
+      "key": "7|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Mega Abomasnow ex",
+        "losses": 23,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.23333333333333334,
+        "wins": 7
+      },
+      "candidate": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Mega Abomasnow ex",
+        "losses": 21,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.3,
+        "wins": 9
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -2,
+        "timeouts": 0,
+        "win_rate": 0.06666666666666665,
+        "wins": 2
+      },
+      "key": "7|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Mega Lucario ex",
+        "losses": 20,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 10
+      },
+      "candidate": {
+        "archetype": "Raging Bolt Ogerpon",
+        "deck_index": 7,
+        "deck_label": "Raging Bolt Ogerpon / Rank 11 / Larry Russano Rank 11",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "7|Mega Lucario ex",
+        "losses": 22,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.26666666666666666,
+        "wins": 8
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.06666666666666665,
+        "wins": -2
+      },
+      "key": "7|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Crustle",
+        "losses": 19,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.36666666666666664,
+        "wins": 11
+      },
+      "candidate": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Crustle",
+        "losses": 15,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.5,
+        "wins": 15
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -4,
+        "timeouts": 0,
+        "win_rate": 0.13333333333333336,
+        "wins": 4
+      },
+      "key": "8|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Iono's Bellibolt ex",
+        "losses": 6,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.8,
+        "wins": 24
+      },
+      "candidate": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Iono's Bellibolt ex",
+        "losses": 8,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.7333333333333333,
+        "wins": 22
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.06666666666666676,
+        "wins": -2
+      },
+      "key": "8|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Mega Abomasnow ex",
+        "losses": 20,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.3333333333333333,
+        "wins": 10
+      },
+      "candidate": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Mega Abomasnow ex",
+        "losses": 22,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.26666666666666666,
+        "wins": 8
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 2,
+        "timeouts": 0,
+        "win_rate": -0.06666666666666665,
+        "wins": -2
+      },
+      "key": "8|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Mega Lucario ex",
+        "losses": 19,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.36666666666666664,
+        "wins": 11
+      },
+      "candidate": {
+        "archetype": "Dragapult Blaziken",
+        "deck_index": 8,
+        "deck_label": "Dragapult Blaziken / Rank 18 / Ivan Lukens Rank 18",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "8|Mega Lucario ex",
+        "losses": 15,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.5,
+        "wins": 15
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -4,
+        "timeouts": 0,
+        "win_rate": 0.13333333333333336,
+        "wins": 4
+      },
+      "key": "8|Mega Lucario ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Crustle",
+        "losses": 15,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.5,
+        "wins": 15
+      },
+      "candidate": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Crustle",
+        "losses": 15,
+        "opponent": "Crustle",
+        "timeouts": 0,
+        "win_rate": 0.5,
+        "wins": 15
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 0,
+        "timeouts": 0,
+        "win_rate": 0.0,
+        "wins": 0
+      },
+      "key": "9|Crustle"
+    },
+    {
+      "baseline": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Iono's Bellibolt ex",
+        "losses": 14,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.5333333333333333,
+        "wins": 16
+      },
+      "candidate": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Iono's Bellibolt ex",
+        "losses": 11,
+        "opponent": "Iono's Bellibolt ex",
+        "timeouts": 0,
+        "win_rate": 0.6333333333333333,
+        "wins": 19
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": -3,
+        "timeouts": 0,
+        "win_rate": 0.09999999999999998,
+        "wins": 3
+      },
+      "key": "9|Iono's Bellibolt ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Mega Abomasnow ex",
+        "losses": 17,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.43333333333333335,
+        "wins": 13
+      },
+      "candidate": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Mega Abomasnow ex",
+        "losses": 21,
+        "opponent": "Mega Abomasnow ex",
+        "timeouts": 0,
+        "win_rate": 0.3,
+        "wins": 9
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 4,
+        "timeouts": 0,
+        "win_rate": -0.13333333333333336,
+        "wins": -4
+      },
+      "key": "9|Mega Abomasnow ex"
+    },
+    {
+      "baseline": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Mega Lucario ex",
+        "losses": 21,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.3,
+        "wins": 9
+      },
+      "candidate": {
+        "archetype": "Ogerpon Box",
+        "deck_index": 9,
+        "deck_label": "Ogerpon Box / Rank 22 / Matthew Hubbard Rank 22",
+        "draws": 0,
+        "errors": 0,
+        "games": 30,
+        "key": "9|Mega Lucario ex",
+        "losses": 27,
+        "opponent": "Mega Lucario ex",
+        "timeouts": 0,
+        "win_rate": 0.1,
+        "wins": 3
+      },
+      "delta": {
+        "draws": 0,
+        "errors": 0,
+        "games": 0,
+        "losses": 6,
+        "timeouts": 0,
+        "win_rate": -0.19999999999999998,
+        "wins": -6
+      },
+      "key": "9|Mega Lucario ex"
+    }
+  ],
+  "overall_delta": {
+    "draws": 4,
+    "errors": 0,
+    "games": 0,
+    "losses": 11,
+    "timeouts": 1,
+    "win_rate": -0.013888888888888895,
+    "wins": -15
+  }
+}

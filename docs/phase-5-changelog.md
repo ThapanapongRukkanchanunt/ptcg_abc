@@ -1992,8 +1992,10 @@ Decision:
   comparisons stay valid.
 - Neural value/Q/tactical priors are opt-in until an ERAWAN benchmark proves
   they improve the required 9x4 gate.
-- PPO should start from `models/rl/phase5_generalist_policy_13deck_10k.pt`
-  after the 13-deck mixed supervised/value train completes.
+- PPO should start only from a checkpoint that is stable on the required 9x4
+  gate; the later 13-deck comparison below supersedes the original assumption
+  that `models/rl/phase5_generalist_policy_13deck_10k.pt` would become that
+  seed.
 
 ## 2026-07-01 - ERAWAN 13-Deck Data Sync Unblock
 
@@ -2042,6 +2044,63 @@ Decision:
 - Added a regression test that blocks `lxml`, imports the CLI, and parses
   `phase5-compare-benchmarks`.
 
+## 2026-07-02 - Phase 5 13-Deck Generalist Promotion Comparison
+
+Artifacts:
+
+- `reports/phase5_generalist_13deck_vs_10k_comparison.json`
+- `reports/phase5_generalist_13deck_vs_10k_comparison.md`
+
+Comparison:
+
+- Baseline: `reports/phase5_generalist_search_30g.json`, the current
+  `phase5-search` path using `models/rl/phase5_generalist_policy_10k.pt`.
+- Candidate: `reports/phase5_generalist_13deck_search_30g.json`, the
+  `phase5-search` path using `models/rl/phase5_generalist_policy_13deck_10k.pt`.
+- Baseline: 414 / 1,080 wins, 0.383 win rate, 1 draw, 5 timeouts, 0 errors.
+- Candidate: 399 / 1,080 wins, 0.369 win rate, 5 draws, 6 timeouts, 0 errors.
+- Overall delta: -15 wins, -0.014 win rate, +4 draws, +1 timeout, +0 errors.
+
+Deck deltas:
+
+- Improved:
+  - Dragapult Dusknoir: +8 wins, +0.067 win rate.
+  - Dragapult Blaziken: +4 wins, +0.033 win rate.
+- Flat:
+  - Alakazam Dudunsparce: +0 wins, +0.000 win rate, still 4 / 120.
+- Regressed:
+  - Ogerpon Box: -7 wins, -0.058 win rate.
+  - Hydrapple: -5 wins, -0.042 win rate.
+  - Dragapult: -5 wins, -0.042 win rate.
+  - Raging Bolt Ogerpon: -4 wins, -0.033 win rate.
+  - Crustle: -3 wins, -0.025 win rate.
+  - Dragapult Dudunsparce: -3 wins, -0.025 win rate.
+
+Largest matchup swings:
+
+- Positive:
+  - Crustle vs Iono's Bellibolt ex: +8 wins.
+  - Dragapult Dusknoir vs Mega Abomasnow ex: +7 wins.
+  - Dragapult Blaziken vs Crustle: +4 wins.
+  - Dragapult Blaziken vs Mega Lucario ex: +4 wins.
+- Negative:
+  - Crustle vs Mega Lucario ex: -7 wins.
+  - Ogerpon Box vs Mega Lucario ex: -6 wins.
+  - Raging Bolt Ogerpon vs Crustle: -6 wins.
+  - Crustle mirror: -5 wins.
+
+Conclusion:
+
+- `models/rl/phase5_generalist_policy_13deck_10k.pt` is clean enough to keep as
+  a training artifact but is not promotable as the default required-gate model.
+- Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
+  current best inference path.
+- Do not start PPO from the 13-deck checkpoint as the mainline path until a
+  targeted follow-up recovers the required 9x4 benchmark.
+- The next training slice should add targeted retention/weighting for the
+  required 9x4 gate and the known weak Alakazam Dudunsparce line, rather than
+  treating the 13-deck expansion as a replacement objective.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2054,10 +2113,10 @@ Important model artifacts:
 - `models/rl/phase5_symbolic_policy_10shards_pairwise_baseline_tiny.pt`
 - `models/rl/phase5_generalist_policy_smoke.pt`
 - `models/rl/phase5_generalist_policy_10k.pt`
-- Pending next checkpoint:
+- Non-promoted 13-deck expansion checkpoint:
   `models/rl/phase5_generalist_policy_13deck_10k.pt`
-- Pending PPO checkpoint:
-  `models/rl/phase5_generalist_policy_13deck_ppo.pt`
+- PPO should wait for a promotable checkpoint; do not use
+  `models/rl/phase5_generalist_policy_13deck_10k.pt` as the mainline PPO seed.
 
 Important dataset artifacts:
 
@@ -2087,15 +2146,14 @@ File-retention decision:
 - On ERAWAN, archive the four untracked
   `reports/phase5_generalist_search_*` artifacts that block pulling `586cedc`,
   then rerun `git pull --ff-only origin main`.
-- Verify the completed 13-deck 10k shard summaries and line counts.
-- After the 13-deck 10k shards pass the data gate, run the bounded
-  `phase5_generalist_policy_13deck_smoke.pt` train and then the full
-  `phase5_generalist_policy_13deck_10k.pt` train.
-- After the 13-deck generalist train passes the required 9x4 gate, run the
-  13-deck league evaluation and compare reports with
-  `phase5-compare-benchmarks`.
-- Start Phase 5 PPO only after the 13-deck generalist checkpoint is stable;
-  run a bounded `SELFPLAY_LIMIT` smoke first.
+- Record the completed 13-deck 10k shard summaries and 13-deck generalist train
+  report if those ERAWAN artifacts are available.
+- Inspect the full candidate benchmark report telemetry if available, especially
+  search truncation and timeout changes.
+- Keep optional 13-deck league evaluation as a breadth diagnostic, not a
+  promotion gate, because the required 9x4 comparison regressed.
+- Start Phase 5 PPO only after a follow-up checkpoint recovers or improves the
+  required 9x4 benchmark.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
 - Add targeted weakness data or weighting for Alakazam Dudunsparce before any

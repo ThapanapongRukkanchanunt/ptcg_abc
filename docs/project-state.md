@@ -143,10 +143,21 @@ This is the resume point for the project. Start here after switching machines, c
   `reports/phase5_generalist_search_10g.md`,
   `reports/phase5_generalist_search_30g.json`, and
   `reports/phase5_generalist_search_30g.md`.
-- Next action: archive those four untracked ERAWAN report files, rerun
-  `git pull --ff-only origin main`, verify both 13-deck shard summaries and
-  line counts, then start the bounded
-  `phase5_generalist_policy_13deck_smoke.pt` train.
+- Latest 13-deck generalist comparison: the expanded
+  `models/rl/phase5_generalist_policy_13deck_10k.pt` checkpoint was clean but
+  not promotable on the required 9x4 30-game gate. Baseline
+  `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` reached
+  414 / 1,080 wins, 0.383 win rate, 5 timeouts, and 0 errors. Candidate
+  `phase5-search` with `models/rl/phase5_generalist_policy_13deck_10k.pt`
+  reached 399 / 1,080 wins, 0.369 win rate, 6 timeouts, and 0 errors.
+  Overall delta: -15 wins, -0.014 win rate, +1 timeout, +0 errors.
+- Current decision: keep `phase5_generalist_policy_10k.pt` as the default
+  `phase5-search` prior. Treat the 13-deck checkpoint as a retained training
+  artifact, not a promotion candidate or mainline PPO seed.
+- Next action: inspect candidate benchmark telemetry if available, record the
+  13-deck shard summaries and train report if available, then run a targeted
+  follow-up that preserves the required 9x4 gate while addressing Alakazam
+  Dudunsparce and the largest 13-deck regression matchups.
 
 ## Phase Log
 
@@ -157,7 +168,7 @@ This is the resume point for the project. Start here after switching machines, c
 | Phase 2: Deck corpus exports | Complete | `collect-corpus` writes JSONL, CSV, TXT decklists, and manifest under `data/processed/<snapshot-date>/`. |
 | Phase 3: Generic rule-based agent | Complete | Combined generic scorer, random-agent evaluation, archetype sweep, final deck selection, and Kaggle submission bundle. |
 | Phase 4: Reinforcement learning workflow | Initial implementation | Rule-guided hybrid RL package, optional PyTorch actor/value BC backend, exported option ranker, workflow commands, and SLURM templates added. |
-| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck 10k self-play reported complete | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` is the current best inference path; ERAWAN sync and shard verification are next before 13-deck mixed training. |
+| Phase 5: Advanced RL strategy, training, and evaluation | 13-deck checkpoint not promoted | Cap-30 `phase5-search` with `phase5_generalist_policy_10k.pt` remains the current best inference path; the 13-deck checkpoint regressed by 15 wins on the required 30-game gate. |
 
 ## Completed Phase Details
 
@@ -725,15 +736,22 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   now imports `ptcg_abc.limitless` lazily only for `missing-limitless` and
   `collect-corpus`, after an ERAWAN compare attempt exposed a missing `lxml`
   import at top-level CLI load time.
-- The trainer already supports multiple self-play shards. Use
-  `scripts/slurm/phase5_generalist_train_13deck_10k.sbatch` after the 13-deck
-  shards complete to mix the 10-shard decision dataset, existing 9-deck 10k
-  self-play shards, and new 13-deck 10k self-play shards.
-- Keep the new artifacts explicit:
+- The trainer already supports multiple self-play shards, and the 13-deck
+  mixed train used explicit artifacts:
   `models/rl/phase5_generalist_policy_13deck_10k.pt` and
   `experiments/rl/phase5_generalist_train_report_13deck_10k.json`.
-- The 13-deck league data is a training expansion. The existing required 9x4
-  benchmark remains the first promotion gate for the new checkpoint.
+- The 13-deck checkpoint comparison against the current 30-game required gate
+  regressed from 414 / 1,080 wins (0.383) to 399 / 1,080 wins (0.369), with
+  0 errors in both reports. It improved Dragapult Dusknoir (+8 wins) and
+  Dragapult Blaziken (+4 wins), left Alakazam Dudunsparce flat at 4 / 120, and
+  regressed Ogerpon Box (-7), Hydrapple (-5), Dragapult (-5), Raging Bolt
+  Ogerpon (-4), Crustle (-3), and Dragapult Dudunsparce (-3).
+- The 13-deck checkpoint is not promoted. Keep
+  `models/rl/phase5_generalist_policy_10k.pt` as the default `phase5-search`
+  prior, and do not use the 13-deck checkpoint as the mainline PPO seed.
+- The 13-deck league data remains useful as training expansion and breadth
+  diagnostic material. The existing required 9x4 benchmark remains the first
+  promotion gate for follow-up checkpoints.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
