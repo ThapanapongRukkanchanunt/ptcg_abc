@@ -2216,6 +2216,37 @@ Current limitation:
   `deck-01.pt`, deck 2 loads `deck-02.pt`, and so on during full-agent league
   evaluation.
 
+## 2026-07-02 - Alpha League Rule-Bootstrap Smoke Result
+
+ERAWAN result:
+
+- Recorded report artifact:
+  `experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json`.
+- Command path: `scripts/slurm/phase5_alpha_rule_bootstrap.sbatch` with
+  `ITERATION=0`, `GAMES_PER_PAIR=1`, `MAX_STEPS=300`, `DECK_POOL=league-13`,
+  and rule-agent gameplay.
+- Output trajectory path:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
+- Aggregate: 169 / 169 games started, 25,349 trajectory steps, 169 ordered
+  deck pairs, 1 draw, 5 timeouts, 0 errors, and no error records.
+- Deck coverage was balanced for the smoke: every one of the 13 league decks
+  appeared in 26 games.
+- The report marks `cleanup_required=true` and keeps the data policy explicit:
+  one active raw window, 400 GB practical capacity, raw training data deleted
+  after successful model update, and full raw evaluation trajectories disabled
+  by default.
+
+Conclusion:
+
+- The rule-based 13 x 13 bootstrap path is valid for smoke scale.
+- Because this was `GAMES_PER_PAIR=1`, use it first for the bounded specialist
+  train smoke (`DECISION_LIMIT=2000`, `SELFPLAY_LIMIT=2000`) before deciding
+  whether to run the default `GAMES_PER_PAIR=2` bootstrap or advance directly
+  to the first full specialist update.
+- Do not clean
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/`
+  until the deck-specialist update report and checkpoints exist.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2271,6 +2302,10 @@ File-retention decision:
   required 9x4 benchmark.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
-- Implement the full-agent runtime, rule-based 13-deck bootstrap generator,
-  deck-specialist offline trainer, league-iteration runner, mandatory raw-data
-  cleanup, and 13 x 13 x 30 full-agent-vs-rule evaluation runner.
+- Run the bounded deck-specialist train smoke from
+  `experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json` and
+  the raw trajectory path above.
+- Implement per-deck model dispatch for 13 x 13 x 30 full-agent-vs-rule
+  evaluation so each specialist checkpoint is used for its own deck.
+- Implement the learned-agent league-iteration runner for the 100-games-per-deck
+  AlphaStar-like update loop.

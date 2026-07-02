@@ -799,6 +799,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   - `scripts/slurm/phase5_alpha_rule_bootstrap.sbatch`,
   - `scripts/slurm/phase5_deck_specialists_train.sbatch`,
   - `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch`.
+- First league-track ERAWAN smoke passed on July 2, 2026:
+  `experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json`
+  records `ITERATION=0`, `GAMES_PER_PAIR=1`, `MAX_STEPS=300`, rule-agent
+  13 x 13 bootstrap gameplay, 169 / 169 games started, 25,349 trajectory
+  steps, 1 draw, 5 timeouts, 0 errors, and balanced deck coverage at 26 games
+  per deck. The raw trajectory is
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
+  Do not clean this raw directory until the deck-specialist update report and
+  checkpoints exist.
+- Next league-track action: run the bounded deck-specialist training smoke with
+  `DECISION_LIMIT=2000` and `SELFPLAY_LIMIT=2000`, then inspect
+  `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`
+  and `models/rl/phase5_league_alpha/iter-0000/specialists/`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
