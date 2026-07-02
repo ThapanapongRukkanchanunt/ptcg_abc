@@ -78,6 +78,12 @@ from ptcg_abc.rl.phase5_diagnostics import (
     write_trace_diagnostic_markdown,
 )
 from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
+from ptcg_abc.rl.phase5_alpha_league import (
+    PHASE5_ALPHA_DECK_INDICES,
+    cleanup_phase5_alpha_raw_train,
+    generate_phase5_alpha_rule_bootstrap,
+    train_phase5_deck_specialists,
+)
 from ptcg_abc.rl.phase5_reports import compare_benchmark_reports
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
@@ -736,6 +742,7 @@ def command_rl_train_phase5_generalist(args: argparse.Namespace) -> int:
             tactical_loss_weight=args.tactical_loss_weight,
             decision_limit=decision_limit,
             selfplay_limit=selfplay_limit,
+            deck_index_filter=args.deck_index_filter,
         )
     except Phase5PolicyUnavailable as exc:
         print(str(exc), file=sys.stderr)
@@ -753,7 +760,7 @@ def command_rl_rollout(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.agent in {"phase5-symbolic", "phase5-search"} and model_path is None:
+    if args.agent in {"phase5-symbolic", "phase5-search", "phase5-full"} and model_path is None:
         print(
             f"Phase 5 checkpoint not found at {args.model}.",
             file=sys.stderr,
@@ -1004,6 +1011,112 @@ def command_rl_train_phase5_ppo(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_rl_generate_phase5_alpha_bootstrap(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    iteration_dir = args.iteration_dir
+    if iteration_dir is None:
+        iteration_dir = args.league_root / "iterations" / f"iter-{args.iteration:04d}"
+    report_json = args.report_json
+    if report_json is None:
+        report_json = (
+            Path("experiments")
+            / "rl"
+            / "phase5_league_alpha"
+            / f"iter-{args.iteration:04d}_rule_bootstrap_report.json"
+        )
+    try:
+        summary = generate_phase5_alpha_rule_bootstrap(
+            sample_dir=args.sample_dir,
+            iteration_dir=iteration_dir,
+            report_path=report_json,
+            games_per_pair=args.games_per_pair,
+            max_steps=args.max_steps,
+            deck_indices=args.deck_index or PHASE5_ALPHA_DECK_INDICES,
+            game_offset=args.game_offset,
+            allow_existing_raw=args.allow_existing_raw,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    print(f"Wrote Phase 5 Alpha bootstrap report to {report_json}.")
+    return 0 if summary.selfplay.get("errors", 0) == 0 else 1
+
+
+def command_rl_train_phase5_deck_specialists(args: argparse.Namespace) -> int:
+    decision_dataset = None if args.no_decision_dataset else args.decision_dataset
+    if decision_dataset is not None and not decision_dataset.exists():
+        print(f"Phase 5 decision dataset not found at {decision_dataset}.", file=sys.stderr)
+        return 2
+    selfplay_datasets = list(args.selfplay_dataset or [])
+    for path in selfplay_datasets:
+        if not path.exists():
+            print(f"Phase 5 self-play dataset not found at {path}.", file=sys.stderr)
+            return 2
+    decision_limit = None if args.decision_limit == 0 else args.decision_limit
+    selfplay_limit = None if args.selfplay_limit == 0 else args.selfplay_limit
+    try:
+        summary = train_phase5_deck_specialists(
+            decision_dataset_path=decision_dataset,
+            selfplay_dataset_paths=selfplay_datasets,
+            checkpoint_dir=args.checkpoint_dir,
+            report_dir=args.report_dir,
+            aggregate_report_path=args.report_json,
+            deck_indices=args.deck_index or PHASE5_ALPHA_DECK_INDICES,
+            allow_empty_decks=args.allow_empty_decks,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            max_entities=args.max_entities,
+            max_actions=args.max_actions,
+            max_previous_actions=args.max_previous_actions,
+            d_model=args.d_model,
+            target_source=args.target_source,
+            rule_demo_target_source=args.rule_demo_target_source,
+            changed_weight=args.changed_weight,
+            unchanged_weight=args.unchanged_weight,
+            search_decision_weight=args.search_decision_weight,
+            rule_demo_weight=args.rule_demo_weight,
+            selfplay_weight=args.selfplay_weight,
+            pairwise_changed=args.pairwise_changed,
+            pairwise_weight=args.pairwise_weight,
+            pairwise_margin=args.pairwise_margin,
+            pairwise_negatives=args.pairwise_negatives,
+            value_loss_weight=args.value_loss_weight,
+            action_value_loss_weight=args.action_value_loss_weight,
+            tactical_loss_weight=args.tactical_loss_weight,
+            decision_limit=decision_limit,
+            selfplay_limit=selfplay_limit,
+        )
+    except (Phase5PolicyUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_clean_phase5_alpha_iteration(args: argparse.Namespace) -> int:
+    try:
+        summary = cleanup_phase5_alpha_raw_train(
+            iteration_dir=args.iteration_dir,
+            cleanup_report_path=args.report_json,
+            update_report_path=args.update_report,
+            require_update_report=not args.allow_missing_update_report,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    print(f"Wrote Phase 5 Alpha cleanup report to {args.report_json}.")
+    return 0
+
+
 def command_rl_evaluate(args: argparse.Namespace) -> int:
     if not args.sample_dir.exists():
         print(
@@ -1013,7 +1126,7 @@ def command_rl_evaluate(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.agent in {"phase5-symbolic", "phase5-search"} and model_path is None:
+    if args.agent in {"phase5-symbolic", "phase5-search", "phase5-full"} and model_path is None:
         print(
             f"Phase 5 checkpoint not found at {args.model}.",
             file=sys.stderr,
@@ -1053,7 +1166,7 @@ def command_rl_evaluate_phase5_league(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.agent in {"phase5-symbolic", "phase5-search"} and model_path is None:
+    if args.agent in {"phase5-symbolic", "phase5-search", "phase5-full"} and model_path is None:
         print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
         return 2
     result = run_phase5_league_benchmark(
@@ -1763,6 +1876,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="Maximum self-play trajectory steps per epoch. Use 0 for the full input.",
     )
+    rl_train_phase5_generalist.add_argument(
+        "--deck-index-filter",
+        type=int,
+        default=None,
+        help="Optional Phase 5 league deck index to train from.",
+    )
     rl_train_phase5_generalist.set_defaults(func=command_rl_train_phase5_generalist)
 
     rl_rollout = subparsers.add_parser(
@@ -1776,7 +1895,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_rollout.add_argument(
         "--agent",
-        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search"],
+        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search", "phase5-full"],
         default="hybrid",
     )
     rl_rollout.add_argument(
@@ -1880,6 +1999,170 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     rl_phase5_selfplay.set_defaults(func=command_rl_generate_phase5_search_selfplay)
+
+    rl_alpha_bootstrap = subparsers.add_parser(
+        "rl-generate-phase5-alpha-bootstrap",
+        help="Generate rule-agent 13-deck bootstrap trajectories for the Alpha league track.",
+    )
+    rl_alpha_bootstrap.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_alpha_bootstrap.add_argument("--iteration", type=int, default=0)
+    rl_alpha_bootstrap.add_argument(
+        "--league-root",
+        type=_path,
+        default=Path("/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha"),
+    )
+    rl_alpha_bootstrap.add_argument(
+        "--iteration-dir",
+        type=_path,
+        default=None,
+        help="Explicit iteration directory. Defaults under --league-root.",
+    )
+    rl_alpha_bootstrap.add_argument(
+        "--games-per-pair",
+        type=int,
+        default=2,
+        help="Rule-bootstrap games for each ordered 13-deck pair.",
+    )
+    rl_alpha_bootstrap.add_argument("--game-offset", type=int, default=0)
+    rl_alpha_bootstrap.add_argument("--max-steps", type=int, default=600)
+    rl_alpha_bootstrap.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Phase 5 league deck index to include. Repeat; defaults to all 13.",
+    )
+    rl_alpha_bootstrap.add_argument(
+        "--allow-existing-raw",
+        action="store_true",
+        help="Allow writing into an existing nonempty raw_train directory.",
+    )
+    rl_alpha_bootstrap.add_argument(
+        "--report-json",
+        type=_path,
+        default=None,
+        help="Bootstrap summary path. Defaults under experiments/rl/phase5_league_alpha.",
+    )
+    rl_alpha_bootstrap.set_defaults(func=command_rl_generate_phase5_alpha_bootstrap)
+
+    rl_train_specialists = subparsers.add_parser(
+        "rl-train-phase5-deck-specialists",
+        help="Train one Phase 5 specialist checkpoint per selected league deck.",
+    )
+    rl_train_specialists.add_argument(
+        "--decision-dataset",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_search_decisions_10shards.jsonl",
+    )
+    rl_train_specialists.add_argument(
+        "--no-decision-dataset",
+        action="store_true",
+        help="Train specialists only from trajectory datasets.",
+    )
+    rl_train_specialists.add_argument(
+        "--selfplay-dataset",
+        type=_path,
+        action="append",
+        default=[],
+        help="Phase 5 trajectory JSONL. Repeat for multiple shards.",
+    )
+    rl_train_specialists.add_argument(
+        "--checkpoint-dir",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_league_alpha" / "specialists",
+    )
+    rl_train_specialists.add_argument(
+        "--report-dir",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_league_alpha" / "specialists",
+    )
+    rl_train_specialists.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments")
+        / "rl"
+        / "phase5_league_alpha"
+        / "deck_specialists_report.json",
+    )
+    rl_train_specialists.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Phase 5 league deck index to train. Repeat; defaults to all 13.",
+    )
+    rl_train_specialists.add_argument(
+        "--allow-empty-decks",
+        action="store_true",
+        help="Write reports even if a selected deck has zero examples.",
+    )
+    rl_train_specialists.add_argument("--epochs", type=int, default=1)
+    rl_train_specialists.add_argument("--batch-size", type=int, default=64)
+    rl_train_specialists.add_argument("--learning-rate", type=float, default=1.0e-4)
+    rl_train_specialists.add_argument("--d-model", type=int, default=128)
+    rl_train_specialists.add_argument("--max-entities", type=int, default=96)
+    rl_train_specialists.add_argument("--max-actions", type=int, default=128)
+    rl_train_specialists.add_argument("--max-previous-actions", type=int, default=16)
+    rl_train_specialists.add_argument(
+        "--target-source",
+        choices=["search", "baseline", "rule"],
+        default="search",
+    )
+    rl_train_specialists.add_argument(
+        "--rule-demo-target-source",
+        choices=["baseline", "rule"],
+        default="baseline",
+    )
+    rl_train_specialists.add_argument("--changed-weight", type=float, default=2.0)
+    rl_train_specialists.add_argument("--unchanged-weight", type=float, default=0.5)
+    rl_train_specialists.add_argument("--search-decision-weight", type=float, default=1.0)
+    rl_train_specialists.add_argument("--rule-demo-weight", type=float, default=0.25)
+    rl_train_specialists.add_argument("--selfplay-weight", type=float, default=1.0)
+    rl_train_specialists.add_argument("--pairwise-changed", action="store_true")
+    rl_train_specialists.add_argument("--pairwise-weight", type=float, default=0.25)
+    rl_train_specialists.add_argument("--pairwise-margin", type=float, default=1.0)
+    rl_train_specialists.add_argument(
+        "--pairwise-negatives",
+        choices=["all", "baseline"],
+        default="baseline",
+    )
+    rl_train_specialists.add_argument("--value-loss-weight", type=float, default=0.25)
+    rl_train_specialists.add_argument(
+        "--action-value-loss-weight",
+        type=float,
+        default=0.25,
+    )
+    rl_train_specialists.add_argument("--tactical-loss-weight", type=float, default=0.05)
+    rl_train_specialists.add_argument("--decision-limit", type=int, default=0)
+    rl_train_specialists.add_argument("--selfplay-limit", type=int, default=0)
+    rl_train_specialists.set_defaults(func=command_rl_train_phase5_deck_specialists)
+
+    rl_alpha_clean = subparsers.add_parser(
+        "rl-clean-phase5-alpha-iteration",
+        help="Remove raw Alpha league training data after a successful update.",
+    )
+    rl_alpha_clean.add_argument("--iteration-dir", type=_path, required=True)
+    rl_alpha_clean.add_argument(
+        "--update-report",
+        type=_path,
+        default=None,
+        help="Training/update report proving raw data was consumed.",
+    )
+    rl_alpha_clean.add_argument(
+        "--allow-missing-update-report",
+        action="store_true",
+        help="Allow cleanup without an update report. Use only for failed smoke cleanup.",
+    )
+    rl_alpha_clean.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_league_alpha" / "cleanup_report.json",
+    )
+    rl_alpha_clean.set_defaults(func=command_rl_clean_phase5_alpha_iteration)
 
     rl_search = subparsers.add_parser(
         "rl-generate-search-data",
@@ -2145,7 +2428,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate.add_argument(
         "--agent",
-        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search"],
+        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search", "phase5-full"],
         default="hybrid",
     )
     rl_evaluate.add_argument(
@@ -2185,7 +2468,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate_league.add_argument(
         "--agent",
-        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search"],
+        choices=["rule", "rl", "hybrid", "phase5-symbolic", "phase5-search", "phase5-full"],
         default="phase5-search",
     )
     rl_evaluate_league.add_argument(

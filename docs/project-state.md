@@ -171,6 +171,19 @@ This is the resume point for the project. Start here after switching machines, c
   generator, deck-specialist offline trainer, league-iteration runner with
   mandatory post-update raw-data cleanup, and 13 x 13 x 30 full-agent-vs-rule
   evaluation runner.
+- Latest implementation slice started that plan:
+  - added `src/ptcg_abc/rl/phase5_alpha_league.py`,
+  - added `phase5-full` as the public full-agent alias for the existing Phase 5
+    policy-plus-root-search runtime,
+  - added `rl-generate-phase5-alpha-bootstrap`,
+    `rl-train-phase5-deck-specialists`, and
+    `rl-clean-phase5-alpha-iteration`,
+  - added SLURM scripts for bootstrap, specialist train, and raw-data cleanup,
+  - added deck-index filtering to the mixed Phase 5 trainer so specialists can
+    train from shared JSONL inputs without copying huge per-deck datasets.
+- Current next code gap: 13 x 13 evaluation still accepts one model path. Add
+  per-deck model dispatch so each league deck loads its own specialist
+  checkpoint during full-agent-vs-rule evaluation.
 
 ## Phase Log
 
@@ -778,6 +791,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   successful model/policy update and report/checkpoint write. Keep only
   checkpoints, optimizer states, manifests, row counts, train reports,
   aggregate eval reports, comparison reports, and small sampled traces.
+- First league-track commands now exist:
+  - `rl-generate-phase5-alpha-bootstrap`,
+  - `rl-train-phase5-deck-specialists`,
+  - `rl-clean-phase5-alpha-iteration`.
+- First league-track SLURM scripts now exist:
+  - `scripts/slurm/phase5_alpha_rule_bootstrap.sbatch`,
+  - `scripts/slurm/phase5_deck_specialists_train.sbatch`,
+  - `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

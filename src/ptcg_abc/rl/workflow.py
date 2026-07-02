@@ -1368,9 +1368,9 @@ def _make_agent(
             attack_data=attack_data,
             checkpoint_path=model_path,
         )
-    if agent_kind == "phase5-search":
+    if agent_kind in {"phase5-search", "phase5-full"}:
         if opponent_deck_ids is None or sample_dir is None:
-            raise ValueError("phase5-search requires opponent_deck_ids and sample_dir.")
+            raise ValueError(f"{agent_kind} requires opponent_deck_ids and sample_dir.")
         return Phase5SearchPolicyAgent(
             deck_ids,
             opponent_deck_ids=opponent_deck_ids,

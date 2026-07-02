@@ -178,6 +178,7 @@ class Phase5GeneralistTrainingSummary:
     device: str
     decision_dataset_path: str | None
     selfplay_dataset_paths: list[str]
+    deck_index_filter: int | None
     search_decision_weight: float
     rule_demo_weight: float
     selfplay_weight: float
@@ -257,6 +258,18 @@ def iter_trajectory_jsonl(path: Path) -> Iterable[TrajectoryStep]:
             stripped = line.strip()
             if stripped:
                 yield TrajectoryStep.from_dict(json.loads(stripped))
+
+
+def _matches_deck_index_filter(
+    metadata: dict[str, Any],
+    deck_index_filter: int | None,
+) -> bool:
+    if deck_index_filter is None:
+        return True
+    try:
+        return int(metadata.get("deck_index", -1)) == int(deck_index_filter)
+    except (TypeError, ValueError):
+        return False
 
 
 def decision_frame_to_state(frame: DecisionFrame) -> GameState:
@@ -694,6 +707,7 @@ def train_phase5_generalist_policy(
     tactical_loss_weight: float = 0.05,
     decision_limit: int | None = None,
     selfplay_limit: int | None = None,
+    deck_index_filter: int | None = None,
 ) -> Phase5GeneralistTrainingSummary:
     if decision_dataset_path is None and not selfplay_dataset_paths:
         raise ValueError("Provide at least one decision or self-play dataset.")
@@ -792,6 +806,8 @@ def train_phase5_generalist_policy(
                 decision_frames_seen += 1
                 if decision_limit is not None and decision_frames_seen > decision_limit:
                     break
+                if not _matches_deck_index_filter(frame.reward_metadata, deck_index_filter):
+                    continue
                 previous_rows = decision_context.previous_rows(frame)
                 if search_decision_weight > 0.0:
                     search_record = phase5_symbolic_record_from_decision(
@@ -833,6 +849,11 @@ def train_phase5_generalist_policy(
                 if selfplay_limit is not None and selfplay_steps_seen >= selfplay_limit:
                     break
                 selfplay_steps_seen += 1
+                if not _matches_deck_index_filter(
+                    step.decision.reward_metadata,
+                    deck_index_filter,
+                ):
+                    continue
                 previous_rows = selfplay_context.previous_rows(step.decision)
                 record = phase5_symbolic_record_from_trajectory(
                     step,
@@ -882,6 +903,7 @@ def train_phase5_generalist_policy(
         "selfplay_dataset_paths": [
             str(path.as_posix()) for path in selfplay_dataset_paths
         ],
+        "deck_index_filter": deck_index_filter,
         "epochs": max(1, epochs),
         "batch_size": batch_size,
         "learning_rate": learning_rate,
@@ -939,6 +961,7 @@ def train_phase5_generalist_policy(
             str(decision_dataset_path.as_posix()) if decision_dataset_path else None
         ),
         selfplay_dataset_paths=[str(path.as_posix()) for path in selfplay_dataset_paths],
+        deck_index_filter=deck_index_filter,
         search_decision_weight=search_decision_weight,
         rule_demo_weight=rule_demo_weight,
         selfplay_weight=selfplay_weight,

@@ -2163,6 +2163,59 @@ Updated docs:
 - `docs/phase-5-erawan-runbook.md` now includes the AlphaStar-like league
   replacement track and mandatory cleanup rules.
 
+## 2026-07-02 - Phase 5 Alpha League First Implementation Slice
+
+Implementation:
+
+- Added `src/ptcg_abc/rl/phase5_alpha_league.py`, the first orchestration layer
+  for the AlphaStar-like league track.
+  - `generate_phase5_alpha_rule_bootstrap` wraps the existing trajectory
+    recorder with `agent_kind="rule"` over the 13-deck league pool.
+  - `train_phase5_deck_specialists` trains one Phase 5 checkpoint per selected
+    league deck from shared input datasets without copying large filtered data.
+  - `cleanup_phase5_alpha_raw_train` removes an iteration's `raw_train/`
+    directory only after an update report exists, and writes a cleanup report
+    with file and byte counts.
+- Added `phase5-full` as the public full-agent runtime alias. It currently maps
+  to the Phase 5 policy-plus-root-search implementation while giving the league
+  plan a stable agent name.
+- Added optional `deck_index_filter` support to the mixed Phase 5 trainer so
+  deck specialists can train directly from shared JSONL inputs.
+- Added CLI commands:
+  - `rl-generate-phase5-alpha-bootstrap`,
+  - `rl-train-phase5-deck-specialists`,
+  - `rl-clean-phase5-alpha-iteration`.
+- Added SLURM scripts:
+  - `scripts/slurm/phase5_alpha_rule_bootstrap.sbatch`,
+  - `scripts/slurm/phase5_deck_specialists_train.sbatch`,
+  - `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch`.
+- Added `tests/test_phase5_alpha_league.py` for CLI exposure, the
+  `phase5-full` agent alias, default deck indices, and guarded raw-data cleanup.
+
+Verification:
+
+- `py_compile` passed for:
+  - `src/ptcg_abc/cli.py`,
+  - `src/ptcg_abc/rl/workflow.py`,
+  - `src/ptcg_abc/rl/phase5_alpha_league.py`,
+  - `src/ptcg_abc/rl/phase5_symbolic_training.py`.
+- Unit tests passed:
+  - `tests.test_phase5_alpha_league`,
+  - `tests.test_phase5_full_agent_scaffolds`,
+  - `tests.test_rl_phase5_symbolic_training`.
+- Git Bash `bash -n` passed for:
+  - `scripts/slurm/phase5_alpha_rule_bootstrap.sbatch`,
+  - `scripts/slurm/phase5_deck_specialists_train.sbatch`,
+  - `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch`,
+  - `scripts/slurm/phase5_league_eval_conda.sbatch`.
+
+Current limitation:
+
+- The current 13 x 13 evaluation command still accepts a single model path.
+  The next code slice should add per-deck model dispatch so deck 1 loads
+  `deck-01.pt`, deck 2 loads `deck-02.pt`, and so on during full-agent league
+  evaluation.
+
 ## Artifact Notes
 
 Important model artifacts:
