@@ -806,12 +806,21 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   steps, 1 draw, 5 timeouts, 0 errors, and balanced deck coverage at 26 games
   per deck. The raw trajectory is
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
-  Do not clean this raw directory until the deck-specialist update report and
-  checkpoints exist.
-- Next league-track action: run the bounded deck-specialist training smoke with
-  `DECISION_LIMIT=2000` and `SELFPLAY_LIMIT=2000`, then inspect
+  This raw directory can now be cleaned because the deck-specialist smoke update
+  report and checkpoint paths exist.
+- First deck-specialist training smoke passed on July 2, 2026:
   `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`
-  and `models/rl/phase5_league_alpha/iter-0000/specialists/`.
+  records 13 / 13 specialist summaries and checkpoint paths under
+  `models/rl/phase5_league_alpha/iter-0000/specialists/`, CUDA, one epoch,
+  1,998 decision examples, 1,998 rule-demo examples, 2,000 self-play examples,
+  5,996 value examples, 2,069 action-value examples, 33,923 tactical examples,
+  358 changed examples, and 4 skipped no-target records. Decks 10-13 had zero
+  search-decision examples because the canonical search-decision dataset covers
+  only the original 9 tournament decks; those four sample decks relied on
+  bootstrap/self-play signals for this smoke.
+- Next league-track ERAWAN action: clean the smoke `raw_train/`, rerun
+  `ITERATION=0` rule bootstrap at `GAMES_PER_PAIR=2`, `MAX_STEPS=600`, then run
+  deck-specialist training without `DECISION_LIMIT` or `SELFPLAY_LIMIT`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

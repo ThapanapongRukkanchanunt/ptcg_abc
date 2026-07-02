@@ -2247,6 +2247,59 @@ Conclusion:
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/`
   until the deck-specialist update report and checkpoints exist.
 
+## 2026-07-02 - Alpha League Deck-Specialist Smoke Result
+
+Implementation:
+
+- Added `iteration` metadata to future `rl-train-phase5-deck-specialists`
+  aggregate reports, and wired `scripts/slurm/phase5_deck_specialists_train.sbatch`
+  to pass `--iteration "$ITERATION"`.
+
+Verification:
+
+- `py_compile` passed for `src/ptcg_abc/cli.py` and
+  `src/ptcg_abc/rl/phase5_alpha_league.py`.
+- `tests.test_phase5_alpha_league` passed with `PYTHONPATH=src`.
+- CLI help for `rl-train-phase5-deck-specialists` exposes `--iteration`.
+- Git Bash `bash -n` passed for
+  `scripts/slurm/phase5_deck_specialists_train.sbatch`.
+
+ERAWAN result:
+
+- Recorded report artifact:
+  `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`.
+- Command path: `scripts/slurm/phase5_deck_specialists_train.sbatch` with
+  `ITERATION=0`, `DECISION_LIMIT=2000`, `SELFPLAY_LIMIT=2000`, CUDA, one epoch,
+  and all 13 league decks.
+- Inputs:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards.jsonl`
+  plus
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
+- Output checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0000/specialists/deck-01.pt` through
+  `deck-13.pt`.
+- Aggregate: 13 / 13 specialist summaries with checkpoint paths, 1,998
+  decision examples, 1,998 rule-demo examples, 2,000 self-play examples, 5,996
+  value examples, 2,069 action-value examples, 33,923 tactical examples, 358
+  changed examples, and 4 skipped no-target records.
+- Accuracy ranged from 0.183 to 0.568, and final loss ranged from 1.013 to
+  3.012. These are smoke diagnostics, not promotion metrics.
+- Decks 10-13 had zero search-decision examples because the canonical
+  search-decision dataset covers the original 9 tournament decks; those four
+  sample decks trained from bootstrap/self-play signals in this smoke.
+- Decks 3, 6, and 9 had fewer than 20 self-play examples under the bounded
+  `SELFPLAY_LIMIT=2000` smoke cap, so the next full train should remove the
+  smoke limits.
+
+Conclusion:
+
+- The per-deck specialist training path is valid for smoke scale.
+- The smoke update report now permits cleanup of the smoke raw directory, but
+  only after preserving this report and checkpoint/report paths.
+- Next ERAWAN sequence: clean the smoke `raw_train/`, rerun the fuller
+  `GAMES_PER_PAIR=2`, `MAX_STEPS=600` bootstrap for `ITERATION=0`, then train
+  the 13 specialists without `DECISION_LIMIT` or `SELFPLAY_LIMIT`.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2302,9 +2355,8 @@ File-retention decision:
   required 9x4 benchmark.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
-- Run the bounded deck-specialist train smoke from
-  `experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json` and
-  the raw trajectory path above.
+- Run cleanup for the smoke `raw_train/`, then run the fuller iteration-0
+  rule-bootstrap and no-limit deck-specialist update.
 - Implement per-deck model dispatch for 13 x 13 x 30 full-agent-vs-rule
   evaluation so each specialist checkpoint is used for its own deck.
 - Implement the learned-agent league-iteration runner for the 100-games-per-deck

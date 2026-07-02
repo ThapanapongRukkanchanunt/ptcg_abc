@@ -54,6 +54,7 @@ class AlphaRuleBootstrapSummary:
 
 @dataclass(frozen=True)
 class DeckSpecialistTrainingSummary:
+    iteration: int | None
     deck_indices: list[int]
     checkpoint_dir: str
     report_dir: str
@@ -139,6 +140,7 @@ def train_phase5_deck_specialists(
     checkpoint_dir: Path,
     report_dir: Path,
     aggregate_report_path: Path,
+    iteration: int | None = None,
     deck_indices: Sequence[int] = PHASE5_ALPHA_DECK_INDICES,
     allow_empty_decks: bool = False,
     **trainer_kwargs: Any,
@@ -168,6 +170,7 @@ def train_phase5_deck_specialists(
             raise ValueError(f"Deck {deck_index} produced zero specialist examples.")
         summaries[str(deck_index)] = payload
     aggregate = DeckSpecialistTrainingSummary(
+        iteration=iteration,
         deck_indices=selected_indices,
         checkpoint_dir=checkpoint_dir.as_posix(),
         report_dir=report_dir.as_posix(),

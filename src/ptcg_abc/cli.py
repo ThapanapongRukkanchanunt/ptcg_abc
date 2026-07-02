@@ -1068,6 +1068,7 @@ def command_rl_train_phase5_deck_specialists(args: argparse.Namespace) -> int:
             checkpoint_dir=args.checkpoint_dir,
             report_dir=args.report_dir,
             aggregate_report_path=args.report_json,
+            iteration=args.iteration,
             deck_indices=args.deck_index or PHASE5_ALPHA_DECK_INDICES,
             allow_empty_decks=args.allow_empty_decks,
             epochs=args.epochs,
@@ -2087,6 +2088,12 @@ def build_parser() -> argparse.ArgumentParser:
         / "rl"
         / "phase5_league_alpha"
         / "deck_specialists_report.json",
+    )
+    rl_train_specialists.add_argument(
+        "--iteration",
+        type=int,
+        default=None,
+        help="Alpha league iteration number to record in the aggregate report.",
     )
     rl_train_specialists.add_argument(
         "--deck-index",

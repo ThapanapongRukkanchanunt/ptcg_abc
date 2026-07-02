@@ -60,6 +60,7 @@ ARGS=(
   --checkpoint-dir "$CHECKPOINT_DIR"
   --report-dir "$REPORT_DIR"
   --report-json "$REPORT_JSON"
+  --iteration "$ITERATION"
   --epochs "$EPOCHS"
   --batch-size "$BATCH_SIZE"
   --learning-rate "$LEARNING_RATE"

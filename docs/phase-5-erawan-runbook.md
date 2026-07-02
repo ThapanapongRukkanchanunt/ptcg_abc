@@ -1816,22 +1816,8 @@ cat experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json
 ls -lh "$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0000/raw_train/
 ```
 
-If the smoke is clean, run the default bootstrap with two games per ordered
-pair:
-
-```bash
-JOB=$(
-  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
-  ITERATION=0 \
-  GAMES_PER_PAIR=2 \
-  MAX_STEPS=600 \
-  sbatch --parsable scripts/slurm/phase5_alpha_rule_bootstrap.sbatch
-)
-echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_job.txt
-```
-
-Train deck specialists from the bootstrap trajectory data and existing
-search-decision data. Use limits for the first smoke:
+If the bootstrap smoke is clean, verify that specialist training can consume
+the raw trajectory data. Use limits for this trainer smoke:
 
 ```bash
 JOB=$(
@@ -1855,8 +1841,65 @@ cat experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json
 ls -lh models/rl/phase5_league_alpha/iter-0000/specialists/
 ```
 
-After a successful specialist update, remove raw bootstrap gameplay before
-starting the next iteration:
+After both smokes pass, remove the smoke raw gameplay before generating the
+fuller iteration-0 bootstrap:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  ITERATION=0 \
+  sbatch --parsable scripts/slurm/phase5_alpha_cleanup_iteration.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_cleanup_job.txt
+```
+
+Inspect cleanup:
+
+```bash
+JOB=$(cat experiments/rl/phase5_league_alpha/iter-0000_cleanup_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+cat experiments/rl/phase5_league_alpha/iter-0000_cleanup_report.json
+test ! -d "$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0000/raw_train
+```
+
+Then run the default bootstrap with two games per ordered pair:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  ITERATION=0 \
+  GAMES_PER_PAIR=2 \
+  MAX_STEPS=600 \
+  sbatch --parsable scripts/slurm/phase5_alpha_rule_bootstrap.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_job.txt
+```
+
+Train deck specialists from the fuller bootstrap trajectory data and existing
+search-decision data without smoke limits:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  ITERATION=0 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_deck_specialists_train.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_job.txt
+```
+
+Inspect the no-limit update:
+
+```bash
+JOB=$(cat experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-deck-specialists.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-deck-specialists.err"
+cat experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json
+ls -lh models/rl/phase5_league_alpha/iter-0000/specialists/
+```
+
+After the no-limit update succeeds and its report/checkpoints are preserved,
+remove the fuller bootstrap raw gameplay:
 
 ```bash
 JOB=$(

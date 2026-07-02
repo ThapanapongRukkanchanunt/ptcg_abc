@@ -38,6 +38,8 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
                 "2",
                 "--decision-limit",
                 "10",
+                "--iteration",
+                "3",
             ]
         )
         cleanup_args = parser.parse_args(
@@ -80,6 +82,7 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
             "command_rl_train_phase5_deck_specialists",
         )
         self.assertTrue(specialist_args.no_decision_dataset)
+        self.assertEqual(specialist_args.iteration, 3)
         self.assertEqual(cleanup_args.func.__name__, "command_rl_clean_phase5_alpha_iteration")
         self.assertEqual(full_eval_args.agent, "phase5-full")
         self.assertEqual(full_eval_args.games_per_matchup, 30)
