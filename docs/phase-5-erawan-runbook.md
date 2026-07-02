@@ -1925,7 +1925,7 @@ reports only:
 ```bash
 JOB=$(
   AGENT=phase5-full \
-  MODEL=models/rl/phase5_league_alpha/iter-0000/specialists/deck-02.pt \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists \
   GAMES_PER_MATCHUP=30 \
   MAX_STEPS=600 \
   REPORT_JSON=reports/phase5_alpha_iter0000_full_vs_rule_30g.json \
@@ -1935,9 +1935,9 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_eval_job.txt
 ```
 
-Note: the current evaluation command accepts one model path. The next code slice
-should add per-deck model dispatch so each of the 13 specialists is loaded for
-its own deck during the 13 x 13 evaluation.
+`SPECIALIST_MODEL_DIR` makes the evaluator load `deck-01.pt` through
+`deck-13.pt` for the matching controlled deck. Leave `MODEL` unset in this
+mode; the script still has a single-model fallback for older diagnostics.
 
 ## 18. Ready-To-Train Checklist
 

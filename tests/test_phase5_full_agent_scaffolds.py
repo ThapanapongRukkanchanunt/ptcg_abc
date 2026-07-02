@@ -244,6 +244,8 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "0.1",
                 "--neural-action-value-weight",
                 "0.2",
+                "--specialist-model-dir",
+                "models/rl/phase5_league_alpha/iter-0000/specialists",
             ]
         )
         ppo_args = parser.parse_args(
@@ -278,6 +280,10 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
 
         self.assertEqual(league_args.policy_prior_weight, 0.1)
         self.assertEqual(league_args.neural_action_value_weight, 0.2)
+        self.assertEqual(
+            league_args.specialist_model_dir,
+            Path("models/rl/phase5_league_alpha/iter-0000/specialists"),
+        )
         self.assertEqual(ppo_args.func.__name__, "command_rl_train_phase5_ppo")
         self.assertEqual(compare_args.func.__name__, "command_phase5_compare_benchmarks")
         self.assertEqual(selfplay_args.policy_pool_model, [Path("old.pt"), Path("new.pt")])

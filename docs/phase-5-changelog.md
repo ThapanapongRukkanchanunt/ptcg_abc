@@ -2209,12 +2209,11 @@ Verification:
   - `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch`,
   - `scripts/slurm/phase5_league_eval_conda.sbatch`.
 
-Current limitation:
+Resolved limitation:
 
-- The current 13 x 13 evaluation command still accepts a single model path.
-  The next code slice should add per-deck model dispatch so deck 1 loads
-  `deck-01.pt`, deck 2 loads `deck-02.pt`, and so on during full-agent league
-  evaluation.
+- The 13 x 13 evaluation command now supports per-deck specialist dispatch via
+  `--specialist-model-dir`, so deck 1 loads `deck-01.pt`, deck 2 loads
+  `deck-02.pt`, and so on during full-agent league evaluation.
 
 ## 2026-07-02 - Alpha League Rule-Bootstrap Smoke Result
 
@@ -2325,6 +2324,69 @@ Conclusion:
   `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`
   from that job before cleaning the raw directory again.
 
+## 2026-07-02 - Alpha League No-Limit Specialist Update
+
+Implementation:
+
+- Added per-deck specialist dispatch to `rl-evaluate-phase5-league`.
+  `--specialist-model-dir` points at a directory containing `deck-01.pt`
+  through `deck-13.pt`; the evaluator loads the matching checkpoint for the
+  controlled league deck.
+- Updated `scripts/slurm/phase5_league_eval_conda.sbatch` to accept
+  `SPECIALIST_MODEL_DIR` and echo the eval configuration in the SLURM log.
+- Updated `docs/phase-5-erawan-runbook.md` so the iteration-0 full-agent eval
+  uses `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
+
+Verification:
+
+- `py_compile` passed for `src/ptcg_abc/cli.py` and
+  `src/ptcg_abc/rl/workflow.py`.
+- Unit tests passed: `tests.test_phase5_full_agent_scaffolds` and
+  `tests.test_phase5_alpha_league`.
+- CLI help for `rl-evaluate-phase5-league` exposes `--specialist-model-dir`.
+- Git Bash `bash -n` passed for
+  `scripts/slurm/phase5_league_eval_conda.sbatch`.
+
+ERAWAN result:
+
+- Replaced the current report artifact
+  `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`
+  with the no-limit iteration-0 specialist update report. The earlier bounded
+  smoke report at the same path remains recoverable from git history and
+  documented above.
+- ERAWAN job: `73248`, submitted via
+  `scripts/slurm/phase5_deck_specialists_train.sbatch` with `ITERATION=0`, all
+  13 league decks, CUDA, one epoch, and no `DECISION_LIMIT` or
+  `SELFPLAY_LIMIT`.
+- Inputs:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_search_decisions_10shards.jsonl`
+  plus the full rule-bootstrap trajectory
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
+- Output checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0000/specialists/deck-01.pt` through
+  `deck-13.pt`.
+- Aggregate: 13 / 13 specialist summaries with checkpoint paths, 791,974
+  decision frames scanned per deck, 53,443 self-play steps scanned per deck,
+  791,667 decision examples, 791,667 rule-demo examples, 53,421 self-play
+  examples, 1,636,755 value examples, 56,902 action-value examples, 9,582,634
+  tactical examples, 152,136 changed examples, and 636 skipped no-target
+  records.
+- Accuracy ranged from 0.518 to 0.950, and final loss ranged from 0.038 to
+  2.001. These remain training diagnostics, not promotion metrics.
+- Decks 10-13 still have zero search-decision examples because the canonical
+  search-decision dataset covers the original 9 tournament decks. They now have
+  full-bootstrap self-play coverage: deck 10 has 2,975 examples, deck 11 has
+  3,120, deck 12 has 2,063, and deck 13 has 5,862.
+
+Conclusion:
+
+- The no-limit iteration-0 specialist update succeeded and is the checkpoint
+  family to evaluate.
+- The iteration-0 raw training directory can be cleaned after this report and
+  the checkpoint family are preserved on ERAWAN.
+- Next ERAWAN sequence: clean `iter-0000/raw_train/`, then run the 13 x 13 x
+  30 `phase5-full` vs rule eval with `SPECIALIST_MODEL_DIR`.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2380,9 +2442,9 @@ File-retention decision:
   required 9x4 benchmark.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
-- Await the no-limit iteration-0 deck-specialist report that consumes the fuller
-  `GAMES_PER_PAIR=2` rule-bootstrap trajectory.
-- Implement per-deck model dispatch for 13 x 13 x 30 full-agent-vs-rule
-  evaluation so each specialist checkpoint is used for its own deck.
+- Clean `iter-0000/raw_train/` now that the no-limit specialist update report
+  and checkpoint family exist.
+- Run the 13 x 13 x 30 `phase5-full` vs rule eval using
+  `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
 - Implement the learned-agent league-iteration runner for the 100-games-per-deck
   AlphaStar-like update loop.

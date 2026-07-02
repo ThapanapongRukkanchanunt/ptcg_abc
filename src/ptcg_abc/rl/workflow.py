@@ -751,6 +751,7 @@ def run_phase5_league_benchmark(
     sample_dir: Path,
     agent_kind: str = "phase5-search",
     model_path: Path | None = None,
+    specialist_model_dir: Path | None = None,
     games_per_matchup: int = 2,
     max_steps: int = 600,
     debug_limit_per_matchup: int = 0,
@@ -768,6 +769,12 @@ def run_phase5_league_benchmark(
         search_trace_path.write_text("", encoding="utf-8")
 
     for our_deck in league_decks:
+        our_model_path = _phase5_specialist_model_path(
+            specialist_model_dir,
+            our_deck.index,
+        )
+        if our_model_path is None:
+            our_model_path = model_path
         for opponent_deck in league_decks:
             row = Phase3RequiredBenchmarkRow(
                 deck_index=our_deck.index,
@@ -791,7 +798,7 @@ def run_phase5_league_benchmark(
                     our_deck.card_ids,
                     card_data,
                     attack_data,
-                    model_path=model_path,
+                    model_path=our_model_path,
                     opponent_deck_ids=opponent_deck.card_ids,
                     sample_dir=sample_dir,
                     search_config=search_config,
@@ -809,6 +816,9 @@ def run_phase5_league_benchmark(
                             "opponent": opponent_deck.archetype,
                             "collector": "phase5_league_benchmark",
                             "agent": agent_kind,
+                            "model_path": (
+                                our_model_path.as_posix() if our_model_path else None
+                            ),
                         },
                         trace_limit=trace_limit,
                     )
@@ -1052,6 +1062,15 @@ def run_phase4_required_benchmark(
         debug_games=debug_games,
         search_telemetry=search_telemetry,
     )
+
+
+def _phase5_specialist_model_path(
+    specialist_model_dir: Path | None,
+    deck_index: int,
+) -> Path | None:
+    if specialist_model_dir is None:
+        return None
+    return specialist_model_dir / f"deck-{deck_index:02d}.pt"
 
 
 def write_phase4_benchmark_report(

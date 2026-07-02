@@ -18,6 +18,7 @@ export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
 
 MODEL="${MODEL:-models/rl/phase5_generalist_policy_13deck_10k.pt}"
+SPECIALIST_MODEL_DIR="${SPECIALIST_MODEL_DIR:-}"
 AGENT="${AGENT:-phase5-search}"
 GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-2}"
 MAX_STEPS="${MAX_STEPS:-600}"
@@ -29,6 +30,15 @@ SEARCH_ROLLOUT_STEPS="${SEARCH_ROLLOUT_STEPS:-}"
 POLICY_PRIOR_WEIGHT="${POLICY_PRIOR_WEIGHT:-}"
 NEURAL_ACTION_VALUE_WEIGHT="${NEURAL_ACTION_VALUE_WEIGHT:-}"
 NEURAL_TACTICAL_WEIGHT="${NEURAL_TACTICAL_WEIGHT:-}"
+
+echo "Phase 5 league evaluation"
+echo "AGENT=$AGENT"
+echo "MODEL=$MODEL"
+echo "SPECIALIST_MODEL_DIR=$SPECIALIST_MODEL_DIR"
+echo "GAMES_PER_MATCHUP=$GAMES_PER_MATCHUP"
+echo "MAX_STEPS=$MAX_STEPS"
+echo "REPORT_JSON=$REPORT_JSON"
+echo "REPORT_MD=$REPORT_MD"
 
 EXTRA_ARGS=()
 if [[ -n "$SEARCH_TRACE_OUTPUT" ]]; then
@@ -48,6 +58,9 @@ if [[ -n "$NEURAL_ACTION_VALUE_WEIGHT" ]]; then
 fi
 if [[ -n "$NEURAL_TACTICAL_WEIGHT" ]]; then
   EXTRA_ARGS+=(--neural-tactical-weight "$NEURAL_TACTICAL_WEIGHT")
+fi
+if [[ -n "$SPECIALIST_MODEL_DIR" ]]; then
+  EXTRA_ARGS+=(--specialist-model-dir "$SPECIALIST_MODEL_DIR")
 fi
 
 "$PY" -m ptcg_abc rl-evaluate-phase5-league \

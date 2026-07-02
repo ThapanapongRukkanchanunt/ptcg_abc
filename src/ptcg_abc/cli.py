@@ -1167,13 +1167,33 @@ def command_rl_evaluate_phase5_league(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.agent in {"phase5-symbolic", "phase5-search", "phase5-full"} and model_path is None:
+    specialist_model_dir = args.specialist_model_dir
+    if specialist_model_dir is not None:
+        missing = [
+            specialist_model_dir / f"deck-{deck_index:02d}.pt"
+            for deck_index in PHASE5_ALPHA_DECK_INDICES
+            if not (specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
+        ]
+        if missing:
+            preview = ", ".join(path.as_posix() for path in missing[:3])
+            suffix = "..." if len(missing) > 3 else ""
+            print(
+                f"Missing Phase 5 specialist checkpoint(s): {preview}{suffix}",
+                file=sys.stderr,
+            )
+            return 2
+    if (
+        args.agent in {"phase5-symbolic", "phase5-search", "phase5-full"}
+        and model_path is None
+        and specialist_model_dir is None
+    ):
         print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
         return 2
     result = run_phase5_league_benchmark(
         sample_dir=args.sample_dir,
         agent_kind=args.agent,
         model_path=model_path,
+        specialist_model_dir=specialist_model_dir,
         games_per_matchup=args.games_per_matchup,
         max_steps=args.max_steps,
         search_trace_path=args.search_trace_output,
@@ -1184,7 +1204,7 @@ def command_rl_evaluate_phase5_league(args: argparse.Namespace) -> int:
         json_path=args.report_json,
         markdown_path=args.report_md,
         agent_kind=f"phase5-league:{args.agent}",
-        model_path=model_path,
+        model_path=specialist_model_dir or model_path,
     )
     totals = _benchmark_totals(result.rows)
     print(json.dumps(totals, indent=2))
@@ -2482,6 +2502,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--model",
         type=_path,
         default=Path("models") / "rl" / "phase5_generalist_policy_13deck_10k.pt",
+    )
+    rl_evaluate_league.add_argument(
+        "--specialist-model-dir",
+        type=_path,
+        default=None,
+        help="Directory containing deck-01.pt through deck-13.pt specialist checkpoints.",
     )
     rl_evaluate_league.add_argument("--games-per-matchup", type=int, default=2)
     rl_evaluate_league.add_argument("--max-steps", type=int, default=600)

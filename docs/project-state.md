@@ -825,9 +825,24 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   53,443 trajectory steps, 3 draws, 7 timeouts, 0 errors, and balanced deck
   coverage at 52 games per deck. The raw trajectory is still
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
-- Next league-track ERAWAN action: inspect the no-limit deck-specialist report
-  that consumes the full bootstrap, then clean `iter-0000/raw_train/` only
-  after the no-limit update report and checkpoints are preserved.
+- No-limit iteration-0 deck-specialist update passed on July 2, 2026:
+  `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`
+  now records job `73248`, `iteration=0`, 13 / 13 specialist summaries and
+  checkpoint paths under `models/rl/phase5_league_alpha/iter-0000/specialists/`.
+  Each specialist scanned 791,974 decision frames and 53,443 self-play steps.
+  Aggregate examples: 791,667 decision, 791,667 rule-demo, 53,421 self-play,
+  1,636,755 value, 56,902 action-value, 9,582,634 tactical, 152,136 changed,
+  and 636 skipped no-target records. Decks 10-13 still have zero
+  search-decision examples because the canonical search-decision data covers
+  only the original 9 tournament decks, but they now have full-bootstrap
+  self-play coverage.
+- `rl-evaluate-phase5-league` now supports `--specialist-model-dir` for
+  per-deck dispatch, and `scripts/slurm/phase5_league_eval_conda.sbatch` accepts
+  `SPECIALIST_MODEL_DIR`. Use this for iteration-0 full-agent-vs-rule eval so
+  deck 1 loads `deck-01.pt`, deck 2 loads `deck-02.pt`, and so on.
+- Next league-track ERAWAN action: clean `iter-0000/raw_train/`, then run the
+  13 x 13 x 30 `phase5-full` vs rule eval with
+  `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
