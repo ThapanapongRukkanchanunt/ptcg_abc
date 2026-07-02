@@ -2300,6 +2300,31 @@ Conclusion:
   `GAMES_PER_PAIR=2`, `MAX_STEPS=600` bootstrap for `ITERATION=0`, then train
   the 13 specialists without `DECISION_LIMIT` or `SELFPLAY_LIMIT`.
 
+## 2026-07-02 - Alpha League Full Rule-Bootstrap Result
+
+ERAWAN result:
+
+- Replaced the current report artifact
+  `experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json`
+  with the fuller iteration-0 bootstrap report. The earlier smoke report at
+  the same path remains recoverable from git history and documented above.
+- Command path: `scripts/slurm/phase5_alpha_rule_bootstrap.sbatch` with
+  `ITERATION=0`, `GAMES_PER_PAIR=2`, expected `MAX_STEPS=600`,
+  `DECK_POOL=league-13`, and rule-agent gameplay.
+- Output trajectory path:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
+- Aggregate: 338 / 338 games started, 53,443 trajectory steps, 169 ordered
+  deck pairs, 3 draws, 7 timeouts, 0 errors, and no error records.
+- Deck coverage was balanced for the full bootstrap: every one of the 13 league
+  decks appeared in 52 games.
+
+Conclusion:
+
+- This is the correct report for the fuller iteration-0 rule bootstrap.
+- The no-limit deck-specialist job can consume this raw trajectory. Await
+  `experiments/rl/phase5_league_alpha/iter-0000_deck_specialists_report.json`
+  from that job before cleaning the raw directory again.
+
 ## Artifact Notes
 
 Important model artifacts:
@@ -2355,8 +2380,8 @@ File-retention decision:
   required 9x4 benchmark.
 - Keep `phase5-search` with `models/rl/phase5_generalist_policy_10k.pt` as the
   current best 9-deck inference path.
-- Run cleanup for the smoke `raw_train/`, then run the fuller iteration-0
-  rule-bootstrap and no-limit deck-specialist update.
+- Await the no-limit iteration-0 deck-specialist report that consumes the fuller
+  `GAMES_PER_PAIR=2` rule-bootstrap trajectory.
 - Implement per-deck model dispatch for 13 x 13 x 30 full-agent-vs-rule
   evaluation so each specialist checkpoint is used for its own deck.
 - Implement the learned-agent league-iteration runner for the 100-games-per-deck

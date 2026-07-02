@@ -818,9 +818,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   search-decision examples because the canonical search-decision dataset covers
   only the original 9 tournament decks; those four sample decks relied on
   bootstrap/self-play signals for this smoke.
-- Next league-track ERAWAN action: clean the smoke `raw_train/`, rerun
-  `ITERATION=0` rule bootstrap at `GAMES_PER_PAIR=2`, `MAX_STEPS=600`, then run
-  deck-specialist training without `DECISION_LIMIT` or `SELFPLAY_LIMIT`.
+- Full iteration-0 rule bootstrap passed on July 2, 2026:
+  `experiments/rl/phase5_league_alpha/iter-0000_rule_bootstrap_report.json`
+  now records the fuller `GAMES_PER_PAIR=2` bootstrap, replacing the current
+  working-tree copy of the earlier smoke report. It produced 338 / 338 games,
+  53,443 trajectory steps, 3 draws, 7 timeouts, 0 errors, and balanced deck
+  coverage at 52 games per deck. The raw trajectory is still
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0000/raw_train/phase5_alpha_rule_bootstrap.jsonl`.
+- Next league-track ERAWAN action: inspect the no-limit deck-specialist report
+  that consumes the full bootstrap, then clean `iter-0000/raw_train/` only
+  after the no-limit update report and checkpoints are preserved.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
