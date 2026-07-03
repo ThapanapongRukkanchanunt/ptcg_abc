@@ -2446,8 +2446,8 @@ File-retention decision:
   and checkpoint family exist.
 - Run the 13 x 13 x 30 `phase5-full` vs rule eval using
   `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
-- Implement the learned-agent league-iteration runner for the 100-games-per-deck
-  AlphaStar-like update loop.
+- After the true specialist eval report is recorded, run the learned-agent
+  league-iteration runner for `ITERATION=1`.
 
 ## 2026-07-03 - Alpha League Single-Model Eval Diagnostic
 
@@ -2486,3 +2486,45 @@ Conclusion:
   checkpoint, but it is not accepted as the iteration-0 specialist eval.
 - Rerun the 13 x 13 x 30 eval after pulling commit `b28013b` or later, using
   `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
+
+## 2026-07-03 - Alpha League Learned-Iteration Runner
+
+Implementation:
+
+- Added per-deck specialist dispatch to `rollout_selfplay_games` via
+  `specialist_model_dir`, with trajectory metadata recording
+  `specialist_model_dir` and `specialist_model_path`.
+- Added `generate_phase5_alpha_league_iteration`, which validates
+  `deck-01.pt` through `deck-13.pt`, writes learned-agent raw gameplay under
+  an iteration `raw_train/` directory, records the checkpoint family that
+  generated the data, and preserves the strict cleanup policy.
+- Added CLI command `rl-generate-phase5-alpha-league-iteration`.
+- Added SLURM script `scripts/slurm/phase5_alpha_league_iteration.sbatch`.
+  Defaults: `ITERATION=1`, `SOURCE_ITERATION=0`, `GAMES_PER_DECK=100`,
+  `AGENT=phase5-full`, source checkpoints from
+  `models/rl/phase5_league_alpha/iter-0000/specialists`, and output raw data to
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl`.
+- Updated `scripts/slurm/phase5_deck_specialists_train.sbatch` so
+  `SELFPLAY_DATASET` can point at either rule-bootstrap raw data or learned
+  league self-play raw data.
+- Updated `docs/phase-5-erawan-runbook.md` with the iteration-1 generation and
+  update commands.
+
+Verification:
+
+- `py_compile` passed for `src/ptcg_abc/cli.py`,
+  `src/ptcg_abc/rl/workflow.py`, and
+  `src/ptcg_abc/rl/phase5_alpha_league.py`.
+- Unit tests passed: `tests.test_phase5_alpha_league` and
+  `tests.test_phase5_full_agent_scaffolds`.
+- CLI help for `rl-generate-phase5-alpha-league-iteration` exposes
+  `--specialist-model-dir`, `--games-per-deck`, and `--search-trace-games`.
+- Git Bash `bash -n` passed for
+  `scripts/slurm/phase5_alpha_league_iteration.sbatch` and
+  `scripts/slurm/phase5_deck_specialists_train.sbatch`.
+
+Next step:
+
+- Wait for the true iteration-0 specialist eval report. If it is clean enough
+  to proceed, launch `ITERATION=1` learned-agent league data generation with
+  the new SLURM script.

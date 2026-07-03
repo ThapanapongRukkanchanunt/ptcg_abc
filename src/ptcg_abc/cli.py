@@ -81,6 +81,7 @@ from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
 from ptcg_abc.rl.phase5_alpha_league import (
     PHASE5_ALPHA_DECK_INDICES,
     cleanup_phase5_alpha_raw_train,
+    generate_phase5_alpha_league_iteration,
     generate_phase5_alpha_rule_bootstrap,
     train_phase5_deck_specialists,
 )
@@ -1046,6 +1047,49 @@ def command_rl_generate_phase5_alpha_bootstrap(args: argparse.Namespace) -> int:
         return 2
     print(json.dumps(summary.to_dict(), indent=2))
     print(f"Wrote Phase 5 Alpha bootstrap report to {report_json}.")
+    return 0 if summary.selfplay.get("errors", 0) == 0 else 1
+
+
+def command_rl_generate_phase5_alpha_league_iteration(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    iteration_dir = args.iteration_dir
+    if iteration_dir is None:
+        iteration_dir = args.league_root / "iterations" / f"iter-{args.iteration:04d}"
+    report_json = args.report_json
+    if report_json is None:
+        report_json = (
+            Path("experiments")
+            / "rl"
+            / "phase5_league_alpha"
+            / f"iter-{args.iteration:04d}_league_iteration_report.json"
+        )
+    try:
+        summary = generate_phase5_alpha_league_iteration(
+            sample_dir=args.sample_dir,
+            iteration_dir=iteration_dir,
+            report_path=report_json,
+            specialist_model_dir=args.specialist_model_dir,
+            games_per_deck=args.games_per_deck,
+            max_steps=args.max_steps,
+            deck_indices=args.deck_index or PHASE5_ALPHA_DECK_INDICES,
+            game_offset=args.game_offset,
+            allow_existing_raw=args.allow_existing_raw,
+            agent_kind=args.agent,
+            search_trace_path=args.search_trace_output,
+            search_trace_game_limit=args.search_trace_games,
+            search_config=_root_search_config_from_args(args),
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    print(f"Wrote Phase 5 Alpha league-iteration report to {report_json}.")
     return 0 if summary.selfplay.get("errors", 0) == 0 else 1
 
 
@@ -2069,6 +2113,81 @@ def build_parser() -> argparse.ArgumentParser:
         help="Bootstrap summary path. Defaults under experiments/rl/phase5_league_alpha.",
     )
     rl_alpha_bootstrap.set_defaults(func=command_rl_generate_phase5_alpha_bootstrap)
+
+    rl_alpha_iteration = subparsers.add_parser(
+        "rl-generate-phase5-alpha-league-iteration",
+        help="Generate learned-agent Alpha league trajectories using deck specialists.",
+    )
+    rl_alpha_iteration.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_alpha_iteration.add_argument("--iteration", type=int, default=1)
+    rl_alpha_iteration.add_argument(
+        "--league-root",
+        type=_path,
+        default=Path("/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha"),
+    )
+    rl_alpha_iteration.add_argument(
+        "--iteration-dir",
+        type=_path,
+        default=None,
+        help="Explicit iteration directory. Defaults under --league-root.",
+    )
+    rl_alpha_iteration.add_argument(
+        "--specialist-model-dir",
+        type=_path,
+        required=True,
+        help="Directory containing deck-01.pt through deck-13.pt specialist checkpoints.",
+    )
+    rl_alpha_iteration.add_argument(
+        "--agent",
+        choices=["phase5-search", "phase5-full"],
+        default="phase5-full",
+    )
+    rl_alpha_iteration.add_argument(
+        "--games-per-deck",
+        type=int,
+        default=100,
+        help="League training games scheduled per selected deck.",
+    )
+    rl_alpha_iteration.add_argument("--game-offset", type=int, default=0)
+    rl_alpha_iteration.add_argument("--max-steps", type=int, default=600)
+    rl_alpha_iteration.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Phase 5 league deck index to include. Repeat; defaults to all 13.",
+    )
+    rl_alpha_iteration.add_argument(
+        "--allow-existing-raw",
+        action="store_true",
+        help="Allow writing into an existing nonempty raw_train directory.",
+    )
+    _add_phase5_search_config_args(rl_alpha_iteration)
+    rl_alpha_iteration.add_argument(
+        "--report-json",
+        type=_path,
+        default=None,
+        help="League iteration summary path. Defaults under experiments/rl/phase5_league_alpha.",
+    )
+    rl_alpha_iteration.add_argument(
+        "--search-trace-output",
+        type=_path,
+        default=None,
+        help="Optional JSONL output for sampled phase5-full league traces.",
+    )
+    rl_alpha_iteration.add_argument(
+        "--search-trace-games",
+        type=int,
+        default=3,
+        help="Number of local league games to trace when --search-trace-output is set; use 0 for all.",
+    )
+    rl_alpha_iteration.set_defaults(
+        func=command_rl_generate_phase5_alpha_league_iteration
+    )
 
     rl_train_specialists = subparsers.add_parser(
         "rl-train-phase5-deck-specialists",

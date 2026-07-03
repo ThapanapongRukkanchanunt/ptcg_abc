@@ -167,23 +167,23 @@ This is the resume point for the project. Start here after switching machines, c
   `phase5-search` prior for existing comparisons. Treat the 13-deck checkpoint
   as a retained training artifact, not a promotion candidate or mainline PPO
   seed.
-- Next action: implement the full-agent runtime, rule-based 13-deck bootstrap
-  generator, deck-specialist offline trainer, league-iteration runner with
-  mandatory post-update raw-data cleanup, and 13 x 13 x 30 full-agent-vs-rule
-  evaluation runner.
-- Latest implementation slice started that plan:
+- The league-first implementation now includes:
   - added `src/ptcg_abc/rl/phase5_alpha_league.py`,
   - added `phase5-full` as the public full-agent alias for the existing Phase 5
     policy-plus-root-search runtime,
   - added `rl-generate-phase5-alpha-bootstrap`,
+    `rl-generate-phase5-alpha-league-iteration`,
     `rl-train-phase5-deck-specialists`, and
     `rl-clean-phase5-alpha-iteration`,
-  - added SLURM scripts for bootstrap, specialist train, and raw-data cleanup,
+  - added SLURM scripts for bootstrap, learned-agent league iteration,
+    specialist train, raw-data cleanup, and league evaluation,
   - added deck-index filtering to the mixed Phase 5 trainer so specialists can
-    train from shared JSONL inputs without copying huge per-deck datasets.
-- Current next code gap: 13 x 13 evaluation still accepts one model path. Add
-  per-deck model dispatch so each league deck loads its own specialist
-  checkpoint during full-agent-vs-rule evaluation.
+    train from shared JSONL inputs without copying huge per-deck datasets,
+  - added per-deck specialist dispatch so league eval and learned-agent
+    self-play can load `deck-01.pt` through `deck-13.pt`.
+- Current next code gap: wait for the true iteration-0 specialist eval report,
+  then use the learned-agent league iteration runner to generate `iter-0001`
+  training data.
 
 ## Phase Log
 
@@ -850,6 +850,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
 - Next league-track ERAWAN action: rerun the 13 x 13 x 30 `phase5-full` vs rule
   eval after pulling `b28013b` or later, with
   `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
+- Learned-agent league iteration support was implemented on July 3, 2026:
+  `rl-generate-phase5-alpha-league-iteration` and
+  `scripts/slurm/phase5_alpha_league_iteration.sbatch` generate a new raw
+  training window using per-deck specialist checkpoints. The default next window
+  is `ITERATION=1`, `SOURCE_ITERATION=0`, `GAMES_PER_DECK=100`, and output
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl`.
+  The specialist trainer SLURM script now accepts `SELFPLAY_DATASET` and can
+  consume either rule-bootstrap or learned-agent league raw data.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

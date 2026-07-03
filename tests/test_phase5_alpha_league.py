@@ -2,12 +2,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from ptcg_abc.cli import build_parser
 from ptcg_abc.rl.phase5_alpha_league import (
     PHASE5_ALPHA_DECK_INDICES,
     alpha_iteration_dir,
     cleanup_phase5_alpha_raw_train,
+    generate_phase5_alpha_league_iteration,
 )
 
 
@@ -40,6 +42,19 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
                 "10",
                 "--iteration",
                 "3",
+            ]
+        )
+        iteration_args = parser.parse_args(
+            [
+                "rl-generate-phase5-alpha-league-iteration",
+                "--iteration",
+                "4",
+                "--specialist-model-dir",
+                "models/specialists",
+                "--games-per-deck",
+                "5",
+                "--deck-index",
+                "1",
             ]
         )
         cleanup_args = parser.parse_args(
@@ -83,6 +98,13 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
         )
         self.assertTrue(specialist_args.no_decision_dataset)
         self.assertEqual(specialist_args.iteration, 3)
+        self.assertEqual(
+            iteration_args.func.__name__,
+            "command_rl_generate_phase5_alpha_league_iteration",
+        )
+        self.assertEqual(iteration_args.iteration, 4)
+        self.assertEqual(iteration_args.specialist_model_dir, Path("models/specialists"))
+        self.assertEqual(iteration_args.games_per_deck, 5)
         self.assertEqual(cleanup_args.func.__name__, "command_rl_clean_phase5_alpha_iteration")
         self.assertEqual(full_eval_args.agent, "phase5-full")
         self.assertEqual(full_eval_args.games_per_matchup, 30)
@@ -129,6 +151,62 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
             self.assertFalse(raw_train.exists())
             payload = json.loads(cleanup_report.read_text(encoding="utf-8"))
             self.assertEqual(payload["raw_train_dir"], raw_train.as_posix())
+
+    def test_league_iteration_uses_specialist_dir_and_writes_report(self):
+        class FakeSelfPlaySummary:
+            def to_dict(self):
+                return {
+                    "agent": "phase5-full",
+                    "games_requested": 10,
+                    "games_started": 10,
+                    "errors": 0,
+                    "specialist_model_dir": "models/specialists",
+                }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            specialist_dir = root / "models" / "specialists"
+            specialist_dir.mkdir(parents=True)
+            for index in (1, 2):
+                specialist_dir.joinpath(f"deck-{index:02d}.pt").write_bytes(b"pt")
+            iteration_dir = root / "iterations" / "iter-0004"
+            report_path = root / "reports" / "iter-0004_league_iteration.json"
+
+            with patch(
+                "ptcg_abc.rl.phase5_alpha_league.rollout_selfplay_games",
+                return_value=FakeSelfPlaySummary(),
+            ) as rollout:
+                summary = generate_phase5_alpha_league_iteration(
+                    sample_dir=root / "sample",
+                    iteration_dir=iteration_dir,
+                    report_path=report_path,
+                    specialist_model_dir=specialist_dir,
+                    games_per_deck=5,
+                    deck_indices=[1, 2],
+                    game_offset=40,
+                    max_steps=300,
+                    search_trace_game_limit=2,
+                )
+
+            rollout.assert_called_once()
+            kwargs = rollout.call_args.kwargs
+            self.assertEqual(kwargs["agent_kind"], "phase5-full")
+            self.assertEqual(kwargs["games"], 10)
+            self.assertEqual(kwargs["game_offset"], 40)
+            self.assertEqual(kwargs["specialist_model_dir"], specialist_dir)
+            self.assertEqual(kwargs["selfplay_deck_indices"], [1, 2])
+            self.assertEqual(
+                kwargs["output_path"],
+                iteration_dir / "raw_train" / "phase5_alpha_league_selfplay.jsonl",
+            )
+            self.assertEqual(summary.iteration, 4)
+            self.assertEqual(summary.games_per_deck, 5)
+            self.assertEqual(summary.games_requested, 10)
+            self.assertEqual(summary.specialist_model_paths["1"], (specialist_dir / "deck-01.pt").as_posix())
+            self.assertTrue(report_path.exists())
+            payload = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["selfplay"]["games_started"], 10)
+            self.assertTrue(payload["cleanup_required"])
 
 
 if __name__ == "__main__":

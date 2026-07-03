@@ -1939,6 +1939,52 @@ echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_eval_job.txt
 `deck-13.pt` for the matching controlled deck. Leave `MODEL` unset in this
 mode; the script still has a single-model fallback for older diagnostics.
 
+After the specialist eval report is preserved, start the first learned-agent
+league iteration. This writes a new raw training window under `iter-0001` using
+the iteration-0 specialist checkpoint family:
+
+```bash
+JOB=$(
+  AGENT=phase5-full \
+  ITERATION=1 \
+  SOURCE_ITERATION=0 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists \
+  GAMES_PER_DECK=100 \
+  MAX_STEPS=600 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_league_alpha/iter-0001_search_traces.jsonl \
+  SEARCH_TRACE_GAMES=3 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_league_iteration.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0001_league_iteration_job.txt
+```
+
+Inspect:
+
+```bash
+JOB=$(cat experiments/rl/phase5_league_alpha/iter-0001_league_iteration_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-alpha-league.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-alpha-league.err"
+cat experiments/rl/phase5_league_alpha/iter-0001_league_iteration_report.json
+ls -lh "$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0001/raw_train/
+```
+
+Then update the iteration-1 specialist family from the learned-agent raw data:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  ITERATION=1 \
+  SELFPLAY_DATASET="$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_deck_specialists_train.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0001_deck_specialists_job.txt
+```
+
+After that update report and checkpoint family exist, clean `iter-0001/raw_train`
+with `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch` before starting
+another league iteration.
+
 ## 18. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

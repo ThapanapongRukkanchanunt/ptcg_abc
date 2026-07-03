@@ -99,6 +99,7 @@ class SelfPlaySummary:
     trace_path: str | None = None
     trace_records: int = 0
     policy_pool_paths: list[str] = field(default_factory=list)
+    specialist_model_dir: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -484,7 +485,10 @@ def rollout_selfplay_games(
     search_trace_path: Path | None = None,
     search_trace_game_limit: int = 0,
     policy_pool_paths: Sequence[Path] = (),
+    specialist_model_dir: Path | None = None,
 ) -> SelfPlaySummary:
+    if specialist_model_dir is not None and policy_pool_paths:
+        raise ValueError("Use either specialist_model_dir or policy_pool_paths, not both.")
     card_data, attack_data = load_engine_metadata(sample_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("", encoding="utf-8")
@@ -530,18 +534,28 @@ def rollout_selfplay_games(
         matchup["games"] += 1
         for deck in (player0_deck, player1_deck):
             deck_games[str(deck.index)] = deck_games.get(str(deck.index), 0) + 1
-        player0_model_path = _policy_pool_model_path(
-            policy_pool_paths,
-            absolute_game_index=absolute_game_index,
-            player_slot=0,
-            default_model_path=model_path,
-        )
-        player1_model_path = _policy_pool_model_path(
-            policy_pool_paths,
-            absolute_game_index=absolute_game_index,
-            player_slot=1,
-            default_model_path=model_path,
-        )
+        if specialist_model_dir is not None:
+            player0_model_path = _phase5_specialist_model_path(
+                specialist_model_dir,
+                player0_deck.index,
+            )
+            player1_model_path = _phase5_specialist_model_path(
+                specialist_model_dir,
+                player1_deck.index,
+            )
+        else:
+            player0_model_path = _policy_pool_model_path(
+                policy_pool_paths,
+                absolute_game_index=absolute_game_index,
+                player_slot=0,
+                default_model_path=model_path,
+            )
+            player1_model_path = _policy_pool_model_path(
+                policy_pool_paths,
+                absolute_game_index=absolute_game_index,
+                player_slot=1,
+                default_model_path=model_path,
+            )
         recorder0 = RecordingPolicyAgent(
             _make_agent(
                 agent_kind,
@@ -575,6 +589,12 @@ def rollout_selfplay_games(
                 "selfplay_deck_b_index": deck_b.index,
                 "policy_pool_model": (
                     player0_model_path.as_posix() if player0_model_path else None
+                ),
+                "specialist_model_dir": (
+                    specialist_model_dir.as_posix() if specialist_model_dir else None
+                ),
+                "specialist_model_path": (
+                    player0_model_path.as_posix() if specialist_model_dir else None
                 ),
             },
         )
@@ -611,6 +631,12 @@ def rollout_selfplay_games(
                 "selfplay_deck_b_index": deck_b.index,
                 "policy_pool_model": (
                     player1_model_path.as_posix() if player1_model_path else None
+                ),
+                "specialist_model_dir": (
+                    specialist_model_dir.as_posix() if specialist_model_dir else None
+                ),
+                "specialist_model_path": (
+                    player1_model_path.as_posix() if specialist_model_dir else None
                 ),
             },
         )
@@ -697,6 +723,16 @@ def rollout_selfplay_games(
                     if player_index == 1 and player1_model_path
                     else None
                 ),
+                "specialist_model_dir": (
+                    specialist_model_dir.as_posix() if specialist_model_dir else None
+                ),
+                "specialist_model_path": (
+                    player0_model_path.as_posix()
+                    if specialist_model_dir and player_index == 0 and player0_model_path
+                    else player1_model_path.as_posix()
+                    if specialist_model_dir and player_index == 1 and player1_model_path
+                    else None
+                ),
             }
             reward = reward_from_result_metadata(final_metadata)
             for frame, chosen_indices in recorder.frames:
@@ -743,6 +779,9 @@ def rollout_selfplay_games(
         trace_path=str(search_trace_path.as_posix()) if search_trace_path is not None else None,
         trace_records=trace_records,
         policy_pool_paths=[path.as_posix() for path in policy_pool_paths],
+        specialist_model_dir=(
+            specialist_model_dir.as_posix() if specialist_model_dir else None
+        ),
     )
 
 

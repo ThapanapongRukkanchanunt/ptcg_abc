@@ -53,6 +53,26 @@ class AlphaRuleBootstrapSummary:
 
 
 @dataclass(frozen=True)
+class AlphaLeagueIterationSummary:
+    iteration: int
+    iteration_dir: str
+    raw_train_dir: str
+    trajectory_path: str
+    report_path: str
+    agent: str
+    specialist_model_dir: str
+    specialist_model_paths: dict[str, str]
+    games_per_deck: int
+    games_requested: int
+    selfplay: dict[str, Any]
+    data_policy: dict[str, Any]
+    cleanup_required: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class DeckSpecialistTrainingSummary:
     iteration: int | None
     deck_indices: list[int]
@@ -125,6 +145,70 @@ def generate_phase5_alpha_rule_bootstrap(
         trajectory_path=trajectory_path.as_posix(),
         report_path=report_path.as_posix(),
         games_per_pair=games_per_pair,
+        games_requested=games_requested,
+        selfplay=_selfplay_payload(selfplay),
+        data_policy=AlphaLeagueDataPolicy().to_dict(),
+    )
+    _write_json(report_path, summary.to_dict())
+    return summary
+
+
+def generate_phase5_alpha_league_iteration(
+    *,
+    sample_dir: Path,
+    iteration_dir: Path,
+    report_path: Path,
+    specialist_model_dir: Path,
+    games_per_deck: int = 100,
+    max_steps: int = 600,
+    deck_indices: Sequence[int] = PHASE5_ALPHA_DECK_INDICES,
+    game_offset: int = 0,
+    allow_existing_raw: bool = False,
+    agent_kind: str = "phase5-full",
+    search_trace_path: Path | None = None,
+    search_trace_game_limit: int = 3,
+    search_config: Any | None = None,
+) -> AlphaLeagueIterationSummary:
+    if games_per_deck <= 0:
+        raise ValueError("games_per_deck must be positive.")
+    selected_indices = _normal_deck_indices(deck_indices)
+    specialist_paths = _validate_specialist_model_dir(
+        specialist_model_dir,
+        selected_indices,
+    )
+    raw_train_dir = iteration_dir / PHASE5_ALPHA_RAW_TRAIN_DIRNAME
+    _ensure_raw_slot_available(raw_train_dir, allow_existing_raw=allow_existing_raw)
+    raw_train_dir.mkdir(parents=True, exist_ok=True)
+    trajectory_path = raw_train_dir / "phase5_alpha_league_selfplay.jsonl"
+    games_requested = len(selected_indices) * games_per_deck
+    selfplay = rollout_selfplay_games(
+        sample_dir=sample_dir,
+        output_path=trajectory_path,
+        agent_kind=agent_kind,
+        model_path=None,
+        games=games_requested,
+        game_offset=game_offset,
+        max_steps=max_steps,
+        deck_pool=PHASE5_SELFPLAY_DECK_POOL_LEAGUE_13,
+        selfplay_deck_indices=selected_indices,
+        specialist_model_dir=specialist_model_dir,
+        search_trace_path=search_trace_path,
+        search_trace_game_limit=search_trace_game_limit,
+        search_config=search_config,
+    )
+    summary = AlphaLeagueIterationSummary(
+        iteration=_iteration_number(iteration_dir),
+        iteration_dir=iteration_dir.as_posix(),
+        raw_train_dir=raw_train_dir.as_posix(),
+        trajectory_path=trajectory_path.as_posix(),
+        report_path=report_path.as_posix(),
+        agent=agent_kind,
+        specialist_model_dir=specialist_model_dir.as_posix(),
+        specialist_model_paths={
+            str(index): path.as_posix()
+            for index, path in sorted(specialist_paths.items())
+        },
+        games_per_deck=games_per_deck,
         games_requested=games_requested,
         selfplay=_selfplay_payload(selfplay),
         data_policy=AlphaLeagueDataPolicy().to_dict(),
@@ -238,6 +322,24 @@ def _normal_deck_indices(deck_indices: Sequence[int]) -> list[int]:
     if not output:
         raise ValueError("At least one Phase 5 league deck index is required.")
     return output
+
+
+def _validate_specialist_model_dir(
+    specialist_model_dir: Path,
+    deck_indices: Sequence[int],
+) -> dict[int, Path]:
+    missing: list[Path] = []
+    paths: dict[int, Path] = {}
+    for deck_index in deck_indices:
+        path = specialist_model_dir / f"deck-{deck_index:02d}.pt"
+        paths[deck_index] = path
+        if not path.exists():
+            missing.append(path)
+    if missing:
+        preview = ", ".join(path.as_posix() for path in missing[:3])
+        suffix = "..." if len(missing) > 3 else ""
+        raise ValueError(f"Missing Phase 5 specialist checkpoint(s): {preview}{suffix}")
+    return paths
 
 
 def _iteration_number(iteration_dir: Path) -> int:

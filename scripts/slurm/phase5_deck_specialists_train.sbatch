@@ -18,7 +18,11 @@ LEAGUE_ROOT="${LEAGUE_ROOT:-${GAME_DATA_ROOT}/phase5_league_alpha}"
 ITERATION="${ITERATION:-0}"
 ITERATION_PADDED="$(printf "%04d" "$ITERATION")"
 ITERATION_DIR="${ITERATION_DIR:-${LEAGUE_ROOT}/iterations/iter-${ITERATION_PADDED}}"
-BOOTSTRAP_DATASET="${BOOTSTRAP_DATASET:-${ITERATION_DIR}/raw_train/phase5_alpha_rule_bootstrap.jsonl}"
+DEFAULT_SELFPLAY_DATASET="${ITERATION_DIR}/raw_train/phase5_alpha_rule_bootstrap.jsonl"
+if [[ ! -f "$DEFAULT_SELFPLAY_DATASET" && -f "${ITERATION_DIR}/raw_train/phase5_alpha_league_selfplay.jsonl" ]]; then
+  DEFAULT_SELFPLAY_DATASET="${ITERATION_DIR}/raw_train/phase5_alpha_league_selfplay.jsonl"
+fi
+SELFPLAY_DATASET="${SELFPLAY_DATASET:-${BOOTSTRAP_DATASET:-${DEFAULT_SELFPLAY_DATASET}}}"
 DECISION_DATASET="${DECISION_DATASET:-${GAME_DATA_ROOT}/phase5_search_decisions_10shards.jsonl}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-models/rl/phase5_league_alpha/iter-${ITERATION_PADDED}/specialists}"
 REPORT_DIR="${REPORT_DIR:-experiments/rl/phase5_league_alpha/iter-${ITERATION_PADDED}/specialists}"
@@ -41,7 +45,7 @@ PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
 
 echo "Phase 5 Alpha deck-specialist train"
 echo "ITERATION=$ITERATION"
-echo "BOOTSTRAP_DATASET=$BOOTSTRAP_DATASET"
+echo "SELFPLAY_DATASET=$SELFPLAY_DATASET"
 echo "DECISION_DATASET=$DECISION_DATASET"
 echo "CHECKPOINT_DIR=$CHECKPOINT_DIR"
 echo "REPORT_DIR=$REPORT_DIR"
@@ -56,7 +60,7 @@ done
 ARGS=(
   rl-train-phase5-deck-specialists
   --decision-dataset "$DECISION_DATASET"
-  --selfplay-dataset "$BOOTSTRAP_DATASET"
+  --selfplay-dataset "$SELFPLAY_DATASET"
   --checkpoint-dir "$CHECKPOINT_DIR"
   --report-dir "$REPORT_DIR"
   --report-json "$REPORT_JSON"
