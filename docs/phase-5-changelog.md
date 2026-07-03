@@ -2608,3 +2608,39 @@ Artifact decision:
 - The current `df61d24` specialist-eval commit already contains the two uploaded
   reports, so ERAWAN still needs to move, remove, or commit its untracked local
   copies of those same two paths before pulling that commit.
+
+## 2026-07-03 - Iteration-0 Specialist Kaggle Package Candidates
+
+Selection:
+
+- Picked deck 11 Mega Lucario ex as the first specialist package candidate:
+  85 / 120 wins against the four required rule-based specialist opponents,
+  0.7083 sample-specialist win rate, and 297 / 390 full 13 x 13 rule-eval wins.
+- Picked deck 12 Mega Abomasnow ex as the second specialist package candidate:
+  65 / 120 wins against the four required rule-based specialist opponents,
+  0.5417 sample-specialist win rate, and 257 / 390 full 13 x 13 rule-eval wins.
+- Deck 4 Dragapult had 66 / 120 against the four sample specialists, one win
+  ahead of deck 12, but deck 12 was selected as the more general package
+  candidate because it scored 42 more full-eval wins and had the stronger
+  overall rule-agent profile.
+
+Implementation:
+
+- Extended `phase5-package` with `--deck-pool {tournament-9,league-13}` so
+  Kaggle packages can be built for the full 13-deck Phase 5 league pool.
+- Added `--model-dir` to `phase5-package`; when set, each packaged deck uses
+  its matching per-deck specialist checkpoint named `deck-XX.pt`.
+- Updated the ERAWAN runbook with the package command for the selected two
+  iteration-0 specialist candidates:
+  `submissions/phase5_alpha_iter0000_specialists_top2`.
+
+Validation:
+
+- `py_compile` passed for `src/ptcg_abc/cli.py`.
+- `phase5-package --help` exposes `--deck-pool` and `--model-dir`.
+- A temporary local package build succeeded for league decks 11 and 12 using
+  stand-in per-deck checkpoint filenames. The real specialist checkpoint files
+  are not present in this local checkout, so the final specialist zips should be
+  generated on ERAWAN from
+  `models/rl/phase5_league_alpha/iter-0000/specialists/deck-11.pt` and
+  `deck-12.pt`.

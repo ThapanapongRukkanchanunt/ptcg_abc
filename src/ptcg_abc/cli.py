@@ -27,6 +27,7 @@ from ptcg_abc.corpus import (
 from ptcg_abc.evaluation import (
     Phase3CloseoutResult,
     choose_deck_from_best_archetype,
+    phase5_league_prepared_decks,
     phase3_tournament_559_prepared_decks,
     prepare_decks,
     required_phase3_prepared_decks,
@@ -1378,17 +1379,38 @@ def command_phase5_package(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    if not args.model.exists():
+    if args.model_dir is not None:
+        if not args.model_dir.exists():
+            print(
+                f"Phase 5 specialist checkpoint directory not found at {args.model_dir}.",
+                file=sys.stderr,
+            )
+            return 2
+    elif not args.model.exists():
         print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
         return 2
-    decks = {deck.index: deck for deck in phase3_tournament_559_prepared_decks()}
+    if args.deck_pool == "league-13":
+        prepared_decks = phase5_league_prepared_decks()
+        pool_label = "Phase 5 league"
+    else:
+        prepared_decks = phase3_tournament_559_prepared_decks()
+        pool_label = "Tournament 559"
+    decks = {deck.index: deck for deck in prepared_decks}
     selected_indices = args.deck_index or [2, 8]
     outputs = []
     for deck_index in selected_indices:
         if deck_index not in decks:
-            print(f"Unknown Tournament 559 deck index: {deck_index}", file=sys.stderr)
+            print(f"Unknown {pool_label} deck index: {deck_index}", file=sys.stderr)
             return 2
         deck = decks[deck_index]
+        model_path = (
+            args.model_dir / f"deck-{deck.index:02d}.pt"
+            if args.model_dir is not None
+            else args.model
+        )
+        if not model_path.exists():
+            print(f"Phase 5 checkpoint not found at {model_path}.", file=sys.stderr)
+            return 2
         deck_dir = args.output_dir / f"deck-{deck.index:02d}-{_slug(deck.archetype)}"
         tar_path = deck_dir / "submission.tar.gz"
         zip_path = args.output_dir / f"deck-{deck.index:02d}-{_slug(deck.archetype)}-phase5-search-submission.zip"
@@ -1396,16 +1418,17 @@ def command_phase5_package(args: argparse.Namespace) -> int:
             deck_ids=deck.card_ids,
             sample_dir=args.sample_dir,
             output_dir=deck_dir,
-            model_path=args.model,
+            model_path=model_path,
             tar_path=tar_path,
             zip_path=zip_path,
         )
         outputs.append(
             {
                 "deck_index": deck.index,
+                "deck_pool": args.deck_pool,
                 "deck_label": deck.label,
                 "agent": "phase5-search",
-                "model": str(args.model.as_posix()),
+                "model": str(model_path.as_posix()),
                 "tar_path": str(result.tar_path.as_posix()),
                 "zip_path": str(result.zip_path.as_posix()) if result.zip_path else None,
             }
@@ -2791,15 +2814,37 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("models") / "rl" / "phase5_generalist_policy_10k.pt",
     )
     phase5_package.add_argument(
+        "--model-dir",
+        type=_path,
+        default=None,
+        help=(
+            "Directory containing per-deck specialist checkpoints named "
+            "deck-XX.pt. When set, each packaged deck uses its matching "
+            "specialist and --model is ignored."
+        ),
+    )
+    phase5_package.add_argument(
         "--output-dir",
         type=_path,
         default=Path("submissions") / "phase5_search_generalist_10k",
     )
     phase5_package.add_argument(
+        "--deck-pool",
+        choices=("tournament-9", "league-13"),
+        default="tournament-9",
+        help=(
+            "Prepared deck pool to package. Use league-13 for the Phase 5 "
+            "specialist decks 10-13."
+        ),
+    )
+    phase5_package.add_argument(
         "--deck-index",
         type=int,
         action="append",
-        help="Tournament 559 prepared deck index to package. Defaults to decks 2 and 8.",
+        help=(
+            "Prepared deck index to package from --deck-pool. Defaults to "
+            "decks 2 and 8."
+        ),
     )
     phase5_package.set_defaults(func=command_phase5_package)
 

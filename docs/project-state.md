@@ -872,6 +872,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl`.
   The specialist trainer SLURM script now accepts `SELFPLAY_DATASET` and can
   consume either rule-bootstrap or learned-agent league raw data.
+- Iteration-0 specialist Kaggle package candidates are deck 11 Mega Lucario ex
+  and deck 12 Mega Abomasnow ex. Deck 11 scored 85 / 120 against the four
+  required rule-based specialist opponents and 297 / 390 in the full 13 x 13
+  rule eval. Deck 12 scored 65 / 120 against the four required specialists and
+  257 / 390 in the full eval; it was selected over deck 4 Dragapult despite
+  deck 4's 66 / 120 sample-specialist result because deck 12 was much stronger
+  overall. `phase5-package` now supports `--deck-pool league-13` and
+  `--model-dir`, so ERAWAN can build both packages from
+  `models/rl/phase5_league_alpha/iter-0000/specialists` into
+  `submissions/phase5_alpha_iter0000_specialists_top2`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

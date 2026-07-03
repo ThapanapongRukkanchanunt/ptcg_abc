@@ -1950,6 +1950,28 @@ echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0000_eval_job.txt
 `deck-13.pt` for the matching controlled deck. Leave `MODEL` unset in this
 mode; the script still has a single-model fallback for older diagnostics.
 
+Package the best iteration-0 specialist Kaggle candidates after the specialist
+eval is preserved. Based on the first true specialist eval, use deck 11 Mega
+Lucario ex and deck 12 Mega Abomasnow ex. Deck 11 is the clear best against the
+four required rule-based specialist opponents, while deck 12 is the better
+general second pick after considering its much stronger full 13 x 13 rule eval:
+
+```bash
+export PYTHONPATH="$PWD/src"
+python -m ptcg_abc phase5-package \
+  --deck-pool league-13 \
+  --deck-index 11 \
+  --deck-index 12 \
+  --model-dir models/rl/phase5_league_alpha/iter-0000/specialists \
+  --output-dir submissions/phase5_alpha_iter0000_specialists_top2
+```
+
+Expected direct Kaggle zip outputs:
+
+```bash
+ls -lh submissions/phase5_alpha_iter0000_specialists_top2/*submission.zip
+```
+
 After the specialist eval report is preserved, start the first learned-agent
 league iteration. This writes a new raw training window under `iter-0001` using
 the iteration-0 specialist checkpoint family:
