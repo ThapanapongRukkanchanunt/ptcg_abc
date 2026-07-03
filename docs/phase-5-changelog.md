@@ -2448,3 +2448,41 @@ File-retention decision:
   `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
 - Implement the learned-agent league-iteration runner for the 100-games-per-deck
   AlphaStar-like update loop.
+
+## 2026-07-03 - Alpha League Single-Model Eval Diagnostic
+
+ERAWAN result:
+
+- Preserved uploaded reports as explicit single-model diagnostics:
+  - `reports/phase5_alpha_iter0000_full_vs_rule_30g_single_model.json`
+  - `reports/phase5_alpha_iter0000_full_vs_rule_30g_single_model.md`
+- The report header says:
+  `Model: models/rl/phase5_generalist_policy_13deck_10k.pt`.
+  Therefore this was not the intended per-deck specialist evaluation, even
+  though the agent label was `phase5-league:phase5-full`.
+- Aggregate: 2,662 / 5,070 wins, 2,390 losses, 18 draws, 50 timeouts, 0 errors,
+  and 0.525 win rate.
+- Search telemetry: 196,748 searched decisions, 37,167 search-changed decisions,
+  0 search errors, 0 candidate errors, 3,476 truncated candidates, 0.0629
+  average search seconds, and 3.3680 max search seconds.
+- Per-deck win rates:
+  - Deck 1 Alakazam Dudunsparce: 49 / 390, 0.126.
+  - Deck 2 Crustle: 258 / 390, 0.662.
+  - Deck 3 Dragapult Dusknoir: 160 / 390, 0.410.
+  - Deck 4 Dragapult: 177 / 390, 0.454.
+  - Deck 5 Dragapult Dudunsparce: 180 / 390, 0.462.
+  - Deck 6 Hydrapple: 218 / 390, 0.559.
+  - Deck 7 Raging Bolt Ogerpon: 209 / 390, 0.536.
+  - Deck 8 Dragapult Blaziken: 195 / 390, 0.500.
+  - Deck 9 Ogerpon Box: 200 / 390, 0.513.
+  - Deck 10 Crustle sample: 222 / 390, 0.569.
+  - Deck 11 Mega Lucario ex: 295 / 390, 0.756.
+  - Deck 12 Mega Abomasnow ex: 294 / 390, 0.754.
+  - Deck 13 Iono's Bellibolt ex: 205 / 390, 0.526.
+
+Conclusion:
+
+- This is a useful 13 x 13 breadth diagnostic for the single 13-deck generalist
+  checkpoint, but it is not accepted as the iteration-0 specialist eval.
+- Rerun the 13 x 13 x 30 eval after pulling commit `b28013b` or later, using
+  `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.

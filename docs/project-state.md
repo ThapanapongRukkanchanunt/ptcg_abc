@@ -840,8 +840,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   per-deck dispatch, and `scripts/slurm/phase5_league_eval_conda.sbatch` accepts
   `SPECIALIST_MODEL_DIR`. Use this for iteration-0 full-agent-vs-rule eval so
   deck 1 loads `deck-01.pt`, deck 2 loads `deck-02.pt`, and so on.
-- Next league-track ERAWAN action: clean `iter-0000/raw_train/`, then run the
-  13 x 13 x 30 `phase5-full` vs rule eval with
+- A July 3, 2026 uploaded 13 x 13 x 30 eval report was clean but used the old
+  single-model path:
+  `models/rl/phase5_generalist_policy_13deck_10k.pt`. It is preserved as
+  `reports/phase5_alpha_iter0000_full_vs_rule_30g_single_model.json` and `.md`.
+  Result: 2,662 / 5,070 wins, 0.525 win rate, 18 draws, 50 timeouts, 0 errors.
+  Treat it as a single-generalist breadth diagnostic, not the iteration-0
+  specialist eval.
+- Next league-track ERAWAN action: rerun the 13 x 13 x 30 `phase5-full` vs rule
+  eval after pulling `b28013b` or later, with
   `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
