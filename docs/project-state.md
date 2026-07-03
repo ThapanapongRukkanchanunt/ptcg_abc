@@ -889,3 +889,8 @@ Operational rule:
 - Phase 5 search-distillation diagnostics should always run as SLURM jobs using
   `scripts/slurm/phase5_diagnose_search_distill_conda.sbatch`; avoid running
   large diagnostics on the login node.
+- ERAWAN-generated report artifacts should be committed and pushed from ERAWAN
+  before local inspection whenever practical. Codex should then pull and analyze
+  the tracked report files instead of committing uploaded report copies into
+  paths that may still exist as untracked ERAWAN outputs. This avoids future
+  `git pull --ff-only` collisions on `reports/` artifacts.

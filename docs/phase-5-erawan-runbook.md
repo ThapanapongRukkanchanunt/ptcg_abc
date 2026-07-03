@@ -29,6 +29,17 @@ Keep `reports/`, `models/`, and `experiments/` in the repository as before.
 Trace JSONL files are treated as experiment/debug artifacts and stay under
 `experiments/rl/...` unless explicitly overridden.
 
+Report artifact ownership:
+
+- Reports produced on ERAWAN should be committed and pushed from ERAWAN before
+  local inspection whenever practical.
+- The local Codex workspace should then pull those report commits and analyze
+  the tracked artifacts.
+- Avoid committing uploaded copies of reports from the local workspace when the
+  same paths may already exist as untracked ERAWAN outputs. This prevents
+  `git pull --ff-only` from stopping with "untracked working tree files would be
+  overwritten by merge".
+
 The Phase 5 SLURM scripts now default to this convention:
 
 - `scripts/slurm/phase5_search_data_array.sbatch`

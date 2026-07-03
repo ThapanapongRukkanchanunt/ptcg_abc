@@ -2592,3 +2592,19 @@ Conclusion:
 - Proceed to `ITERATION=1` learned-agent league data generation, then train
   iteration-1 specialists and evaluate the next checkpoint family with the same
   13 x 13 x 30 full-agent-vs-rule benchmark.
+
+## 2026-07-03 - ERAWAN Report Artifact Ownership
+
+Artifact decision:
+
+- Future reports generated on ERAWAN should be committed and pushed from ERAWAN
+  first whenever practical.
+- The local Codex workspace should pull those report commits and inspect the
+  tracked files locally.
+- Avoid preserving uploaded report copies directly into the local repo when the
+  same paths may still exist as untracked ERAWAN outputs. This prevents
+  `git pull --ff-only` from failing because tracked report paths would overwrite
+  local untracked SLURM outputs.
+- The current `df61d24` specialist-eval commit already contains the two uploaded
+  reports, so ERAWAN still needs to move, remove, or commit its untracked local
+  copies of those same two paths before pulling that commit.
