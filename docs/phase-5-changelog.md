@@ -2444,10 +2444,8 @@ File-retention decision:
   current best 9-deck inference path.
 - Clean `iter-0000/raw_train/` now that the no-limit specialist update report
   and checkpoint family exist.
-- Run the 13 x 13 x 30 `phase5-full` vs rule eval using
-  `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
-- After the true specialist eval report is recorded, run the learned-agent
-  league-iteration runner for `ITERATION=1`.
+- Run the learned-agent league-iteration runner for `ITERATION=1`, then train
+  iteration-1 specialists from that new raw window.
 
 ## 2026-07-03 - Alpha League Single-Model Eval Diagnostic
 
@@ -2525,6 +2523,72 @@ Verification:
 
 Next step:
 
-- Wait for the true iteration-0 specialist eval report. If it is clean enough
-  to proceed, launch `ITERATION=1` learned-agent league data generation with
-  the new SLURM script.
+- The true iteration-0 specialist eval is now recorded. Launch `ITERATION=1`
+  learned-agent league data generation with the new SLURM script.
+
+## 2026-07-03 - Alpha League Iteration-0 Specialist Eval
+
+ERAWAN result:
+
+- Preserved uploaded true per-deck specialist eval reports:
+  - `reports/phase5_alpha_iter0000_specialists_full_vs_rule_30g.json`
+  - `reports/phase5_alpha_iter0000_specialists_full_vs_rule_30g.md`
+- The report header confirms:
+  `Model: models/rl/phase5_league_alpha/iter-0000/specialists`.
+  This is accepted as the intended iteration-0 specialist evaluation.
+- Aggregate over the 13 x 13 x 30 full-agent-vs-rule benchmark: 2,651 / 5,070
+  wins, 2,404 losses, 15 draws, 48 timeouts, 0 errors, and 0.5229 win rate.
+- Search telemetry: 202,460 searched decisions, 31,122 search-changed
+  decisions, 0 search errors, 0 candidate errors, 2,819 truncated candidates,
+  0.0582 average search seconds, and 3.1895 max search seconds.
+- Against the 4 required sample rule-agent opponents only: 659 / 1,560 wins,
+  0.4224 win rate, 0 draws, 0 timeouts, and 0 errors.
+- By required sample opponent:
+  - Crustle sample: 175 / 390, 0.4487.
+  - Mega Lucario ex sample: 119 / 390, 0.3051.
+  - Mega Abomasnow ex sample: 137 / 390, 0.3513.
+  - Iono's Bellibolt ex sample: 228 / 390, 0.5846.
+- Controlled tournament decks 1-9: 1,670 / 3,510 wins, 0.4758 win rate.
+- Controlled sample decks 10-13: 981 / 1,560 wins, 0.6288 win rate.
+- Tournament rule-agent opponents 1-9: 1,992 / 3,510 wins, 0.5675 win rate.
+- Required sample rule-agent opponents 10-13: 659 / 1,560 wins, 0.4224 win
+  rate.
+- Per-deck win rates:
+  - Deck 1 Alakazam Dudunsparce: 69 / 390, 0.1769.
+  - Deck 2 Crustle: 223 / 390, 0.5718.
+  - Deck 3 Dragapult Dusknoir: 150 / 390, 0.3846.
+  - Deck 4 Dragapult: 215 / 390, 0.5513.
+  - Deck 5 Dragapult Dudunsparce: 200 / 390, 0.5128.
+  - Deck 6 Hydrapple: 200 / 390, 0.5128.
+  - Deck 7 Raging Bolt Ogerpon: 197 / 390, 0.5051.
+  - Deck 8 Dragapult Blaziken: 208 / 390, 0.5333.
+  - Deck 9 Ogerpon Box: 208 / 390, 0.5333.
+  - Deck 10 Crustle sample: 224 / 390, 0.5744.
+  - Deck 11 Mega Lucario ex: 297 / 390, 0.7615.
+  - Deck 12 Mega Abomasnow ex: 257 / 390, 0.6590.
+  - Deck 13 Iono's Bellibolt ex: 203 / 390, 0.5205.
+
+Comparison to the single-model diagnostic:
+
+- Overall moved from 2,662 / 5,070 to 2,651 / 5,070, down 11 wins and 0.22
+  percentage points. This is effectively flat for this noisy 30-game-per-matchup
+  breadth eval.
+- Improved controlled-deck results: Alakazam Dudunsparce +20 wins, Dragapult
+  +38, Dragapult Dudunsparce +20, Dragapult Blaziken +13, Ogerpon Box +8,
+  Crustle sample +2, Mega Lucario ex +2.
+- Regressed controlled-deck results: Crustle -35 wins, Dragapult Dusknoir -10,
+  Hydrapple -18, Raging Bolt Ogerpon -12, Mega Abomasnow ex -37, Iono's
+  Bellibolt ex -2.
+- Against required sample opponents improved slightly from 654 / 1,560 to
+  659 / 1,560, but remains the main pressure point. Mega Lucario ex and Mega
+  Abomasnow ex are the hardest rule-agent opponents.
+
+Conclusion:
+
+- The iteration-0 specialist family is operationally clean: per-deck dispatch
+  works, search telemetry is stable, and there are 0 benchmark errors.
+- It is not a clear strength improvement over the single 13-deck generalist yet,
+  but it is good enough as the first AlphaStar-like league baseline.
+- Proceed to `ITERATION=1` learned-agent league data generation, then train
+  iteration-1 specialists and evaluate the next checkpoint family with the same
+  13 x 13 x 30 full-agent-vs-rule benchmark.

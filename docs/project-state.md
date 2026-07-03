@@ -847,9 +847,23 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   Result: 2,662 / 5,070 wins, 0.525 win rate, 18 draws, 50 timeouts, 0 errors.
   Treat it as a single-generalist breadth diagnostic, not the iteration-0
   specialist eval.
-- Next league-track ERAWAN action: rerun the 13 x 13 x 30 `phase5-full` vs rule
-  eval after pulling `b28013b` or later, with
-  `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists`.
+- The true July 3, 2026 iteration-0 specialist eval is preserved as
+  `reports/phase5_alpha_iter0000_specialists_full_vs_rule_30g.json` and `.md`.
+  It used
+  `Model: models/rl/phase5_league_alpha/iter-0000/specialists`, confirming
+  per-deck dispatch. Result: 2,651 / 5,070 wins, 0.5229 win rate, 15 draws,
+  48 timeouts, 0 errors, 202,460 searched decisions, 31,122 search-changed
+  decisions, 0 search errors, and 0 candidate errors. Against the 4 required
+  sample rule-agent opponents only, it scored 659 / 1,560 wins, 0.4224 win
+  rate. Compared with the single-model diagnostic, the overall result is down
+  11 wins and 0.22 percentage points, but Alakazam Dudunsparce, Dragapult, and
+  Dragapult Dudunsparce improved. Treat this as the accepted iteration-0
+  AlphaStar-like specialist baseline, not as a promoted final policy.
+- Next league-track ERAWAN action: launch `ITERATION=1` learned-agent league
+  data generation from
+  `models/rl/phase5_league_alpha/iter-0000/specialists`, then train
+  iteration-1 specialists from that raw window and evaluate the new checkpoint
+  family with the same 13 x 13 x 30 full-agent-vs-rule benchmark.
 - Learned-agent league iteration support was implemented on July 3, 2026:
   `rl-generate-phase5-alpha-league-iteration` and
   `scripts/slurm/phase5_alpha_league_iteration.sbatch` generate a new raw
