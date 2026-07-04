@@ -2644,3 +2644,49 @@ Validation:
   generated on ERAWAN from
   `models/rl/phase5_league_alpha/iter-0000/specialists/deck-11.pt` and
   `deck-12.pt`.
+
+## 2026-07-04 - Alpha League Iteration-1 Specialist Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0001_deck_specialists_report.json`
+  - `slurm-73372-phase5-deck-specialists.out`
+- ERAWAN job: `73372`.
+- Iteration: `1`.
+- Input learned-agent self-play dataset:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl`.
+- Wrote all 13 specialist checkpoints under
+  `models/rl/phase5_league_alpha/iter-0001/specialists/`.
+- Aggregate examples across the 13 specialists: 791,667 decision, 791,667
+  rule-demo, 193,598 self-play, 1,776,932 value, 206,777 action-value,
+  10,442,154 tactical, 152,136 changed, and 614 skipped no-target records.
+- Each specialist scanned 791,974 decision frames and 193,598 self-play steps.
+- Decks 10-13 still have zero search-decision examples because the canonical
+  search-decision dataset covers only the original 9 tournament decks; they are
+  now trained from the learned-agent self-play window for iteration 1.
+- Per-deck self-play examples:
+  - Deck 1: 18,340.
+  - Deck 2: 11,478.
+  - Deck 3: 15,614.
+  - Deck 4: 17,863.
+  - Deck 5: 17,344.
+  - Deck 6: 13,600.
+  - Deck 7: 13,250.
+  - Deck 8: 20,036.
+  - Deck 9: 12,890.
+  - Deck 10: 12,218.
+  - Deck 11: 12,854.
+  - Deck 12: 6,183.
+  - Deck 13: 21,928.
+- Accuracy range across specialists: 0.5375 to 0.9360. Final loss range:
+  0.0271 to 2.1235.
+
+Conclusion:
+
+- The iteration-1 specialist update succeeded and produced a complete 13-deck
+  checkpoint family.
+- Proceed to 13 x 13 x 30 full-agent-vs-rule evaluation using
+  `SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0001/specialists`.
+- The iteration-1 raw training window can now be cleaned according to the
+  Phase 5 data policy after preserving the update report/checkpoints.

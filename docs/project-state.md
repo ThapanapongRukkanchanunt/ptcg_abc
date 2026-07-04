@@ -882,6 +882,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `--model-dir`, so ERAWAN can build both packages from
   `models/rl/phase5_league_alpha/iter-0000/specialists` into
   `submissions/phase5_alpha_iter0000_specialists_top2`.
+- Iteration-1 deck-specialist update passed on ERAWAN job `73372`. The report
+  `experiments/rl/phase5_league_alpha/iter-0001_deck_specialists_report.json`
+  records 13 / 13 checkpoint paths under
+  `models/rl/phase5_league_alpha/iter-0001/specialists/`, trained from
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl`.
+  Aggregate examples: 791,667 decision, 791,667 rule-demo, 193,598 self-play,
+  1,776,932 value, 206,777 action-value, 10,442,154 tactical, 152,136 changed,
+  and 614 skipped no-target records. Decks 10-13 still have zero canonical
+  search-decision examples, but now have learned-agent self-play coverage.
+  Next action: evaluate
+  `models/rl/phase5_league_alpha/iter-0001/specialists` with the 13 x 13 x 30
+  full-agent-vs-rule benchmark, then clean `iter-0001/raw_train/` according to
+  the raw-data retention policy.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
