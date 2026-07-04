@@ -915,6 +915,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_league_alpha/iter-0002/specialists` with the 13 x 13 x 30
   full-agent-vs-rule benchmark before cleaning `iter-0002/raw_train/` or
   starting iteration 3.
+- Iteration-2 full-agent-vs-rule evaluation passed on ERAWAN job `73396`:
+  2,710 / 5,070 wins, 0.5345 win rate, 20 draws, 55 timeouts, 0 errors.
+  This is +59 wins over the recorded iteration-0 specialist eval
+  (2,651 / 5,070) and +35 wins against the four required sample rule-agent
+  opponents (694 / 1,560 vs 659 / 1,560). Deck 11 Mega Lucario ex remains the
+  strongest specialist at 292 / 390 wins; deck 1 Alakazam Dudunsparce remains
+  the main weakness at 65 / 390 and declined by four wins versus iteration 0.
+  Next action: clean `iter-0002/raw_train/`, then launch iteration 3 online
+  self-play from `models/rl/phase5_league_alpha/iter-0002/specialists`.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

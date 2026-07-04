@@ -2802,3 +2802,66 @@ Conclusion and next step:
 - Keep `iter-0002/raw_train/` until the eval result is inspected and the
   iteration-2 PPO update report/checkpoints are preserved; clean it afterward
   according to the raw-data retention policy.
+
+## 2026-07-04 - Alpha League Iteration-2 Full-Agent Evaluation
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `phase5_alpha_iter0002_specialists_full_vs_rule_30g.json`;
+  - `phase5_alpha_iter0002_specialists_full_vs_rule_30g.md`;
+  - `slurm-73396-phase5-league-eval.out`;
+  - `slurm-73396-phase5-league-eval.err`.
+- ERAWAN job: `73396`.
+- Agent: `phase5-full`.
+- Specialist model directory:
+  `models/rl/phase5_league_alpha/iter-0002/specialists`.
+- Benchmark: 13 x 13 league agent-vs-rule, 30 games per matchup.
+
+Aggregate:
+
+- Games: 5,070.
+- Wins: 2,710.
+- Losses: 2,340.
+- Draws: 20.
+- Timeouts: 55.
+- Errors: 0.
+- Win rate: 0.5345.
+- Search telemetry: 200,132 searched decisions, 33,554 search-changed decisions,
+  0 search errors, 0 candidate errors, 2,666 truncated candidates, average
+  search 0.0536s, max search 3.5554s.
+
+Comparison:
+
+- Versus the recorded iteration-0 specialist eval, iteration 2 is up 59 wins:
+  2,710 / 5,070 vs 2,651 / 5,070.
+- Against the four required sample rule-agent opponents, iteration 2 is up
+  35 wins: 694 / 1,560 vs 659 / 1,560.
+
+Deck totals:
+
+- Deck 1 Alakazam Dudunsparce: 65 / 390, 16.7%.
+- Deck 2 Crustle: 249 / 390, 63.8%.
+- Deck 3 Dragapult Dusknoir: 140 / 390, 35.9%.
+- Deck 4 Dragapult: 220 / 390, 56.4%.
+- Deck 5 Dragapult Dudunsparce: 186 / 390, 47.7%.
+- Deck 6 Hydrapple: 213 / 390, 54.6%.
+- Deck 7 Raging Bolt Ogerpon: 214 / 390, 54.9%.
+- Deck 8 Dragapult Blaziken: 197 / 390, 50.5%.
+- Deck 9 Ogerpon Box: 228 / 390, 58.5%.
+- Deck 10 Crustle sample: 227 / 390, 58.2%.
+- Deck 11 Mega Lucario ex: 292 / 390, 74.9%.
+- Deck 12 Mega Abomasnow ex: 256 / 390, 65.6%.
+- Deck 13 Iono's Bellibolt ex: 223 / 390, 57.2%.
+
+Conclusion and next step:
+
+- The first online PPO iteration produced a measurable full-agent improvement
+  over the recorded iteration-0 specialist baseline.
+- Deck 11 remains the strongest overall specialist. Deck 12 remains strong but
+  is down one win from iteration 0. Deck 1 remains the main weakness and lost
+  four wins versus iteration 0.
+- Proceed with the online loop for iteration 3 from
+  `models/rl/phase5_league_alpha/iter-0002/specialists`.
+- Clean `iter-0002/raw_train/` before launching the next raw window, now that
+  the PPO update and eval reports have been inspected.
