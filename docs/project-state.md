@@ -895,6 +895,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_league_alpha/iter-0001/specialists` with the 13 x 13 x 30
   full-agent-vs-rule benchmark, then clean `iter-0001/raw_train/` according to
   the raw-data retention policy.
+- The Alpha league training plan has pivoted to true online RL for future
+  iterations. Iteration 0 remains rule-bootstrap supervised/mixed training and
+  iteration 1 was already produced with the earlier mixed specialist update, but
+  iteration 2 onward should use `AGENT=phase5-rl` for stochastic neural self-play
+  and `rl-train-phase5-alpha-ppo-specialists` /
+  `scripts/slurm/phase5_alpha_ppo_specialists_train.sbatch` for per-deck PPO.
+  New trajectories record policy log-probability, value, and
+  `policy_on_policy=true`; the Alpha PPO specialist trainer requires that flag
+  by default so legacy search/imitation data is not treated as on-policy RL.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

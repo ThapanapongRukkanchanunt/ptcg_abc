@@ -3,6 +3,7 @@ from ptcg_abc.agent.rule_based import RuleBasedAgent, score_legal_options, selec
 
 __all__ = [
     "HybridRlAgent",
+    "Phase5SamplingPolicyAgent",
     "Phase5SearchPolicyAgent",
     "Phase5SymbolicPolicyAgent",
     "RandomAgent",
@@ -21,6 +22,10 @@ def __getattr__(name: str):
         from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
 
         return Phase5SymbolicPolicyAgent
+    if name == "Phase5SamplingPolicyAgent":
+        from ptcg_abc.agent.phase5_symbolic import Phase5SamplingPolicyAgent
+
+        return Phase5SamplingPolicyAgent
     if name == "Phase5SearchPolicyAgent":
         from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
 

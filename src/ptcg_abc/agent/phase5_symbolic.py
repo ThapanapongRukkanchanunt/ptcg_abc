@@ -62,6 +62,12 @@ class Phase5SymbolicPolicyAgent:
         self.memory = GameMemory()
         self._turn_key: tuple[int, int] | None = None
         self._previous_actions: list[list[float]] = []
+        self._set_policy_metadata(
+            logprob=0.0,
+            value=0.0,
+            on_policy=False,
+            mode="deterministic",
+        )
 
         checkpoint = torch.load(self.checkpoint_path, map_location="cpu", weights_only=False)
         if checkpoint.get("format") != PHASE5_POLICY_CHECKPOINT_FORMAT:
@@ -193,6 +199,155 @@ class Phase5SymbolicPolicyAgent:
                 self._previous_actions.append(list(action_features[position]))
         if len(self._previous_actions) > self.max_previous_actions:
             self._previous_actions = self._previous_actions[-self.max_previous_actions :]
+
+    def _set_policy_metadata(
+        self,
+        *,
+        logprob: float,
+        value: float,
+        on_policy: bool,
+        mode: str,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        self.last_logprob = float(logprob)
+        self.last_value = float(value)
+        self.last_policy_metadata = {
+            "logprob": float(logprob),
+            "value": float(value),
+            "on_policy": bool(on_policy),
+            "mode": mode,
+        } | (dict(extra) if extra else {})
+
+
+class Phase5SamplingPolicyAgent(Phase5SymbolicPolicyAgent):
+    """Stochastic Phase 5 policy for on-policy self-play collection."""
+
+    def __init__(
+        self,
+        deck_ids: Sequence[int],
+        *,
+        card_data: Sequence[Any] = (),
+        attack_data: Sequence[Any] = (),
+        checkpoint_path: Path | str | None = None,
+        device: str | None = None,
+        temperature: float = 1.0,
+    ) -> None:
+        if temperature <= 0.0:
+            raise ValueError("Phase5SamplingPolicyAgent temperature must be positive.")
+        self.temperature = float(temperature)
+        super().__init__(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=checkpoint_path,
+            device=device,
+            use_rule_tiebreak=False,
+        )
+
+    def act(self, observation: Any) -> list[int]:
+        self._set_policy_metadata(
+            logprob=0.0,
+            value=0.0,
+            on_policy=False,
+            mode="unobserved",
+            extra={"temperature": self.temperature},
+        )
+        select = _get(observation, "select")
+        if select is None:
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=False,
+                mode="decklist",
+                extra={"temperature": self.temperature},
+            )
+            return list(self.deck_ids)
+
+        state = self.state_adapter.parse(observation)
+        legal_actions = self.legal_adapter.parse(observation)
+        if not legal_actions:
+            selected = self.fallback_agent.act(observation)
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=False,
+                mode="fallback_no_legal_actions",
+                extra={"temperature": self.temperature},
+            )
+            return selected
+
+        self._reset_turn_context_if_needed(state)
+        self.memory.observe(state)
+        belief = self.memory.belief_state(state, own_deck_ids=self.deck_ids)
+        encoded = self.encoder.encode(state, legal_actions, belief)
+        target_count = _target_count(encoded.legal_action_mask, legal_actions)
+        if target_count <= 0:
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=True,
+                mode="empty_selection",
+                extra={"temperature": self.temperature},
+            )
+            return []
+
+        outputs = self._score_model_outputs(encoded)
+        state_value = float(outputs["state_value"])
+        encoded_positions = [
+            position
+            for position, index in enumerate(encoded.legal_action_indices)
+            if index >= 0 and encoded.legal_action_mask[position] > 0
+        ]
+        selected_positions: list[int] = []
+        logprob = 0.0
+        remaining = list(encoded_positions)
+        torch = self.torch
+        for _ in range(target_count):
+            if not remaining:
+                break
+            logits = torch.tensor(
+                [outputs["action_logits"][position] for position in remaining],
+                dtype=torch.float32,
+                device=self.device,
+            )
+            scaled_logits = logits / self.temperature
+            log_probs = torch.nn.functional.log_softmax(scaled_logits, dim=0)
+            probs = torch.exp(log_probs)
+            choice_offset = int(torch.multinomial(probs, num_samples=1).item())
+            selected_position = remaining.pop(choice_offset)
+            selected_positions.append(selected_position)
+            logprob += float(log_probs[choice_offset].detach().cpu().item())
+
+        selected = [
+            encoded.legal_action_indices[position]
+            for position in selected_positions
+            if encoded.legal_action_indices[position] >= 0
+        ]
+        min_count = max(0, int(getattr(legal_actions[0], "min_count", 0) or 0))
+        if len(selected) < min_count:
+            selected = self.fallback_agent.act(observation)
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=state_value,
+                on_policy=False,
+                mode="fallback_min_count",
+                extra={"temperature": self.temperature},
+            )
+            return _valid_indices(selected, len(legal_actions))
+
+        selected = _valid_indices(selected, len(legal_actions))
+        self._observe_selected_actions(encoded.legal_action_features, selected_positions)
+        self._set_policy_metadata(
+            logprob=logprob,
+            value=state_value,
+            on_policy=True,
+            mode="sample",
+            extra={
+                "temperature": self.temperature,
+                "target_count": target_count,
+            },
+        )
+        return selected
 
 
 def _target_count(mask: Sequence[float], legal_actions: Sequence[Any]) -> int:

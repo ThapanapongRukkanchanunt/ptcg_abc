@@ -1972,51 +1972,82 @@ Expected direct Kaggle zip outputs:
 ls -lh submissions/phase5_alpha_iter0000_specialists_top2/*submission.zip
 ```
 
-After the specialist eval report is preserved, start the first learned-agent
-league iteration. This writes a new raw training window under `iter-0001` using
-the iteration-0 specialist checkpoint family:
+Historical note: the first learned-agent window, `iter-0001`, was generated
+before the true online-RL pivot and then trained with the mixed
+deck-specialist trainer. Keep it as a baseline. For future training windows,
+use the stochastic neural `phase5-rl` collector and the PPO specialist update
+below.
+
+Start the next online-RL league iteration. This writes a fresh raw training
+window under `iter-0002` using the iteration-1 specialist checkpoint family.
+Each deck is scheduled for 100 games:
 
 ```bash
 JOB=$(
-  AGENT=phase5-full \
-  ITERATION=1 \
-  SOURCE_ITERATION=0 \
-  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0000/specialists \
+  AGENT=phase5-rl \
+  ITERATION=2 \
+  SOURCE_ITERATION=1 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0001/specialists \
   GAMES_PER_DECK=100 \
   MAX_STEPS=600 \
-  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_league_alpha/iter-0001_search_traces.jsonl \
-  SEARCH_TRACE_GAMES=3 \
   sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_league_iteration.sbatch
 )
-echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0001_league_iteration_job.txt
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0002_league_iteration_job.txt
 ```
 
 Inspect:
 
 ```bash
-JOB=$(cat experiments/rl/phase5_league_alpha/iter-0001_league_iteration_job.txt)
+JOB=$(cat experiments/rl/phase5_league_alpha/iter-0002_league_iteration_job.txt)
 sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
 tail -n 120 "experiments/rl/slurm-${JOB}-phase5-alpha-league.out"
 tail -n 120 "experiments/rl/slurm-${JOB}-phase5-alpha-league.err"
-cat experiments/rl/phase5_league_alpha/iter-0001_league_iteration_report.json
-ls -lh "$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0001/raw_train/
+cat experiments/rl/phase5_league_alpha/iter-0002_league_iteration_report.json
+ls -lh "$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0002/raw_train/
 ```
 
-Then update the iteration-1 specialist family from the learned-agent raw data:
+Then update the iteration-2 specialist family with PPO from that on-policy raw
+window:
 
 ```bash
 JOB=$(
   GAME_DATA_ROOT="$GAME_DATA_ROOT" \
-  ITERATION=1 \
-  SELFPLAY_DATASET="$GAME_DATA_ROOT"/phase5_league_alpha/iterations/iter-0001/raw_train/phase5_alpha_league_selfplay.jsonl \
-  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_deck_specialists_train.sbatch
+  ITERATION=2 \
+  SOURCE_ITERATION=1 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_ppo_specialists_train.sbatch
 )
-echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0001_deck_specialists_job.txt
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0002_ppo_specialists_job.txt
 ```
 
-After that update report and checkpoint family exist, clean `iter-0001/raw_train`
-with `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch` before starting
-another league iteration.
+Inspect:
+
+```bash
+JOB=$(cat experiments/rl/phase5_league_alpha/iter-0002_ppo_specialists_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-alpha-ppo-specialists.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-alpha-ppo-specialists.err"
+cat experiments/rl/phase5_league_alpha/iter-0002_ppo_specialists_report.json
+```
+
+After the PPO update report and checkpoint family exist, evaluate the updated
+specialists with the same full-agent-vs-rule gate:
+
+```bash
+JOB=$(
+  AGENT=phase5-full \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0002/specialists \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REPORT_JSON=reports/phase5_alpha_iter0002_specialists_full_vs_rule_30g.json \
+  REPORT_MD=reports/phase5_alpha_iter0002_specialists_full_vs_rule_30g.md \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_league_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0002_full_vs_rule_eval_job.txt
+```
+
+Clean `iter-0002/raw_train` with
+`scripts/slurm/phase5_alpha_cleanup_iteration.sbatch` only after the PPO update
+report/checkpoints are preserved and the next action has been recorded.
 
 ## 18. Ready-To-Train Checklist
 

@@ -8,7 +8,9 @@ from typing import Any, Sequence
 
 from ptcg_abc.rl.phase5_symbolic_training import (
     Phase5GeneralistTrainingSummary,
+    Phase5PPOTrainingSummary,
     train_phase5_generalist_policy,
+    train_phase5_ppo_policy_from_trajectories,
 )
 from ptcg_abc.rl.workflow import (
     PHASE5_SELFPLAY_DECK_POOL_LEAGUE_13,
@@ -80,6 +82,21 @@ class DeckSpecialistTrainingSummary:
     report_dir: str
     decision_dataset_path: str | None
     selfplay_dataset_paths: list[str]
+    summaries: dict[str, dict[str, Any]]
+    data_policy: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class DeckSpecialistPPOTrainingSummary:
+    iteration: int | None
+    deck_indices: list[int]
+    source_checkpoint_dir: str
+    output_checkpoint_dir: str
+    report_dir: str
+    trajectory_dataset_paths: list[str]
     summaries: dict[str, dict[str, Any]]
     data_policy: dict[str, Any]
 
@@ -262,6 +279,60 @@ def train_phase5_deck_specialists(
             decision_dataset_path.as_posix() if decision_dataset_path is not None else None
         ),
         selfplay_dataset_paths=[path.as_posix() for path in selfplay_dataset_paths],
+        summaries=summaries,
+        data_policy=AlphaLeagueDataPolicy().to_dict(),
+    )
+    _write_json(aggregate_report_path, aggregate.to_dict())
+    return aggregate
+
+
+def train_phase5_deck_specialists_ppo(
+    *,
+    trajectory_dataset_paths: Sequence[Path],
+    source_checkpoint_dir: Path,
+    output_checkpoint_dir: Path,
+    report_dir: Path,
+    aggregate_report_path: Path,
+    iteration: int | None = None,
+    deck_indices: Sequence[int] = PHASE5_ALPHA_DECK_INDICES,
+    allow_empty_decks: bool = False,
+    require_on_policy: bool = True,
+    **trainer_kwargs: Any,
+) -> DeckSpecialistPPOTrainingSummary:
+    if not trajectory_dataset_paths:
+        raise ValueError("Provide at least one trajectory dataset.")
+    selected_indices = _normal_deck_indices(deck_indices)
+    for path in trajectory_dataset_paths:
+        if not path.exists():
+            raise ValueError(f"Trajectory dataset not found at {path}.")
+    output_checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    summaries: dict[str, dict[str, Any]] = {}
+    for deck_index in selected_indices:
+        source_checkpoint_path = source_checkpoint_dir / f"deck-{deck_index:02d}.pt"
+        if not source_checkpoint_path.exists():
+            raise ValueError(f"Missing source specialist checkpoint: {source_checkpoint_path}.")
+        output_checkpoint_path = output_checkpoint_dir / f"deck-{deck_index:02d}.pt"
+        report_path = report_dir / f"deck-{deck_index:02d}_ppo_report.json"
+        summary: Phase5PPOTrainingSummary = train_phase5_ppo_policy_from_trajectories(
+            trajectory_dataset_paths=trajectory_dataset_paths,
+            checkpoint_path=source_checkpoint_path,
+            output_checkpoint_path=output_checkpoint_path,
+            report_path=report_path,
+            deck_index_filter=deck_index,
+            require_on_policy=require_on_policy,
+            **trainer_kwargs,
+        )
+        if summary.examples <= 0 and not allow_empty_decks:
+            raise ValueError(f"Deck {deck_index} produced zero PPO examples.")
+        summaries[str(deck_index)] = summary.to_dict()
+    aggregate = DeckSpecialistPPOTrainingSummary(
+        iteration=iteration,
+        deck_indices=selected_indices,
+        source_checkpoint_dir=source_checkpoint_dir.as_posix(),
+        output_checkpoint_dir=output_checkpoint_dir.as_posix(),
+        report_dir=report_dir.as_posix(),
+        trajectory_dataset_paths=[path.as_posix() for path in trajectory_dataset_paths],
         summaries=summaries,
         data_policy=AlphaLeagueDataPolicy().to_dict(),
     )

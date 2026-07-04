@@ -200,12 +200,15 @@ class Phase5PPOTrainingSummary:
     steps_seen: int
     examples: int
     skipped_no_target: int
+    skipped_off_policy: int
     epochs: int
     checkpoint_path: str
     output_checkpoint_path: str
     final_loss: float
     mean_advantage: float
     device: str
+    deck_index_filter: int | None
+    require_on_policy: bool
     clip_epsilon: float
     policy_loss_weight: float
     value_loss_weight: float
@@ -996,6 +999,8 @@ def train_phase5_ppo_policy_from_trajectories(
     value_loss_weight: float = 0.5,
     entropy_weight: float = 0.01,
     selfplay_limit: int | None = None,
+    deck_index_filter: int | None = None,
+    require_on_policy: bool = False,
 ) -> Phase5PPOTrainingSummary:
     if not trajectory_dataset_paths:
         raise ValueError("Provide at least one trajectory dataset.")
@@ -1021,6 +1026,7 @@ def train_phase5_ppo_policy_from_trajectories(
     final_steps_seen = 0
     final_examples = 0
     final_skipped = 0
+    final_skipped_off_policy = 0
     final_advantage_sum = 0.0
 
     for _ in range(max(1, epochs)):
@@ -1029,6 +1035,7 @@ def train_phase5_ppo_policy_from_trajectories(
         steps_seen = 0
         examples = 0
         skipped = 0
+        skipped_off_policy = 0
         advantage_sum = 0.0
 
         def flush_batch() -> None:
@@ -1054,6 +1061,16 @@ def train_phase5_ppo_policy_from_trajectories(
                 if selfplay_limit is not None and steps_seen >= selfplay_limit:
                     break
                 steps_seen += 1
+                if not _matches_deck_index_filter(
+                    step.decision.reward_metadata,
+                    deck_index_filter,
+                ):
+                    continue
+                if require_on_policy and not bool(
+                    step.decision.reward_metadata.get("policy_on_policy", False)
+                ):
+                    skipped_off_policy += 1
+                    continue
                 previous_rows = context.previous_rows(step.decision)
                 record = phase5_symbolic_record_from_trajectory(
                     step,
@@ -1078,6 +1095,7 @@ def train_phase5_ppo_policy_from_trajectories(
         final_steps_seen = steps_seen
         final_examples = examples
         final_skipped = skipped
+        final_skipped_off_policy = skipped_off_policy
         final_advantage_sum = advantage_sum
 
     output_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1102,6 +1120,8 @@ def train_phase5_ppo_policy_from_trajectories(
         "value_loss_weight": value_loss_weight,
         "entropy_weight": entropy_weight,
         "selfplay_limit": selfplay_limit,
+        "deck_index_filter": deck_index_filter,
+        "require_on_policy": require_on_policy,
         "examples": final_examples,
         "mean_advantage": final_advantage_sum / final_examples
         if final_examples
@@ -1113,12 +1133,15 @@ def train_phase5_ppo_policy_from_trajectories(
         steps_seen=final_steps_seen,
         examples=final_examples,
         skipped_no_target=final_skipped,
+        skipped_off_policy=final_skipped_off_policy,
         epochs=max(1, epochs),
         checkpoint_path=checkpoint_path.as_posix(),
         output_checkpoint_path=output_checkpoint_path.as_posix(),
         final_loss=final_loss,
         mean_advantage=final_advantage_sum / final_examples if final_examples else 0.0,
         device=str(device),
+        deck_index_filter=deck_index_filter,
+        require_on_policy=require_on_policy,
         clip_epsilon=clip_epsilon,
         policy_loss_weight=policy_loss_weight,
         value_loss_weight=value_loss_weight,
@@ -1416,11 +1439,6 @@ def _train_ppo_batch(
         dtype=torch.float32,
         device=device,
     )
-    targets = torch.tensor(
-        [record.target_positions[0] for record in records],
-        dtype=torch.long,
-        device=device,
-    )
     old_logprobs = torch.tensor(
         [example[1] for example in examples],
         dtype=torch.float32,
@@ -1443,11 +1461,23 @@ def _train_ppo_batch(
         previous_action_mask,
     )
     logits = output["action_logits"]
-    log_probs = nn.functional.log_softmax(logits, dim=1)
-    selected_log_probs = log_probs[
-        torch.arange(len(records), device=device),
-        targets,
-    ]
+    masked_logits = logits.masked_fill(action_mask <= 0, -1.0e9)
+    log_probs = nn.functional.log_softmax(masked_logits, dim=1)
+    selected_log_probs = torch.zeros(len(records), dtype=torch.float32, device=device)
+    row_indices: list[int] = []
+    target_indices: list[int] = []
+    for row_index, record in enumerate(records):
+        for position in record.target_positions:
+            row_indices.append(row_index)
+            target_indices.append(position)
+    if row_indices:
+        rows = torch.tensor(row_indices, dtype=torch.long, device=device)
+        targets = torch.tensor(target_indices, dtype=torch.long, device=device)
+        selected_log_probs = selected_log_probs.index_add(
+            0,
+            rows,
+            log_probs[rows, targets],
+        )
     ratios = torch.exp(selected_log_probs - old_logprobs)
     clipped = torch.clamp(ratios, 1.0 - clip_epsilon, 1.0 + clip_epsilon)
     policy_loss = -torch.minimum(ratios * advantages, clipped * advantages).mean()

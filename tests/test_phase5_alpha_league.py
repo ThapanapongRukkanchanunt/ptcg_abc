@@ -10,6 +10,7 @@ from ptcg_abc.rl.phase5_alpha_league import (
     alpha_iteration_dir,
     cleanup_phase5_alpha_raw_train,
     generate_phase5_alpha_league_iteration,
+    train_phase5_deck_specialists_ppo,
 )
 
 
@@ -51,8 +52,29 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
                 "4",
                 "--specialist-model-dir",
                 "models/specialists",
+                "--agent",
+                "phase5-rl",
                 "--games-per-deck",
                 "5",
+                "--deck-index",
+                "1",
+            ]
+        )
+        ppo_specialist_args = parser.parse_args(
+            [
+                "rl-train-phase5-alpha-ppo-specialists",
+                "--trajectory-dataset",
+                "selfplay.jsonl",
+                "--source-checkpoint-dir",
+                "models/source",
+                "--output-checkpoint-dir",
+                "models/output",
+                "--report-dir",
+                "reports/decks",
+                "--report-json",
+                "reports/update.json",
+                "--iteration",
+                "4",
                 "--deck-index",
                 "1",
             ]
@@ -104,7 +126,14 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
         )
         self.assertEqual(iteration_args.iteration, 4)
         self.assertEqual(iteration_args.specialist_model_dir, Path("models/specialists"))
+        self.assertEqual(iteration_args.agent, "phase5-rl")
         self.assertEqual(iteration_args.games_per_deck, 5)
+        self.assertEqual(
+            ppo_specialist_args.func.__name__,
+            "command_rl_train_phase5_alpha_ppo_specialists",
+        )
+        self.assertEqual(ppo_specialist_args.iteration, 4)
+        self.assertFalse(ppo_specialist_args.allow_off_policy_trajectories)
         self.assertEqual(cleanup_args.func.__name__, "command_rl_clean_phase5_alpha_iteration")
         self.assertEqual(full_eval_args.agent, "phase5-full")
         self.assertEqual(full_eval_args.games_per_matchup, 30)
@@ -156,7 +185,7 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
         class FakeSelfPlaySummary:
             def to_dict(self):
                 return {
-                    "agent": "phase5-full",
+                    "agent": "phase5-rl",
                     "games_requested": 10,
                     "games_started": 10,
                     "errors": 0,
@@ -185,12 +214,13 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
                     deck_indices=[1, 2],
                     game_offset=40,
                     max_steps=300,
+                    agent_kind="phase5-rl",
                     search_trace_game_limit=2,
                 )
 
             rollout.assert_called_once()
             kwargs = rollout.call_args.kwargs
-            self.assertEqual(kwargs["agent_kind"], "phase5-full")
+            self.assertEqual(kwargs["agent_kind"], "phase5-rl")
             self.assertEqual(kwargs["games"], 10)
             self.assertEqual(kwargs["game_offset"], 40)
             self.assertEqual(kwargs["specialist_model_dir"], specialist_dir)
@@ -207,6 +237,59 @@ class Phase5AlphaLeagueTests(unittest.TestCase):
             payload = json.loads(report_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["selfplay"]["games_started"], 10)
             self.assertTrue(payload["cleanup_required"])
+
+    def test_ppo_specialist_update_filters_each_deck_and_writes_report(self):
+        class FakePPOSummary:
+            def __init__(self, deck_index: int):
+                self.examples = 7
+                self.deck_index = deck_index
+
+            def to_dict(self):
+                return {
+                    "examples": self.examples,
+                    "deck_index_filter": self.deck_index,
+                    "require_on_policy": True,
+                }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            trajectory_path = root / "selfplay.jsonl"
+            trajectory_path.write_text("{}\n", encoding="utf-8")
+            source_dir = root / "source"
+            source_dir.mkdir()
+            for index in (1, 2):
+                source_dir.joinpath(f"deck-{index:02d}.pt").write_bytes(b"pt")
+            output_dir = root / "output"
+            report_dir = root / "reports"
+            aggregate_path = root / "aggregate.json"
+
+            def fake_train(**kwargs):
+                return FakePPOSummary(kwargs["deck_index_filter"])
+
+            with patch(
+                "ptcg_abc.rl.phase5_alpha_league.train_phase5_ppo_policy_from_trajectories",
+                side_effect=fake_train,
+            ) as trainer:
+                summary = train_phase5_deck_specialists_ppo(
+                    trajectory_dataset_paths=[trajectory_path],
+                    source_checkpoint_dir=source_dir,
+                    output_checkpoint_dir=output_dir,
+                    report_dir=report_dir,
+                    aggregate_report_path=aggregate_path,
+                    iteration=4,
+                    deck_indices=[1, 2],
+                    epochs=1,
+                )
+
+            self.assertEqual(trainer.call_count, 2)
+            first_kwargs = trainer.call_args_list[0].kwargs
+            self.assertEqual(first_kwargs["deck_index_filter"], 1)
+            self.assertTrue(first_kwargs["require_on_policy"])
+            self.assertEqual(first_kwargs["output_checkpoint_path"], output_dir / "deck-01.pt")
+            self.assertEqual(summary.iteration, 4)
+            self.assertEqual(summary.summaries["1"]["examples"], 7)
+            payload = json.loads(aggregate_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["summaries"]["2"]["deck_index_filter"], 2)
 
 
 if __name__ == "__main__":

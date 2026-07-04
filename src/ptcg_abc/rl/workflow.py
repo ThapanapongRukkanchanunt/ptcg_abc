@@ -9,7 +9,10 @@ from typing import Any, Sequence
 
 from ptcg_abc.agent import HybridRlAgent, RuleBasedAgent
 from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
-from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
+from ptcg_abc.agent.phase5_symbolic import (
+    Phase5SamplingPolicyAgent,
+    Phase5SymbolicPolicyAgent,
+)
 from ptcg_abc.evaluation import (
     Phase3RequiredDebugGame,
     Phase3RequiredBenchmarkResult,
@@ -438,12 +441,14 @@ def rollout_games(
         timeouts += int(result.started and not result.finished and result.error is None)
         final_metadata = _result_metadata(result, player_index)
         reward = reward_from_result_metadata(final_metadata)
-        for frame, chosen_indices in recorder.frames:
-            frame = _with_metadata(frame, final_metadata)
+        for record in recorder.frames:
+            frame = _with_metadata(record.frame, final_metadata)
             append_trajectory_jsonl(
                 TrajectoryStep(
                     decision=frame,
-                    chosen_indices=chosen_indices,
+                    chosen_indices=record.chosen_indices,
+                    logprob=record.logprob,
+                    value=record.value,
                     reward=reward,
                     terminal=result.finished,
                     truncated=not result.finished and result.error is None,
@@ -735,12 +740,14 @@ def rollout_selfplay_games(
                 ),
             }
             reward = reward_from_result_metadata(final_metadata)
-            for frame, chosen_indices in recorder.frames:
-                frame = _with_metadata(frame, final_metadata)
+            for record in recorder.frames:
+                frame = _with_metadata(record.frame, final_metadata)
                 append_trajectory_jsonl(
                     TrajectoryStep(
                         decision=frame,
-                        chosen_indices=chosen_indices,
+                        chosen_indices=record.chosen_indices,
+                        logprob=record.logprob,
+                        value=record.value,
                         reward=reward,
                         terminal=result.finished,
                         truncated=not result.finished and result.error is None,
@@ -1368,6 +1375,15 @@ class RecordingRuleAgent:
         return selected
 
 
+@dataclass(frozen=True)
+class RecordedPolicyFrame:
+    frame: DecisionFrame
+    chosen_indices: list[int]
+    logprob: float = 0.0
+    value: float = 0.0
+    on_policy: bool = False
+
+
 class RecordingPolicyAgent:
     def __init__(
         self,
@@ -1385,23 +1401,36 @@ class RecordingPolicyAgent:
         self.attack_by_id = attack_lookup(attack_data)
         self.reward_metadata = dict(reward_metadata)
         self.trace_limit = trace_limit
-        self.frames: list[tuple[DecisionFrame, list[int]]] = []
+        self.frames: list[RecordedPolicyFrame] = []
 
     def act(self, observation: Any) -> list[int]:
         selected = self.agent.act(observation)
         should_record = self.trace_limit <= 0 or len(self.frames) < self.trace_limit
         if not should_record:
             return selected
+        policy_metadata = _policy_metadata(self.agent)
         frame = make_decision_frame(
             observation,
             deck_ids=self.deck_ids,
             card_by_id=self.card_by_id,
             attack_by_id=self.attack_by_id,
             selected_indices=selected,
-            reward_metadata=self.reward_metadata | {"step_index": len(self.frames) + 1},
+            reward_metadata=(
+                self.reward_metadata
+                | {"step_index": len(self.frames) + 1}
+                | policy_metadata
+            ),
         )
         if frame is not None:
-            self.frames.append((frame, list(selected)))
+            self.frames.append(
+                RecordedPolicyFrame(
+                    frame=frame,
+                    chosen_indices=list(selected),
+                    logprob=float(policy_metadata["policy_logprob"]),
+                    value=float(policy_metadata["policy_value"]),
+                    on_policy=bool(policy_metadata["policy_on_policy"]),
+                )
+            )
         return selected
 
 
@@ -1421,6 +1450,13 @@ def _make_agent(
         return _quiet_rule_agent(deck_ids, card_data, attack_data)
     if agent_kind == "phase5-symbolic":
         return Phase5SymbolicPolicyAgent(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=model_path,
+        )
+    if agent_kind == "phase5-rl":
+        return Phase5SamplingPolicyAgent(
             deck_ids,
             card_data=card_data,
             attack_data=attack_data,
@@ -1459,6 +1495,31 @@ def _quiet_rule_agent(
 ) -> RuleBasedAgent:
     with contextlib.redirect_stdout(io.StringIO()):
         return RuleBasedAgent(deck_ids, card_data=card_data, attack_data=attack_data)
+
+
+def _policy_metadata(agent: Any) -> dict[str, Any]:
+    payload = dict(getattr(agent, "last_policy_metadata", {}) or {})
+    logprob = _safe_float(payload.get("logprob", getattr(agent, "last_logprob", 0.0)))
+    value = _safe_float(payload.get("value", getattr(agent, "last_value", 0.0)))
+    metadata: dict[str, Any] = {
+        "policy_logprob": logprob,
+        "policy_value": value,
+        "policy_on_policy": bool(payload.get("on_policy", False)),
+    }
+    if "mode" in payload:
+        metadata["policy_mode"] = payload["mode"]
+    if "temperature" in payload:
+        metadata["policy_temperature"] = _safe_float(payload.get("temperature"), default=1.0)
+    if "target_count" in payload:
+        metadata["policy_target_count"] = int(payload["target_count"])
+    return metadata
+
+
+def _safe_float(value: Any, *, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _with_metadata(frame: DecisionFrame, metadata: dict[str, Any]) -> DecisionFrame:
@@ -1531,11 +1592,11 @@ def _outcome_label(result: BattleResult, *, player_index: int) -> str:
     return "timeout_loss" if timeout else "loss"
 
 
-def _compact_replay_trace(
-    frames: Sequence[tuple[DecisionFrame, list[int]]],
-) -> list[dict[str, Any]]:
+def _compact_replay_trace(frames: Sequence[RecordedPolicyFrame]) -> list[dict[str, Any]]:
     trace: list[dict[str, Any]] = []
-    for frame, chosen_indices in frames:
+    for record in frames:
+        frame = record.frame
+        chosen_indices = record.chosen_indices
         chosen = set(chosen_indices)
         ranked = sorted(
             frame.legal_options,
@@ -1549,6 +1610,9 @@ def _compact_replay_trace(
                 "context": frame.context,
                 "target_count": frame.target_count,
                 "chosen_indices": list(chosen_indices),
+                "policy_logprob": record.logprob,
+                "policy_value": record.value,
+                "policy_on_policy": record.on_policy,
                 "chosen_options": [
                     _compact_action(action)
                     for action in frame.legal_options
