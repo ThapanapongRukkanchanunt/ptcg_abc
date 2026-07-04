@@ -904,6 +904,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   New trajectories record policy log-probability, value, and
   `policy_on_policy=true`; the Alpha PPO specialist trainer requires that flag
   by default so legacy search/imitation data is not treated as on-policy RL.
+- Iteration-2 true online RL passed on ERAWAN job `73394`. The `phase5-rl`
+  self-play window produced 1,300 / 1,300 games, 215,597 trajectory rows, 8
+  draws, 26 timeouts, and 0 errors. PPO then consumed exactly 215,597 on-policy
+  examples across all 13 specialists with `skipped_off_policy=0` and
+  `skipped_no_target=0`, writing
+  `models/rl/phase5_league_alpha/iter-0002/specialists`. Deck 11 had the
+  strongest online self-play record at 137 / 204 wins; deck 1 remained the
+  weakest at 28 / 204. Next action: evaluate
+  `models/rl/phase5_league_alpha/iter-0002/specialists` with the 13 x 13 x 30
+  full-agent-vs-rule benchmark before cleaning `iter-0002/raw_train/` or
+  starting iteration 3.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

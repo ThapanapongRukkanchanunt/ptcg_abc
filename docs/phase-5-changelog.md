@@ -2737,3 +2737,68 @@ Validation:
   - `tests.test_rl_phase5_symbolic_training`;
   - `tests.test_phase5_full_agent_scaffolds`;
   - `tests.test_rl_phase5_symbolic_agent`.
+
+## 2026-07-04 - Alpha League Iteration-2 Online PPO Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0002_league_iteration_report.json`;
+  - `iter-0002_ppo_specialists_report.json`;
+  - `slurm-73394-phase5-alpha-ppo-specialists.out`.
+- PPO specialist update job: `73394`.
+- Online collector: `AGENT=phase5-rl`.
+- Source checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0001/specialists`.
+- Output checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0002/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0002/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 215,597.
+- Draws: 8. Timeouts: 26. Errors: 0.
+- Pair side balance: deck A 643 wins, deck B 649 wins.
+- Strongest online self-play records by deck win rate:
+  - Deck 11 Mega Lucario ex: 137 / 204, 67.2%.
+  - Deck 2 Crustle: 121 / 191, 63.4%.
+  - Deck 10 Crustle sample: 124 / 204, 60.8%.
+  - Deck 12 Mega Abomasnow ex: 118 / 204, 57.8%.
+- Main weak point remains deck 1 Alakazam Dudunsparce: 28 / 204, 13.7%.
+
+PPO update:
+
+- All 13 specialist checkpoints were written under
+  `models/rl/phase5_league_alpha/iter-0002/specialists`.
+- Total PPO examples: 215,597, exactly matching the trajectory row count.
+- `require_on_policy=true` for every deck.
+- Skipped off-policy examples: 0. Skipped no-target examples: 0.
+- Per-deck PPO examples ranged from 7,432 to 29,477:
+  - Deck 1: 29,477.
+  - Deck 2: 11,952.
+  - Deck 3: 15,236.
+  - Deck 4: 17,555.
+  - Deck 5: 16,898.
+  - Deck 6: 15,452.
+  - Deck 7: 14,662.
+  - Deck 8: 21,955.
+  - Deck 9: 15,070.
+  - Deck 10: 13,224.
+  - Deck 11: 12,855.
+  - Deck 12: 7,432.
+  - Deck 13: 23,829.
+- Mean advantage ranged from -0.2640 to 0.3917; deck 6 was highest and deck 12
+  lowest. Final loss ranged from -0.0073 to 0.4495.
+
+Conclusion and next step:
+
+- The first true online PPO specialist update succeeded: no off-policy leakage,
+  no missing target records, and a complete iteration-2 checkpoint family.
+- Do not launch iteration 3 yet. First evaluate
+  `models/rl/phase5_league_alpha/iter-0002/specialists` with the 13 x 13 x 30
+  full-agent-vs-rule benchmark.
+- Keep `iter-0002/raw_train/` until the eval result is inspected and the
+  iteration-2 PPO update report/checkpoints are preserved; clean it afterward
+  according to the raw-data retention policy.
