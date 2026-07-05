@@ -2910,3 +2910,50 @@ Conclusion and next step:
   iteration-3 full-agent evaluation is still running.
 - Keep `iter-0004/raw_train/` until the iteration-4 PPO update report and eval
   result are inspected.
+
+## 2026-07-05 - Alpha League Iteration-4 Online PPO Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0004_ppo_specialists_report.json`;
+  - `slurm-73451-phase5-alpha-ppo-specialists.out`.
+- ERAWAN job: `73451`.
+- PPO source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0003/specialists`.
+- PPO output specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0004/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0004/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+PPO update:
+
+- Deck checkpoints written: 13 / 13.
+- On-policy trajectory rows consumed: 211,968.
+- Skipped no-target rows: 0.
+- Skipped off-policy rows: 0.
+- `require_on_policy`: true for every deck update.
+- Per-deck PPO examples:
+  - Deck 1: 28,241 examples, mean advantage -0.1991, final loss 0.7449.
+  - Deck 2: 12,180 examples, mean advantage 0.0464, final loss 0.1648.
+  - Deck 3: 15,613 examples, mean advantage 0.2386, final loss 0.6290.
+  - Deck 4: 18,730 examples, mean advantage 0.0667, final loss 0.1562.
+  - Deck 5: 17,964 examples, mean advantage -0.0902, final loss 0.5568.
+  - Deck 6: 14,536 examples, mean advantage -0.1183, final loss 0.0095.
+  - Deck 7: 14,050 examples, mean advantage 0.0364, final loss 0.2890.
+  - Deck 8: 19,020 examples, mean advantage 0.1105, final loss 0.1572.
+  - Deck 9: 13,672 examples, mean advantage -0.1072, final loss 0.1228.
+  - Deck 10: 12,189 examples, mean advantage -0.0175, final loss 0.1942.
+  - Deck 11: 13,368 examples, mean advantage 0.2036, final loss 0.2252.
+  - Deck 12: 7,488 examples, mean advantage -0.2524, final loss 0.5555.
+  - Deck 13: 24,917 examples, mean advantage -0.1710, final loss 0.0314.
+
+Conclusion and next step:
+
+- The iteration-4 online PPO update is valid: it used the full iter-4 raw
+  self-play window and produced a complete 13-checkpoint specialist family with
+  no off-policy leakage.
+- Queue the iteration-4 13 x 13 x 30 full-agent-vs-rule evaluation from
+  `models/rl/phase5_league_alpha/iter-0004/specialists` while the iteration-3
+  eval continues to run, respecting the two-job ERAWAN concurrency limit.
+- Keep `iter-0004/raw_train/` until the iteration-4 eval result is inspected.
