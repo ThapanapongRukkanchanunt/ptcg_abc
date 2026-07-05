@@ -3317,3 +3317,50 @@ Conclusion and next step:
 - Do not start iteration-7 PPO until the iteration-7 self-play report is
   inspected, and keep `iter-0006/raw_train/` until the iteration-6 eval result
   is inspected.
+
+## 2026-07-05 - Alpha League Iteration-7 Self-Play Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0007_league_iteration_report.json`;
+  - `slurm-73496-phase5-alpha-league.out`.
+- ERAWAN job: `73496`.
+- Online collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0006/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0007/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 211,335.
+- Draws: 6. Timeouts: 21. Errors: 0.
+- Per-deck online self-play records:
+  - Deck 1 Alakazam Dudunsparce: 20 / 204, 9.8%.
+  - Deck 2 Crustle: 133 / 204, 65.2%.
+  - Deck 3 Dragapult Dusknoir: 63 / 204, 30.9%.
+  - Deck 4 Dragapult: 108 / 204, 52.9%.
+  - Deck 5 Dragapult Dudunsparce: 75 / 204, 36.8%.
+  - Deck 6 Hydrapple: 99 / 204, 48.5%.
+  - Deck 7 Raging Bolt Ogerpon: 115 / 204, 56.4%.
+  - Deck 8 Dragapult Blaziken: 107 / 191, 56.0%.
+  - Deck 9 Ogerpon Box: 106 / 191, 55.5%.
+  - Deck 10 Crustle sample: 122 / 191, 63.9%.
+  - Deck 11 Mega Lucario ex: 133 / 191, 69.6%.
+  - Deck 12 Mega Abomasnow ex: 120 / 204, 58.8%.
+  - Deck 13 Iono's Bellibolt ex: 93 / 204, 45.6%.
+
+Conclusion and next step:
+
+- The iteration-7 raw self-play window is valid: zero errors and enough
+  on-policy trajectory rows for the next per-deck PPO update.
+- Because iteration-5 eval is still running and the user wants both evals ready
+  by morning, queue iteration-6 full-agent-vs-rule eval from
+  `models/rl/phase5_league_alpha/iter-0006/specialists` in the open ERAWAN
+  slot.
+- After either eval slot frees, the next training job is iteration-7 PPO from
+  source iteration 6 to target iteration 7.
+- Keep `iter-0007/raw_train/` until the iteration-7 PPO report and later eval
+  result are inspected.

@@ -1004,6 +1004,18 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   iteration-5 eval continues to run, queue iteration-7 online self-play from
   `models/rl/phase5_league_alpha/iter-0006/specialists`; do not start
   iteration-7 PPO until the iteration-7 self-play report is inspected.
+- Iteration-7 online self-play passed on ERAWAN job `73496` while iteration-5
+  eval was running. Source checkpoints:
+  `models/rl/phase5_league_alpha/iter-0006/specialists`. The raw window
+  produced 1,300 / 1,300 games, 211,335 trajectory rows, 6 draws, 21 timeouts,
+  and 0 errors under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0007/raw_train/`.
+  Deck 11 remained strongest in self-play at 133 / 191 wins, tied by deck 2 at
+  133 / 204 on raw wins; deck 10 followed at 122 / 191. Deck 1 remained weakest
+  at 20 / 204. Next action: queue iteration-6 full-agent-vs-rule eval from
+  `models/rl/phase5_league_alpha/iter-0006/specialists` so iteration-5 and
+  iteration-6 evals can run overnight; after either eval slot frees, run
+  iteration-7 PPO from source iteration 6 to target iteration 7.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
