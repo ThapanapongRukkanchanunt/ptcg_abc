@@ -2957,3 +2957,87 @@ Conclusion and next step:
   `models/rl/phase5_league_alpha/iter-0004/specialists` while the iteration-3
   eval continues to run, respecting the two-job ERAWAN concurrency limit.
 - Keep `iter-0004/raw_train/` until the iteration-4 eval result is inspected.
+
+## 2026-07-05 - Alpha League Iteration-3 Full-Agent Evaluation
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `phase5_alpha_iter0003_specialists_full_vs_rule_30g.json`;
+  - `phase5_alpha_iter0003_specialists_full_vs_rule_30g.md`;
+  - `slurm-73454-phase5-league-eval.err`.
+- ERAWAN job: `73454`.
+- Agent: `phase5-full`.
+- Specialist model directory:
+  `models/rl/phase5_league_alpha/iter-0003/specialists`.
+- Benchmark: 13 x 13 league agent-vs-rule, 30 games per matchup.
+
+Aggregate:
+
+- Games: 5,070.
+- Wins: 2,697.
+- Losses: 2,353.
+- Draws: 20.
+- Timeouts: 38.
+- Errors: 0.
+- Win rate: 0.5320.
+- Search telemetry: 199,064 searched decisions, 33,954 search-changed
+  decisions, 0 search errors, 0 candidate errors, 1,820 truncated candidates,
+  average search 0.0526s, max search 3.1836s.
+- `slurm-73454-phase5-league-eval.err` only contained the PyTorch nested-tensor
+  prototype warning.
+
+Comparison:
+
+- Versus iteration 2, iteration 3 is down 13 wins: 2,697 / 5,070 vs
+  2,710 / 5,070.
+- Versus the recorded iteration-0 specialist eval, iteration 3 is up 46 wins:
+  2,697 / 5,070 vs 2,651 / 5,070.
+- Against the four required sample rule-agent opponents, iteration 3 scored
+  677 / 1,560, down 17 wins from iteration 2's 694 / 1,560 and up 18 wins from
+  iteration 0's 659 / 1,560.
+
+Deck totals:
+
+- Deck 1 Alakazam Dudunsparce: 55 / 390, 14.1%.
+- Deck 2 Crustle: 266 / 390, 68.2%.
+- Deck 3 Dragapult Dusknoir: 143 / 390, 36.7%.
+- Deck 4 Dragapult: 228 / 390, 58.5%.
+- Deck 5 Dragapult Dudunsparce: 194 / 390, 49.7%.
+- Deck 6 Hydrapple: 200 / 390, 51.3%.
+- Deck 7 Raging Bolt Ogerpon: 191 / 390, 49.0%.
+- Deck 8 Dragapult Blaziken: 197 / 390, 50.5%.
+- Deck 9 Ogerpon Box: 234 / 390, 60.0%.
+- Deck 10 Crustle sample: 230 / 390, 59.0%.
+- Deck 11 Mega Lucario ex: 301 / 390, 77.2%.
+- Deck 12 Mega Abomasnow ex: 243 / 390, 62.3%.
+- Deck 13 Iono's Bellibolt ex: 215 / 390, 55.1%.
+
+Required-sample opponent slice by agent deck:
+
+- Deck 11 Mega Lucario ex: 87 / 120, 72.5%.
+- Deck 4 Dragapult: 67 / 120, 55.8%.
+- Deck 2 Crustle: 65 / 120, 54.2%.
+- Deck 12 Mega Abomasnow ex: 60 / 120, 50.0%.
+- Deck 9 Ogerpon Box: 58 / 120, 48.3%.
+- Deck 10 Crustle sample: 57 / 120, 47.5%.
+- Deck 6 Hydrapple: 52 / 120, 43.3%.
+- Deck 13 Iono's Bellibolt ex: 51 / 120, 42.5%.
+- Deck 8 Dragapult Blaziken: 49 / 120, 40.8%.
+- Deck 5 Dragapult Dudunsparce: 48 / 120, 40.0%.
+- Deck 7 Raging Bolt Ogerpon: 44 / 120, 36.7%.
+- Deck 3 Dragapult Dusknoir: 35 / 120, 29.2%.
+- Deck 1 Alakazam Dudunsparce: 4 / 120, 3.3%.
+
+Conclusion and next step:
+
+- Iteration 3 is a small regression from iteration 2 overall and on the
+  required-sample opponent slice, but remains ahead of the iteration-0
+  specialist baseline and has clean eval telemetry.
+- Deck 11 is now the strongest full-agent specialist both overall and against
+  the four required sample opponents. Deck 1 remains the main weakness and
+  regressed further versus iteration 2.
+- Since iteration-4 PPO has already completed and iteration-4 eval is running,
+  use the open ERAWAN slot for iteration-5 online self-play from
+  `models/rl/phase5_league_alpha/iter-0004/specialists`. Do not start
+  iteration-5 PPO until the iteration-5 self-play report is inspected.

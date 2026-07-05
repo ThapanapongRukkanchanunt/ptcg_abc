@@ -942,6 +942,18 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   the iteration-4 13 x 13 x 30 full-agent-vs-rule evaluation in parallel with
   the still-running iteration-3 eval, then inspect both reports before cleaning
   the active raw windows.
+- Iteration-3 full-agent-vs-rule evaluation passed on ERAWAN job `73454`:
+  2,697 / 5,070 wins, 0.5320 win rate, 20 draws, 38 timeouts, 0 errors. This
+  is down 13 wins from iteration 2 but still up 46 wins over the recorded
+  iteration-0 specialist baseline. Against the four required sample rule-agent
+  opponents, iteration 3 scored 677 / 1,560, down 17 from iteration 2 and up 18
+  from iteration 0. Deck 11 Mega Lucario ex was strongest at 301 / 390 overall
+  and 87 / 120 against the four required sample opponents; deck 1 Alakazam
+  Dudunsparce remained weakest at 55 / 390 overall and 4 / 120 against the
+  four required sample opponents. Next action: while iteration-4 eval runs, use
+  the open ERAWAN slot for iteration-5 online self-play from
+  `models/rl/phase5_league_alpha/iter-0004/specialists`; do not start
+  iteration-5 PPO until the iteration-5 self-play report is inspected.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
