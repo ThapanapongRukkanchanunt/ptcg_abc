@@ -2865,3 +2865,48 @@ Conclusion and next step:
   `models/rl/phase5_league_alpha/iter-0002/specialists`.
 - Clean `iter-0002/raw_train/` before launching the next raw window, now that
   the PPO update and eval reports have been inspected.
+
+## 2026-07-05 - Alpha League Iteration-4 Self-Play Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0004_league_iteration_report.json`;
+  - `slurm-73448-phase5-alpha-league.out`;
+  - `slurm-73448-phase5-alpha-league.err`.
+- ERAWAN job: `73448`.
+- Online collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0003/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0004/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 211,968.
+- Draws: 11. Timeouts: 27. Errors: 0.
+- Pair side balance: deck A 657 wins, deck B 632 wins.
+- Per-deck online self-play records:
+  - Deck 1 Alakazam Dudunsparce: 24 / 204, 11.8%.
+  - Deck 2 Crustle: 123 / 204, 60.3%.
+  - Deck 3 Dragapult Dusknoir: 75 / 204, 36.8%.
+  - Deck 4 Dragapult: 111 / 204, 54.4%.
+  - Deck 5 Dragapult Dudunsparce: 79 / 204, 38.7%.
+  - Deck 6 Hydrapple: 101 / 204, 49.5%.
+  - Deck 7 Raging Bolt Ogerpon: 99 / 191, 51.8%.
+  - Deck 8 Dragapult Blaziken: 91 / 191, 47.6%.
+  - Deck 9 Ogerpon Box: 112 / 191, 58.6%.
+  - Deck 10 Crustle sample: 116 / 191, 60.7%.
+  - Deck 11 Mega Lucario ex: 142 / 204, 69.6%.
+  - Deck 12 Mega Abomasnow ex: 113 / 204, 55.4%.
+  - Deck 13 Iono's Bellibolt ex: 103 / 204, 50.5%.
+
+Conclusion and next step:
+
+- The iteration-4 raw self-play window is valid: zero errors and enough
+  on-policy trajectory rows for the next per-deck PPO update.
+- Start the iteration-4 PPO specialist update from source iteration 3 while the
+  iteration-3 full-agent evaluation is still running.
+- Keep `iter-0004/raw_train/` until the iteration-4 PPO update report and eval
+  result are inspected.
