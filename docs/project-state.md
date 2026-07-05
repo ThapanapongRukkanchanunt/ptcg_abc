@@ -996,6 +996,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   28 / 191. Next action: run iteration-6 PPO from source iteration 5 to target
   iteration 6, and run iteration-5 full-agent-vs-rule eval in the other ERAWAN
   slot.
+- Iteration-6 online PPO update passed on ERAWAN job `73489`. It consumed all
+  216,080 iter-6 on-policy trajectory rows, skipped 0 no-target rows and 0
+  off-policy rows, and wrote all 13 checkpoints under
+  `models/rl/phase5_league_alpha/iter-0006/specialists`. Deck 1 had the most
+  PPO examples at 28,825; deck 12 had the fewest at 7,564. Next action: while
+  iteration-5 eval continues to run, queue iteration-7 online self-play from
+  `models/rl/phase5_league_alpha/iter-0006/specialists`; do not start
+  iteration-7 PPO until the iteration-7 self-play report is inspected.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
