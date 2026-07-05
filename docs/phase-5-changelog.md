@@ -3041,3 +3041,56 @@ Conclusion and next step:
   use the open ERAWAN slot for iteration-5 online self-play from
   `models/rl/phase5_league_alpha/iter-0004/specialists`. Do not start
   iteration-5 PPO until the iteration-5 self-play report is inspected.
+
+## 2026-07-05 - Alpha League Iteration-5 Self-Play Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0005_league_iteration_report.json`;
+  - `slurm-73456-phase5-alpha-league.out`.
+- ERAWAN job: `73456`.
+- Online collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0004/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0005/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 214,943.
+- Draws: 14. Timeouts: 27. Errors: 0.
+- Pair side balance: deck A 628 wins, deck B 658 wins.
+- Per-deck online self-play records:
+  - Deck 1 Alakazam Dudunsparce: 24 / 204, 11.8%.
+  - Deck 2 Crustle: 124 / 204, 60.8%.
+  - Deck 3 Dragapult Dusknoir: 52 / 191, 27.2%.
+  - Deck 4 Dragapult: 105 / 191, 55.0%.
+  - Deck 5 Dragapult Dudunsparce: 83 / 191, 43.5%.
+  - Deck 6 Hydrapple: 95 / 191, 49.7%.
+  - Deck 7 Raging Bolt Ogerpon: 110 / 204, 53.9%.
+  - Deck 8 Dragapult Blaziken: 94 / 204, 46.1%.
+  - Deck 9 Ogerpon Box: 126 / 204, 61.8%.
+  - Deck 10 Crustle sample: 114 / 204, 55.9%.
+  - Deck 11 Mega Lucario ex: 140 / 204, 68.6%.
+  - Deck 12 Mega Abomasnow ex: 119 / 204, 58.3%.
+  - Deck 13 Iono's Bellibolt ex: 100 / 204, 49.0%.
+
+Comparison to iteration 4 self-play:
+
+- Deck 11 remains the strongest self-play deck, though down 2 wins from
+  iteration 4's 142 / 204.
+- Deck 9 improved from 112 / 191 to 126 / 204 and is now the second-strongest
+  self-play deck in the window.
+- Deck 3 regressed most sharply, from 75 / 204 to 52 / 191.
+- Deck 1 is unchanged at 24 / 204 and remains the main self-play weakness.
+
+Conclusion and next step:
+
+- The iteration-5 raw self-play window is valid: zero errors and enough
+  on-policy trajectory rows for the next per-deck PPO update.
+- While iteration-4 eval is still running, use the open ERAWAN slot for the
+  iteration-5 PPO update from source iteration 4 to target iteration 5.
+- Keep `iter-0005/raw_train/` until the iteration-5 PPO report and later eval
+  result are inspected.
