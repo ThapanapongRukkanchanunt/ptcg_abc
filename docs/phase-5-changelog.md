@@ -3670,3 +3670,48 @@ Conclusion and next step:
   `models/rl/phase5_league_alpha/iter-0008/specialists`.
 - Keep iteration 5 as the current best promotion/package candidate until a
   later evaluation beats it.
+
+## 2026-07-06 - Alpha League Iteration-9 Self-Play Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0009_league_iteration_report.json`;
+  - `slurm-73550-phase5-alpha-league.out`.
+- ERAWAN job: `73550`.
+- Online collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0008/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0009/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 208,155.
+- Draws: 11. Timeouts: 28. Errors: 0.
+- Per-deck online self-play records:
+  - Deck 1 Alakazam Dudunsparce: 24 / 191, 12.6%.
+  - Deck 2 Crustle: 131 / 191, 68.6%.
+  - Deck 3 Dragapult Dusknoir: 46 / 191, 24.1%.
+  - Deck 4 Dragapult: 106 / 204, 52.0%.
+  - Deck 5 Dragapult Dudunsparce: 53 / 204, 26.0%.
+  - Deck 6 Hydrapple: 99 / 204, 48.5%.
+  - Deck 7 Raging Bolt Ogerpon: 117 / 204, 57.4%.
+  - Deck 8 Dragapult Blaziken: 101 / 204, 49.5%.
+  - Deck 9 Ogerpon Box: 116 / 204, 56.9%.
+  - Deck 10 Crustle sample: 125 / 204, 61.3%.
+  - Deck 11 Mega Lucario ex: 145 / 204, 71.1%.
+  - Deck 12 Mega Abomasnow ex: 130 / 204, 63.7%.
+  - Deck 13 Iono's Bellibolt ex: 96 / 191, 50.3%.
+
+Conclusion and next step:
+
+- The iteration-9 raw self-play window is valid: zero errors and enough
+  on-policy trajectory rows for the next per-deck PPO update.
+- Since iteration-7 eval is still running, use the open ERAWAN slot for
+  iteration-9 PPO from source iteration 8 to target iteration 9.
+- Keep iteration 5 as the current best promotion/package candidate until a
+  later evaluation beats it.
+- Keep `iter-0009/raw_train/` until the iteration-9 PPO report and later eval
+  result are inspected.
