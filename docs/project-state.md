@@ -1064,6 +1064,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   Next action: while iteration-7 eval continues, run iteration-8 PPO from
   source iteration 7 to target iteration 8. Iteration 5 remains the current
   best promotion/package candidate until a later evaluation beats it.
+- Iteration-8 online PPO update passed on ERAWAN job `73542`. It consumed all
+  208,449 iter-8 on-policy trajectory rows, skipped 0 no-target rows and 0
+  off-policy rows, and wrote all 13 checkpoints under
+  `models/rl/phase5_league_alpha/iter-0008/specialists`. Deck 13 had the most
+  PPO examples at 25,342; deck 12 had the fewest at 7,794. Next action: while
+  iteration-7 eval continues, queue iteration-9 online self-play from
+  `models/rl/phase5_league_alpha/iter-0008/specialists`. Iteration 5 remains
+  the current best promotion/package candidate until a later evaluation beats
+  it.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
