@@ -3504,3 +3504,53 @@ Conclusion and next step:
 - Continue exploration with iteration-7 PPO from the already inspected
   iteration-7 raw self-play window, but keep iteration 5 as the current best
   promotion/package candidate.
+
+## 2026-07-06 - Alpha League Iteration-7 Online PPO Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0007_ppo_specialists_report.json`;
+  - `slurm-73508-phase5-alpha-ppo-specialists.out`.
+- ERAWAN job: `73508`.
+- PPO source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0006/specialists`.
+- PPO output specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0007/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0007/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+PPO update:
+
+- Deck checkpoints written: 13 / 13.
+- On-policy trajectory rows consumed: 211,335.
+- Skipped no-target rows: 0.
+- Skipped off-policy rows: 0.
+- `require_on_policy`: true for every deck update.
+- Per-deck PPO examples:
+  - Deck 1: 26,376 examples, mean advantage -0.4014, final loss 0.0017.
+  - Deck 2: 12,430 examples, mean advantage 0.1471, final loss 0.0868.
+  - Deck 3: 15,046 examples, mean advantage -0.0068, final loss -0.0084.
+  - Deck 4: 18,770 examples, mean advantage 0.0736, final loss 1.4361.
+  - Deck 5: 17,395 examples, mean advantage -0.0980, final loss 0.0245.
+  - Deck 6: 15,070 examples, mean advantage -0.0468, final loss 0.0628.
+  - Deck 7: 14,535 examples, mean advantage 0.0869, final loss 0.0728.
+  - Deck 8: 19,761 examples, mean advantage -0.1632, final loss 0.1624.
+  - Deck 9: 14,496 examples, mean advantage -0.2006, final loss 0.0639.
+  - Deck 10: 12,754 examples, mean advantage -0.0279, final loss 0.0815.
+  - Deck 11: 11,986 examples, mean advantage 0.3172, final loss 0.0753.
+  - Deck 12: 7,616 examples, mean advantage -0.0772, final loss 1.0839.
+  - Deck 13: 25,100 examples, mean advantage -0.0476, final loss 0.0835.
+
+Conclusion and next step:
+
+- The iteration-7 online PPO update is valid: it used the full iter-7 raw
+  self-play window and produced a complete 13-checkpoint specialist family with
+  no off-policy leakage.
+- Keep iteration 5 as the current best promotion/package candidate until a
+  later evaluation beats it.
+- Fill the two ERAWAN slots with:
+  - iteration-7 full-agent-vs-rule eval from
+    `models/rl/phase5_league_alpha/iter-0007/specialists`;
+  - iteration-8 online self-play from
+    `models/rl/phase5_league_alpha/iter-0007/specialists`.
