@@ -3577,3 +3577,48 @@ Conclusion:
   2,714 / 5,070 wins, 0.5353 win rate.
 - The per-deck plot shows the persistent deck-1 weakness and the stable strength
   of decks 11 and 12 across evaluated checkpoints.
+
+## 2026-07-06 - Alpha League Iteration-8 Self-Play Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0008_league_iteration_report.json`;
+  - `slurm-73526-phase5-alpha-league.out`.
+- ERAWAN job: `73526`.
+- Online collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0007/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0008/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 208,449.
+- Draws: 9. Timeouts: 22. Errors: 0.
+- Per-deck online self-play records:
+  - Deck 1 Alakazam Dudunsparce: 29 / 204, 14.2%.
+  - Deck 2 Crustle: 138 / 204, 67.6%.
+  - Deck 3 Dragapult Dusknoir: 65 / 204, 31.9%.
+  - Deck 4 Dragapult: 96 / 191, 50.3%.
+  - Deck 5 Dragapult Dudunsparce: 70 / 191, 36.6%.
+  - Deck 6 Hydrapple: 95 / 191, 49.7%.
+  - Deck 7 Raging Bolt Ogerpon: 102 / 191, 53.4%.
+  - Deck 8 Dragapult Blaziken: 115 / 204, 56.4%.
+  - Deck 9 Ogerpon Box: 108 / 204, 52.9%.
+  - Deck 10 Crustle sample: 119 / 204, 58.3%.
+  - Deck 11 Mega Lucario ex: 129 / 204, 63.2%.
+  - Deck 12 Mega Abomasnow ex: 120 / 204, 58.8%.
+  - Deck 13 Iono's Bellibolt ex: 105 / 204, 51.5%.
+
+Conclusion and next step:
+
+- The iteration-8 raw self-play window is valid: zero errors and enough
+  on-policy trajectory rows for the next per-deck PPO update.
+- Since iteration-7 eval is still running, use the open ERAWAN slot for
+  iteration-8 PPO from source iteration 7 to target iteration 8.
+- Keep iteration 5 as the current best promotion/package candidate until a
+  later evaluation beats it.
+- Keep `iter-0008/raw_train/` until the iteration-8 PPO report and later eval
+  result are inspected.

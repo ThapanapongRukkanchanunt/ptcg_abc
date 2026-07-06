@@ -1053,6 +1053,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   omitted because no local iteration-1 full-agent-vs-rule JSON report was
   available. The plots preserve iteration 5 as the current best checkpoint at
   2,714 / 5,070 wins.
+- Iteration-8 online self-play passed on ERAWAN job `73526` while iteration-7
+  eval was running. Source checkpoints:
+  `models/rl/phase5_league_alpha/iter-0007/specialists`. The raw window
+  produced 1,300 / 1,300 games, 208,449 trajectory rows, 9 draws, 22 timeouts,
+  and 0 errors under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0008/raw_train/`.
+  Deck 2 was strongest in self-play at 138 / 204 wins, followed by deck 11 at
+  129 / 204 and deck 12 at 120 / 204. Deck 1 remained weakest at 29 / 204.
+  Next action: while iteration-7 eval continues, run iteration-8 PPO from
+  source iteration 7 to target iteration 8. Iteration 5 remains the current
+  best promotion/package candidate until a later evaluation beats it.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
