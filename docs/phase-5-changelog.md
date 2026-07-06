@@ -3554,3 +3554,26 @@ Conclusion and next step:
     `models/rl/phase5_league_alpha/iter-0007/specialists`;
   - iteration-8 online self-play from
     `models/rl/phase5_league_alpha/iter-0007/specialists`.
+
+## 2026-07-06 - Alpha League Evaluation Time-Series Plot
+
+Artifact:
+
+- Generated presentation-ready SVG plots and a CSV summary from the available
+  full-agent-vs-rule evaluation reports:
+  - `reports/phase5_alpha_eval_winrate_timeseries_combined.svg`;
+  - `reports/phase5_alpha_eval_winrate_timeseries_overall.svg`;
+  - `reports/phase5_alpha_eval_winrate_timeseries_per_deck.svg`;
+  - `reports/phase5_alpha_eval_winrate_timeseries.html`;
+  - `reports/phase5_alpha_eval_winrate_timeseries_summary.csv`.
+- Included evaluated iterations: 0, 2, 3, 4, 5, and 6. Iteration 1 is omitted
+  because no local iteration-1 full-agent-vs-rule JSON report was available.
+- The plot preserves the iteration gap instead of interpolating or inventing
+  missing iteration-1 data.
+
+Conclusion:
+
+- The overall time series shows iteration 5 as the current best checkpoint at
+  2,714 / 5,070 wins, 0.5353 win rate.
+- The per-deck plot shows the persistent deck-1 weakness and the stable strength
+  of decks 11 and 12 across evaluated checkpoints.

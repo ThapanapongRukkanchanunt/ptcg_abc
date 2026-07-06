@@ -1043,6 +1043,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   it. Next action: run iteration-7 full-agent-vs-rule eval and iteration-8
   online self-play in parallel from
   `models/rl/phase5_league_alpha/iter-0007/specialists`.
+- Evaluation time-series artifacts were generated for the available
+  full-agent-vs-rule reports covering iterations 0, 2, 3, 4, 5, and 6:
+  `reports/phase5_alpha_eval_winrate_timeseries_combined.svg`,
+  `reports/phase5_alpha_eval_winrate_timeseries_overall.svg`,
+  `reports/phase5_alpha_eval_winrate_timeseries_per_deck.svg`,
+  `reports/phase5_alpha_eval_winrate_timeseries.html`, and
+  `reports/phase5_alpha_eval_winrate_timeseries_summary.csv`. Iteration 1 is
+  omitted because no local iteration-1 full-agent-vs-rule JSON report was
+  available. The plots preserve iteration 5 as the current best checkpoint at
+  2,714 / 5,070 wins.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

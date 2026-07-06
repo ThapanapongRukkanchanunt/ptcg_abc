@@ -1,0 +1,417 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1900" viewBox="0 0 1600 1900">
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #20242a; }
+    .title { font-size: 28px; font-weight: 700; }
+    .subtitle { font-size: 15px; fill: #5a626d; }
+    .label { font-size: 14px; fill: #30343b; }
+    .tick { font-size: 12px; fill: #59616c; }
+    .small-title { font-size: 13px; font-weight: 700; }
+    .small-label { font-size: 10px; fill: #59616c; }
+  </style>
+  <rect width="100%" height="100%" fill="white"/>
+<text class="title" x="60" y="55">Phase 5 Alpha League Per-Deck Win Rate vs Rule-Based Agents</text>
+<text class="subtitle" x="60" y="82">Small multiples use the same y-axis range for comparability. Current overall best remains iteration 5.</text>
+<line x1="95" y1="405" x2="580" y2="405" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="180" x2="95" y2="405" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="405.00" x2="580" y2="405.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="409.00" text-anchor="end">0%</text>
+<line x1="95" y1="336.40" x2="580" y2="336.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="340.40" text-anchor="end">25%</text>
+<line x1="95" y1="267.80" x2="580" y2="267.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="271.80" text-anchor="end">50%</text>
+<line x1="95" y1="199.21" x2="580" y2="199.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="203.21" text-anchor="end">75%</text>
+<line x1="95.00" y1="405" x2="95.00" y2="411" stroke="#30343b"/>
+<text class="tick" x="95.00" y="427" text-anchor="middle">0</text>
+<line x1="256.67" y1="405" x2="256.67" y2="411" stroke="#30343b"/>
+<text class="tick" x="256.67" y="427" text-anchor="middle">2</text>
+<line x1="337.50" y1="405" x2="337.50" y2="411" stroke="#30343b"/>
+<text class="tick" x="337.50" y="427" text-anchor="middle">3</text>
+<line x1="418.33" y1="405" x2="418.33" y2="411" stroke="#30343b"/>
+<text class="tick" x="418.33" y="427" text-anchor="middle">4</text>
+<line x1="499.17" y1="405" x2="499.17" y2="411" stroke="#30343b"/>
+<text class="tick" x="499.17" y="427" text-anchor="middle">5</text>
+<line x1="580.00" y1="405" x2="580.00" y2="411" stroke="#30343b"/>
+<text class="tick" x="580.00" y="427" text-anchor="middle">6</text>
+<text class="small-title" x="95" y="157">Deck 1: Alakazam Dudunsparce</text>
+<path d="M 95.00 356.45 L 256.67 359.27 L 337.50 366.30 L 418.33 367.71 L 499.17 366.30 L 580.00 364.19" fill="none" stroke="#1f77b4" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="356.45" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="256.67" cy="359.27" r="4.5" fill="#1f77b4" stroke="white" stroke-width="1.5"/>
+<circle cx="337.50" cy="366.30" r="4.5" fill="#1f77b4" stroke="white" stroke-width="1.5"/>
+<circle cx="418.33" cy="367.71" r="4.5" fill="#1f77b4" stroke="white" stroke-width="1.5"/>
+<circle cx="499.17" cy="366.30" r="4.5" fill="#1f77b4" stroke="white" stroke-width="1.5"/>
+<circle cx="580.00" cy="364.19" r="4.5" fill="#1f77b4" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="580" y="157" text-anchor="end">best: iter 0 (17.7%)</text>
+<line x1="615" y1="405" x2="1100" y2="405" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="180" x2="615" y2="405" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="405.00" x2="1100" y2="405.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="409.00" text-anchor="end">0%</text>
+<line x1="615" y1="336.40" x2="1100" y2="336.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="340.40" text-anchor="end">25%</text>
+<line x1="615" y1="267.80" x2="1100" y2="267.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="271.80" text-anchor="end">50%</text>
+<line x1="615" y1="199.21" x2="1100" y2="199.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="203.21" text-anchor="end">75%</text>
+<line x1="615.00" y1="405" x2="615.00" y2="411" stroke="#30343b"/>
+<text class="tick" x="615.00" y="427" text-anchor="middle">0</text>
+<line x1="776.67" y1="405" x2="776.67" y2="411" stroke="#30343b"/>
+<text class="tick" x="776.67" y="427" text-anchor="middle">2</text>
+<line x1="857.50" y1="405" x2="857.50" y2="411" stroke="#30343b"/>
+<text class="tick" x="857.50" y="427" text-anchor="middle">3</text>
+<line x1="938.33" y1="405" x2="938.33" y2="411" stroke="#30343b"/>
+<text class="tick" x="938.33" y="427" text-anchor="middle">4</text>
+<line x1="1019.17" y1="405" x2="1019.17" y2="411" stroke="#30343b"/>
+<text class="tick" x="1019.17" y="427" text-anchor="middle">5</text>
+<line x1="1100.00" y1="405" x2="1100.00" y2="411" stroke="#30343b"/>
+<text class="tick" x="1100.00" y="427" text-anchor="middle">6</text>
+<text class="small-title" x="615" y="157">Deck 2: Crustle</text>
+<path d="M 615.00 248.11 L 776.67 229.81 L 857.50 217.85 L 938.33 226.29 L 1019.17 230.52 L 1100.00 237.55" fill="none" stroke="#ff7f0e" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="615.00" cy="248.11" r="4.5" fill="#ff7f0e" stroke="white" stroke-width="1.5"/>
+<circle cx="776.67" cy="229.81" r="4.5" fill="#ff7f0e" stroke="white" stroke-width="1.5"/>
+<circle cx="857.50" cy="217.85" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="938.33" cy="226.29" r="4.5" fill="#ff7f0e" stroke="white" stroke-width="1.5"/>
+<circle cx="1019.17" cy="230.52" r="4.5" fill="#ff7f0e" stroke="white" stroke-width="1.5"/>
+<circle cx="1100.00" cy="237.55" r="4.5" fill="#ff7f0e" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1100" y="157" text-anchor="end">best: iter 3 (68.2%)</text>
+<line x1="1135" y1="405" x2="1620" y2="405" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="180" x2="1135" y2="405" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="405.00" x2="1620" y2="405.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="409.00" text-anchor="end">0%</text>
+<line x1="1135" y1="336.40" x2="1620" y2="336.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="340.40" text-anchor="end">25%</text>
+<line x1="1135" y1="267.80" x2="1620" y2="267.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="271.80" text-anchor="end">50%</text>
+<line x1="1135" y1="199.21" x2="1620" y2="199.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="203.21" text-anchor="end">75%</text>
+<line x1="1135.00" y1="405" x2="1135.00" y2="411" stroke="#30343b"/>
+<text class="tick" x="1135.00" y="427" text-anchor="middle">0</text>
+<line x1="1296.67" y1="405" x2="1296.67" y2="411" stroke="#30343b"/>
+<text class="tick" x="1296.67" y="427" text-anchor="middle">2</text>
+<line x1="1377.50" y1="405" x2="1377.50" y2="411" stroke="#30343b"/>
+<text class="tick" x="1377.50" y="427" text-anchor="middle">3</text>
+<line x1="1458.33" y1="405" x2="1458.33" y2="411" stroke="#30343b"/>
+<text class="tick" x="1458.33" y="427" text-anchor="middle">4</text>
+<line x1="1539.17" y1="405" x2="1539.17" y2="411" stroke="#30343b"/>
+<text class="tick" x="1539.17" y="427" text-anchor="middle">5</text>
+<line x1="1620.00" y1="405" x2="1620.00" y2="411" stroke="#30343b"/>
+<text class="tick" x="1620.00" y="427" text-anchor="middle">6</text>
+<text class="small-title" x="1135" y="157">Deck 3: Dragapult Dusknoir</text>
+<path d="M 1135.00 299.47 L 1296.67 306.50 L 1377.50 304.39 L 1458.33 315.65 L 1539.17 307.91 L 1620.00 316.35" fill="none" stroke="#2ca02c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1135.00" cy="299.47" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="1296.67" cy="306.50" r="4.5" fill="#2ca02c" stroke="white" stroke-width="1.5"/>
+<circle cx="1377.50" cy="304.39" r="4.5" fill="#2ca02c" stroke="white" stroke-width="1.5"/>
+<circle cx="1458.33" cy="315.65" r="4.5" fill="#2ca02c" stroke="white" stroke-width="1.5"/>
+<circle cx="1539.17" cy="307.91" r="4.5" fill="#2ca02c" stroke="white" stroke-width="1.5"/>
+<circle cx="1620.00" cy="316.35" r="4.5" fill="#2ca02c" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1620" y="157" text-anchor="end">best: iter 0 (38.5%)</text>
+<line x1="95" y1="750" x2="580" y2="750" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="525" x2="95" y2="750" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="750.00" x2="580" y2="750.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="754.00" text-anchor="end">0%</text>
+<line x1="95" y1="681.40" x2="580" y2="681.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="685.40" text-anchor="end">25%</text>
+<line x1="95" y1="612.80" x2="580" y2="612.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="616.80" text-anchor="end">50%</text>
+<line x1="95" y1="544.21" x2="580" y2="544.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="548.21" text-anchor="end">75%</text>
+<line x1="95.00" y1="750" x2="95.00" y2="756" stroke="#30343b"/>
+<text class="tick" x="95.00" y="772" text-anchor="middle">0</text>
+<line x1="256.67" y1="750" x2="256.67" y2="756" stroke="#30343b"/>
+<text class="tick" x="256.67" y="772" text-anchor="middle">2</text>
+<line x1="337.50" y1="750" x2="337.50" y2="756" stroke="#30343b"/>
+<text class="tick" x="337.50" y="772" text-anchor="middle">3</text>
+<line x1="418.33" y1="750" x2="418.33" y2="756" stroke="#30343b"/>
+<text class="tick" x="418.33" y="772" text-anchor="middle">4</text>
+<line x1="499.17" y1="750" x2="499.17" y2="756" stroke="#30343b"/>
+<text class="tick" x="499.17" y="772" text-anchor="middle">5</text>
+<line x1="580.00" y1="750" x2="580.00" y2="756" stroke="#30343b"/>
+<text class="tick" x="580.00" y="772" text-anchor="middle">6</text>
+<text class="small-title" x="95" y="502">Deck 4: Dragapult</text>
+<path d="M 95.00 598.73 L 256.67 595.22 L 337.50 589.59 L 418.33 607.18 L 499.17 598.73 L 580.00 612.80" fill="none" stroke="#d62728" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="598.73" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="256.67" cy="595.22" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="337.50" cy="589.59" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="418.33" cy="607.18" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="499.17" cy="598.73" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="580.00" cy="612.80" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="580" y="502" text-anchor="end">best: iter 3 (58.5%)</text>
+<line x1="615" y1="750" x2="1100" y2="750" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="525" x2="615" y2="750" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="750.00" x2="1100" y2="750.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="754.00" text-anchor="end">0%</text>
+<line x1="615" y1="681.40" x2="1100" y2="681.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="685.40" text-anchor="end">25%</text>
+<line x1="615" y1="612.80" x2="1100" y2="612.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="616.80" text-anchor="end">50%</text>
+<line x1="615" y1="544.21" x2="1100" y2="544.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="548.21" text-anchor="end">75%</text>
+<line x1="615.00" y1="750" x2="615.00" y2="756" stroke="#30343b"/>
+<text class="tick" x="615.00" y="772" text-anchor="middle">0</text>
+<line x1="776.67" y1="750" x2="776.67" y2="756" stroke="#30343b"/>
+<text class="tick" x="776.67" y="772" text-anchor="middle">2</text>
+<line x1="857.50" y1="750" x2="857.50" y2="756" stroke="#30343b"/>
+<text class="tick" x="857.50" y="772" text-anchor="middle">3</text>
+<line x1="938.33" y1="750" x2="938.33" y2="756" stroke="#30343b"/>
+<text class="tick" x="938.33" y="772" text-anchor="middle">4</text>
+<line x1="1019.17" y1="750" x2="1019.17" y2="756" stroke="#30343b"/>
+<text class="tick" x="1019.17" y="772" text-anchor="middle">5</text>
+<line x1="1100.00" y1="750" x2="1100.00" y2="756" stroke="#30343b"/>
+<text class="tick" x="1100.00" y="772" text-anchor="middle">6</text>
+<text class="small-title" x="615" y="502">Deck 5: Dragapult Dudunsparce</text>
+<path d="M 615.00 609.29 L 776.67 619.14 L 857.50 613.51 L 938.33 618.43 L 1019.17 604.36 L 1100.00 614.92" fill="none" stroke="#9467bd" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="615.00" cy="609.29" r="4.5" fill="#9467bd" stroke="white" stroke-width="1.5"/>
+<circle cx="776.67" cy="619.14" r="4.5" fill="#9467bd" stroke="white" stroke-width="1.5"/>
+<circle cx="857.50" cy="613.51" r="4.5" fill="#9467bd" stroke="white" stroke-width="1.5"/>
+<circle cx="938.33" cy="618.43" r="4.5" fill="#9467bd" stroke="white" stroke-width="1.5"/>
+<circle cx="1019.17" cy="604.36" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="1100.00" cy="614.92" r="4.5" fill="#9467bd" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1100" y="502" text-anchor="end">best: iter 5 (53.1%)</text>
+<line x1="1135" y1="750" x2="1620" y2="750" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="525" x2="1135" y2="750" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="750.00" x2="1620" y2="750.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="754.00" text-anchor="end">0%</text>
+<line x1="1135" y1="681.40" x2="1620" y2="681.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="685.40" text-anchor="end">25%</text>
+<line x1="1135" y1="612.80" x2="1620" y2="612.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="616.80" text-anchor="end">50%</text>
+<line x1="1135" y1="544.21" x2="1620" y2="544.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="548.21" text-anchor="end">75%</text>
+<line x1="1135.00" y1="750" x2="1135.00" y2="756" stroke="#30343b"/>
+<text class="tick" x="1135.00" y="772" text-anchor="middle">0</text>
+<line x1="1296.67" y1="750" x2="1296.67" y2="756" stroke="#30343b"/>
+<text class="tick" x="1296.67" y="772" text-anchor="middle">2</text>
+<line x1="1377.50" y1="750" x2="1377.50" y2="756" stroke="#30343b"/>
+<text class="tick" x="1377.50" y="772" text-anchor="middle">3</text>
+<line x1="1458.33" y1="750" x2="1458.33" y2="756" stroke="#30343b"/>
+<text class="tick" x="1458.33" y="772" text-anchor="middle">4</text>
+<line x1="1539.17" y1="750" x2="1539.17" y2="756" stroke="#30343b"/>
+<text class="tick" x="1539.17" y="772" text-anchor="middle">5</text>
+<line x1="1620.00" y1="750" x2="1620.00" y2="756" stroke="#30343b"/>
+<text class="tick" x="1620.00" y="772" text-anchor="middle">6</text>
+<text class="small-title" x="1135" y="502">Deck 6: Hydrapple</text>
+<path d="M 1135.00 609.29 L 1296.67 600.14 L 1377.50 609.29 L 1458.33 595.92 L 1539.17 597.33 L 1620.00 600.14" fill="none" stroke="#8c564b" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1135.00" cy="609.29" r="4.5" fill="#8c564b" stroke="white" stroke-width="1.5"/>
+<circle cx="1296.67" cy="600.14" r="4.5" fill="#8c564b" stroke="white" stroke-width="1.5"/>
+<circle cx="1377.50" cy="609.29" r="4.5" fill="#8c564b" stroke="white" stroke-width="1.5"/>
+<circle cx="1458.33" cy="595.92" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="1539.17" cy="597.33" r="4.5" fill="#8c564b" stroke="white" stroke-width="1.5"/>
+<circle cx="1620.00" cy="600.14" r="4.5" fill="#8c564b" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1620" y="502" text-anchor="end">best: iter 4 (56.2%)</text>
+<line x1="95" y1="1095" x2="580" y2="1095" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="870" x2="95" y2="1095" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="1095.00" x2="580" y2="1095.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1099.00" text-anchor="end">0%</text>
+<line x1="95" y1="1026.40" x2="580" y2="1026.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1030.40" text-anchor="end">25%</text>
+<line x1="95" y1="957.80" x2="580" y2="957.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="961.80" text-anchor="end">50%</text>
+<line x1="95" y1="889.21" x2="580" y2="889.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="893.21" text-anchor="end">75%</text>
+<line x1="95.00" y1="1095" x2="95.00" y2="1101" stroke="#30343b"/>
+<text class="tick" x="95.00" y="1117" text-anchor="middle">0</text>
+<line x1="256.67" y1="1095" x2="256.67" y2="1101" stroke="#30343b"/>
+<text class="tick" x="256.67" y="1117" text-anchor="middle">2</text>
+<line x1="337.50" y1="1095" x2="337.50" y2="1101" stroke="#30343b"/>
+<text class="tick" x="337.50" y="1117" text-anchor="middle">3</text>
+<line x1="418.33" y1="1095" x2="418.33" y2="1101" stroke="#30343b"/>
+<text class="tick" x="418.33" y="1117" text-anchor="middle">4</text>
+<line x1="499.17" y1="1095" x2="499.17" y2="1101" stroke="#30343b"/>
+<text class="tick" x="499.17" y="1117" text-anchor="middle">5</text>
+<line x1="580.00" y1="1095" x2="580.00" y2="1101" stroke="#30343b"/>
+<text class="tick" x="580.00" y="1117" text-anchor="middle">6</text>
+<text class="small-title" x="95" y="847">Deck 7: Raging Bolt Ogerpon</text>
+<path d="M 95.00 956.40 L 256.67 944.44 L 337.50 960.62 L 418.33 951.47 L 499.17 952.18 L 580.00 953.58" fill="none" stroke="#e377c2" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="956.40" r="4.5" fill="#e377c2" stroke="white" stroke-width="1.5"/>
+<circle cx="256.67" cy="944.44" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="337.50" cy="960.62" r="4.5" fill="#e377c2" stroke="white" stroke-width="1.5"/>
+<circle cx="418.33" cy="951.47" r="4.5" fill="#e377c2" stroke="white" stroke-width="1.5"/>
+<circle cx="499.17" cy="952.18" r="4.5" fill="#e377c2" stroke="white" stroke-width="1.5"/>
+<circle cx="580.00" cy="953.58" r="4.5" fill="#e377c2" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="580" y="847" text-anchor="end">best: iter 2 (54.9%)</text>
+<line x1="615" y1="1095" x2="1100" y2="1095" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="870" x2="615" y2="1095" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="1095.00" x2="1100" y2="1095.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="1099.00" text-anchor="end">0%</text>
+<line x1="615" y1="1026.40" x2="1100" y2="1026.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="1030.40" text-anchor="end">25%</text>
+<line x1="615" y1="957.80" x2="1100" y2="957.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="961.80" text-anchor="end">50%</text>
+<line x1="615" y1="889.21" x2="1100" y2="889.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="893.21" text-anchor="end">75%</text>
+<line x1="615.00" y1="1095" x2="615.00" y2="1101" stroke="#30343b"/>
+<text class="tick" x="615.00" y="1117" text-anchor="middle">0</text>
+<line x1="776.67" y1="1095" x2="776.67" y2="1101" stroke="#30343b"/>
+<text class="tick" x="776.67" y="1117" text-anchor="middle">2</text>
+<line x1="857.50" y1="1095" x2="857.50" y2="1101" stroke="#30343b"/>
+<text class="tick" x="857.50" y="1117" text-anchor="middle">3</text>
+<line x1="938.33" y1="1095" x2="938.33" y2="1101" stroke="#30343b"/>
+<text class="tick" x="938.33" y="1117" text-anchor="middle">4</text>
+<line x1="1019.17" y1="1095" x2="1019.17" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1019.17" y="1117" text-anchor="middle">5</text>
+<line x1="1100.00" y1="1095" x2="1100.00" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1100.00" y="1117" text-anchor="middle">6</text>
+<text class="small-title" x="615" y="847">Deck 8: Dragapult Blaziken</text>
+<path d="M 615.00 948.66 L 776.67 956.40 L 857.50 956.40 L 938.33 948.66 L 1019.17 952.18 L 1100.00 943.03" fill="none" stroke="#7f7f7f" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="615.00" cy="948.66" r="4.5" fill="#7f7f7f" stroke="white" stroke-width="1.5"/>
+<circle cx="776.67" cy="956.40" r="4.5" fill="#7f7f7f" stroke="white" stroke-width="1.5"/>
+<circle cx="857.50" cy="956.40" r="4.5" fill="#7f7f7f" stroke="white" stroke-width="1.5"/>
+<circle cx="938.33" cy="948.66" r="4.5" fill="#7f7f7f" stroke="white" stroke-width="1.5"/>
+<circle cx="1019.17" cy="952.18" r="4.5" fill="#7f7f7f" stroke="white" stroke-width="1.5"/>
+<circle cx="1100.00" cy="943.03" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1100" y="847" text-anchor="end">best: iter 6 (55.4%)</text>
+<line x1="1135" y1="1095" x2="1620" y2="1095" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="870" x2="1135" y2="1095" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="1095.00" x2="1620" y2="1095.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="1099.00" text-anchor="end">0%</text>
+<line x1="1135" y1="1026.40" x2="1620" y2="1026.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="1030.40" text-anchor="end">25%</text>
+<line x1="1135" y1="957.80" x2="1620" y2="957.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="961.80" text-anchor="end">50%</text>
+<line x1="1135" y1="889.21" x2="1620" y2="889.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="893.21" text-anchor="end">75%</text>
+<line x1="1135.00" y1="1095" x2="1135.00" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1135.00" y="1117" text-anchor="middle">0</text>
+<line x1="1296.67" y1="1095" x2="1296.67" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1296.67" y="1117" text-anchor="middle">2</text>
+<line x1="1377.50" y1="1095" x2="1377.50" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1377.50" y="1117" text-anchor="middle">3</text>
+<line x1="1458.33" y1="1095" x2="1458.33" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1458.33" y="1117" text-anchor="middle">4</text>
+<line x1="1539.17" y1="1095" x2="1539.17" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1539.17" y="1117" text-anchor="middle">5</text>
+<line x1="1620.00" y1="1095" x2="1620.00" y2="1101" stroke="#30343b"/>
+<text class="tick" x="1620.00" y="1117" text-anchor="middle">6</text>
+<text class="small-title" x="1135" y="847">Deck 9: Ogerpon Box</text>
+<path d="M 1135.00 948.66 L 1296.67 934.59 L 1377.50 930.37 L 1458.33 935.99 L 1539.17 940.92 L 1620.00 938.81" fill="none" stroke="#bcbd22" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1135.00" cy="948.66" r="4.5" fill="#bcbd22" stroke="white" stroke-width="1.5"/>
+<circle cx="1296.67" cy="934.59" r="4.5" fill="#bcbd22" stroke="white" stroke-width="1.5"/>
+<circle cx="1377.50" cy="930.37" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="1458.33" cy="935.99" r="4.5" fill="#bcbd22" stroke="white" stroke-width="1.5"/>
+<circle cx="1539.17" cy="940.92" r="4.5" fill="#bcbd22" stroke="white" stroke-width="1.5"/>
+<circle cx="1620.00" cy="938.81" r="4.5" fill="#bcbd22" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1620" y="847" text-anchor="end">best: iter 3 (60.0%)</text>
+<line x1="95" y1="1440" x2="580" y2="1440" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="1215" x2="95" y2="1440" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="1440.00" x2="580" y2="1440.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1444.00" text-anchor="end">0%</text>
+<line x1="95" y1="1371.40" x2="580" y2="1371.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1375.40" text-anchor="end">25%</text>
+<line x1="95" y1="1302.80" x2="580" y2="1302.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1306.80" text-anchor="end">50%</text>
+<line x1="95" y1="1234.21" x2="580" y2="1234.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1238.21" text-anchor="end">75%</text>
+<line x1="95.00" y1="1440" x2="95.00" y2="1446" stroke="#30343b"/>
+<text class="tick" x="95.00" y="1462" text-anchor="middle">0</text>
+<line x1="256.67" y1="1440" x2="256.67" y2="1446" stroke="#30343b"/>
+<text class="tick" x="256.67" y="1462" text-anchor="middle">2</text>
+<line x1="337.50" y1="1440" x2="337.50" y2="1446" stroke="#30343b"/>
+<text class="tick" x="337.50" y="1462" text-anchor="middle">3</text>
+<line x1="418.33" y1="1440" x2="418.33" y2="1446" stroke="#30343b"/>
+<text class="tick" x="418.33" y="1462" text-anchor="middle">4</text>
+<line x1="499.17" y1="1440" x2="499.17" y2="1446" stroke="#30343b"/>
+<text class="tick" x="499.17" y="1462" text-anchor="middle">5</text>
+<line x1="580.00" y1="1440" x2="580.00" y2="1446" stroke="#30343b"/>
+<text class="tick" x="580.00" y="1462" text-anchor="middle">6</text>
+<text class="small-title" x="95" y="1192">Deck 10: Crustle</text>
+<path d="M 95.00 1282.40 L 256.67 1280.29 L 337.50 1278.18 L 418.33 1272.55 L 499.17 1275.37 L 580.00 1274.66" fill="none" stroke="#17becf" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="1282.40" r="4.5" fill="#17becf" stroke="white" stroke-width="1.5"/>
+<circle cx="256.67" cy="1280.29" r="4.5" fill="#17becf" stroke="white" stroke-width="1.5"/>
+<circle cx="337.50" cy="1278.18" r="4.5" fill="#17becf" stroke="white" stroke-width="1.5"/>
+<circle cx="418.33" cy="1272.55" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="499.17" cy="1275.37" r="4.5" fill="#17becf" stroke="white" stroke-width="1.5"/>
+<circle cx="580.00" cy="1274.66" r="4.5" fill="#17becf" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="580" y="1192" text-anchor="end">best: iter 4 (61.0%)</text>
+<line x1="615" y1="1440" x2="1100" y2="1440" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="1215" x2="615" y2="1440" stroke="#30343b" stroke-width="1"/>
+<line x1="615" y1="1440.00" x2="1100" y2="1440.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="1444.00" text-anchor="end">0%</text>
+<line x1="615" y1="1371.40" x2="1100" y2="1371.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="1375.40" text-anchor="end">25%</text>
+<line x1="615" y1="1302.80" x2="1100" y2="1302.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="1306.80" text-anchor="end">50%</text>
+<line x1="615" y1="1234.21" x2="1100" y2="1234.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="605" y="1238.21" text-anchor="end">75%</text>
+<line x1="615.00" y1="1440" x2="615.00" y2="1446" stroke="#30343b"/>
+<text class="tick" x="615.00" y="1462" text-anchor="middle">0</text>
+<line x1="776.67" y1="1440" x2="776.67" y2="1446" stroke="#30343b"/>
+<text class="tick" x="776.67" y="1462" text-anchor="middle">2</text>
+<line x1="857.50" y1="1440" x2="857.50" y2="1446" stroke="#30343b"/>
+<text class="tick" x="857.50" y="1462" text-anchor="middle">3</text>
+<line x1="938.33" y1="1440" x2="938.33" y2="1446" stroke="#30343b"/>
+<text class="tick" x="938.33" y="1462" text-anchor="middle">4</text>
+<line x1="1019.17" y1="1440" x2="1019.17" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1019.17" y="1462" text-anchor="middle">5</text>
+<line x1="1100.00" y1="1440" x2="1100.00" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1100.00" y="1462" text-anchor="middle">6</text>
+<text class="small-title" x="615" y="1192">Deck 11: Mega Lucario ex</text>
+<path d="M 615.00 1231.04 L 776.67 1234.56 L 857.50 1228.23 L 938.33 1226.82 L 1019.17 1226.82 L 1100.00 1221.89" fill="none" stroke="#4c78a8" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="615.00" cy="1231.04" r="4.5" fill="#4c78a8" stroke="white" stroke-width="1.5"/>
+<circle cx="776.67" cy="1234.56" r="4.5" fill="#4c78a8" stroke="white" stroke-width="1.5"/>
+<circle cx="857.50" cy="1228.23" r="4.5" fill="#4c78a8" stroke="white" stroke-width="1.5"/>
+<circle cx="938.33" cy="1226.82" r="4.5" fill="#4c78a8" stroke="white" stroke-width="1.5"/>
+<circle cx="1019.17" cy="1226.82" r="4.5" fill="#4c78a8" stroke="white" stroke-width="1.5"/>
+<circle cx="1100.00" cy="1221.89" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1100" y="1192" text-anchor="end">best: iter 6 (79.5%)</text>
+<line x1="1135" y1="1440" x2="1620" y2="1440" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="1215" x2="1135" y2="1440" stroke="#30343b" stroke-width="1"/>
+<line x1="1135" y1="1440.00" x2="1620" y2="1440.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="1444.00" text-anchor="end">0%</text>
+<line x1="1135" y1="1371.40" x2="1620" y2="1371.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="1375.40" text-anchor="end">25%</text>
+<line x1="1135" y1="1302.80" x2="1620" y2="1302.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="1306.80" text-anchor="end">50%</text>
+<line x1="1135" y1="1234.21" x2="1620" y2="1234.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="1125" y="1238.21" text-anchor="end">75%</text>
+<line x1="1135.00" y1="1440" x2="1135.00" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1135.00" y="1462" text-anchor="middle">0</text>
+<line x1="1296.67" y1="1440" x2="1296.67" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1296.67" y="1462" text-anchor="middle">2</text>
+<line x1="1377.50" y1="1440" x2="1377.50" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1377.50" y="1462" text-anchor="middle">3</text>
+<line x1="1458.33" y1="1440" x2="1458.33" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1458.33" y="1462" text-anchor="middle">4</text>
+<line x1="1539.17" y1="1440" x2="1539.17" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1539.17" y="1462" text-anchor="middle">5</text>
+<line x1="1620.00" y1="1440" x2="1620.00" y2="1446" stroke="#30343b"/>
+<text class="tick" x="1620.00" y="1462" text-anchor="middle">6</text>
+<text class="small-title" x="1135" y="1192">Deck 12: Mega Abomasnow ex</text>
+<path d="M 1135.00 1259.18 L 1296.67 1259.89 L 1377.50 1269.03 L 1458.33 1262.70 L 1539.17 1259.18 L 1620.00 1261.29" fill="none" stroke="#f58518" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="1135.00" cy="1259.18" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="1296.67" cy="1259.89" r="4.5" fill="#f58518" stroke="white" stroke-width="1.5"/>
+<circle cx="1377.50" cy="1269.03" r="4.5" fill="#f58518" stroke="white" stroke-width="1.5"/>
+<circle cx="1458.33" cy="1262.70" r="4.5" fill="#f58518" stroke="white" stroke-width="1.5"/>
+<circle cx="1539.17" cy="1259.18" r="4.5" fill="#f58518" stroke="white" stroke-width="1.5"/>
+<circle cx="1620.00" cy="1261.29" r="4.5" fill="#f58518" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="1620" y="1192" text-anchor="end">best: iter 0 (65.9%)</text>
+<line x1="95" y1="1785" x2="580" y2="1785" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="1560" x2="95" y2="1785" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="1785.00" x2="580" y2="1785.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1789.00" text-anchor="end">0%</text>
+<line x1="95" y1="1716.40" x2="580" y2="1716.40" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1720.40" text-anchor="end">25%</text>
+<line x1="95" y1="1647.80" x2="580" y2="1647.80" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1651.80" text-anchor="end">50%</text>
+<line x1="95" y1="1579.21" x2="580" y2="1579.21" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="1583.21" text-anchor="end">75%</text>
+<line x1="95.00" y1="1785" x2="95.00" y2="1791" stroke="#30343b"/>
+<text class="tick" x="95.00" y="1807" text-anchor="middle">0</text>
+<line x1="256.67" y1="1785" x2="256.67" y2="1791" stroke="#30343b"/>
+<text class="tick" x="256.67" y="1807" text-anchor="middle">2</text>
+<line x1="337.50" y1="1785" x2="337.50" y2="1791" stroke="#30343b"/>
+<text class="tick" x="337.50" y="1807" text-anchor="middle">3</text>
+<line x1="418.33" y1="1785" x2="418.33" y2="1791" stroke="#30343b"/>
+<text class="tick" x="418.33" y="1807" text-anchor="middle">4</text>
+<line x1="499.17" y1="1785" x2="499.17" y2="1791" stroke="#30343b"/>
+<text class="tick" x="499.17" y="1807" text-anchor="middle">5</text>
+<line x1="580.00" y1="1785" x2="580.00" y2="1791" stroke="#30343b"/>
+<text class="tick" x="580.00" y="1807" text-anchor="middle">6</text>
+<text class="small-title" x="95" y="1537">Deck 13: Iono&#x27;s Bellibolt ex</text>
+<path d="M 95.00 1642.18 L 256.67 1628.11 L 337.50 1633.73 L 418.33 1631.62 L 499.17 1633.73 L 580.00 1648.51" fill="none" stroke="#54a24b" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="1642.18" r="4.5" fill="#54a24b" stroke="white" stroke-width="1.5"/>
+<circle cx="256.67" cy="1628.11" r="4.5" fill="#d62728" stroke="white" stroke-width="1.5"/>
+<circle cx="337.50" cy="1633.73" r="4.5" fill="#54a24b" stroke="white" stroke-width="1.5"/>
+<circle cx="418.33" cy="1631.62" r="4.5" fill="#54a24b" stroke="white" stroke-width="1.5"/>
+<circle cx="499.17" cy="1633.73" r="4.5" fill="#54a24b" stroke="white" stroke-width="1.5"/>
+<circle cx="580.00" cy="1648.51" r="4.5" fill="#54a24b" stroke="white" stroke-width="1.5"/>
+<text class="small-label" x="580" y="1537" text-anchor="end">best: iter 2 (57.2%)</text>
+</svg>

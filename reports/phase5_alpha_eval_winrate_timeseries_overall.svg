@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1250" height="720" viewBox="0 0 1250 720">
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #20242a; }
+    .title { font-size: 28px; font-weight: 700; }
+    .subtitle { font-size: 15px; fill: #5a626d; }
+    .label { font-size: 14px; fill: #30343b; }
+    .tick { font-size: 12px; fill: #59616c; }
+    .small-title { font-size: 13px; font-weight: 700; }
+    .small-label { font-size: 10px; fill: #59616c; }
+  </style>
+  <rect width="100%" height="100%" fill="white"/>
+<text class="title" x="60" y="55">Phase 5 Alpha League Win Rate vs Rule-Based Agents</text>
+<text class="subtitle" x="60" y="82">Overall 13 x 13 x 30 evaluation; current best is iteration 5 at 2714/5070 (53.53%). Evaluated iterations: 0, 2, 3, 4, 5, 6.</text>
+<line x1="95" y1="625" x2="1190" y2="625" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="115" x2="95" y2="625" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="720.41" x2="1190" y2="720.41" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="724.41" text-anchor="end">50%</text>
+<line x1="95" y1="599.33" x2="1190" y2="599.33" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="603.33" text-anchor="end">51%</text>
+<line x1="95" y1="478.25" x2="1190" y2="478.25" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="482.25" text-anchor="end">52%</text>
+<line x1="95" y1="357.16" x2="1190" y2="357.16" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="361.16" text-anchor="end">53%</text>
+<line x1="95" y1="236.08" x2="1190" y2="236.08" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="240.08" text-anchor="end">54%</text>
+<line x1="95.00" y1="625" x2="95.00" y2="631" stroke="#30343b"/>
+<text class="tick" x="95.00" y="647" text-anchor="middle">0</text>
+<line x1="460.00" y1="625" x2="460.00" y2="631" stroke="#30343b"/>
+<text class="tick" x="460.00" y="647" text-anchor="middle">2</text>
+<line x1="642.50" y1="625" x2="642.50" y2="631" stroke="#30343b"/>
+<text class="tick" x="642.50" y="647" text-anchor="middle">3</text>
+<line x1="825.00" y1="625" x2="825.00" y2="631" stroke="#30343b"/>
+<text class="tick" x="825.00" y="647" text-anchor="middle">4</text>
+<line x1="1007.50" y1="625" x2="1007.50" y2="631" stroke="#30343b"/>
+<text class="tick" x="1007.50" y="647" text-anchor="middle">5</text>
+<line x1="1190.00" y1="625" x2="1190.00" y2="631" stroke="#30343b"/>
+<text class="tick" x="1190.00" y="647" text-anchor="middle">6</text>
+<path d="M 95.00 443.38 L 460.00 302.47 L 642.50 333.52 L 825.00 345.46 L 1007.50 292.92 L 1190.00 436.21" fill="none" stroke="#1f77b4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="443.38" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="label" x="95.00" y="429.38" text-anchor="middle">2651/5070</text>
+<circle cx="460.00" cy="302.47" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="label" x="460.00" y="288.47" text-anchor="middle">2710/5070</text>
+<circle cx="642.50" cy="333.52" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="label" x="642.50" y="319.52" text-anchor="middle">2697/5070</text>
+<circle cx="825.00" cy="345.46" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="label" x="825.00" y="331.46" text-anchor="middle">2692/5070</text>
+<circle cx="1007.50" cy="292.92" r="8" fill="#d62728" stroke="white" stroke-width="2"/>
+<text class="label" x="1007.50" y="278.92" text-anchor="middle">2714/5070</text>
+<circle cx="1190.00" cy="436.21" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="label" x="1190.00" y="422.21" text-anchor="middle">2654/5070</text>
+<text class="label" x="642.5" y="682" text-anchor="middle">Training iteration</text>
+<text class="label" transform="translate(28 370.0) rotate(-90)" text-anchor="middle">Win rate</text>
+</svg>

@@ -1,0 +1,85 @@
+iteration,scope,deck_index,deck_name,games,wins,win_rate
+0,overall,,Overall,5070,2651,0.522880
+2,overall,,Overall,5070,2710,0.534517
+3,overall,,Overall,5070,2697,0.531953
+4,overall,,Overall,5070,2692,0.530966
+5,overall,,Overall,5070,2714,0.535306
+6,overall,,Overall,5070,2654,0.523471
+0,deck,1,Alakazam Dudunsparce,390,69,0.176923
+2,deck,1,Alakazam Dudunsparce,390,65,0.166667
+3,deck,1,Alakazam Dudunsparce,390,55,0.141026
+4,deck,1,Alakazam Dudunsparce,390,53,0.135897
+5,deck,1,Alakazam Dudunsparce,390,55,0.141026
+6,deck,1,Alakazam Dudunsparce,390,58,0.148718
+0,deck,2,Crustle,390,223,0.571795
+2,deck,2,Crustle,390,249,0.638462
+3,deck,2,Crustle,390,266,0.682051
+4,deck,2,Crustle,390,254,0.651282
+5,deck,2,Crustle,390,248,0.635897
+6,deck,2,Crustle,390,238,0.610256
+0,deck,3,Dragapult Dusknoir,390,150,0.384615
+2,deck,3,Dragapult Dusknoir,390,140,0.358974
+3,deck,3,Dragapult Dusknoir,390,143,0.366667
+4,deck,3,Dragapult Dusknoir,390,127,0.325641
+5,deck,3,Dragapult Dusknoir,390,138,0.353846
+6,deck,3,Dragapult Dusknoir,390,126,0.323077
+0,deck,4,Dragapult,390,215,0.551282
+2,deck,4,Dragapult,390,220,0.564103
+3,deck,4,Dragapult,390,228,0.584615
+4,deck,4,Dragapult,390,203,0.520513
+5,deck,4,Dragapult,390,215,0.551282
+6,deck,4,Dragapult,390,195,0.500000
+0,deck,5,Dragapult Dudunsparce,390,200,0.512821
+2,deck,5,Dragapult Dudunsparce,390,186,0.476923
+3,deck,5,Dragapult Dudunsparce,390,194,0.497436
+4,deck,5,Dragapult Dudunsparce,390,187,0.479487
+5,deck,5,Dragapult Dudunsparce,390,207,0.530769
+6,deck,5,Dragapult Dudunsparce,390,192,0.492308
+0,deck,6,Hydrapple,390,200,0.512821
+2,deck,6,Hydrapple,390,213,0.546154
+3,deck,6,Hydrapple,390,200,0.512821
+4,deck,6,Hydrapple,390,219,0.561538
+5,deck,6,Hydrapple,390,217,0.556410
+6,deck,6,Hydrapple,390,213,0.546154
+0,deck,7,Raging Bolt Ogerpon,390,197,0.505128
+2,deck,7,Raging Bolt Ogerpon,390,214,0.548718
+3,deck,7,Raging Bolt Ogerpon,390,191,0.489744
+4,deck,7,Raging Bolt Ogerpon,390,204,0.523077
+5,deck,7,Raging Bolt Ogerpon,390,203,0.520513
+6,deck,7,Raging Bolt Ogerpon,390,201,0.515385
+0,deck,8,Dragapult Blaziken,390,208,0.533333
+2,deck,8,Dragapult Blaziken,390,197,0.505128
+3,deck,8,Dragapult Blaziken,390,197,0.505128
+4,deck,8,Dragapult Blaziken,390,208,0.533333
+5,deck,8,Dragapult Blaziken,390,203,0.520513
+6,deck,8,Dragapult Blaziken,390,216,0.553846
+0,deck,9,Ogerpon Box,390,208,0.533333
+2,deck,9,Ogerpon Box,390,228,0.584615
+3,deck,9,Ogerpon Box,390,234,0.600000
+4,deck,9,Ogerpon Box,390,226,0.579487
+5,deck,9,Ogerpon Box,390,219,0.561538
+6,deck,9,Ogerpon Box,390,222,0.569231
+0,deck,10,Crustle,390,224,0.574359
+2,deck,10,Crustle,390,227,0.582051
+3,deck,10,Crustle,390,230,0.589744
+4,deck,10,Crustle,390,238,0.610256
+5,deck,10,Crustle,390,234,0.600000
+6,deck,10,Crustle,390,235,0.602564
+0,deck,11,Mega Lucario ex,390,297,0.761538
+2,deck,11,Mega Lucario ex,390,292,0.748718
+3,deck,11,Mega Lucario ex,390,301,0.771795
+4,deck,11,Mega Lucario ex,390,303,0.776923
+5,deck,11,Mega Lucario ex,390,303,0.776923
+6,deck,11,Mega Lucario ex,390,310,0.794872
+0,deck,12,Mega Abomasnow ex,390,257,0.658974
+2,deck,12,Mega Abomasnow ex,390,256,0.656410
+3,deck,12,Mega Abomasnow ex,390,243,0.623077
+4,deck,12,Mega Abomasnow ex,390,252,0.646154
+5,deck,12,Mega Abomasnow ex,390,257,0.658974
+6,deck,12,Mega Abomasnow ex,390,254,0.651282
+0,deck,13,Iono's Bellibolt ex,390,203,0.520513
+2,deck,13,Iono's Bellibolt ex,390,223,0.571795
+3,deck,13,Iono's Bellibolt ex,390,215,0.551282
+4,deck,13,Iono's Bellibolt ex,390,218,0.558974
+5,deck,13,Iono's Bellibolt ex,390,215,0.551282
+6,deck,13,Iono's Bellibolt ex,390,194,0.497436

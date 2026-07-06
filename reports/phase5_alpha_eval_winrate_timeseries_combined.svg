@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #20242a; }
+    .title { font-size: 28px; font-weight: 700; }
+    .subtitle { font-size: 15px; fill: #5a626d; }
+    .label { font-size: 14px; fill: #30343b; }
+    .tick { font-size: 12px; fill: #59616c; }
+    .small-title { font-size: 13px; font-weight: 700; }
+    .small-label { font-size: 10px; fill: #59616c; }
+  </style>
+  <rect width="100%" height="100%" fill="white"/>
+<text class="title" x="60" y="55">Phase 5 Alpha Evaluation Time Series</text>
+<text class="subtitle" x="60" y="82">Overall and per-deck win rate against rule-based agents. Iteration 5 is the current best overall checkpoint.</text>
+<line x1="95" y1="395" x2="1145" y2="395" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="135" x2="95" y2="395" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="443.64" x2="1145" y2="443.64" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="447.64" text-anchor="end">50%</text>
+<line x1="95" y1="381.91" x2="1145" y2="381.91" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="385.91" text-anchor="end">51%</text>
+<line x1="95" y1="320.18" x2="1145" y2="320.18" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="324.18" text-anchor="end">52%</text>
+<line x1="95" y1="258.46" x2="1145" y2="258.46" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="262.46" text-anchor="end">53%</text>
+<line x1="95" y1="196.73" x2="1145" y2="196.73" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="200.73" text-anchor="end">54%</text>
+<line x1="95.00" y1="395" x2="95.00" y2="401" stroke="#30343b"/>
+<text class="tick" x="95.00" y="417" text-anchor="middle">0</text>
+<line x1="445.00" y1="395" x2="445.00" y2="401" stroke="#30343b"/>
+<text class="tick" x="445.00" y="417" text-anchor="middle">2</text>
+<line x1="620.00" y1="395" x2="620.00" y2="401" stroke="#30343b"/>
+<text class="tick" x="620.00" y="417" text-anchor="middle">3</text>
+<line x1="795.00" y1="395" x2="795.00" y2="401" stroke="#30343b"/>
+<text class="tick" x="795.00" y="417" text-anchor="middle">4</text>
+<line x1="970.00" y1="395" x2="970.00" y2="401" stroke="#30343b"/>
+<text class="tick" x="970.00" y="417" text-anchor="middle">5</text>
+<line x1="1145.00" y1="395" x2="1145.00" y2="401" stroke="#30343b"/>
+<text class="tick" x="1145.00" y="417" text-anchor="middle">6</text>
+<text class="label" x="95" y="118">Overall</text>
+<path d="M 95.00 302.41 L 445.00 230.57 L 620.00 246.40 L 795.00 252.49 L 970.00 225.70 L 1145.00 298.76" fill="none" stroke="#1f77b4" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="95.00" cy="302.41" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="tick" x="95.00" y="290.41" text-anchor="middle">2651</text>
+<circle cx="445.00" cy="230.57" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="tick" x="445.00" y="218.57" text-anchor="middle">2710</text>
+<circle cx="620.00" cy="246.40" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="tick" x="620.00" y="234.40" text-anchor="middle">2697</text>
+<circle cx="795.00" cy="252.49" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="tick" x="795.00" y="240.49" text-anchor="middle">2692</text>
+<circle cx="970.00" cy="225.70" r="6" fill="#d62728" stroke="white" stroke-width="2"/>
+<text class="tick" x="970.00" y="213.70" text-anchor="middle">2714</text>
+<circle cx="1145.00" cy="298.76" r="6" fill="#1f77b4" stroke="white" stroke-width="2"/>
+<text class="tick" x="1145.00" y="286.76" text-anchor="middle">2654</text>
+<line x1="95" y1="890" x2="1145" y2="890" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="500" x2="95" y2="890" stroke="#30343b" stroke-width="1"/>
+<line x1="95" y1="890.00" x2="1145" y2="890.00" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="894.00" text-anchor="end">0%</text>
+<line x1="95" y1="771.10" x2="1145" y2="771.10" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="775.10" text-anchor="end">25%</text>
+<line x1="95" y1="652.20" x2="1145" y2="652.20" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="656.20" text-anchor="end">50%</text>
+<line x1="95" y1="533.29" x2="1145" y2="533.29" stroke="#d8dde6" stroke-width="1"/>
+<text class="tick" x="85" y="537.29" text-anchor="end">75%</text>
+<line x1="95.00" y1="890" x2="95.00" y2="896" stroke="#30343b"/>
+<text class="tick" x="95.00" y="912" text-anchor="middle">0</text>
+<line x1="445.00" y1="890" x2="445.00" y2="896" stroke="#30343b"/>
+<text class="tick" x="445.00" y="912" text-anchor="middle">2</text>
+<line x1="620.00" y1="890" x2="620.00" y2="896" stroke="#30343b"/>
+<text class="tick" x="620.00" y="912" text-anchor="middle">3</text>
+<line x1="795.00" y1="890" x2="795.00" y2="896" stroke="#30343b"/>
+<text class="tick" x="795.00" y="912" text-anchor="middle">4</text>
+<line x1="970.00" y1="890" x2="970.00" y2="896" stroke="#30343b"/>
+<text class="tick" x="970.00" y="912" text-anchor="middle">5</text>
+<line x1="1145.00" y1="890" x2="1145.00" y2="896" stroke="#30343b"/>
+<text class="tick" x="1145.00" y="912" text-anchor="middle">6</text>
+<text class="label" x="95" y="483">Per-deck</text>
+<path d="M 95.00 805.85 L 445.00 810.73 L 620.00 822.93 L 795.00 825.37 L 970.00 822.93 L 1145.00 819.27" fill="none" stroke="#1f77b4" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="805.85" r="3.4" fill="#1f77b4"/>
+<circle cx="445.00" cy="810.73" r="3.4" fill="#1f77b4"/>
+<circle cx="620.00" cy="822.93" r="3.4" fill="#1f77b4"/>
+<circle cx="795.00" cy="825.37" r="3.4" fill="#1f77b4"/>
+<circle cx="970.00" cy="822.93" r="3.4" fill="#1f77b4"/>
+<circle cx="1145.00" cy="819.27" r="3.4" fill="#1f77b4"/>
+<rect x="1190" y="495" width="16" height="4" fill="#1f77b4"/>
+<text class="tick" x="1215" y="500">Deck 1: Alakazam Dudunsparce</text>
+<path d="M 95.00 618.05 L 445.00 586.34 L 620.00 565.61 L 795.00 580.24 L 970.00 587.56 L 1145.00 599.76" fill="none" stroke="#ff7f0e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="618.05" r="3.4" fill="#ff7f0e"/>
+<circle cx="445.00" cy="586.34" r="3.4" fill="#ff7f0e"/>
+<circle cx="620.00" cy="565.61" r="3.4" fill="#ff7f0e"/>
+<circle cx="795.00" cy="580.24" r="3.4" fill="#ff7f0e"/>
+<circle cx="970.00" cy="587.56" r="3.4" fill="#ff7f0e"/>
+<circle cx="1145.00" cy="599.76" r="3.4" fill="#ff7f0e"/>
+<rect x="1190" y="527" width="16" height="4" fill="#ff7f0e"/>
+<text class="tick" x="1215" y="532">Deck 2: Crustle</text>
+<path d="M 95.00 707.07 L 445.00 719.27 L 620.00 715.61 L 795.00 735.12 L 970.00 721.71 L 1145.00 736.34" fill="none" stroke="#2ca02c" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="707.07" r="3.4" fill="#2ca02c"/>
+<circle cx="445.00" cy="719.27" r="3.4" fill="#2ca02c"/>
+<circle cx="620.00" cy="715.61" r="3.4" fill="#2ca02c"/>
+<circle cx="795.00" cy="735.12" r="3.4" fill="#2ca02c"/>
+<circle cx="970.00" cy="721.71" r="3.4" fill="#2ca02c"/>
+<circle cx="1145.00" cy="736.34" r="3.4" fill="#2ca02c"/>
+<rect x="1190" y="559" width="16" height="4" fill="#2ca02c"/>
+<text class="tick" x="1215" y="564">Deck 3: Dragapult Dusknoir</text>
+<path d="M 95.00 627.80 L 445.00 621.71 L 620.00 611.95 L 795.00 642.44 L 970.00 627.80 L 1145.00 652.20" fill="none" stroke="#d62728" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="627.80" r="3.4" fill="#d62728"/>
+<circle cx="445.00" cy="621.71" r="3.4" fill="#d62728"/>
+<circle cx="620.00" cy="611.95" r="3.4" fill="#d62728"/>
+<circle cx="795.00" cy="642.44" r="3.4" fill="#d62728"/>
+<circle cx="970.00" cy="627.80" r="3.4" fill="#d62728"/>
+<circle cx="1145.00" cy="652.20" r="3.4" fill="#d62728"/>
+<rect x="1190" y="591" width="16" height="4" fill="#d62728"/>
+<text class="tick" x="1215" y="596">Deck 4: Dragapult</text>
+<path d="M 95.00 646.10 L 445.00 663.17 L 620.00 653.41 L 795.00 661.95 L 970.00 637.56 L 1145.00 655.85" fill="none" stroke="#9467bd" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="646.10" r="3.4" fill="#9467bd"/>
+<circle cx="445.00" cy="663.17" r="3.4" fill="#9467bd"/>
+<circle cx="620.00" cy="653.41" r="3.4" fill="#9467bd"/>
+<circle cx="795.00" cy="661.95" r="3.4" fill="#9467bd"/>
+<circle cx="970.00" cy="637.56" r="3.4" fill="#9467bd"/>
+<circle cx="1145.00" cy="655.85" r="3.4" fill="#9467bd"/>
+<rect x="1190" y="623" width="16" height="4" fill="#9467bd"/>
+<text class="tick" x="1215" y="628">Deck 5: Dragapult Dudunsparce</text>
+<path d="M 95.00 646.10 L 445.00 630.24 L 620.00 646.10 L 795.00 622.93 L 970.00 625.37 L 1145.00 630.24" fill="none" stroke="#8c564b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="646.10" r="3.4" fill="#8c564b"/>
+<circle cx="445.00" cy="630.24" r="3.4" fill="#8c564b"/>
+<circle cx="620.00" cy="646.10" r="3.4" fill="#8c564b"/>
+<circle cx="795.00" cy="622.93" r="3.4" fill="#8c564b"/>
+<circle cx="970.00" cy="625.37" r="3.4" fill="#8c564b"/>
+<circle cx="1145.00" cy="630.24" r="3.4" fill="#8c564b"/>
+<rect x="1190" y="655" width="16" height="4" fill="#8c564b"/>
+<text class="tick" x="1215" y="660">Deck 6: Hydrapple</text>
+<path d="M 95.00 649.76 L 445.00 629.02 L 620.00 657.07 L 795.00 641.22 L 970.00 642.44 L 1145.00 644.88" fill="none" stroke="#e377c2" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="649.76" r="3.4" fill="#e377c2"/>
+<circle cx="445.00" cy="629.02" r="3.4" fill="#e377c2"/>
+<circle cx="620.00" cy="657.07" r="3.4" fill="#e377c2"/>
+<circle cx="795.00" cy="641.22" r="3.4" fill="#e377c2"/>
+<circle cx="970.00" cy="642.44" r="3.4" fill="#e377c2"/>
+<circle cx="1145.00" cy="644.88" r="3.4" fill="#e377c2"/>
+<rect x="1190" y="687" width="16" height="4" fill="#e377c2"/>
+<text class="tick" x="1215" y="692">Deck 7: Raging Bolt Ogerpon</text>
+<path d="M 95.00 636.34 L 445.00 649.76 L 620.00 649.76 L 795.00 636.34 L 970.00 642.44 L 1145.00 626.59" fill="none" stroke="#7f7f7f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="636.34" r="3.4" fill="#7f7f7f"/>
+<circle cx="445.00" cy="649.76" r="3.4" fill="#7f7f7f"/>
+<circle cx="620.00" cy="649.76" r="3.4" fill="#7f7f7f"/>
+<circle cx="795.00" cy="636.34" r="3.4" fill="#7f7f7f"/>
+<circle cx="970.00" cy="642.44" r="3.4" fill="#7f7f7f"/>
+<circle cx="1145.00" cy="626.59" r="3.4" fill="#7f7f7f"/>
+<rect x="1190" y="719" width="16" height="4" fill="#7f7f7f"/>
+<text class="tick" x="1215" y="724">Deck 8: Dragapult Blaziken</text>
+<path d="M 95.00 636.34 L 445.00 611.95 L 620.00 604.63 L 795.00 614.39 L 970.00 622.93 L 1145.00 619.27" fill="none" stroke="#bcbd22" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="636.34" r="3.4" fill="#bcbd22"/>
+<circle cx="445.00" cy="611.95" r="3.4" fill="#bcbd22"/>
+<circle cx="620.00" cy="604.63" r="3.4" fill="#bcbd22"/>
+<circle cx="795.00" cy="614.39" r="3.4" fill="#bcbd22"/>
+<circle cx="970.00" cy="622.93" r="3.4" fill="#bcbd22"/>
+<circle cx="1145.00" cy="619.27" r="3.4" fill="#bcbd22"/>
+<rect x="1190" y="751" width="16" height="4" fill="#bcbd22"/>
+<text class="tick" x="1215" y="756">Deck 9: Ogerpon Box</text>
+<path d="M 95.00 616.83 L 445.00 613.17 L 620.00 609.51 L 795.00 599.76 L 970.00 604.63 L 1145.00 603.41" fill="none" stroke="#17becf" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="616.83" r="3.4" fill="#17becf"/>
+<circle cx="445.00" cy="613.17" r="3.4" fill="#17becf"/>
+<circle cx="620.00" cy="609.51" r="3.4" fill="#17becf"/>
+<circle cx="795.00" cy="599.76" r="3.4" fill="#17becf"/>
+<circle cx="970.00" cy="604.63" r="3.4" fill="#17becf"/>
+<circle cx="1145.00" cy="603.41" r="3.4" fill="#17becf"/>
+<rect x="1190" y="783" width="16" height="4" fill="#17becf"/>
+<text class="tick" x="1215" y="788">Deck 10: Crustle</text>
+<path d="M 95.00 527.80 L 445.00 533.90 L 620.00 522.93 L 795.00 520.49 L 970.00 520.49 L 1145.00 511.95" fill="none" stroke="#4c78a8" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="527.80" r="3.4" fill="#4c78a8"/>
+<circle cx="445.00" cy="533.90" r="3.4" fill="#4c78a8"/>
+<circle cx="620.00" cy="522.93" r="3.4" fill="#4c78a8"/>
+<circle cx="795.00" cy="520.49" r="3.4" fill="#4c78a8"/>
+<circle cx="970.00" cy="520.49" r="3.4" fill="#4c78a8"/>
+<circle cx="1145.00" cy="511.95" r="3.4" fill="#4c78a8"/>
+<rect x="1190" y="815" width="16" height="4" fill="#4c78a8"/>
+<text class="tick" x="1215" y="820">Deck 11: Mega Lucario ex</text>
+<path d="M 95.00 576.59 L 445.00 577.80 L 620.00 593.66 L 795.00 582.68 L 970.00 576.59 L 1145.00 580.24" fill="none" stroke="#f58518" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="576.59" r="3.4" fill="#f58518"/>
+<circle cx="445.00" cy="577.80" r="3.4" fill="#f58518"/>
+<circle cx="620.00" cy="593.66" r="3.4" fill="#f58518"/>
+<circle cx="795.00" cy="582.68" r="3.4" fill="#f58518"/>
+<circle cx="970.00" cy="576.59" r="3.4" fill="#f58518"/>
+<circle cx="1145.00" cy="580.24" r="3.4" fill="#f58518"/>
+<rect x="1190" y="847" width="16" height="4" fill="#f58518"/>
+<text class="tick" x="1215" y="852">Deck 12: Mega Abomasnow ex</text>
+<path d="M 95.00 642.44 L 445.00 618.05 L 620.00 627.80 L 795.00 624.15 L 970.00 627.80 L 1145.00 653.41" fill="none" stroke="#54a24b" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>
+<circle cx="95.00" cy="642.44" r="3.4" fill="#54a24b"/>
+<circle cx="445.00" cy="618.05" r="3.4" fill="#54a24b"/>
+<circle cx="620.00" cy="627.80" r="3.4" fill="#54a24b"/>
+<circle cx="795.00" cy="624.15" r="3.4" fill="#54a24b"/>
+<circle cx="970.00" cy="627.80" r="3.4" fill="#54a24b"/>
+<circle cx="1145.00" cy="653.41" r="3.4" fill="#54a24b"/>
+<rect x="1190" y="879" width="16" height="4" fill="#54a24b"/>
+<text class="tick" x="1215" y="884">Deck 13: Iono&#x27;s Bellibolt ex</text>
+</svg>
