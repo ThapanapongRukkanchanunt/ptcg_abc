@@ -1016,6 +1016,24 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_league_alpha/iter-0006/specialists` so iteration-5 and
   iteration-6 evals can run overnight; after either eval slot frees, run
   iteration-7 PPO from source iteration 6 to target iteration 7.
+- Iteration-5 full-agent-vs-rule evaluation passed on ERAWAN job `73490`:
+  2,714 / 5,070 wins, 0.5353 win rate, 15 draws, 46 timeouts, 0 errors. This
+  is up 4 wins from iteration 2, up 22 wins from iteration 4, and up 63 wins
+  from iteration 0. Against the four required sample rule-agent opponents,
+  iteration 5 scored 704 / 1,560, up 10 wins from iteration 2 and up 45 wins
+  from iteration 0. Treat
+  `models/rl/phase5_league_alpha/iter-0005/specialists` as the current best
+  promotion/package candidate unless a later evaluation beats it; deck 11 Mega
+  Lucario ex and deck 12 Mega Abomasnow ex are the top required-sample slice
+  candidates at 86 / 120 and 75 / 120 respectively.
+- Iteration-6 full-agent-vs-rule evaluation passed on ERAWAN job `73503`:
+  2,654 / 5,070 wins, 0.5235 win rate, 16 draws, 50 timeouts, 0 errors. This
+  is down 60 wins from iteration 5 and down 56 wins from iteration 2, and only
+  3 wins above the recorded iteration-0 specialist baseline. Against the four
+  required sample rule-agent opponents, iteration 6 scored 684 / 1,560, down
+  20 wins from iteration 5. Do not promote iteration 6. Next action: run
+  iteration-7 PPO from source iteration 6 to target iteration 7, using the
+  already inspected iteration-7 raw self-play window.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
