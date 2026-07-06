@@ -3826,3 +3826,48 @@ Conclusion and next step:
     `models/rl/phase5_league_alpha/iter-0009/specialists`.
 - Keep iteration 5 as the current best promotion/package candidate until a
   later evaluation beats it.
+
+## 2026-07-06 - Alpha League Iteration-10 Self-Play Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0010_league_iteration_report.json`;
+  - `slurm-73578-phase5-alpha-league.out`.
+- ERAWAN job: `73578`.
+- Online collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0009/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0010/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+League collection:
+
+- Games: 1,300 / 1,300 started, 13 decks x 100 scheduled games.
+- Steps / trajectory rows: 211,241.
+- Draws: 9. Timeouts: 22. Errors: 0.
+- Per-deck online self-play records:
+  - Deck 1 Alakazam Dudunsparce: 30 / 204, 14.7%.
+  - Deck 2 Crustle: 134 / 204, 65.7%.
+  - Deck 3 Dragapult Dusknoir: 54 / 204, 26.5%.
+  - Deck 4 Dragapult: 106 / 204, 52.0%.
+  - Deck 5 Dragapult Dudunsparce: 69 / 204, 33.8%.
+  - Deck 6 Hydrapple: 99 / 204, 48.5%.
+  - Deck 7 Raging Bolt Ogerpon: 111 / 204, 54.4%.
+  - Deck 8 Dragapult Blaziken: 120 / 204, 58.8%.
+  - Deck 9 Ogerpon Box: 108 / 191, 56.5%.
+  - Deck 10 Crustle sample: 111 / 191, 58.1%.
+  - Deck 11 Mega Lucario ex: 120 / 191, 62.8%.
+  - Deck 12 Mega Abomasnow ex: 124 / 191, 64.9%.
+  - Deck 13 Iono's Bellibolt ex: 105 / 204, 51.5%.
+
+Conclusion and next step:
+
+- The iteration-10 raw self-play window is valid: zero errors and enough
+  on-policy trajectory rows for the next per-deck PPO update.
+- Since iteration-8 eval is still running, use the open ERAWAN slot for
+  iteration-10 PPO from source iteration 9 to target iteration 10.
+- Keep iteration 5 as the current best promotion/package candidate until a
+  later evaluation beats it.
+- Keep `iter-0010/raw_train/` until the iteration-10 PPO report and later eval
+  result are inspected.
