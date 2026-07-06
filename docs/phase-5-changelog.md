@@ -3871,3 +3871,53 @@ Conclusion and next step:
   later evaluation beats it.
 - Keep `iter-0010/raw_train/` until the iteration-10 PPO report and later eval
   result are inspected.
+
+## 2026-07-06 - Alpha League Iteration-10 Online PPO Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0010_ppo_specialists_report.json`;
+  - `slurm-73587-phase5-alpha-ppo-specialists.out`.
+- ERAWAN job: `73587`.
+- PPO source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0009/specialists`.
+- PPO output specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0010/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0010/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+PPO update:
+
+- Deck checkpoints written: 13 / 13.
+- On-policy trajectory rows consumed: 211,241.
+- Skipped no-target rows: 0.
+- Skipped off-policy rows: 0.
+- `require_on_policy`: true for every deck update.
+- Per-deck PPO examples:
+  - Deck 1: 26,282 examples, mean advantage -0.0872, final loss 0.0074.
+  - Deck 2: 12,505 examples, mean advantage 0.1388, final loss 0.0564.
+  - Deck 3: 14,234 examples, mean advantage 0.0361, final loss 0.0784.
+  - Deck 4: 18,881 examples, mean advantage 0.1324, final loss 2.3183.
+  - Deck 5: 16,028 examples, mean advantage -0.2248, final loss 0.0718.
+  - Deck 6: 14,846 examples, mean advantage -0.0927, final loss 0.2639.
+  - Deck 7: 14,880 examples, mean advantage -0.1499, final loss 0.0241.
+  - Deck 8: 21,780 examples, mean advantage 0.2588, final loss 0.1679.
+  - Deck 9: 14,193 examples, mean advantage -0.1528, final loss 0.8347.
+  - Deck 10: 12,997 examples, mean advantage -0.1341, final loss 1.2447.
+  - Deck 11: 12,177 examples, mean advantage -0.1347, final loss 0.1060.
+  - Deck 12: 7,664 examples, mean advantage -0.1245, final loss 0.1842.
+  - Deck 13: 24,774 examples, mean advantage 0.1762, final loss 0.1818.
+
+Conclusion and next step:
+
+- The iteration-10 online PPO update is valid: it used the full iter-10 raw
+  self-play window and produced a complete 13-checkpoint specialist family with
+  no off-policy leakage.
+- Per user direction, stop online RL collection and PPO updates at iteration
+  10. Do not queue iteration-11 self-play or PPO unless the plan changes.
+- The iteration-10 raw training window can be deleted after confirming the
+  report and checkpoints are retained, matching the Phase 5 data policy.
+- Finish the evaluation backlog only: iteration 8, iteration 9, and iteration
+  10 full-agent-vs-rule evaluations. Keep iteration 5 as the current best
+  promotion/package candidate until one of those evaluations beats it.
