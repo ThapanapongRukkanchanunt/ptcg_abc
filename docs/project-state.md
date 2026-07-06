@@ -1085,6 +1085,26 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   action: while iteration-7 eval continues, run iteration-9 PPO from source
   iteration 8 to target iteration 9. Iteration 5 remains the current best
   promotion/package candidate until a later evaluation beats it.
+- Iteration-7 full-agent-vs-rule evaluation passed on ERAWAN job `73525`:
+  2,641 / 5,070 wins, 0.5209 win rate, 18 draws, 52 timeouts, 0 errors. This
+  is down 73 wins from iteration 5 and down 13 wins from iteration 6. Against
+  the four required sample rule-agent opponents, iteration 7 scored
+  639 / 1,560, down 65 wins from iteration 5 and down 45 wins from iteration 6.
+  Do not promote iteration 7; iteration 5 remains the current best
+  promotion/package candidate. Deck 11 Mega Lucario ex remained the strongest
+  evaluated deck at 298 / 390 overall and 80 / 120 against the required sample
+  opponents; deck 1 Alakazam Dudunsparce remained weakest at 60 / 390 overall
+  and 0 / 120 against required sample opponents.
+- Iteration-9 online PPO update passed on ERAWAN job `73571`. It consumed all
+  208,155 iter-9 on-policy trajectory rows, skipped 0 no-target rows and 0
+  off-policy rows, and wrote all 13 checkpoints under
+  `models/rl/phase5_league_alpha/iter-0009/specialists`. Deck 1 had the most
+  PPO examples at 26,948; deck 12 had the fewest at 8,288. The iter-9 raw
+  training window can be deleted after confirming the report and checkpoints
+  are retained. Next action: run iteration-8 full-agent-vs-rule eval from
+  `models/rl/phase5_league_alpha/iter-0008/specialists` and iteration-10
+  online self-play from
+  `models/rl/phase5_league_alpha/iter-0009/specialists` in parallel.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

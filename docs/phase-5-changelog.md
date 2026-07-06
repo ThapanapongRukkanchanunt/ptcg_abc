@@ -3715,3 +3715,114 @@ Conclusion and next step:
   later evaluation beats it.
 - Keep `iter-0009/raw_train/` until the iteration-9 PPO report and later eval
   result are inspected.
+
+## 2026-07-06 - Alpha League Iteration-7 Full-Agent Evaluation
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `phase5_alpha_iter0007_specialists_full_vs_rule_30g.json`;
+  - `phase5_alpha_iter0007_specialists_full_vs_rule_30g.md`;
+  - `slurm-73525-phase5-league-eval.out`.
+- ERAWAN job: `73525`.
+- Agent: `phase5-full`.
+- Generalist prior:
+  `models/rl/phase5_generalist_policy_13deck_10k.pt`.
+- Specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0007/specialists`.
+- Gate: 13 x 13 agent-vs-rule league evaluation, 30 games per matchup,
+  max 600 selections per game.
+
+Evaluation:
+
+- Overall: 2,641 / 5,070 wins, 0.5209 win rate, 18 draws, 52 timeouts, 0
+  errors.
+- This is down 73 wins from the current best iteration 5 and down 13 wins from
+  iteration 6, so iteration 7 is not a promotion candidate.
+- Against the four required sample rule-agent opponents: 639 / 1,560 wins,
+  0.4096 win rate, 3 draws, 0 timeouts, 0 errors.
+- Top overall decks:
+  - Deck 11 Mega Lucario ex: 298 / 390, 76.4%.
+  - Deck 12 Mega Abomasnow ex: 248 / 390, 63.6%.
+  - Deck 10 Crustle sample: 236 / 390, 60.5%.
+  - Deck 2 Crustle: 235 / 390, 60.3%.
+  - Deck 6 Hydrapple: 213 / 390, 54.6%.
+- Required-sample slice leaders:
+  - Deck 11 Mega Lucario ex: 80 / 120, 66.7%.
+  - Deck 12 Mega Abomasnow ex: 63 / 120, 52.5%.
+  - Deck 4 Dragapult: 60 / 120, 50.0%.
+  - Deck 2 Crustle: 58 / 120, 48.3%.
+- Persistent weaknesses:
+  - Deck 1 Alakazam Dudunsparce: 60 / 390 overall and 0 / 120 against the
+    required sample rule-agent opponents.
+  - Deck 3 Dragapult Dusknoir: 147 / 390 overall and 29 / 120 against the
+    required sample rule-agent opponents.
+
+Search telemetry:
+
+- Searched decisions: 197,493.
+- Search-changed decisions: 36,252, 0.1836 change rate.
+- Search errors: 0. Candidate errors: 0.
+- Candidate probes: 715,257.
+- Truncated candidates: 2,125.
+- Average search seconds: 0.0510. Max search seconds: 2.7742.
+
+Conclusion:
+
+- Do not promote iteration 7. Keep
+  `models/rl/phase5_league_alpha/iter-0005/specialists` as the current best
+  promotion/package candidate.
+- Next evaluation target is iteration 8; next online training target after the
+  completed iteration-9 PPO update is iteration 10 self-play.
+
+## 2026-07-06 - Alpha League Iteration-9 Online PPO Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0009_ppo_specialists_report.json`;
+  - `slurm-73571-phase5-alpha-ppo-specialists.out`.
+- ERAWAN job: `73571`.
+- PPO source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0008/specialists`.
+- PPO output specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0009/specialists`.
+- Raw online window:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_league_alpha/iterations/iter-0009/raw_train/phase5_alpha_league_selfplay.jsonl`.
+
+PPO update:
+
+- Deck checkpoints written: 13 / 13.
+- On-policy trajectory rows consumed: 208,155.
+- Skipped no-target rows: 0.
+- Skipped off-policy rows: 0.
+- `require_on_policy`: true for every deck update.
+- Per-deck PPO examples:
+  - Deck 1: 26,948 examples, mean advantage -0.1441, final loss 1.7519.
+  - Deck 2: 11,738 examples, mean advantage 0.0349, final loss 0.3033.
+  - Deck 3: 12,737 examples, mean advantage -0.0362, final loss 0.1003.
+  - Deck 4: 19,381 examples, mean advantage -0.0180, final loss 0.0635.
+  - Deck 5: 15,517 examples, mean advantage -0.3806, final loss 0.0577.
+  - Deck 6: 14,244 examples, mean advantage -0.0981, final loss -0.0091.
+  - Deck 7: 14,339 examples, mean advantage 0.1749, final loss 0.4947.
+  - Deck 8: 21,005 examples, mean advantage -0.2664, final loss 0.4725.
+  - Deck 9: 15,031 examples, mean advantage -0.2433, final loss 0.3353.
+  - Deck 10: 13,754 examples, mean advantage -0.0241, final loss 0.2730.
+  - Deck 11: 12,577 examples, mean advantage 0.2783, final loss 0.8019.
+  - Deck 12: 8,288 examples, mean advantage -0.0211, final loss 1.1182.
+  - Deck 13: 22,596 examples, mean advantage 0.2464, final loss 0.5052.
+
+Conclusion and next step:
+
+- The iteration-9 online PPO update is valid: it used the full iter-9 raw
+  self-play window and produced a complete 13-checkpoint specialist family with
+  no off-policy leakage.
+- The iteration-9 raw training window can be deleted after confirming the
+  report and checkpoints are retained, matching the Phase 5 data policy.
+- Fill the next two ERAWAN slots with:
+  - iteration-8 full-agent-vs-rule eval from
+    `models/rl/phase5_league_alpha/iter-0008/specialists`;
+  - iteration-10 online self-play from
+    `models/rl/phase5_league_alpha/iter-0009/specialists`.
+- Keep iteration 5 as the current best promotion/package candidate until a
+  later evaluation beats it.
