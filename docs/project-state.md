@@ -1186,6 +1186,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   Next action is the PPO update into
   `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`, followed by
   specialized public-agent eval of that candidate.
+- Public-agent curriculum PPO job `73706` completed from the targeted
+  sample-Dragapult trajectory window. It wrote 13 / 13 deck checkpoints under
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`, consumed
+  6,729 on-policy examples, and skipped 0 no-target/off-policy rows. Next
+  action: evaluate this checkpoint family with
+  `rl-evaluate-phase5-public-agents` / `phase5_public_agent_eval_conda.sbatch`
+  against the same specialized public-agent gate.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

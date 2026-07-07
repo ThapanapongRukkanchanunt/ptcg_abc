@@ -4182,3 +4182,51 @@ Conclusion and next step:
   separate public-agent curriculum checkpoint family
   `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`, then
   evaluate that candidate against the same specialized public-agent gate.
+
+## 2026-07-07 - Public-Agent Curriculum Iteration-6 PPO Update
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `iter-0006_ppo_specialists_report (1).json`;
+  - `slurm-73706-phase5-alpha-ppo-specialists.out`.
+- ERAWAN job: `73706`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- PPO trajectory dataset:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agent_rule_train/iter-0006_public_agent_trajectories.jsonl`.
+- Output specialist checkpoint family:
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`.
+
+PPO update:
+
+- Deck checkpoints written: 13 / 13.
+- Total PPO examples: 6,729.
+- Skipped no-target rows: 0.
+- Skipped off-policy rows: 0.
+- `require_on_policy`: true for every deck update.
+- Per-deck examples:
+  - Deck 1: 641 examples, mean advantage -0.3051, final loss -0.5609.
+  - Deck 2: 492 examples, mean advantage -0.5558, final loss 0.3318.
+  - Deck 3: 413 examples, mean advantage -0.5276, final loss 0.1093.
+  - Deck 4: 531 examples, mean advantage -0.9504, final loss 0.0809.
+  - Deck 5: 535 examples, mean advantage -0.8975, final loss 0.0053.
+  - Deck 6: 531 examples, mean advantage -0.9442, final loss -0.0267.
+  - Deck 7: 601 examples, mean advantage -0.8195, final loss 0.1310.
+  - Deck 8: 614 examples, mean advantage -0.8020, final loss 0.6057.
+  - Deck 9: 524 examples, mean advantage -1.3415, final loss 0.1321.
+  - Deck 10: 546 examples, mean advantage -0.4633, final loss 0.3194.
+  - Deck 11: 421 examples, mean advantage -1.0960, final loss 0.5580.
+  - Deck 12: 246 examples, mean advantage -1.3495, final loss 0.4991.
+  - Deck 13: 634 examples, mean advantage -0.6787, final loss 0.0457.
+
+Conclusion and next step:
+
+- The first targeted public-agent PPO update is valid and did not overwrite the
+  historical generic Alpha league iteration-6 checkpoint family.
+- The update was based on a small, loss-heavy sample-Dragapult window. Treat
+  the next evaluation as a signal check for whether this targeted PPO direction
+  improves the specialized-opponent gate, not as a final curriculum result.
+- Next ERAWAN action: evaluate
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` with the
+  same specialized public-agent gate against the available public-agent roster.
