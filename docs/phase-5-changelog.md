@@ -4142,3 +4142,43 @@ Conclusion and next step:
   `models/rl/phase5_league_alpha/iter-0006/specialists` artifacts. Evaluate the
   candidate against the same specialized public-agent gate before considering
   any promotion.
+
+## 2026-07-07 - Public-Agent Curriculum Iteration-6 Trajectory Window
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `phase5_public_agent_rule_train_iter0006_report.json`;
+  - `slurm-73671-phase5-public-traj.out`.
+- ERAWAN job: `73671`.
+- Collector: `AGENT=phase5-rl`.
+- Source specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- Available specialized opponents: one built-in sample opponent,
+  `sample_dragapult`.
+- Raw trajectory output:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agent_rule_train/iter-0006_public_agent_trajectories.jsonl`.
+
+Trajectory generation:
+
+- Games requested/started: 130 / 130, with 10 games for each of the 13
+  controlled decks against sample Dragapult.
+- Trajectory rows: 6,729.
+- Wins/losses/draws: 10 / 120 / 0.
+- Timeouts: 0. Errors: 0.
+- Per-deck wins:
+  - Deck 10 Crustle sample: 3 / 10.
+  - Decks 2 and 8: 2 / 10 each.
+  - Decks 1, 11, and 13: 1 / 10 each.
+  - Decks 3, 4, 5, 6, 7, 9, and 12: 0 / 10.
+
+Conclusion and next step:
+
+- The targeted public-agent trajectory window is valid and has no simulation
+  errors. It is intentionally small and very loss-heavy, so treat it as the
+  first targeted PPO smoke/update window rather than as sufficient curriculum
+  scale.
+- Next ERAWAN action: run the PPO specialist update from this JSONL into the
+  separate public-agent curriculum checkpoint family
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`, then
+  evaluate that candidate against the same specialized public-agent gate.

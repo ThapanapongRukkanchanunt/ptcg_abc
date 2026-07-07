@@ -1178,6 +1178,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` checkpoint
   root, then re-evaluate against the specialized public-agent gate. Do not
   overwrite the historical generic Alpha league `iter-0006` artifacts.
+- Public-agent curriculum trajectory job `73671` completed from iteration 5
+  specialists against built-in sample Dragapult: 130 / 130 games started,
+  6,729 trajectory rows, 10 wins, 120 losses, 0 draws, 0 timeouts, and
+  0 errors. The raw JSONL is
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agent_rule_train/iter-0006_public_agent_trajectories.jsonl`.
+  Next action is the PPO update into
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`, followed by
+  specialized public-agent eval of that candidate.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
