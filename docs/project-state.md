@@ -1154,6 +1154,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   deck 1 Alakazam Dudunsparce as the main persistent weakness for any future
   targeted work. Deck 11 Mega Lucario ex remains the strongest specialist, and
   deck 12 Mega Abomasnow ex is the clearest late-iteration improvement.
+- Active Phase 5 training pivot as of July 7, 2026: behavior
+  cloning/bootstrap helped, but the generic self-play PPO loop did not improve
+  beyond iteration 5 and Kaggle replay inspection showed tactical failures such
+  as Mega Abomasnow ex missing available energy attachments and attacks. Do not
+  resume generic iteration-11 self-play. The next active path is specialized
+  public/sample rule-opponent curriculum training.
+- Specialized public-agent support now includes a built-in public-20-plus-sample-4
+  roster, local `.py`/`.ipynb` public-agent discovery, availability reports,
+  `rl-evaluate-phase5-public-agents` with a 50% public-agent gate summary, and
+  `rl-generate-phase5-public-agent-trajectories` for PPO update data against
+  fixed specialized opponents. Current starting checkpoint remains
+  `models/rl/phase5_league_alpha/iter-0005/specialists`; evaluate it against
+  the specialized public-agent roster before generating the next PPO window.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

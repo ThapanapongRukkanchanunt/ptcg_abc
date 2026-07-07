@@ -87,6 +87,15 @@ from ptcg_abc.rl.phase5_alpha_league import (
     train_phase5_deck_specialists,
     train_phase5_deck_specialists_ppo,
 )
+from ptcg_abc.rl.public_opponents import (
+    discover_phase5_public_opponents,
+    format_public_agent_gate_markdown,
+    generate_phase5_public_agent_trajectories,
+    run_phase5_public_agent_benchmark,
+    summarize_public_agent_gate,
+    write_public_agent_status_report,
+    write_public_agent_trajectory_report,
+)
 from ptcg_abc.rl.phase5_reports import compare_benchmark_reports
 from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
@@ -1129,6 +1138,183 @@ def command_rl_generate_phase5_alpha_league_iteration(args: argparse.Namespace) 
     print(json.dumps(summary.to_dict(), indent=2))
     print(f"Wrote Phase 5 Alpha league-iteration report to {report_json}.")
     return 0 if summary.selfplay.get("errors", 0) == 0 else 1
+
+
+def _public_agent_roots_from_args(args: argparse.Namespace) -> list[Path]:
+    roots = list(getattr(args, "public_agent_root", []) or [])
+    return roots or [Path("data") / "public_agents"]
+
+
+def command_phase5_public_agent_roster(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        loaded, statuses = discover_phase5_public_opponents(
+            sample_dir=args.sample_dir,
+            public_agent_roots=_public_agent_roots_from_args(args),
+            roster_notebook=args.roster_notebook,
+            include_public=not args.samples_only,
+            include_samples=not args.public_only,
+            include_builtin_samples=not args.no_builtin_samples,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    write_public_agent_status_report(args.report_json, statuses)
+    payload = {
+        "available": len(loaded),
+        "unavailable": len([status for status in statuses if status.status != "available"]),
+        "statuses": [status.to_dict() for status in statuses],
+        "report_json": args.report_json.as_posix(),
+    }
+    print(json.dumps(payload, indent=2))
+    print(f"Wrote Phase 5 public-agent roster report to {args.report_json}.")
+    return 0 if loaded else 1
+
+
+def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    specialist_model_dir = args.specialist_model_dir
+    if specialist_model_dir is not None:
+        missing = [
+            specialist_model_dir / f"deck-{deck_index:02d}.pt"
+            for deck_index in (args.deck_index or PHASE5_ALPHA_DECK_INDICES)
+            if not (specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
+        ]
+        if missing:
+            preview = ", ".join(path.as_posix() for path in missing[:3])
+            suffix = "..." if len(missing) > 3 else ""
+            print(
+                f"Missing Phase 5 specialist checkpoint(s): {preview}{suffix}",
+                file=sys.stderr,
+            )
+            return 2
+    if (
+        args.agent in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl"}
+        and model_path is None
+        and specialist_model_dir is None
+    ):
+        print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
+        return 2
+    try:
+        result, statuses = run_phase5_public_agent_benchmark(
+            sample_dir=args.sample_dir,
+            public_agent_roots=_public_agent_roots_from_args(args),
+            roster_notebook=args.roster_notebook,
+            include_public=not args.samples_only,
+            include_samples=not args.public_only,
+            include_builtin_samples=not args.no_builtin_samples,
+            require_min_opponents=args.require_min_opponents,
+            agent_kind=args.agent,
+            model_path=model_path,
+            specialist_model_dir=specialist_model_dir,
+            deck_indices=args.deck_index or None,
+            games_per_matchup=args.games_per_matchup,
+            max_steps=args.max_steps,
+            search_config=_root_search_config_from_args(args),
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    gate_summary = summarize_public_agent_gate(
+        result.rows,
+        min_win_rate=args.min_opponent_win_rate,
+    )
+    write_phase4_benchmark_report(
+        result,
+        json_path=args.report_json,
+        markdown_path=args.report_md,
+        agent_kind=f"phase5-public-agents:{args.agent}",
+        model_path=specialist_model_dir or model_path,
+        extra_json={"public_agent_gate": gate_summary},
+        extra_markdown_sections=[format_public_agent_gate_markdown(gate_summary)],
+    )
+    write_public_agent_status_report(args.status_json, statuses)
+    totals = _benchmark_totals(result.rows)
+    totals["public_agent_gate"] = gate_summary
+    totals["available_public_agents"] = len(
+        [status for status in statuses if status.status == "available"]
+    )
+    totals["unavailable_public_agents"] = len(
+        [status for status in statuses if status.status != "available"]
+    )
+    print(json.dumps(totals, indent=2))
+    print(f"Wrote Phase 5 public-agent benchmark report to {args.report_md}.")
+    print(f"Wrote Phase 5 public-agent availability report to {args.status_json}.")
+    gate_failed = args.fail_on_gate and not gate_summary["passed"]
+    return 0 if totals["errors"] == 0 and not gate_failed else 1
+
+
+def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespace) -> int:
+    if not args.sample_dir.exists():
+        print(
+            f"Kaggle sample submission not found at {args.sample_dir}. "
+            "Run `python -m ptcg_abc kaggle-setup` first.",
+            file=sys.stderr,
+        )
+        return 2
+    model_path = args.model if args.model and args.model.exists() else None
+    if args.specialist_model_dir is not None:
+        missing = [
+            args.specialist_model_dir / f"deck-{deck_index:02d}.pt"
+            for deck_index in (args.deck_index or PHASE5_ALPHA_DECK_INDICES)
+            if not (args.specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
+        ]
+        if missing:
+            preview = ", ".join(path.as_posix() for path in missing[:3])
+            suffix = "..." if len(missing) > 3 else ""
+            print(
+                f"Missing Phase 5 specialist checkpoint(s): {preview}{suffix}",
+                file=sys.stderr,
+            )
+            return 2
+    if (
+        args.agent in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl"}
+        and model_path is None
+        and args.specialist_model_dir is None
+    ):
+        print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
+        return 2
+    try:
+        summary = generate_phase5_public_agent_trajectories(
+            sample_dir=args.sample_dir,
+            public_agent_roots=_public_agent_roots_from_args(args),
+            output_path=args.output,
+            roster_notebook=args.roster_notebook,
+            include_public=not args.samples_only,
+            include_samples=not args.public_only,
+            include_builtin_samples=not args.no_builtin_samples,
+            require_min_opponents=args.require_min_opponents,
+            agent_kind=args.agent,
+            model_path=model_path,
+            specialist_model_dir=args.specialist_model_dir,
+            deck_indices=args.deck_index or None,
+            games_per_matchup=args.games_per_matchup,
+            max_steps=args.max_steps,
+            game_offset=args.game_offset,
+            search_config=_root_search_config_from_args(args),
+            overwrite=args.overwrite,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    write_public_agent_trajectory_report(args.report_json, summary)
+    print(json.dumps(summary.to_dict(), indent=2))
+    print(f"Wrote Phase 5 public-agent trajectories to {args.output}.")
+    print(f"Wrote Phase 5 public-agent trajectory report to {args.report_json}.")
+    return 0 if summary.errors == 0 else 1
 
 
 def command_rl_train_phase5_deck_specialists(args: argparse.Namespace) -> int:
@@ -2249,6 +2435,108 @@ def build_parser() -> argparse.ArgumentParser:
         func=command_rl_generate_phase5_alpha_league_iteration
     )
 
+    phase5_public_roster = subparsers.add_parser(
+        "phase5-public-agent-roster",
+        help="Discover locally available public/specialized Kaggle agents from the Phase 5 roster.",
+    )
+    phase5_public_roster.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    phase5_public_roster.add_argument(
+        "--public-agent-root",
+        type=_path,
+        action="append",
+        default=[],
+        help="Directory containing downloaded/exported public agents. Repeatable.",
+    )
+    phase5_public_roster.add_argument(
+        "--roster-notebook",
+        type=_path,
+        default=None,
+        help="Optional notebook containing AGENT_SOURCES; defaults to built-in public-20-plus-sample-4 roster.",
+    )
+    phase5_public_roster.add_argument("--public-only", action="store_true")
+    phase5_public_roster.add_argument("--samples-only", action="store_true")
+    phase5_public_roster.add_argument(
+        "--no-builtin-samples",
+        action="store_true",
+        help="Disable repo-bundled sample-agent adapters during discovery.",
+    )
+    phase5_public_roster.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase5_public_agent_roster.json",
+    )
+    phase5_public_roster.set_defaults(func=command_phase5_public_agent_roster)
+
+    rl_public_trajectories = subparsers.add_parser(
+        "rl-generate-phase5-public-agent-trajectories",
+        help="Generate our-agent trajectories against available public/specialized rule agents.",
+    )
+    rl_public_trajectories.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_public_trajectories.add_argument(
+        "--public-agent-root",
+        type=_path,
+        action="append",
+        default=[],
+        help="Directory containing downloaded/exported public agents. Repeatable.",
+    )
+    rl_public_trajectories.add_argument("--roster-notebook", type=_path, default=None)
+    rl_public_trajectories.add_argument("--public-only", action="store_true")
+    rl_public_trajectories.add_argument("--samples-only", action="store_true")
+    rl_public_trajectories.add_argument("--no-builtin-samples", action="store_true")
+    rl_public_trajectories.add_argument("--require-min-opponents", type=int, default=1)
+    rl_public_trajectories.add_argument(
+        "--agent",
+        choices=["phase5-search", "phase5-full", "phase5-rl"],
+        default="phase5-rl",
+    )
+    rl_public_trajectories.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_13deck_10k.pt",
+    )
+    rl_public_trajectories.add_argument(
+        "--specialist-model-dir",
+        type=_path,
+        default=None,
+        help="Directory containing deck-01.pt through deck-13.pt specialist checkpoints.",
+    )
+    rl_public_trajectories.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Phase 5 league deck index to include. Repeat; defaults to all 13.",
+    )
+    rl_public_trajectories.add_argument("--games-per-matchup", type=int, default=2)
+    rl_public_trajectories.add_argument("--game-offset", type=int, default=0)
+    rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
+    _add_phase5_search_config_args(rl_public_trajectories)
+    rl_public_trajectories.add_argument(
+        "--output",
+        type=_path,
+        default=Path("data") / "datasets" / "rl" / "phase5_public_agent_trajectories.jsonl",
+    )
+    rl_public_trajectories.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments")
+        / "rl"
+        / "phase5_league_alpha"
+        / "phase5_public_agent_trajectories_report.json",
+    )
+    rl_public_trajectories.add_argument("--overwrite", action="store_true")
+    rl_public_trajectories.set_defaults(
+        func=command_rl_generate_phase5_public_agent_trajectories
+    )
+
     rl_train_specialists = subparsers.add_parser(
         "rl-train-phase5-deck-specialists",
         help="Train one Phase 5 specialist checkpoint per selected league deck.",
@@ -2794,6 +3082,81 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional JSONL output for phase5-search root-search traces.",
     )
     rl_evaluate_league.set_defaults(func=command_rl_evaluate_phase5_league)
+
+    rl_evaluate_public = subparsers.add_parser(
+        "rl-evaluate-phase5-public-agents",
+        help="Run Phase 5 specialists against locally available public/specialized Kaggle agents.",
+    )
+    rl_evaluate_public.add_argument(
+        "--sample-dir",
+        type=_path,
+        default=KAGGLE_INPUT_DIR / "sample_submission",
+    )
+    rl_evaluate_public.add_argument(
+        "--public-agent-root",
+        type=_path,
+        action="append",
+        default=[],
+        help="Directory containing downloaded/exported public agents. Repeatable.",
+    )
+    rl_evaluate_public.add_argument("--roster-notebook", type=_path, default=None)
+    rl_evaluate_public.add_argument("--public-only", action="store_true")
+    rl_evaluate_public.add_argument("--samples-only", action="store_true")
+    rl_evaluate_public.add_argument("--no-builtin-samples", action="store_true")
+    rl_evaluate_public.add_argument("--require-min-opponents", type=int, default=1)
+    rl_evaluate_public.add_argument(
+        "--min-opponent-win-rate",
+        type=float,
+        default=0.5,
+        help="Promotion gate threshold for public-opponent and controlled-deck aggregates.",
+    )
+    rl_evaluate_public.add_argument(
+        "--fail-on-gate",
+        action="store_true",
+        help="Return a failing exit code when the public-agent gate is below threshold.",
+    )
+    rl_evaluate_public.add_argument(
+        "--agent",
+        choices=["phase5-search", "phase5-full", "phase5-rl"],
+        default="phase5-full",
+    )
+    rl_evaluate_public.add_argument(
+        "--model",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_13deck_10k.pt",
+    )
+    rl_evaluate_public.add_argument(
+        "--specialist-model-dir",
+        type=_path,
+        default=None,
+        help="Directory containing deck-01.pt through deck-13.pt specialist checkpoints.",
+    )
+    rl_evaluate_public.add_argument(
+        "--deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Phase 5 league deck index to include. Repeat; defaults to all 13.",
+    )
+    rl_evaluate_public.add_argument("--games-per-matchup", type=int, default=2)
+    rl_evaluate_public.add_argument("--max-steps", type=int, default=600)
+    _add_phase5_search_config_args(rl_evaluate_public)
+    rl_evaluate_public.add_argument(
+        "--report-json",
+        type=_path,
+        default=REPORTS_DIR / "phase5_public_agent_benchmark.json",
+    )
+    rl_evaluate_public.add_argument(
+        "--report-md",
+        type=_path,
+        default=REPORTS_DIR / "phase5_public_agent_benchmark.md",
+    )
+    rl_evaluate_public.add_argument(
+        "--status-json",
+        type=_path,
+        default=REPORTS_DIR / "phase5_public_agent_status.json",
+    )
+    rl_evaluate_public.set_defaults(func=command_rl_evaluate_phase5_public_agents)
 
     rl_progression = subparsers.add_parser(
         "rl-image-progression",

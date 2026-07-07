@@ -4012,3 +4012,60 @@ Conclusion:
   Lucario ex remains the strongest specialist, and deck 12 Mega Abomasnow ex
   is the clearest late-iteration improvement, but neither changes the promotion
   decision.
+
+## 2026-07-07 - Specialized Public-Agent Rule-Opponent Pivot
+
+Implementation update:
+
+- Added a Phase 5 public/specialized Kaggle-agent roster loader using the
+  public-20-plus-sample-4 roster. The uploaded roster notebook is metadata-only,
+  so the implementation keeps the 20 public agents plus four sample agents as a
+  built-in source list and discovers whichever exported `.py` or `.ipynb`
+  agents are present locally.
+- Added a public-agent adapter path that can load local `submission.py` files,
+  local notebooks, and the repo-bundled sample Dragapult adapter. Missing or
+  unloadable public agents are reported as unavailable and skipped rather than
+  blocking the whole run.
+- Added `phase5-public-agent-roster` for availability reports.
+- Added `rl-evaluate-phase5-public-agents`, which evaluates the selected Phase
+  5 full/search/RL agent against available specialized public/sample rule
+  agents using each public agent's own deck and policy.
+- Added `public_agent_gate` to the specialized public-agent evaluation JSON and
+  Markdown reports. The gate records the minimum aggregate win-rate threshold,
+  per-public-opponent aggregates, per-controlled-deck aggregates, worst
+  opponent/deck, failing aggregates, and strict failing matchups.
+- Added `rl-generate-phase5-public-agent-trajectories`, which records our
+  agent's on-policy trajectories against fixed specialized public/sample
+  opponents for the existing PPO specialist updater.
+- Added SLURM scripts:
+  - `scripts/slurm/phase5_public_agent_roster.sbatch`;
+  - `scripts/slurm/phase5_public_agent_eval_conda.sbatch`;
+  - `scripts/slurm/phase5_public_agent_trajectories.sbatch`.
+- Updated the runbook with the new specialized public-agent curriculum:
+  discover available agents, evaluate iteration 5 against the 50% public-agent
+  gate, generate trajectories against specialized opponents, run PPO with
+  `TRAJECTORY_DATASET` pointing at that window, then repeat until the gate
+  clears or failing rows indicate a tactical/runtime bug.
+
+Conclusion:
+
+- The final Alpha league results showed that behavior cloning/bootstrap was
+  useful but the generic self-play PPO loop did not improve beyond iteration 5.
+  Kaggle replay inspection also showed concrete deck behavior failures, notably
+  Mega Abomasnow ex missing energy attachments and attacks despite enough
+  resources.
+- The active training plan is changed: stop generic learned-agent self-play at
+  iteration 10 and do not queue iteration 11. Replace the generic rule-opponent
+  objective with specialized public/sample rule agents and train/evaluate until
+  every available specialized opponent and every controlled deck aggregate is at
+  least 50% win rate.
+- The existing generic 13 x 13 full-agent-vs-rule reports remain historical
+  artifacts. The new specialized public-agent gate is the next training
+  decision surface.
+
+Validation:
+
+- The new public-agent roster was parsed locally from the uploaded notebook:
+  24 sources total, 20 public agents and four sample agents.
+- Focused tests cover roster counts, local Python-agent loading, CLI exposure,
+  and the public-agent gate aggregation.

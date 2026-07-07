@@ -2049,7 +2049,155 @@ Clean `iter-0002/raw_train` with
 `scripts/slurm/phase5_alpha_cleanup_iteration.sbatch` only after the PPO update
 report/checkpoints are preserved and the next action has been recorded.
 
-## 18. Ready-To-Train Checklist
+## 18. Specialized Public-Agent Rule-Opponent Curriculum
+
+The generic rule-agent league did not produce reliable online-RL improvement:
+iteration 5 remained the best checkpoint, later self-play updates regressed or
+plateaued, and Kaggle replay inspection showed concrete tactical failures such
+as Mega Abomasnow ex missing obvious energy attachments and attacks. The active
+training target is therefore to replace the generic rule-opponent gate with
+available specialized public/sample rule agents and train until the full agent
+clears a 50% aggregate win-rate gate against every available specialized
+opponent and every controlled deck.
+
+The roster source is the public-20-plus-sample-4 notebook. That notebook is a
+metadata roster, not a complete source bundle, so the loader uses the built-in
+24-source roster and discovers whichever exported `.py` or `.ipynb` agents are
+available locally. Missing public notebooks are recorded as unavailable and
+skipped. The repo currently has a built-in adapter for the sample Dragapult
+agent; other sample/public agents should be exported into the public-agent root.
+
+Recommended ERAWAN layout:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+```
+
+Place exported agents in any of these shapes under one of the roots:
+
+```text
+<root>/<agent-key>/submission.py
+<root>/<agent-key>.py
+<root>/<agent-key>.ipynb
+<root>/<kaggle-source-slug>/submission.py
+```
+
+Roster discovery is intentionally a SLURM job so availability diagnostics are
+preserved:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  REPORT_JSON=reports/phase5_public_agent_roster.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_roster.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_roster_job.txt
+```
+
+Inspect:
+
+```bash
+JOB=$(cat experiments/rl/phase5_public_agent_roster_job.txt)
+sacct -j "$JOB" --format=JobID,JobName%35,State,ExitCode,Elapsed,MaxRSS,ReqMem,AllocTRES
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-public-roster.out"
+tail -n 120 "experiments/rl/slurm-${JOB}-phase5-public-roster.err"
+cat reports/phase5_public_agent_roster.json
+```
+
+Evaluate the current best specialist checkpoint family against all available
+specialized public/sample rule agents. Keep iteration 5 as the starting
+checkpoint unless a later checkpoint has already been explicitly promoted:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  MIN_OPPONENT_WIN_RATE=0.5 \
+  REPORT_JSON=reports/phase5_public_agent_eval_iter0005_30g.json \
+  REPORT_MD=reports/phase5_public_agent_eval_iter0005_30g.md \
+  STATUS_JSON=reports/phase5_public_agent_status_iter0005.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_eval_iter0005_job.txt
+```
+
+The JSON and Markdown reports include `public_agent_gate`, with:
+
+- `passed`: every public-opponent aggregate and every controlled-deck aggregate
+  is at least `MIN_OPPONENT_WIN_RATE` and has zero errors.
+- `strict_matchup_passed`: every individual controlled-deck-vs-public-agent row
+  clears the threshold. Treat this as a diagnostic, not the first promotion
+  gate.
+- `failing_opponents`, `failing_controlled_decks`, and `failing_matchups`: the
+  curriculum targets for the next data window.
+
+Generate public-agent rule-opponent trajectories from the current checkpoint
+family. These are our-agent trajectories against fixed specialized opponents,
+not generic rule-agent self-play:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  AGENT=phase5-rl \
+  GAMES_PER_MATCHUP=10 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  OUTPUT="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/iter-0006_public_agent_trajectories.jsonl \
+  REPORT_JSON=experiments/rl/phase5_public_agent_rule_train_iter0006_report.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_public_agent_trajectories.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_rule_train_iter0006_job.txt
+```
+
+Update the next checkpoint family with the existing on-policy PPO specialist
+trainer by pointing `TRAJECTORY_DATASET` at the public-agent trajectory file:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  ITERATION=6 \
+  SOURCE_ITERATION=5 \
+  TRAJECTORY_DATASET="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/iter-0006_public_agent_trajectories.jsonl \
+  REPORT_JSON=experiments/rl/phase5_league_alpha/iter-0006_public_agent_ppo_specialists_report.json \
+  REPORT_DIR=experiments/rl/phase5_league_alpha/iter-0006_public_agent_ppo_specialists \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_ppo_specialists_train.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0006_public_agent_ppo_job.txt
+```
+
+Evaluate the candidate with the same specialized public-agent gate:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0006/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  MIN_OPPONENT_WIN_RATE=0.5 \
+  REPORT_JSON=reports/phase5_public_agent_eval_iter0006_30g.json \
+  REPORT_MD=reports/phase5_public_agent_eval_iter0006_30g.md \
+  STATUS_JSON=reports/phase5_public_agent_status_iter0006.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_eval_iter0006_job.txt
+```
+
+Repeat public-agent trajectory generation, PPO update, and evaluation until the
+gate clears or the failing rows show a consistent tactical pattern that needs an
+agent/runtime fix. Keep raw public-agent trajectory windows under
+`$GAME_DATA_ROOT/phase5_public_agent_rule_train/` and delete old raw windows
+after their PPO reports/checkpoints and evaluation reports are preserved.
+
+## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

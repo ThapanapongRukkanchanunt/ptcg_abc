@@ -1126,10 +1126,15 @@ def write_phase4_benchmark_report(
     markdown_path: Path,
     agent_kind: str,
     model_path: Path | None = None,
+    extra_json: dict[str, Any] | None = None,
+    extra_markdown_sections: Sequence[str] = (),
 ) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+    payload = result.to_dict()
+    if extra_json:
+        payload.update(extra_json)
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     totals = _totals(result.rows)
     lines = [
         "# Phase 4 Required Benchmark",
@@ -1203,6 +1208,10 @@ def write_phase4_benchmark_report(
             f"{row.wins} | {row.losses} | {row.draws} | {row.timeouts} | "
             f"{row.errors} | {row.win_rate:.3f} |"
         )
+    for section in extra_markdown_sections:
+        stripped = section.strip()
+        if stripped:
+            lines.extend(["", stripped])
     markdown_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
