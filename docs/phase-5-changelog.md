@@ -4069,3 +4069,72 @@ Validation:
   24 sources total, 20 public agents and four sample agents.
 - Focused tests cover roster counts, local Python-agent loading, CLI exposure,
   and the public-agent gate aggregation.
+
+## 2026-07-07 - Iteration-5 Specialized Public-Agent Eval
+
+ERAWAN results:
+
+- Uploaded and inspected:
+  - `phase5_public_agent_roster.json`;
+  - `phase5_public_agent_status_iter0005.json`;
+  - `phase5_public_agent_eval_iter0005_30g.json`;
+  - `phase5_public_agent_eval_iter0005_30g.md`;
+  - `slurm-73639-phase5-public-roster.out`;
+  - `slurm-73657-phase5-public-eval.out`.
+- Roster job: `73639`.
+- Eval job: `73657`.
+- Agent: `phase5-full`.
+- Specialist checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- Available specialized opponents during eval: one built-in sample opponent,
+  `Official sample Dragapult ex`.
+- Unavailable roster entries during eval: 23 / 24, because no exported public
+  agent files were present under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents`.
+
+Specialized-opponent evaluation:
+
+- Overall vs sample Dragapult: 50 / 390 wins, 0.1282 win rate, 0 draws,
+  0 timeouts, 0 errors.
+- Public-agent gate: failed.
+- Strict per-matchup gate: failed.
+- Worst controlled decks:
+  - Deck 3 Dragapult Dusknoir: 0 / 30 wins.
+  - Deck 5 Dragapult Dudunsparce: 0 / 30 wins.
+  - Deck 8 Dragapult Blaziken: 1 / 30 wins.
+- Best controlled decks:
+  - Deck 11 Mega Lucario ex: 10 / 30 wins, 0.3333.
+  - Deck 12 Mega Abomasnow ex: 7 / 30 wins, 0.2333.
+  - Deck 1 Alakazam Dudunsparce: 6 / 30 wins, 0.2000.
+
+Search telemetry:
+
+- Searched decisions: 11,880.
+- Search-changed decisions: 2,009, 0.1691 change rate.
+- Search errors: 0. Candidate errors: 0.
+- Candidate probes: 42,187.
+- Truncated candidates: 62.
+- Average search seconds: 0.0468. Max search seconds: 2.3205.
+
+Artifact note:
+
+- The standalone roster report from job `73639` recorded 0 available agents,
+  while the eval status from job `73657` recorded the built-in sample Dragapult
+  adapter as available. Treat the eval status as the canonical availability
+  artifact for this result. Re-run the roster job after the next code sync if
+  availability counts need to be audited independently.
+
+Conclusion and next step:
+
+- The current best generic-league checkpoint is not remotely sufficient against
+  the specialized sample Dragapult rule agent. This validates the pivot away
+  from generic full-agent-vs-generic-rule self-play.
+- Before spending compute on a broad curriculum, export more public/sample
+  agents into the public-agent root when available. However, even one available
+  specialized opponent is enough to start a targeted training window because
+  the current win rate is only 12.8%.
+- Next ERAWAN action: generate `phase5-rl` trajectories from iteration 5
+  specialists against the available specialized public-agent roster, then run a
+  PPO specialist update with `TRAJECTORY_DATASET` pointing at that public-agent
+  trajectory file. Evaluate the candidate against the same specialized
+  public-agent gate before considering any promotion.

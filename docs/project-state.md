@@ -1167,6 +1167,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   fixed specialized opponents. Current starting checkpoint remains
   `models/rl/phase5_league_alpha/iter-0005/specialists`; evaluate it against
   the specialized public-agent roster before generating the next PPO window.
+- First specialized public-agent eval for iteration 5 ran on ERAWAN job `73657`.
+  Only the built-in `Official sample Dragapult ex` adapter was available during
+  eval; the other 23 roster entries need exported local agent files under the
+  public-agent root. Iteration 5 scored only 50 / 390 wins, 0.1282 win rate,
+  with 0 timeouts and 0 errors, so the specialized public-agent gate failed
+  decisively. Next action: generate `phase5-rl` trajectories from iteration 5
+  specialists against the available specialized public-agent roster, run a PPO
+  update from that public-agent trajectory file, then re-evaluate against the
+  specialized public-agent gate.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
