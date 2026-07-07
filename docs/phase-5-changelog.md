@@ -4230,3 +4230,70 @@ Conclusion and next step:
 - Next ERAWAN action: evaluate
   `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` with the
   same specialized public-agent gate against the available public-agent roster.
+
+## 2026-07-08 - Public-Agent Curriculum Iteration-6 Eval
+
+ERAWAN result:
+
+- Uploaded and inspected:
+  - `phase5_public_agent_eval_iter0006_30g.json`;
+  - `phase5_public_agent_eval_iter0006_30g.md`;
+  - `phase5_public_agent_status_iter0006.json`;
+  - `slurm-73711-phase5-public-eval.out`;
+  - `slurm-73711-phase5-public-eval.err`.
+- ERAWAN job: `73711`.
+- Agent: `phase5-full`.
+- Specialist checkpoint family:
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists`.
+- Available specialized opponents: one built-in sample opponent,
+  `Official sample Dragapult ex`. The other 23 roster entries were unavailable
+  because no exported public-agent files were present under
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents`.
+
+Evaluation:
+
+- Overall vs sample Dragapult: 38 / 390 wins, 0.0974 win rate, 0 draws,
+  0 timeouts, 0 errors.
+- Public-agent gate: failed.
+- Strict per-matchup gate: failed.
+- Delta from iteration-5 public-agent baseline: -12 wins, from 50 / 390
+  (0.1282) to 38 / 390 (0.0974).
+- Per-deck win deltas vs iteration 5:
+  - Deck 1: 6 -> 2, -4.
+  - Deck 2: 4 -> 4, +0.
+  - Deck 3: 0 -> 1, +1.
+  - Deck 4: 4 -> 4, +0.
+  - Deck 5: 0 -> 2, +2.
+  - Deck 6: 3 -> 0, -3.
+  - Deck 7: 4 -> 1, -3.
+  - Deck 8: 1 -> 2, +1.
+  - Deck 9: 4 -> 2, -2.
+  - Deck 10: 3 -> 4, +1.
+  - Deck 11: 10 -> 7, -3.
+  - Deck 12: 7 -> 8, +1.
+  - Deck 13: 4 -> 1, -3.
+
+Search telemetry:
+
+- Searched decisions: 12,197.
+- Search-changed decisions: 2,016, 0.1653 change rate.
+- Search errors: 0. Candidate errors: 0.
+- Candidate probes: 43,421.
+- Truncated candidates: 136.
+- Average search seconds: 0.0410. Max search seconds: 1.2752.
+
+Conclusion and next step:
+
+- The first targeted public-agent PPO update made performance worse against
+  sample Dragapult. Do not continue by simply repeating the same loss-heavy
+  on-policy PPO loop.
+- The current signal suggests the training pipeline needs a change before more
+  public-agent curriculum compute: for example, collect/weight successful
+  trajectories, add denser tactical rewards, collect opponent demonstrations
+  where applicable, or run decision-level diagnostics to identify missed
+  setup/attack/energy-attachment actions.
+- Keep `models/rl/phase5_league_alpha/iter-0005/specialists` as the current
+  best packaged checkpoint family. Treat
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` as a failed
+  targeted PPO experiment unless later analysis identifies a narrow deck-specific
+  use.

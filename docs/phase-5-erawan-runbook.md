@@ -2201,6 +2201,15 @@ agent/runtime fix. Keep raw public-agent trajectory windows under
 `$GAME_DATA_ROOT/phase5_public_agent_rule_train/` and delete old raw windows
 after their PPO reports/checkpoints and evaluation reports are preserved.
 
+Post-result note from the first targeted public-agent PPO signal check:
+iteration 6 regressed from the iteration-5 public-agent baseline, falling from
+50 / 390 wins to 38 / 390 wins against the built-in sample Dragapult opponent.
+Do not repeat the same loss-heavy on-policy PPO loop unchanged. The next public
+agent curriculum implementation should first change the training signal or add
+diagnostics, such as successful-trajectory filtering, denser tactical rewards,
+opponent demonstrations where applicable, or decision-level traces for missed
+setup, attack, and energy-attachment actions.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

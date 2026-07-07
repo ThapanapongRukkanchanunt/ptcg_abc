@@ -1193,6 +1193,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   action: evaluate this checkpoint family with
   `rl-evaluate-phase5-public-agents` / `phase5_public_agent_eval_conda.sbatch`
   against the same specialized public-agent gate.
+- Public-agent curriculum iteration-6 eval job `73711` regressed against the
+  only available specialized opponent, built-in sample Dragapult: 38 / 390
+  wins, 0.0974 win rate, 0 timeouts, and 0 errors, down from the iteration-5
+  public-agent baseline of 50 / 390. Do not continue by repeating the same
+  loss-heavy public-agent PPO loop. Keep
+  `models/rl/phase5_league_alpha/iter-0005/specialists` as the current best
+  packaged checkpoint family and treat
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` as a failed
+  targeted PPO experiment. Next work should change the training pipeline or add
+  decision-level diagnostics before spending more curriculum compute.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
