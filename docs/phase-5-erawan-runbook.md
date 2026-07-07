@@ -2157,7 +2157,9 @@ echo "$JOB" | tee experiments/rl/phase5_public_agent_rule_train_iter0006_job.txt
 ```
 
 Update the next checkpoint family with the existing on-policy PPO specialist
-trainer by pointing `TRAJECTORY_DATASET` at the public-agent trajectory file:
+trainer by pointing `TRAJECTORY_DATASET` at the public-agent trajectory file.
+Use a separate public-agent curriculum checkpoint root so this targeted update
+does not overwrite the historical generic Alpha league `iter-0006` artifacts:
 
 ```bash
 JOB=$(
@@ -2165,11 +2167,13 @@ JOB=$(
   ITERATION=6 \
   SOURCE_ITERATION=5 \
   TRAJECTORY_DATASET="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/iter-0006_public_agent_trajectories.jsonl \
-  REPORT_JSON=experiments/rl/phase5_league_alpha/iter-0006_public_agent_ppo_specialists_report.json \
-  REPORT_DIR=experiments/rl/phase5_league_alpha/iter-0006_public_agent_ppo_specialists \
+  SOURCE_CHECKPOINT_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  OUTPUT_CHECKPOINT_DIR=models/rl/phase5_public_agent_curriculum/iter-0006/specialists \
+  REPORT_JSON=experiments/rl/phase5_public_agent_curriculum/iter-0006_ppo_specialists_report.json \
+  REPORT_DIR=experiments/rl/phase5_public_agent_curriculum/iter-0006_ppo_specialists \
   sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_ppo_specialists_train.sbatch
 )
-echo "$JOB" | tee experiments/rl/phase5_league_alpha/iter-0006_public_agent_ppo_job.txt
+echo "$JOB" | tee experiments/rl/phase5_public_agent_curriculum/iter-0006_ppo_job.txt
 ```
 
 Evaluate the candidate with the same specialized public-agent gate:
@@ -2177,7 +2181,7 @@ Evaluate the candidate with the same specialized public-agent gate:
 ```bash
 JOB=$(
   PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
-  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0006/specialists \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_public_agent_curriculum/iter-0006/specialists \
   AGENT=phase5-full \
   GAMES_PER_MATCHUP=30 \
   MAX_STEPS=600 \

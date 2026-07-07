@@ -1174,8 +1174,10 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   with 0 timeouts and 0 errors, so the specialized public-agent gate failed
   decisively. Next action: generate `phase5-rl` trajectories from iteration 5
   specialists against the available specialized public-agent roster, run a PPO
-  update from that public-agent trajectory file, then re-evaluate against the
-  specialized public-agent gate.
+  update from that public-agent trajectory file into the separate
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` checkpoint
+  root, then re-evaluate against the specialized public-agent gate. Do not
+  overwrite the historical generic Alpha league `iter-0006` artifacts.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

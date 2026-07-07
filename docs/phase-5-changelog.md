@@ -4136,5 +4136,9 @@ Conclusion and next step:
 - Next ERAWAN action: generate `phase5-rl` trajectories from iteration 5
   specialists against the available specialized public-agent roster, then run a
   PPO specialist update with `TRAJECTORY_DATASET` pointing at that public-agent
-  trajectory file. Evaluate the candidate against the same specialized
-  public-agent gate before considering any promotion.
+  trajectory file. Write the targeted checkpoint family under
+  `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` instead of
+  overwriting the historical generic Alpha league
+  `models/rl/phase5_league_alpha/iter-0006/specialists` artifacts. Evaluate the
+  candidate against the same specialized public-agent gate before considering
+  any promotion.
