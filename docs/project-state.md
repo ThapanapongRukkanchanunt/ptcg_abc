@@ -1129,6 +1129,31 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   iteration 8, iteration 9, and iteration 10 full-agent-vs-rule evaluations.
   Iteration 5 remains the current best promotion/package candidate until a
   later evaluation beats it.
+- Final evaluation backlog completed on ERAWAN jobs `73577`, `73593`, and
+  `73597`. Iteration 8 scored 2,699 / 5,070 wins, 0.5323 win rate,
+  13 draws, 45 timeouts, and 0 errors; required-sample slice was
+  671 / 1,560. Iteration 9 scored 2,631 / 5,070 wins, 0.5189 win rate,
+  23 draws, 57 timeouts, and 0 errors; required-sample slice was
+  636 / 1,560. Iteration 10 scored 2,646 / 5,070 wins, 0.5219 win rate,
+  17 draws, 39 timeouts, and 0 errors; required-sample slice was
+  690 / 1,560. None beat iteration 5, so
+  `models/rl/phase5_league_alpha/iter-0005/specialists` remains the current
+  best promotion/package candidate at 2,714 / 5,070 overall and
+  704 / 1,560 against the four required sample rule-agent opponents.
+- Final eval dashboard artifacts were generated from the uploaded evaluation
+  JSONs using `scripts/analysis/phase5_alpha_eval_dashboard.py`:
+  `reports/phase5_alpha_eval_dashboard.html`,
+  `reports/phase5_alpha_eval_dashboard_summary.csv`,
+  `reports/phase5_alpha_eval_dashboard_per_deck.csv`, and
+  `reports/phase5_alpha_eval_dashboard_matchups.csv`. The dashboard covers
+  iterations 0, 2, 3, 4, 5, 6, 7, 8, 9, and 10; iteration 1 remains absent
+  because no eval report is available. Raw uploaded eval reports were not
+  copied into the repo to avoid ERAWAN untracked-file pull conflicts.
+- Phase 5 Alpha league conclusion as of July 7, 2026: stop online RL at
+  iteration 10, keep iteration 5 as the promotion/package candidate, and treat
+  deck 1 Alakazam Dudunsparce as the main persistent weakness for any future
+  targeted work. Deck 11 Mega Lucario ex remains the strongest specialist, and
+  deck 12 Mega Abomasnow ex is the clearest late-iteration improvement.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

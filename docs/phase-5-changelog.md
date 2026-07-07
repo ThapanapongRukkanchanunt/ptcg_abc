@@ -3921,3 +3921,94 @@ Conclusion and next step:
 - Finish the evaluation backlog only: iteration 8, iteration 9, and iteration
   10 full-agent-vs-rule evaluations. Keep iteration 5 as the current best
   promotion/package candidate until one of those evaluations beats it.
+
+## 2026-07-07 - Alpha League Final Evaluation Backlog and Dashboard
+
+ERAWAN results:
+
+- Uploaded and inspected:
+  - `phase5_alpha_iter0008_specialists_full_vs_rule_30g.json`;
+  - `phase5_alpha_iter0008_specialists_full_vs_rule_30g.md`;
+  - `slurm-73577-phase5-league-eval.out`;
+  - `phase5_alpha_iter0009_specialists_full_vs_rule_30g.json`;
+  - `phase5_alpha_iter0009_specialists_full_vs_rule_30g.md`;
+  - `slurm-73593-phase5-league-eval.out`;
+  - `phase5_alpha_iter0010_specialists_full_vs_rule_30g.json`;
+  - `phase5_alpha_iter0010_specialists_full_vs_rule_30g.md`;
+  - `slurm-73597-phase5-league-eval.out`.
+- Agent: `phase5-full`.
+- Generalist prior:
+  `models/rl/phase5_generalist_policy_13deck_10k.pt`.
+- Gate: 13 x 13 agent-vs-rule league evaluation, 30 games per matchup,
+  max 600 selections per game.
+
+Evaluation backlog:
+
+- Iteration 8, ERAWAN job `73577`, specialist checkpoint family
+  `models/rl/phase5_league_alpha/iter-0008/specialists`:
+  2,699 / 5,070 wins, 0.5323 win rate, 13 draws, 45 timeouts, 0 errors.
+  Against the four required sample rule-agent opponents: 671 / 1,560 wins,
+  0.4301 win rate. This is down 15 overall wins and 33 required-sample wins
+  from iteration 5. Top overall decks were deck 11 Mega Lucario ex at
+  299 / 390, deck 12 Mega Abomasnow ex at 260 / 390, deck 2 Crustle at
+  251 / 390, and deck 10 Crustle sample at 241 / 390. Deck 1 Alakazam
+  Dudunsparce remained weakest at 61 / 390 overall and 2 / 120 against the
+  required sample opponents.
+- Iteration 9, ERAWAN job `73593`, specialist checkpoint family
+  `models/rl/phase5_league_alpha/iter-0009/specialists`:
+  2,631 / 5,070 wins, 0.5189 win rate, 23 draws, 57 timeouts, 0 errors.
+  Against the four required sample rule-agent opponents: 636 / 1,560 wins,
+  0.4077 win rate. This is down 83 overall wins and 68 required-sample wins
+  from iteration 5. Deck 11 Mega Lucario ex remained strong at 304 / 390
+  overall and 89 / 120 against required sample opponents, but the aggregate
+  regressed because several other decks fell, especially deck 1 at 56 / 390
+  and deck 3 Dragapult Dusknoir at 134 / 390.
+- Iteration 10, ERAWAN job `73597`, specialist checkpoint family
+  `models/rl/phase5_league_alpha/iter-0010/specialists`:
+  2,646 / 5,070 wins, 0.5219 win rate, 17 draws, 39 timeouts, 0 errors.
+  Against the four required sample rule-agent opponents: 690 / 1,560 wins,
+  0.4423 win rate. This is down 68 overall wins and 14 required-sample wins
+  from iteration 5. Deck 12 Mega Abomasnow ex improved to 278 / 390 overall
+  and 75 / 120 against required sample opponents, but deck 1 remained weakest
+  at 55 / 390 overall and 1 / 120 against required sample opponents.
+
+Search telemetry:
+
+- Iteration 8: 198,090 searched decisions, 36,940 search-changed decisions,
+  0 search errors, 0 candidate errors, 1,825 truncated candidates,
+  average search 0.0526 seconds, max 3.2174 seconds.
+- Iteration 9: 196,764 searched decisions, 36,888 search-changed decisions,
+  0 search errors, 0 candidate errors, 2,055 truncated candidates,
+  average search 0.0531 seconds, max 2.5953 seconds.
+- Iteration 10: 197,105 searched decisions, 37,599 search-changed decisions,
+  0 search errors, 0 candidate errors, 2,159 truncated candidates,
+  average search 0.0533 seconds, max 2.3020 seconds.
+
+Dashboard artifacts:
+
+- Added reusable dashboard generator:
+  `scripts/analysis/phase5_alpha_eval_dashboard.py`.
+- Generated dashboard artifacts from the uploaded eval JSONs:
+  - `reports/phase5_alpha_eval_dashboard.html`;
+  - `reports/phase5_alpha_eval_dashboard_summary.csv`;
+  - `reports/phase5_alpha_eval_dashboard_per_deck.csv`;
+  - `reports/phase5_alpha_eval_dashboard_matchups.csv`.
+- Dashboard coverage: iterations 0, 2, 3, 4, 5, 6, 7, 8, 9, and 10. Iteration
+  1 is omitted because no iteration-1 full-agent-vs-rule eval report is
+  available.
+- Raw uploaded eval reports were used as inputs but intentionally not copied
+  into `reports/` for this commit, to avoid future ERAWAN `git pull` conflicts
+  with untracked report files already present on the cluster.
+
+Conclusion:
+
+- No later checkpoint beat iteration 5. Keep
+  `models/rl/phase5_league_alpha/iter-0005/specialists` as the current best
+  promotion/package candidate at 2,714 / 5,070 wins and 704 / 1,560 wins
+  against the four required sample rule-agent opponents.
+- The online RL loop is stopped at iteration 10 per user direction. Do not
+  queue iteration-11 self-play or PPO unless the plan changes.
+- Main persistent weakness remains deck 1 Alakazam Dudunsparce. Deck 11 Mega
+  Lucario ex remains the strongest specialist, and deck 12 Mega Abomasnow ex
+  is the clearest late-iteration improvement, but neither changes the promotion
+  decision.

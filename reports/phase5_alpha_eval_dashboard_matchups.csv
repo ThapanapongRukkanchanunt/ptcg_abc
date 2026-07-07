@@ -1,0 +1,1691 @@
+iteration,deck_index,deck_name,opponent,games,wins,losses,draws,timeouts,errors,win_rate,required_sample_opponent
+0,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,23,7,0,0,0,0.766667,False
+0,1,Alakazam Dudunsparce,Crustle,30,2,28,0,0,0,0.066667,False
+0,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,7,23,0,0,0,0.233333,False
+0,1,Alakazam Dudunsparce,Dragapult,30,9,20,1,1,0,0.300000,False
+0,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,7,23,0,0,0,0.233333,False
+0,1,Alakazam Dudunsparce,Hydrapple,30,3,26,1,1,0,0.100000,False
+0,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,4,26,0,0,0,0.133333,False
+0,1,Alakazam Dudunsparce,Dragapult Blaziken,30,5,25,0,0,0,0.166667,False
+0,1,Alakazam Dudunsparce,Ogerpon Box,30,2,28,0,0,0,0.066667,False
+0,1,Alakazam Dudunsparce,Crustle,30,1,29,0,0,0,0.033333,True
+0,1,Alakazam Dudunsparce,Mega Lucario ex,30,2,28,0,0,0,0.066667,True
+0,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,1,29,0,0,0,0.033333,True
+0,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,3,27,0,0,0,0.100000,True
+0,2,Crustle,Alakazam Dudunsparce,30,25,4,1,3,0,0.833333,False
+0,2,Crustle,Crustle,30,12,18,0,0,0,0.400000,False
+0,2,Crustle,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+0,2,Crustle,Dragapult,30,21,9,0,0,0,0.700000,False
+0,2,Crustle,Dragapult Dudunsparce,30,16,14,0,0,0,0.533333,False
+0,2,Crustle,Hydrapple,30,17,13,0,0,0,0.566667,False
+0,2,Crustle,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+0,2,Crustle,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+0,2,Crustle,Ogerpon Box,30,16,13,1,0,0,0.533333,False
+0,2,Crustle,Crustle,30,17,13,0,0,0,0.566667,True
+0,2,Crustle,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+0,2,Crustle,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+0,2,Crustle,Iono's Bellibolt ex,30,16,14,0,0,0,0.533333,True
+0,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,20,9,1,4,0,0.666667,False
+0,3,Dragapult Dusknoir,Crustle,30,6,24,0,0,0,0.200000,False
+0,3,Dragapult Dusknoir,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+0,3,Dragapult Dusknoir,Dragapult,30,11,19,0,0,0,0.366667,False
+0,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+0,3,Dragapult Dusknoir,Hydrapple,30,18,12,0,0,0,0.600000,False
+0,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+0,3,Dragapult Dusknoir,Dragapult Blaziken,30,11,19,0,0,0,0.366667,False
+0,3,Dragapult Dusknoir,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+0,3,Dragapult Dusknoir,Crustle,30,8,22,0,0,0,0.266667,True
+0,3,Dragapult Dusknoir,Mega Lucario ex,30,3,27,0,0,0,0.100000,True
+0,3,Dragapult Dusknoir,Mega Abomasnow ex,30,3,27,0,0,0,0.100000,True
+0,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,11,19,0,0,0,0.366667,True
+0,4,Dragapult,Alakazam Dudunsparce,30,26,3,1,3,0,0.866667,False
+0,4,Dragapult,Crustle,30,12,18,0,0,0,0.400000,False
+0,4,Dragapult,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+0,4,Dragapult,Dragapult,30,15,15,0,0,0,0.500000,False
+0,4,Dragapult,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+0,4,Dragapult,Hydrapple,30,21,9,0,0,0,0.700000,False
+0,4,Dragapult,Raging Bolt Ogerpon,30,13,17,0,0,0,0.433333,False
+0,4,Dragapult,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+0,4,Dragapult,Ogerpon Box,30,11,19,0,0,0,0.366667,False
+0,4,Dragapult,Crustle,30,21,9,0,0,0,0.700000,True
+0,4,Dragapult,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+0,4,Dragapult,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+0,4,Dragapult,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+0,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,30,0,0,4,0,1.000000,False
+0,5,Dragapult Dudunsparce,Crustle,30,11,19,0,0,0,0.366667,False
+0,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+0,5,Dragapult Dudunsparce,Dragapult,30,11,19,0,0,0,0.366667,False
+0,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+0,5,Dragapult Dudunsparce,Hydrapple,30,19,11,0,0,0,0.633333,False
+0,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+0,5,Dragapult Dudunsparce,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+0,5,Dragapult Dudunsparce,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+0,5,Dragapult Dudunsparce,Crustle,30,12,18,0,0,0,0.400000,True
+0,5,Dragapult Dudunsparce,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+0,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+0,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+0,6,Hydrapple,Alakazam Dudunsparce,30,27,1,2,8,0,0.900000,False
+0,6,Hydrapple,Crustle,30,15,15,0,0,0,0.500000,False
+0,6,Hydrapple,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+0,6,Hydrapple,Dragapult,30,10,20,0,0,0,0.333333,False
+0,6,Hydrapple,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+0,6,Hydrapple,Hydrapple,30,11,19,0,0,0,0.366667,False
+0,6,Hydrapple,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+0,6,Hydrapple,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+0,6,Hydrapple,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+0,6,Hydrapple,Crustle,30,14,16,0,0,0,0.466667,True
+0,6,Hydrapple,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+0,6,Hydrapple,Mega Abomasnow ex,30,17,13,0,0,0,0.566667,True
+0,6,Hydrapple,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+0,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,28,0,2,6,0,0.933333,False
+0,7,Raging Bolt Ogerpon,Crustle,30,12,18,0,0,0,0.400000,False
+0,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+0,7,Raging Bolt Ogerpon,Dragapult,30,19,11,0,0,0,0.633333,False
+0,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+0,7,Raging Bolt Ogerpon,Hydrapple,30,17,13,0,0,0,0.566667,False
+0,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+0,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+0,7,Raging Bolt Ogerpon,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+0,7,Raging Bolt Ogerpon,Crustle,30,12,18,0,0,0,0.400000,True
+0,7,Raging Bolt Ogerpon,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+0,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+0,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+0,8,Dragapult Blaziken,Alakazam Dudunsparce,30,24,5,1,4,0,0.800000,False
+0,8,Dragapult Blaziken,Crustle,30,18,12,0,0,0,0.600000,False
+0,8,Dragapult Blaziken,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+0,8,Dragapult Blaziken,Dragapult,30,14,16,0,0,0,0.466667,False
+0,8,Dragapult Blaziken,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+0,8,Dragapult Blaziken,Hydrapple,30,19,11,0,0,0,0.633333,False
+0,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+0,8,Dragapult Blaziken,Dragapult Blaziken,30,21,9,0,0,0,0.700000,False
+0,8,Dragapult Blaziken,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+0,8,Dragapult Blaziken,Crustle,30,11,19,0,0,0,0.366667,True
+0,8,Dragapult Blaziken,Mega Lucario ex,30,15,15,0,0,0,0.500000,True
+0,8,Dragapult Blaziken,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+0,8,Dragapult Blaziken,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+0,9,Ogerpon Box,Alakazam Dudunsparce,30,29,0,1,4,0,0.966667,False
+0,9,Ogerpon Box,Crustle,30,9,21,0,0,0,0.300000,False
+0,9,Ogerpon Box,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+0,9,Ogerpon Box,Dragapult,30,19,11,0,0,0,0.633333,False
+0,9,Ogerpon Box,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+0,9,Ogerpon Box,Hydrapple,30,19,11,0,0,0,0.633333,False
+0,9,Ogerpon Box,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+0,9,Ogerpon Box,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+0,9,Ogerpon Box,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+0,9,Ogerpon Box,Crustle,30,9,21,0,0,0,0.300000,True
+0,9,Ogerpon Box,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+0,9,Ogerpon Box,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+0,9,Ogerpon Box,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+0,10,Crustle,Alakazam Dudunsparce,30,24,5,1,3,0,0.800000,False
+0,10,Crustle,Crustle,30,10,20,0,0,0,0.333333,False
+0,10,Crustle,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+0,10,Crustle,Dragapult,30,17,13,0,0,0,0.566667,False
+0,10,Crustle,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+0,10,Crustle,Hydrapple,30,19,11,0,0,0,0.633333,False
+0,10,Crustle,Raging Bolt Ogerpon,30,19,10,1,0,0,0.633333,False
+0,10,Crustle,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+0,10,Crustle,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+0,10,Crustle,Crustle,30,20,10,0,0,0,0.666667,True
+0,10,Crustle,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+0,10,Crustle,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+0,10,Crustle,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+0,11,Mega Lucario ex,Alakazam Dudunsparce,30,29,0,1,3,0,0.966667,False
+0,11,Mega Lucario ex,Crustle,30,21,9,0,0,0,0.700000,False
+0,11,Mega Lucario ex,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+0,11,Mega Lucario ex,Dragapult,30,22,8,0,0,0,0.733333,False
+0,11,Mega Lucario ex,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+0,11,Mega Lucario ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+0,11,Mega Lucario ex,Raging Bolt Ogerpon,30,29,1,0,0,0,0.966667,False
+0,11,Mega Lucario ex,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+0,11,Mega Lucario ex,Ogerpon Box,30,25,5,0,0,0,0.833333,False
+0,11,Mega Lucario ex,Crustle,30,27,3,0,0,0,0.900000,True
+0,11,Mega Lucario ex,Mega Lucario ex,30,19,11,0,0,0,0.633333,True
+0,11,Mega Lucario ex,Mega Abomasnow ex,30,16,14,0,0,0,0.533333,True
+0,11,Mega Lucario ex,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+0,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,30,0,0,3,0,1.000000,False
+0,12,Mega Abomasnow ex,Crustle,30,12,18,0,0,0,0.400000,False
+0,12,Mega Abomasnow ex,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+0,12,Mega Abomasnow ex,Dragapult,30,17,13,0,0,0,0.566667,False
+0,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+0,12,Mega Abomasnow ex,Hydrapple,30,21,9,0,0,0,0.700000,False
+0,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+0,12,Mega Abomasnow ex,Dragapult Blaziken,30,26,4,0,0,0,0.866667,False
+0,12,Mega Abomasnow ex,Ogerpon Box,30,26,4,0,0,0,0.866667,False
+0,12,Mega Abomasnow ex,Crustle,30,11,19,0,0,0,0.366667,True
+0,12,Mega Abomasnow ex,Mega Lucario ex,30,19,11,0,0,0,0.633333,True
+0,12,Mega Abomasnow ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+0,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+0,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,30,0,0,1,0,1.000000,False
+0,13,Iono's Bellibolt ex,Crustle,30,15,15,0,0,0,0.500000,False
+0,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+0,13,Iono's Bellibolt ex,Dragapult,30,20,10,0,0,0,0.666667,False
+0,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+0,13,Iono's Bellibolt ex,Hydrapple,30,13,17,0,0,0,0.433333,False
+0,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+0,13,Iono's Bellibolt ex,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+0,13,Iono's Bellibolt ex,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+0,13,Iono's Bellibolt ex,Crustle,30,12,18,0,0,0,0.400000,True
+0,13,Iono's Bellibolt ex,Mega Lucario ex,30,3,27,0,0,0,0.100000,True
+0,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+0,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+2,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,18,10,2,2,0,0.600000,False
+2,1,Alakazam Dudunsparce,Crustle,30,2,28,0,1,0,0.066667,False
+2,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,10,20,0,0,0,0.333333,False
+2,1,Alakazam Dudunsparce,Dragapult,30,6,24,0,0,0,0.200000,False
+2,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,8,22,0,1,0,0.266667,False
+2,1,Alakazam Dudunsparce,Hydrapple,30,3,27,0,0,0,0.100000,False
+2,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,8,22,0,0,0,0.266667,False
+2,1,Alakazam Dudunsparce,Dragapult Blaziken,30,3,27,0,1,0,0.100000,False
+2,1,Alakazam Dudunsparce,Ogerpon Box,30,2,27,1,1,0,0.066667,False
+2,1,Alakazam Dudunsparce,Crustle,30,4,26,0,0,0,0.133333,True
+2,1,Alakazam Dudunsparce,Mega Lucario ex,30,1,29,0,0,0,0.033333,True
+2,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,0,30,0,0,0,0.000000,True
+2,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,0,30,0,0,0,0.000000,True
+2,2,Crustle,Alakazam Dudunsparce,30,27,1,2,3,0,0.900000,False
+2,2,Crustle,Crustle,30,18,12,0,0,0,0.600000,False
+2,2,Crustle,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+2,2,Crustle,Dragapult,30,18,12,0,0,0,0.600000,False
+2,2,Crustle,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+2,2,Crustle,Hydrapple,30,22,8,0,0,0,0.733333,False
+2,2,Crustle,Raging Bolt Ogerpon,30,18,11,1,0,0,0.600000,False
+2,2,Crustle,Dragapult Blaziken,30,19,10,1,0,0,0.633333,False
+2,2,Crustle,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+2,2,Crustle,Crustle,30,21,9,0,0,0,0.700000,True
+2,2,Crustle,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+2,2,Crustle,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+2,2,Crustle,Iono's Bellibolt ex,30,24,6,0,0,0,0.800000,True
+2,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,22,8,0,1,0,0.733333,False
+2,3,Dragapult Dusknoir,Crustle,30,12,18,0,0,0,0.400000,False
+2,3,Dragapult Dusknoir,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+2,3,Dragapult Dusknoir,Dragapult,30,9,21,0,0,0,0.300000,False
+2,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,9,21,0,0,0,0.300000,False
+2,3,Dragapult Dusknoir,Hydrapple,30,6,24,0,0,0,0.200000,False
+2,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,11,19,0,0,0,0.366667,False
+2,3,Dragapult Dusknoir,Dragapult Blaziken,30,11,19,0,0,0,0.366667,False
+2,3,Dragapult Dusknoir,Ogerpon Box,30,10,20,0,0,0,0.333333,False
+2,3,Dragapult Dusknoir,Crustle,30,11,19,0,0,0,0.366667,True
+2,3,Dragapult Dusknoir,Mega Lucario ex,30,1,29,0,0,0,0.033333,True
+2,3,Dragapult Dusknoir,Mega Abomasnow ex,30,5,25,0,0,0,0.166667,True
+2,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,12,18,0,0,0,0.400000,True
+2,4,Dragapult,Alakazam Dudunsparce,30,24,4,2,6,0,0.800000,False
+2,4,Dragapult,Crustle,30,19,11,0,0,0,0.633333,False
+2,4,Dragapult,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+2,4,Dragapult,Dragapult,30,14,16,0,0,0,0.466667,False
+2,4,Dragapult,Dragapult Dudunsparce,30,16,14,0,0,0,0.533333,False
+2,4,Dragapult,Hydrapple,30,20,10,0,0,0,0.666667,False
+2,4,Dragapult,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+2,4,Dragapult,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+2,4,Dragapult,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+2,4,Dragapult,Crustle,30,13,17,0,0,0,0.433333,True
+2,4,Dragapult,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+2,4,Dragapult,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+2,4,Dragapult,Iono's Bellibolt ex,30,14,16,0,0,0,0.466667,True
+2,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,24,4,2,5,0,0.800000,False
+2,5,Dragapult Dudunsparce,Crustle,30,11,19,0,0,0,0.366667,False
+2,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+2,5,Dragapult Dudunsparce,Dragapult,30,5,25,0,0,0,0.166667,False
+2,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+2,5,Dragapult Dudunsparce,Hydrapple,30,14,16,0,0,0,0.466667,False
+2,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+2,5,Dragapult Dudunsparce,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+2,5,Dragapult Dudunsparce,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+2,5,Dragapult Dudunsparce,Crustle,30,15,15,0,0,0,0.500000,True
+2,5,Dragapult Dudunsparce,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+2,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,6,24,0,0,0,0.200000,True
+2,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+2,6,Hydrapple,Alakazam Dudunsparce,30,28,1,1,4,0,0.933333,False
+2,6,Hydrapple,Crustle,30,16,14,0,0,0,0.533333,False
+2,6,Hydrapple,Dragapult Dusknoir,30,11,19,0,0,0,0.366667,False
+2,6,Hydrapple,Dragapult,30,11,19,0,0,0,0.366667,False
+2,6,Hydrapple,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+2,6,Hydrapple,Hydrapple,30,18,12,0,0,0,0.600000,False
+2,6,Hydrapple,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+2,6,Hydrapple,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+2,6,Hydrapple,Ogerpon Box,30,23,7,0,0,0,0.766667,False
+2,6,Hydrapple,Crustle,30,16,14,0,0,0,0.533333,True
+2,6,Hydrapple,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+2,6,Hydrapple,Mega Abomasnow ex,30,17,13,0,0,0,0.566667,True
+2,6,Hydrapple,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+2,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,26,2,2,2,0,0.866667,False
+2,7,Raging Bolt Ogerpon,Crustle,30,12,18,0,0,0,0.400000,False
+2,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+2,7,Raging Bolt Ogerpon,Dragapult,30,17,13,0,0,0,0.566667,False
+2,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+2,7,Raging Bolt Ogerpon,Hydrapple,30,18,12,0,0,0,0.600000,False
+2,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+2,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+2,7,Raging Bolt Ogerpon,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+2,7,Raging Bolt Ogerpon,Crustle,30,14,16,0,0,0,0.466667,True
+2,7,Raging Bolt Ogerpon,Mega Lucario ex,30,15,15,0,0,0,0.500000,True
+2,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+2,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+2,8,Dragapult Blaziken,Alakazam Dudunsparce,30,22,5,3,10,0,0.733333,False
+2,8,Dragapult Blaziken,Crustle,30,12,18,0,0,0,0.400000,False
+2,8,Dragapult Blaziken,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+2,8,Dragapult Blaziken,Dragapult,30,15,15,0,0,0,0.500000,False
+2,8,Dragapult Blaziken,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+2,8,Dragapult Blaziken,Hydrapple,30,17,13,0,0,0,0.566667,False
+2,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+2,8,Dragapult Blaziken,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+2,8,Dragapult Blaziken,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+2,8,Dragapult Blaziken,Crustle,30,9,21,0,0,0,0.300000,True
+2,8,Dragapult Blaziken,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+2,8,Dragapult Blaziken,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+2,8,Dragapult Blaziken,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+2,9,Ogerpon Box,Alakazam Dudunsparce,30,30,0,0,5,0,1.000000,False
+2,9,Ogerpon Box,Crustle,30,14,16,0,0,0,0.466667,False
+2,9,Ogerpon Box,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+2,9,Ogerpon Box,Dragapult,30,17,13,0,0,0,0.566667,False
+2,9,Ogerpon Box,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+2,9,Ogerpon Box,Hydrapple,30,19,11,0,0,0,0.633333,False
+2,9,Ogerpon Box,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+2,9,Ogerpon Box,Dragapult Blaziken,30,21,9,0,0,0,0.700000,False
+2,9,Ogerpon Box,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+2,9,Ogerpon Box,Crustle,30,14,16,0,0,0,0.466667,True
+2,9,Ogerpon Box,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+2,9,Ogerpon Box,Mega Abomasnow ex,30,17,13,0,0,0,0.566667,True
+2,9,Ogerpon Box,Iono's Bellibolt ex,30,27,3,0,0,0,0.900000,True
+2,10,Crustle,Alakazam Dudunsparce,30,27,2,1,1,0,0.900000,False
+2,10,Crustle,Crustle,30,15,15,0,0,0,0.500000,False
+2,10,Crustle,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+2,10,Crustle,Dragapult,30,19,11,0,0,0,0.633333,False
+2,10,Crustle,Dragapult Dudunsparce,30,17,13,0,0,0,0.566667,False
+2,10,Crustle,Hydrapple,30,17,12,1,0,0,0.566667,False
+2,10,Crustle,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+2,10,Crustle,Dragapult Blaziken,30,24,6,0,0,0,0.800000,False
+2,10,Crustle,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+2,10,Crustle,Crustle,30,13,17,0,0,0,0.433333,True
+2,10,Crustle,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+2,10,Crustle,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+2,10,Crustle,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+2,11,Mega Lucario ex,Alakazam Dudunsparce,30,28,2,0,3,0,0.933333,False
+2,11,Mega Lucario ex,Crustle,30,25,5,0,0,0,0.833333,False
+2,11,Mega Lucario ex,Dragapult Dusknoir,30,25,5,0,0,0,0.833333,False
+2,11,Mega Lucario ex,Dragapult,30,24,6,0,0,0,0.800000,False
+2,11,Mega Lucario ex,Dragapult Dudunsparce,30,16,14,0,0,0,0.533333,False
+2,11,Mega Lucario ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+2,11,Mega Lucario ex,Raging Bolt Ogerpon,30,28,2,0,0,0,0.933333,False
+2,11,Mega Lucario ex,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+2,11,Mega Lucario ex,Ogerpon Box,30,26,4,0,0,0,0.866667,False
+2,11,Mega Lucario ex,Crustle,30,22,8,0,0,0,0.733333,True
+2,11,Mega Lucario ex,Mega Lucario ex,30,19,11,0,0,0,0.633333,True
+2,11,Mega Lucario ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+2,11,Mega Lucario ex,Iono's Bellibolt ex,30,26,4,0,0,0,0.866667,True
+2,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,29,1,0,3,0,0.966667,False
+2,12,Mega Abomasnow ex,Crustle,30,9,21,0,0,0,0.300000,False
+2,12,Mega Abomasnow ex,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+2,12,Mega Abomasnow ex,Dragapult,30,19,11,0,0,0,0.633333,False
+2,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,24,6,0,0,0,0.800000,False
+2,12,Mega Abomasnow ex,Hydrapple,30,18,12,0,0,0,0.600000,False
+2,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+2,12,Mega Abomasnow ex,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+2,12,Mega Abomasnow ex,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+2,12,Mega Abomasnow ex,Crustle,30,16,14,0,0,0,0.533333,True
+2,12,Mega Abomasnow ex,Mega Lucario ex,30,17,13,0,0,0,0.566667,True
+2,12,Mega Abomasnow ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+2,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+2,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,29,0,1,6,0,0.966667,False
+2,13,Iono's Bellibolt ex,Crustle,30,18,12,0,0,0,0.600000,False
+2,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,23,7,0,0,0,0.766667,False
+2,13,Iono's Bellibolt ex,Dragapult,30,14,16,0,0,0,0.466667,False
+2,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+2,13,Iono's Bellibolt ex,Hydrapple,30,19,11,0,0,0,0.633333,False
+2,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+2,13,Iono's Bellibolt ex,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+2,13,Iono's Bellibolt ex,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+2,13,Iono's Bellibolt ex,Crustle,30,7,23,0,0,0,0.233333,True
+2,13,Iono's Bellibolt ex,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+2,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+2,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+3,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,17,9,4,8,0,0.566667,False
+3,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,False
+3,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,7,23,0,0,0,0.233333,False
+3,1,Alakazam Dudunsparce,Dragapult,30,4,26,0,0,0,0.133333,False
+3,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,9,21,0,0,0,0.300000,False
+3,1,Alakazam Dudunsparce,Hydrapple,30,3,27,0,0,0,0.100000,False
+3,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,4,26,0,0,0,0.133333,False
+3,1,Alakazam Dudunsparce,Dragapult Blaziken,30,2,28,0,0,0,0.066667,False
+3,1,Alakazam Dudunsparce,Ogerpon Box,30,5,25,0,1,0,0.166667,False
+3,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,True
+3,1,Alakazam Dudunsparce,Mega Lucario ex,30,3,26,1,1,0,0.100000,True
+3,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,1,29,0,0,0,0.033333,True
+3,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,0,30,0,0,0,0.000000,True
+3,2,Crustle,Alakazam Dudunsparce,30,26,3,1,1,0,0.866667,False
+3,2,Crustle,Crustle,30,19,10,1,0,0,0.633333,False
+3,2,Crustle,Dragapult Dusknoir,30,25,5,0,0,0,0.833333,False
+3,2,Crustle,Dragapult,30,20,10,0,0,0,0.666667,False
+3,2,Crustle,Dragapult Dudunsparce,30,24,6,0,0,0,0.800000,False
+3,2,Crustle,Hydrapple,30,23,7,0,0,0,0.766667,False
+3,2,Crustle,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+3,2,Crustle,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+3,2,Crustle,Ogerpon Box,30,20,8,2,0,0,0.666667,False
+3,2,Crustle,Crustle,30,19,11,0,0,0,0.633333,True
+3,2,Crustle,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+3,2,Crustle,Mega Abomasnow ex,30,18,12,0,0,0,0.600000,True
+3,2,Crustle,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+3,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,21,7,2,3,0,0.700000,False
+3,3,Dragapult Dusknoir,Crustle,30,8,22,0,0,0,0.266667,False
+3,3,Dragapult Dusknoir,Dragapult Dusknoir,30,12,18,0,0,0,0.400000,False
+3,3,Dragapult Dusknoir,Dragapult,30,11,19,0,0,0,0.366667,False
+3,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,8,22,0,0,0,0.266667,False
+3,3,Dragapult Dusknoir,Hydrapple,30,14,16,0,0,0,0.466667,False
+3,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+3,3,Dragapult Dusknoir,Dragapult Blaziken,30,10,20,0,0,0,0.333333,False
+3,3,Dragapult Dusknoir,Ogerpon Box,30,9,21,0,0,0,0.300000,False
+3,3,Dragapult Dusknoir,Crustle,30,9,21,0,0,0,0.300000,True
+3,3,Dragapult Dusknoir,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+3,3,Dragapult Dusknoir,Mega Abomasnow ex,30,5,25,0,0,0,0.166667,True
+3,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,16,14,0,0,0,0.533333,True
+3,4,Dragapult,Alakazam Dudunsparce,30,25,4,1,1,0,0.833333,False
+3,4,Dragapult,Crustle,30,15,15,0,0,0,0.500000,False
+3,4,Dragapult,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+3,4,Dragapult,Dragapult,30,14,16,0,0,0,0.466667,False
+3,4,Dragapult,Dragapult Dudunsparce,30,12,18,0,0,0,0.400000,False
+3,4,Dragapult,Hydrapple,30,20,10,0,0,0,0.666667,False
+3,4,Dragapult,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+3,4,Dragapult,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+3,4,Dragapult,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+3,4,Dragapult,Crustle,30,18,12,0,0,0,0.600000,True
+3,4,Dragapult,Mega Lucario ex,30,19,11,0,0,0,0.633333,True
+3,4,Dragapult,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+3,4,Dragapult,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+3,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,23,7,0,1,0,0.766667,False
+3,5,Dragapult Dudunsparce,Crustle,30,14,16,0,0,0,0.466667,False
+3,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+3,5,Dragapult Dudunsparce,Dragapult,30,15,15,0,0,0,0.500000,False
+3,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,12,18,0,0,0,0.400000,False
+3,5,Dragapult Dudunsparce,Hydrapple,30,12,18,0,0,0,0.400000,False
+3,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+3,5,Dragapult Dudunsparce,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+3,5,Dragapult Dudunsparce,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+3,5,Dragapult Dudunsparce,Crustle,30,10,20,0,0,0,0.333333,True
+3,5,Dragapult Dudunsparce,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+3,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+3,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+3,6,Hydrapple,Alakazam Dudunsparce,30,29,0,1,1,0,0.966667,False
+3,6,Hydrapple,Crustle,30,12,18,0,0,0,0.400000,False
+3,6,Hydrapple,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+3,6,Hydrapple,Dragapult,30,14,16,0,0,0,0.466667,False
+3,6,Hydrapple,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+3,6,Hydrapple,Hydrapple,30,17,13,0,0,0,0.566667,False
+3,6,Hydrapple,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+3,6,Hydrapple,Dragapult Blaziken,30,10,20,0,0,0,0.333333,False
+3,6,Hydrapple,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+3,6,Hydrapple,Crustle,30,12,18,0,0,0,0.400000,True
+3,6,Hydrapple,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+3,6,Hydrapple,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+3,6,Hydrapple,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+3,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,26,3,1,1,0,0.866667,False
+3,7,Raging Bolt Ogerpon,Crustle,30,17,13,0,0,0,0.566667,False
+3,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,12,18,0,0,0,0.400000,False
+3,7,Raging Bolt Ogerpon,Dragapult,30,17,13,0,0,0,0.566667,False
+3,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+3,7,Raging Bolt Ogerpon,Hydrapple,30,10,20,0,0,0,0.333333,False
+3,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+3,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+3,7,Raging Bolt Ogerpon,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+3,7,Raging Bolt Ogerpon,Crustle,30,11,19,0,0,0,0.366667,True
+3,7,Raging Bolt Ogerpon,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+3,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+3,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+3,8,Dragapult Blaziken,Alakazam Dudunsparce,30,28,1,1,5,0,0.933333,False
+3,8,Dragapult Blaziken,Crustle,30,12,18,0,0,0,0.400000,False
+3,8,Dragapult Blaziken,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+3,8,Dragapult Blaziken,Dragapult,30,16,14,0,0,0,0.533333,False
+3,8,Dragapult Blaziken,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+3,8,Dragapult Blaziken,Hydrapple,30,20,10,0,0,0,0.666667,False
+3,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+3,8,Dragapult Blaziken,Dragapult Blaziken,30,11,19,0,0,0,0.366667,False
+3,8,Dragapult Blaziken,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+3,8,Dragapult Blaziken,Crustle,30,12,18,0,0,0,0.400000,True
+3,8,Dragapult Blaziken,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+3,8,Dragapult Blaziken,Mega Abomasnow ex,30,6,24,0,0,0,0.200000,True
+3,8,Dragapult Blaziken,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+3,9,Ogerpon Box,Alakazam Dudunsparce,30,29,0,1,7,0,0.966667,False
+3,9,Ogerpon Box,Crustle,30,16,14,0,0,0,0.533333,False
+3,9,Ogerpon Box,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+3,9,Ogerpon Box,Dragapult,30,18,12,0,0,0,0.600000,False
+3,9,Ogerpon Box,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+3,9,Ogerpon Box,Hydrapple,30,16,14,0,0,0,0.533333,False
+3,9,Ogerpon Box,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+3,9,Ogerpon Box,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+3,9,Ogerpon Box,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+3,9,Ogerpon Box,Crustle,30,13,17,0,0,0,0.433333,True
+3,9,Ogerpon Box,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+3,9,Ogerpon Box,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+3,9,Ogerpon Box,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+3,10,Crustle,Alakazam Dudunsparce,30,23,6,1,1,0,0.766667,False
+3,10,Crustle,Crustle,30,20,10,0,0,0,0.666667,False
+3,10,Crustle,Dragapult Dusknoir,30,21,8,1,0,0,0.700000,False
+3,10,Crustle,Dragapult,30,15,15,0,0,0,0.500000,False
+3,10,Crustle,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+3,10,Crustle,Hydrapple,30,17,13,0,0,0,0.566667,False
+3,10,Crustle,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+3,10,Crustle,Dragapult Blaziken,30,21,9,0,0,0,0.700000,False
+3,10,Crustle,Ogerpon Box,30,19,10,1,0,0,0.633333,False
+3,10,Crustle,Crustle,30,15,15,0,0,0,0.500000,True
+3,10,Crustle,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+3,10,Crustle,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+3,10,Crustle,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+3,11,Mega Lucario ex,Alakazam Dudunsparce,30,29,1,0,4,0,0.966667,False
+3,11,Mega Lucario ex,Crustle,30,22,8,0,0,0,0.733333,False
+3,11,Mega Lucario ex,Dragapult Dusknoir,30,25,5,0,0,0,0.833333,False
+3,11,Mega Lucario ex,Dragapult,30,20,10,0,0,0,0.666667,False
+3,11,Mega Lucario ex,Dragapult Dudunsparce,30,26,4,0,0,0,0.866667,False
+3,11,Mega Lucario ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+3,11,Mega Lucario ex,Raging Bolt Ogerpon,30,24,6,0,0,0,0.800000,False
+3,11,Mega Lucario ex,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+3,11,Mega Lucario ex,Ogerpon Box,30,24,6,0,0,0,0.800000,False
+3,11,Mega Lucario ex,Crustle,30,25,5,0,0,0,0.833333,True
+3,11,Mega Lucario ex,Mega Lucario ex,30,20,10,0,0,0,0.666667,True
+3,11,Mega Lucario ex,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+3,11,Mega Lucario ex,Iono's Bellibolt ex,30,28,2,0,0,0,0.933333,True
+3,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,29,0,1,3,0,0.966667,False
+3,12,Mega Abomasnow ex,Crustle,30,13,17,0,0,0,0.433333,False
+3,12,Mega Abomasnow ex,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+3,12,Mega Abomasnow ex,Dragapult,30,19,11,0,0,0,0.633333,False
+3,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+3,12,Mega Abomasnow ex,Hydrapple,30,18,12,0,0,0,0.600000,False
+3,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+3,12,Mega Abomasnow ex,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+3,12,Mega Abomasnow ex,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+3,12,Mega Abomasnow ex,Crustle,30,11,19,0,0,0,0.366667,True
+3,12,Mega Abomasnow ex,Mega Lucario ex,30,13,17,0,0,0,0.433333,True
+3,12,Mega Abomasnow ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+3,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+3,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,30,0,0,0,0,1.000000,False
+3,13,Iono's Bellibolt ex,Crustle,30,15,15,0,0,0,0.500000,False
+3,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+3,13,Iono's Bellibolt ex,Dragapult,30,13,17,0,0,0,0.433333,False
+3,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+3,13,Iono's Bellibolt ex,Hydrapple,30,17,13,0,0,0,0.566667,False
+3,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+3,13,Iono's Bellibolt ex,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+3,13,Iono's Bellibolt ex,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+3,13,Iono's Bellibolt ex,Crustle,30,12,18,0,0,0,0.400000,True
+3,13,Iono's Bellibolt ex,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+3,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+3,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+4,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,12,17,1,2,0,0.400000,False
+4,1,Alakazam Dudunsparce,Crustle,30,1,29,0,0,0,0.033333,False
+4,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,8,22,0,0,0,0.266667,False
+4,1,Alakazam Dudunsparce,Dragapult,30,5,25,0,0,0,0.166667,False
+4,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,8,22,0,0,0,0.266667,False
+4,1,Alakazam Dudunsparce,Hydrapple,30,2,28,0,0,0,0.066667,False
+4,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,6,24,0,0,0,0.200000,False
+4,1,Alakazam Dudunsparce,Dragapult Blaziken,30,7,23,0,0,0,0.233333,False
+4,1,Alakazam Dudunsparce,Ogerpon Box,30,0,30,0,0,0,0.000000,False
+4,1,Alakazam Dudunsparce,Crustle,30,2,28,0,0,0,0.066667,True
+4,1,Alakazam Dudunsparce,Mega Lucario ex,30,0,29,1,1,0,0.000000,True
+4,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,1,29,0,0,0,0.033333,True
+4,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,1,29,0,0,0,0.033333,True
+4,2,Crustle,Alakazam Dudunsparce,30,30,0,0,0,0,1.000000,False
+4,2,Crustle,Crustle,30,13,16,1,0,0,0.433333,False
+4,2,Crustle,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+4,2,Crustle,Dragapult,30,20,10,0,0,0,0.666667,False
+4,2,Crustle,Dragapult Dudunsparce,30,24,6,0,0,0,0.800000,False
+4,2,Crustle,Hydrapple,30,19,11,0,0,0,0.633333,False
+4,2,Crustle,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+4,2,Crustle,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+4,2,Crustle,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+4,2,Crustle,Crustle,30,19,11,0,0,0,0.633333,True
+4,2,Crustle,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+4,2,Crustle,Mega Abomasnow ex,30,18,12,0,0,0,0.600000,True
+4,2,Crustle,Iono's Bellibolt ex,30,20,9,1,0,0,0.666667,True
+4,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,16,12,2,5,0,0.533333,False
+4,3,Dragapult Dusknoir,Crustle,30,10,20,0,0,0,0.333333,False
+4,3,Dragapult Dusknoir,Dragapult Dusknoir,30,12,18,0,0,0,0.400000,False
+4,3,Dragapult Dusknoir,Dragapult,30,5,25,0,0,0,0.166667,False
+4,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+4,3,Dragapult Dusknoir,Hydrapple,30,13,17,0,0,0,0.433333,False
+4,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,14,16,0,0,0,0.466667,False
+4,3,Dragapult Dusknoir,Dragapult Blaziken,30,4,26,0,0,0,0.133333,False
+4,3,Dragapult Dusknoir,Ogerpon Box,30,8,22,0,0,0,0.266667,False
+4,3,Dragapult Dusknoir,Crustle,30,5,25,0,0,0,0.166667,True
+4,3,Dragapult Dusknoir,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+4,3,Dragapult Dusknoir,Mega Abomasnow ex,30,2,28,0,0,0,0.066667,True
+4,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+4,4,Dragapult,Alakazam Dudunsparce,30,25,4,1,4,0,0.833333,False
+4,4,Dragapult,Crustle,30,13,17,0,0,0,0.433333,False
+4,4,Dragapult,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+4,4,Dragapult,Dragapult,30,17,13,0,0,0,0.566667,False
+4,4,Dragapult,Dragapult Dudunsparce,30,12,18,0,0,0,0.400000,False
+4,4,Dragapult,Hydrapple,30,17,13,0,0,0,0.566667,False
+4,4,Dragapult,Raging Bolt Ogerpon,30,14,16,0,0,0,0.466667,False
+4,4,Dragapult,Dragapult Blaziken,30,21,9,0,0,0,0.700000,False
+4,4,Dragapult,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+4,4,Dragapult,Crustle,30,17,13,0,0,0,0.566667,True
+4,4,Dragapult,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+4,4,Dragapult,Mega Abomasnow ex,30,6,24,0,0,0,0.200000,True
+4,4,Dragapult,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+4,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,25,3,2,5,0,0.833333,False
+4,5,Dragapult Dudunsparce,Crustle,30,12,18,0,0,0,0.400000,False
+4,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+4,5,Dragapult Dudunsparce,Dragapult,30,13,17,0,0,0,0.433333,False
+4,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,12,18,0,0,0,0.400000,False
+4,5,Dragapult Dudunsparce,Hydrapple,30,13,17,0,0,0,0.433333,False
+4,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+4,5,Dragapult Dudunsparce,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+4,5,Dragapult Dudunsparce,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+4,5,Dragapult Dudunsparce,Crustle,30,13,17,0,0,0,0.433333,True
+4,5,Dragapult Dudunsparce,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+4,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,4,26,0,0,0,0.133333,True
+4,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+4,6,Hydrapple,Alakazam Dudunsparce,30,29,1,0,1,0,0.966667,False
+4,6,Hydrapple,Crustle,30,17,13,0,0,0,0.566667,False
+4,6,Hydrapple,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+4,6,Hydrapple,Dragapult,30,12,18,0,0,0,0.400000,False
+4,6,Hydrapple,Dragapult Dudunsparce,30,17,13,0,0,0,0.566667,False
+4,6,Hydrapple,Hydrapple,30,16,14,0,0,0,0.533333,False
+4,6,Hydrapple,Raging Bolt Ogerpon,30,27,3,0,0,0,0.900000,False
+4,6,Hydrapple,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+4,6,Hydrapple,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+4,6,Hydrapple,Crustle,30,15,15,0,0,0,0.500000,True
+4,6,Hydrapple,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+4,6,Hydrapple,Mega Abomasnow ex,30,16,14,0,0,0,0.533333,True
+4,6,Hydrapple,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+4,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,28,2,0,4,0,0.933333,False
+4,7,Raging Bolt Ogerpon,Crustle,30,16,14,0,0,0,0.533333,False
+4,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+4,7,Raging Bolt Ogerpon,Dragapult,30,13,17,0,0,0,0.433333,False
+4,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+4,7,Raging Bolt Ogerpon,Hydrapple,30,16,14,0,0,0,0.533333,False
+4,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,13,17,0,0,0,0.433333,False
+4,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+4,7,Raging Bolt Ogerpon,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+4,7,Raging Bolt Ogerpon,Crustle,30,10,20,0,0,0,0.333333,True
+4,7,Raging Bolt Ogerpon,Mega Lucario ex,30,4,26,0,0,0,0.133333,True
+4,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+4,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+4,8,Dragapult Blaziken,Alakazam Dudunsparce,30,30,0,0,5,0,1.000000,False
+4,8,Dragapult Blaziken,Crustle,30,16,14,0,0,0,0.533333,False
+4,8,Dragapult Blaziken,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+4,8,Dragapult Blaziken,Dragapult,30,11,19,0,0,0,0.366667,False
+4,8,Dragapult Blaziken,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+4,8,Dragapult Blaziken,Hydrapple,30,21,9,0,0,0,0.700000,False
+4,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+4,8,Dragapult Blaziken,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+4,8,Dragapult Blaziken,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+4,8,Dragapult Blaziken,Crustle,30,12,18,0,0,0,0.400000,True
+4,8,Dragapult Blaziken,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+4,8,Dragapult Blaziken,Mega Abomasnow ex,30,7,23,0,0,0,0.233333,True
+4,8,Dragapult Blaziken,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+4,9,Ogerpon Box,Alakazam Dudunsparce,30,27,1,2,7,0,0.900000,False
+4,9,Ogerpon Box,Crustle,30,14,16,0,0,0,0.466667,False
+4,9,Ogerpon Box,Dragapult Dusknoir,30,20,9,1,0,0,0.666667,False
+4,9,Ogerpon Box,Dragapult,30,20,10,0,0,0,0.666667,False
+4,9,Ogerpon Box,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+4,9,Ogerpon Box,Hydrapple,30,16,14,0,0,0,0.533333,False
+4,9,Ogerpon Box,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+4,9,Ogerpon Box,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+4,9,Ogerpon Box,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+4,9,Ogerpon Box,Crustle,30,12,18,0,0,0,0.400000,True
+4,9,Ogerpon Box,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+4,9,Ogerpon Box,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+4,9,Ogerpon Box,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+4,10,Crustle,Alakazam Dudunsparce,30,25,5,0,1,0,0.833333,False
+4,10,Crustle,Crustle,30,9,20,1,0,0,0.300000,False
+4,10,Crustle,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+4,10,Crustle,Dragapult,30,20,10,0,0,0,0.666667,False
+4,10,Crustle,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+4,10,Crustle,Hydrapple,30,15,15,0,0,0,0.500000,False
+4,10,Crustle,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+4,10,Crustle,Dragapult Blaziken,30,24,6,0,0,0,0.800000,False
+4,10,Crustle,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+4,10,Crustle,Crustle,30,16,14,0,0,0,0.533333,True
+4,10,Crustle,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+4,10,Crustle,Mega Abomasnow ex,30,22,8,0,0,0,0.733333,True
+4,10,Crustle,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+4,11,Mega Lucario ex,Alakazam Dudunsparce,30,29,1,0,1,0,0.966667,False
+4,11,Mega Lucario ex,Crustle,30,23,7,0,0,0,0.766667,False
+4,11,Mega Lucario ex,Dragapult Dusknoir,30,26,4,0,0,0,0.866667,False
+4,11,Mega Lucario ex,Dragapult,30,24,6,0,0,0,0.800000,False
+4,11,Mega Lucario ex,Dragapult Dudunsparce,30,23,7,0,0,0,0.766667,False
+4,11,Mega Lucario ex,Hydrapple,30,23,7,0,0,0,0.766667,False
+4,11,Mega Lucario ex,Raging Bolt Ogerpon,30,26,4,0,0,0,0.866667,False
+4,11,Mega Lucario ex,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+4,11,Mega Lucario ex,Ogerpon Box,30,25,5,0,0,0,0.833333,False
+4,11,Mega Lucario ex,Crustle,30,25,5,0,0,0,0.833333,True
+4,11,Mega Lucario ex,Mega Lucario ex,30,19,11,0,0,0,0.633333,True
+4,11,Mega Lucario ex,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+4,11,Mega Lucario ex,Iono's Bellibolt ex,30,28,2,0,0,0,0.933333,True
+4,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,29,0,1,2,0,0.966667,False
+4,12,Mega Abomasnow ex,Crustle,30,19,11,0,0,0,0.633333,False
+4,12,Mega Abomasnow ex,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+4,12,Mega Abomasnow ex,Dragapult,30,20,10,0,0,0,0.666667,False
+4,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,17,13,0,0,0,0.566667,False
+4,12,Mega Abomasnow ex,Hydrapple,30,20,10,0,0,0,0.666667,False
+4,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+4,12,Mega Abomasnow ex,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+4,12,Mega Abomasnow ex,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+4,12,Mega Abomasnow ex,Crustle,30,12,18,0,0,0,0.400000,True
+4,12,Mega Abomasnow ex,Mega Lucario ex,30,16,14,0,0,0,0.533333,True
+4,12,Mega Abomasnow ex,Mega Abomasnow ex,30,17,13,0,0,0,0.566667,True
+4,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+4,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,30,0,0,1,0,1.000000,False
+4,13,Iono's Bellibolt ex,Crustle,30,13,17,0,0,0,0.433333,False
+4,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,11,19,0,0,0,0.366667,False
+4,13,Iono's Bellibolt ex,Dragapult,30,13,17,0,0,0,0.433333,False
+4,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+4,13,Iono's Bellibolt ex,Hydrapple,30,20,10,0,0,0,0.666667,False
+4,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+4,13,Iono's Bellibolt ex,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+4,13,Iono's Bellibolt ex,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+4,13,Iono's Bellibolt ex,Crustle,30,11,19,0,0,0,0.366667,True
+4,13,Iono's Bellibolt ex,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+4,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,19,11,0,0,0,0.633333,True
+4,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+5,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,19,11,0,2,0,0.633333,False
+5,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,False
+5,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,8,22,0,0,0,0.266667,False
+5,1,Alakazam Dudunsparce,Dragapult,30,3,27,0,0,0,0.100000,False
+5,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,3,27,0,0,0,0.100000,False
+5,1,Alakazam Dudunsparce,Hydrapple,30,0,30,0,0,0,0.000000,False
+5,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,7,23,0,0,0,0.233333,False
+5,1,Alakazam Dudunsparce,Dragapult Blaziken,30,6,24,0,0,0,0.200000,False
+5,1,Alakazam Dudunsparce,Ogerpon Box,30,2,28,0,0,0,0.066667,False
+5,1,Alakazam Dudunsparce,Crustle,30,3,27,0,0,0,0.100000,True
+5,1,Alakazam Dudunsparce,Mega Lucario ex,30,1,29,0,0,0,0.033333,True
+5,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,2,28,0,0,0,0.066667,True
+5,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,1,29,0,0,0,0.033333,True
+5,2,Crustle,Alakazam Dudunsparce,30,27,3,0,0,0,0.900000,False
+5,2,Crustle,Crustle,30,16,14,0,0,0,0.533333,False
+5,2,Crustle,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+5,2,Crustle,Dragapult,30,16,14,0,0,0,0.533333,False
+5,2,Crustle,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+5,2,Crustle,Hydrapple,30,22,8,0,0,0,0.733333,False
+5,2,Crustle,Raging Bolt Ogerpon,30,20,9,1,0,0,0.666667,False
+5,2,Crustle,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+5,2,Crustle,Ogerpon Box,30,22,8,0,0,0,0.733333,False
+5,2,Crustle,Crustle,30,19,10,1,0,0,0.633333,True
+5,2,Crustle,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+5,2,Crustle,Mega Abomasnow ex,30,19,11,0,0,0,0.633333,True
+5,2,Crustle,Iono's Bellibolt ex,30,12,18,0,0,0,0.400000,True
+5,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,25,3,2,4,0,0.833333,False
+5,3,Dragapult Dusknoir,Crustle,30,7,23,0,0,0,0.233333,False
+5,3,Dragapult Dusknoir,Dragapult Dusknoir,30,13,17,0,0,0,0.433333,False
+5,3,Dragapult Dusknoir,Dragapult,30,7,23,0,0,0,0.233333,False
+5,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+5,3,Dragapult Dusknoir,Hydrapple,30,9,21,0,0,0,0.300000,False
+5,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,12,18,0,0,0,0.400000,False
+5,3,Dragapult Dusknoir,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+5,3,Dragapult Dusknoir,Ogerpon Box,30,12,18,0,0,0,0.400000,False
+5,3,Dragapult Dusknoir,Crustle,30,8,21,1,0,0,0.266667,True
+5,3,Dragapult Dusknoir,Mega Lucario ex,30,2,28,0,0,0,0.066667,True
+5,3,Dragapult Dusknoir,Mega Abomasnow ex,30,6,24,0,0,0,0.200000,True
+5,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,12,18,0,0,0,0.400000,True
+5,4,Dragapult,Alakazam Dudunsparce,30,22,7,1,5,0,0.733333,False
+5,4,Dragapult,Crustle,30,11,19,0,0,0,0.366667,False
+5,4,Dragapult,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+5,4,Dragapult,Dragapult,30,15,15,0,0,0,0.500000,False
+5,4,Dragapult,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+5,4,Dragapult,Hydrapple,30,14,16,0,0,0,0.466667,False
+5,4,Dragapult,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+5,4,Dragapult,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+5,4,Dragapult,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+5,4,Dragapult,Crustle,30,16,14,0,0,0,0.533333,True
+5,4,Dragapult,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+5,4,Dragapult,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+5,4,Dragapult,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+5,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,28,0,2,4,0,0.933333,False
+5,5,Dragapult Dudunsparce,Crustle,30,9,21,0,0,0,0.300000,False
+5,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+5,5,Dragapult Dudunsparce,Dragapult,30,15,15,0,0,0,0.500000,False
+5,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+5,5,Dragapult Dudunsparce,Hydrapple,30,16,13,1,0,0,0.533333,False
+5,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+5,5,Dragapult Dudunsparce,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+5,5,Dragapult Dudunsparce,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+5,5,Dragapult Dudunsparce,Crustle,30,20,10,0,0,0,0.666667,True
+5,5,Dragapult Dudunsparce,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+5,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+5,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+5,6,Hydrapple,Alakazam Dudunsparce,30,28,1,1,3,0,0.933333,False
+5,6,Hydrapple,Crustle,30,12,18,0,0,0,0.400000,False
+5,6,Hydrapple,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+5,6,Hydrapple,Dragapult,30,13,17,0,0,0,0.433333,False
+5,6,Hydrapple,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+5,6,Hydrapple,Hydrapple,30,18,12,0,0,0,0.600000,False
+5,6,Hydrapple,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+5,6,Hydrapple,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+5,6,Hydrapple,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+5,6,Hydrapple,Crustle,30,14,16,0,0,0,0.466667,True
+5,6,Hydrapple,Mega Lucario ex,30,13,16,1,0,0,0.433333,True
+5,6,Hydrapple,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+5,6,Hydrapple,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+5,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,27,1,2,6,0,0.900000,False
+5,7,Raging Bolt Ogerpon,Crustle,30,15,15,0,0,0,0.500000,False
+5,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+5,7,Raging Bolt Ogerpon,Dragapult,30,14,16,0,0,0,0.466667,False
+5,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+5,7,Raging Bolt Ogerpon,Hydrapple,30,15,15,0,0,0,0.500000,False
+5,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+5,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+5,7,Raging Bolt Ogerpon,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+5,7,Raging Bolt Ogerpon,Crustle,30,12,18,0,0,0,0.400000,True
+5,7,Raging Bolt Ogerpon,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+5,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+5,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+5,8,Dragapult Blaziken,Alakazam Dudunsparce,30,26,4,0,3,0,0.866667,False
+5,8,Dragapult Blaziken,Crustle,30,10,20,0,0,0,0.333333,False
+5,8,Dragapult Blaziken,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+5,8,Dragapult Blaziken,Dragapult,30,11,19,0,0,0,0.366667,False
+5,8,Dragapult Blaziken,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+5,8,Dragapult Blaziken,Hydrapple,30,22,8,0,0,0,0.733333,False
+5,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+5,8,Dragapult Blaziken,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+5,8,Dragapult Blaziken,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+5,8,Dragapult Blaziken,Crustle,30,15,15,0,0,0,0.500000,True
+5,8,Dragapult Blaziken,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+5,8,Dragapult Blaziken,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+5,8,Dragapult Blaziken,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+5,9,Ogerpon Box,Alakazam Dudunsparce,30,30,0,0,6,0,1.000000,False
+5,9,Ogerpon Box,Crustle,30,11,19,0,0,0,0.366667,False
+5,9,Ogerpon Box,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+5,9,Ogerpon Box,Dragapult,30,14,16,0,0,0,0.466667,False
+5,9,Ogerpon Box,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+5,9,Ogerpon Box,Hydrapple,30,20,10,0,0,0,0.666667,False
+5,9,Ogerpon Box,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+5,9,Ogerpon Box,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+5,9,Ogerpon Box,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+5,9,Ogerpon Box,Crustle,30,14,16,0,0,0,0.466667,True
+5,9,Ogerpon Box,Mega Lucario ex,30,4,26,0,0,0,0.133333,True
+5,9,Ogerpon Box,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+5,9,Ogerpon Box,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+5,10,Crustle,Alakazam Dudunsparce,30,26,4,0,2,0,0.866667,False
+5,10,Crustle,Crustle,30,14,16,0,0,0,0.466667,False
+5,10,Crustle,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+5,10,Crustle,Dragapult,30,20,10,0,0,0,0.666667,False
+5,10,Crustle,Dragapult Dudunsparce,30,20,9,1,0,0,0.666667,False
+5,10,Crustle,Hydrapple,30,13,17,0,0,0,0.433333,False
+5,10,Crustle,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+5,10,Crustle,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+5,10,Crustle,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+5,10,Crustle,Crustle,30,19,11,0,0,0,0.633333,True
+5,10,Crustle,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+5,10,Crustle,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+5,10,Crustle,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+5,11,Mega Lucario ex,Alakazam Dudunsparce,30,29,0,1,6,0,0.966667,False
+5,11,Mega Lucario ex,Crustle,30,23,7,0,0,0,0.766667,False
+5,11,Mega Lucario ex,Dragapult Dusknoir,30,26,4,0,0,0,0.866667,False
+5,11,Mega Lucario ex,Dragapult,30,21,9,0,0,0,0.700000,False
+5,11,Mega Lucario ex,Dragapult Dudunsparce,30,22,8,0,0,0,0.733333,False
+5,11,Mega Lucario ex,Hydrapple,30,21,9,0,0,0,0.700000,False
+5,11,Mega Lucario ex,Raging Bolt Ogerpon,30,28,2,0,0,0,0.933333,False
+5,11,Mega Lucario ex,Dragapult Blaziken,30,24,6,0,0,0,0.800000,False
+5,11,Mega Lucario ex,Ogerpon Box,30,23,7,0,0,0,0.766667,False
+5,11,Mega Lucario ex,Crustle,30,21,9,0,0,0,0.700000,True
+5,11,Mega Lucario ex,Mega Lucario ex,30,18,12,0,0,0,0.600000,True
+5,11,Mega Lucario ex,Mega Abomasnow ex,30,19,11,0,0,0,0.633333,True
+5,11,Mega Lucario ex,Iono's Bellibolt ex,30,28,2,0,0,0,0.933333,True
+5,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,28,2,0,4,0,0.933333,False
+5,12,Mega Abomasnow ex,Crustle,30,14,16,0,0,0,0.466667,False
+5,12,Mega Abomasnow ex,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+5,12,Mega Abomasnow ex,Dragapult,30,17,13,0,0,0,0.566667,False
+5,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,22,8,0,0,0,0.733333,False
+5,12,Mega Abomasnow ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+5,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+5,12,Mega Abomasnow ex,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+5,12,Mega Abomasnow ex,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+5,12,Mega Abomasnow ex,Crustle,30,13,17,0,0,0,0.433333,True
+5,12,Mega Abomasnow ex,Mega Lucario ex,30,20,10,0,0,0,0.666667,True
+5,12,Mega Abomasnow ex,Mega Abomasnow ex,30,18,12,0,0,0,0.600000,True
+5,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,24,6,0,0,0,0.800000,True
+5,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,30,0,0,1,0,1.000000,False
+5,13,Iono's Bellibolt ex,Crustle,30,16,14,0,0,0,0.533333,False
+5,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+5,13,Iono's Bellibolt ex,Dragapult,30,12,18,0,0,0,0.400000,False
+5,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+5,13,Iono's Bellibolt ex,Hydrapple,30,18,12,0,0,0,0.600000,False
+5,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+5,13,Iono's Bellibolt ex,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+5,13,Iono's Bellibolt ex,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+5,13,Iono's Bellibolt ex,Crustle,30,12,18,0,0,0,0.400000,True
+5,13,Iono's Bellibolt ex,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+5,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+5,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+6,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,21,8,1,3,0,0.700000,False
+6,1,Alakazam Dudunsparce,Crustle,30,1,29,0,0,0,0.033333,False
+6,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,8,22,0,1,0,0.266667,False
+6,1,Alakazam Dudunsparce,Dragapult,30,5,25,0,0,0,0.166667,False
+6,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+6,1,Alakazam Dudunsparce,Hydrapple,30,1,29,0,0,0,0.033333,False
+6,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,3,27,0,0,0,0.100000,False
+6,1,Alakazam Dudunsparce,Dragapult Blaziken,30,3,27,0,0,0,0.100000,False
+6,1,Alakazam Dudunsparce,Ogerpon Box,30,0,30,0,0,0,0.000000,False
+6,1,Alakazam Dudunsparce,Crustle,30,1,29,0,1,0,0.033333,True
+6,1,Alakazam Dudunsparce,Mega Lucario ex,30,1,29,0,0,0,0.033333,True
+6,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,3,27,0,0,0,0.100000,True
+6,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,0,30,0,0,0,0.000000,True
+6,2,Crustle,Alakazam Dudunsparce,30,28,2,0,1,0,0.933333,False
+6,2,Crustle,Crustle,30,16,14,0,0,0,0.533333,False
+6,2,Crustle,Dragapult Dusknoir,30,23,7,0,0,0,0.766667,False
+6,2,Crustle,Dragapult,30,18,12,0,0,0,0.600000,False
+6,2,Crustle,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+6,2,Crustle,Hydrapple,30,13,16,1,0,0,0.433333,False
+6,2,Crustle,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+6,2,Crustle,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+6,2,Crustle,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+6,2,Crustle,Crustle,30,19,11,0,0,0,0.633333,True
+6,2,Crustle,Mega Lucario ex,30,4,26,0,0,0,0.133333,True
+6,2,Crustle,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+6,2,Crustle,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+6,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,24,5,1,2,0,0.800000,False
+6,3,Dragapult Dusknoir,Crustle,30,4,26,0,0,0,0.133333,False
+6,3,Dragapult Dusknoir,Dragapult Dusknoir,30,7,23,0,0,0,0.233333,False
+6,3,Dragapult Dusknoir,Dragapult,30,7,23,0,0,0,0.233333,False
+6,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,6,24,0,0,0,0.200000,False
+6,3,Dragapult Dusknoir,Hydrapple,30,15,15,0,0,0,0.500000,False
+6,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+6,3,Dragapult Dusknoir,Dragapult Blaziken,30,7,23,0,0,0,0.233333,False
+6,3,Dragapult Dusknoir,Ogerpon Box,30,8,22,0,0,0,0.266667,False
+6,3,Dragapult Dusknoir,Crustle,30,9,21,0,0,0,0.300000,True
+6,3,Dragapult Dusknoir,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+6,3,Dragapult Dusknoir,Mega Abomasnow ex,30,3,27,0,0,0,0.100000,True
+6,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,12,18,0,0,0,0.400000,True
+6,4,Dragapult,Alakazam Dudunsparce,30,24,5,1,3,0,0.800000,False
+6,4,Dragapult,Crustle,30,11,19,0,0,0,0.366667,False
+6,4,Dragapult,Dragapult Dusknoir,30,14,16,0,0,0,0.466667,False
+6,4,Dragapult,Dragapult,30,15,15,0,0,0,0.500000,False
+6,4,Dragapult,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+6,4,Dragapult,Hydrapple,30,15,15,0,0,0,0.500000,False
+6,4,Dragapult,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+6,4,Dragapult,Dragapult Blaziken,30,10,20,0,0,0,0.333333,False
+6,4,Dragapult,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+6,4,Dragapult,Crustle,30,15,15,0,0,0,0.500000,True
+6,4,Dragapult,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+6,4,Dragapult,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+6,4,Dragapult,Iono's Bellibolt ex,30,16,14,0,0,0,0.533333,True
+6,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,25,3,2,5,0,0.833333,False
+6,5,Dragapult Dudunsparce,Crustle,30,14,16,0,0,0,0.466667,False
+6,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+6,5,Dragapult Dudunsparce,Dragapult,30,16,14,0,0,0,0.533333,False
+6,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+6,5,Dragapult Dudunsparce,Hydrapple,30,14,16,0,0,0,0.466667,False
+6,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+6,5,Dragapult Dudunsparce,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+6,5,Dragapult Dudunsparce,Ogerpon Box,30,12,18,0,0,0,0.400000,False
+6,5,Dragapult Dudunsparce,Crustle,30,9,21,0,0,0,0.300000,True
+6,5,Dragapult Dudunsparce,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+6,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+6,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+6,6,Hydrapple,Alakazam Dudunsparce,30,29,1,0,4,0,0.966667,False
+6,6,Hydrapple,Crustle,30,6,24,0,0,0,0.200000,False
+6,6,Hydrapple,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+6,6,Hydrapple,Dragapult,30,18,12,0,0,0,0.600000,False
+6,6,Hydrapple,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+6,6,Hydrapple,Hydrapple,30,18,12,0,0,0,0.600000,False
+6,6,Hydrapple,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+6,6,Hydrapple,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+6,6,Hydrapple,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+6,6,Hydrapple,Crustle,30,19,11,0,0,0,0.633333,True
+6,6,Hydrapple,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+6,6,Hydrapple,Mega Abomasnow ex,30,19,11,0,0,0,0.633333,True
+6,6,Hydrapple,Iono's Bellibolt ex,30,16,14,0,0,0,0.533333,True
+6,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,27,1,2,4,0,0.900000,False
+6,7,Raging Bolt Ogerpon,Crustle,30,9,21,0,0,0,0.300000,False
+6,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+6,7,Raging Bolt Ogerpon,Dragapult,30,17,13,0,0,0,0.566667,False
+6,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,16,14,0,0,0,0.533333,False
+6,7,Raging Bolt Ogerpon,Hydrapple,30,15,15,0,0,0,0.500000,False
+6,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+6,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+6,7,Raging Bolt Ogerpon,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+6,7,Raging Bolt Ogerpon,Crustle,30,13,17,0,0,0,0.433333,True
+6,7,Raging Bolt Ogerpon,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+6,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+6,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+6,8,Dragapult Blaziken,Alakazam Dudunsparce,30,27,1,2,6,0,0.900000,False
+6,8,Dragapult Blaziken,Crustle,30,9,21,0,0,0,0.300000,False
+6,8,Dragapult Blaziken,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+6,8,Dragapult Blaziken,Dragapult,30,17,13,0,0,0,0.566667,False
+6,8,Dragapult Blaziken,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+6,8,Dragapult Blaziken,Hydrapple,30,18,12,0,0,0,0.600000,False
+6,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+6,8,Dragapult Blaziken,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+6,8,Dragapult Blaziken,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+6,8,Dragapult Blaziken,Crustle,30,16,14,0,0,0,0.533333,True
+6,8,Dragapult Blaziken,Mega Lucario ex,30,16,14,0,0,0,0.533333,True
+6,8,Dragapult Blaziken,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+6,8,Dragapult Blaziken,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+6,9,Ogerpon Box,Alakazam Dudunsparce,30,26,1,3,6,0,0.866667,False
+6,9,Ogerpon Box,Crustle,30,14,16,0,0,0,0.466667,False
+6,9,Ogerpon Box,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+6,9,Ogerpon Box,Dragapult,30,19,11,0,0,0,0.633333,False
+6,9,Ogerpon Box,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+6,9,Ogerpon Box,Hydrapple,30,14,16,0,0,0,0.466667,False
+6,9,Ogerpon Box,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+6,9,Ogerpon Box,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+6,9,Ogerpon Box,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+6,9,Ogerpon Box,Crustle,30,12,18,0,0,0,0.400000,True
+6,9,Ogerpon Box,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+6,9,Ogerpon Box,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+6,9,Ogerpon Box,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+6,10,Crustle,Alakazam Dudunsparce,30,27,2,1,3,0,0.900000,False
+6,10,Crustle,Crustle,30,9,20,1,0,0,0.300000,False
+6,10,Crustle,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+6,10,Crustle,Dragapult,30,15,15,0,0,0,0.500000,False
+6,10,Crustle,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+6,10,Crustle,Hydrapple,30,20,10,0,0,0,0.666667,False
+6,10,Crustle,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+6,10,Crustle,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+6,10,Crustle,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+6,10,Crustle,Crustle,30,17,13,0,0,0,0.566667,True
+6,10,Crustle,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+6,10,Crustle,Mega Abomasnow ex,30,17,13,0,0,0,0.566667,True
+6,10,Crustle,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+6,11,Mega Lucario ex,Alakazam Dudunsparce,30,29,1,0,6,0,0.966667,False
+6,11,Mega Lucario ex,Crustle,30,26,4,0,0,0,0.866667,False
+6,11,Mega Lucario ex,Dragapult Dusknoir,30,27,3,0,0,0,0.900000,False
+6,11,Mega Lucario ex,Dragapult,30,22,8,0,0,0,0.733333,False
+6,11,Mega Lucario ex,Dragapult Dudunsparce,30,26,4,0,0,0,0.866667,False
+6,11,Mega Lucario ex,Hydrapple,30,26,4,0,0,0,0.866667,False
+6,11,Mega Lucario ex,Raging Bolt Ogerpon,30,27,3,0,0,0,0.900000,False
+6,11,Mega Lucario ex,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+6,11,Mega Lucario ex,Ogerpon Box,30,26,4,0,0,0,0.866667,False
+6,11,Mega Lucario ex,Crustle,30,23,7,0,0,0,0.766667,True
+6,11,Mega Lucario ex,Mega Lucario ex,30,16,14,0,0,0,0.533333,True
+6,11,Mega Lucario ex,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+6,11,Mega Lucario ex,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+6,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,30,0,0,3,0,1.000000,False
+6,12,Mega Abomasnow ex,Crustle,30,20,10,0,0,0,0.666667,False
+6,12,Mega Abomasnow ex,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+6,12,Mega Abomasnow ex,Dragapult,30,15,15,0,0,0,0.500000,False
+6,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+6,12,Mega Abomasnow ex,Hydrapple,30,16,14,0,0,0,0.533333,False
+6,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,23,7,0,0,0,0.766667,False
+6,12,Mega Abomasnow ex,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+6,12,Mega Abomasnow ex,Ogerpon Box,30,22,8,0,0,0,0.733333,False
+6,12,Mega Abomasnow ex,Crustle,30,17,13,0,0,0,0.566667,True
+6,12,Mega Abomasnow ex,Mega Lucario ex,30,21,9,0,0,0,0.700000,True
+6,12,Mega Abomasnow ex,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+6,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+6,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,29,0,1,2,0,0.966667,False
+6,13,Iono's Bellibolt ex,Crustle,30,14,16,0,0,0,0.466667,False
+6,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,11,19,0,0,0,0.366667,False
+6,13,Iono's Bellibolt ex,Dragapult,30,11,19,0,0,0,0.366667,False
+6,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,17,13,0,0,0,0.566667,False
+6,13,Iono's Bellibolt ex,Hydrapple,30,13,17,0,0,0,0.433333,False
+6,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+6,13,Iono's Bellibolt ex,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+6,13,Iono's Bellibolt ex,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+6,13,Iono's Bellibolt ex,Crustle,30,12,18,0,0,0,0.400000,True
+6,13,Iono's Bellibolt ex,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+6,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+6,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+7,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,20,10,0,3,0,0.666667,False
+7,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,False
+7,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,6,24,0,0,0,0.200000,False
+7,1,Alakazam Dudunsparce,Dragapult,30,8,22,0,0,0,0.266667,False
+7,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,8,22,0,0,0,0.266667,False
+7,1,Alakazam Dudunsparce,Hydrapple,30,2,28,0,0,0,0.066667,False
+7,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,7,23,0,0,0,0.233333,False
+7,1,Alakazam Dudunsparce,Dragapult Blaziken,30,5,25,0,0,0,0.166667,False
+7,1,Alakazam Dudunsparce,Ogerpon Box,30,4,26,0,0,0,0.133333,False
+7,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,True
+7,1,Alakazam Dudunsparce,Mega Lucario ex,30,0,30,0,0,0,0.000000,True
+7,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,0,30,0,0,0,0.000000,True
+7,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,0,30,0,0,0,0.000000,True
+7,2,Crustle,Alakazam Dudunsparce,30,27,1,2,2,0,0.900000,False
+7,2,Crustle,Crustle,30,13,17,0,0,0,0.433333,False
+7,2,Crustle,Dragapult Dusknoir,30,23,7,0,0,0,0.766667,False
+7,2,Crustle,Dragapult,30,19,10,1,0,0,0.633333,False
+7,2,Crustle,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+7,2,Crustle,Hydrapple,30,19,11,0,0,0,0.633333,False
+7,2,Crustle,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+7,2,Crustle,Dragapult Blaziken,30,20,10,0,0,0,0.666667,False
+7,2,Crustle,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+7,2,Crustle,Crustle,30,18,11,1,0,0,0.600000,True
+7,2,Crustle,Mega Lucario ex,30,7,22,1,0,0,0.233333,True
+7,2,Crustle,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+7,2,Crustle,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+7,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,25,4,1,1,0,0.833333,False
+7,3,Dragapult Dusknoir,Crustle,30,7,23,0,0,0,0.233333,False
+7,3,Dragapult Dusknoir,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+7,3,Dragapult Dusknoir,Dragapult,30,7,23,0,0,0,0.233333,False
+7,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,8,22,0,0,0,0.266667,False
+7,3,Dragapult Dusknoir,Hydrapple,30,11,19,0,0,0,0.366667,False
+7,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+7,3,Dragapult Dusknoir,Dragapult Blaziken,30,11,19,0,0,0,0.366667,False
+7,3,Dragapult Dusknoir,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+7,3,Dragapult Dusknoir,Crustle,30,8,22,0,0,0,0.266667,True
+7,3,Dragapult Dusknoir,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+7,3,Dragapult Dusknoir,Mega Abomasnow ex,30,4,26,0,0,0,0.133333,True
+7,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,12,18,0,0,0,0.400000,True
+7,4,Dragapult,Alakazam Dudunsparce,30,23,7,0,5,0,0.766667,False
+7,4,Dragapult,Crustle,30,16,14,0,0,0,0.533333,False
+7,4,Dragapult,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+7,4,Dragapult,Dragapult,30,15,15,0,0,0,0.500000,False
+7,4,Dragapult,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+7,4,Dragapult,Hydrapple,30,16,14,0,0,0,0.533333,False
+7,4,Dragapult,Raging Bolt Ogerpon,30,12,18,0,0,0,0.400000,False
+7,4,Dragapult,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+7,4,Dragapult,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+7,4,Dragapult,Crustle,30,14,16,0,0,0,0.466667,True
+7,4,Dragapult,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+7,4,Dragapult,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+7,4,Dragapult,Iono's Bellibolt ex,30,27,3,0,0,0,0.900000,True
+7,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,24,3,3,5,0,0.800000,False
+7,5,Dragapult Dudunsparce,Crustle,30,11,19,0,0,0,0.366667,False
+7,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,9,21,0,0,0,0.300000,False
+7,5,Dragapult Dudunsparce,Dragapult,30,15,15,0,0,0,0.500000,False
+7,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+7,5,Dragapult Dudunsparce,Hydrapple,30,14,16,0,0,0,0.466667,False
+7,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+7,5,Dragapult Dudunsparce,Dragapult Blaziken,30,8,22,0,0,0,0.266667,False
+7,5,Dragapult Dudunsparce,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+7,5,Dragapult Dudunsparce,Crustle,30,12,18,0,0,0,0.400000,True
+7,5,Dragapult Dudunsparce,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+7,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+7,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+7,6,Hydrapple,Alakazam Dudunsparce,30,26,2,2,6,0,0.866667,False
+7,6,Hydrapple,Crustle,30,15,15,0,0,0,0.500000,False
+7,6,Hydrapple,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+7,6,Hydrapple,Dragapult,30,15,15,0,0,0,0.500000,False
+7,6,Hydrapple,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+7,6,Hydrapple,Hydrapple,30,24,6,0,0,0,0.800000,False
+7,6,Hydrapple,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+7,6,Hydrapple,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+7,6,Hydrapple,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+7,6,Hydrapple,Crustle,30,14,15,1,0,0,0.466667,True
+7,6,Hydrapple,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+7,6,Hydrapple,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+7,6,Hydrapple,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+7,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,25,4,1,4,0,0.833333,False
+7,7,Raging Bolt Ogerpon,Crustle,30,13,16,1,0,0,0.433333,False
+7,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,14,16,0,0,0,0.466667,False
+7,7,Raging Bolt Ogerpon,Dragapult,30,15,15,0,0,0,0.500000,False
+7,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+7,7,Raging Bolt Ogerpon,Hydrapple,30,13,17,0,0,0,0.433333,False
+7,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+7,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+7,7,Raging Bolt Ogerpon,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+7,7,Raging Bolt Ogerpon,Crustle,30,10,20,0,0,0,0.333333,True
+7,7,Raging Bolt Ogerpon,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+7,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+7,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+7,8,Dragapult Blaziken,Alakazam Dudunsparce,30,27,3,0,4,0,0.900000,False
+7,8,Dragapult Blaziken,Crustle,30,7,23,0,0,0,0.233333,False
+7,8,Dragapult Blaziken,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+7,8,Dragapult Blaziken,Dragapult,30,20,10,0,0,0,0.666667,False
+7,8,Dragapult Blaziken,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+7,8,Dragapult Blaziken,Hydrapple,30,22,8,0,0,0,0.733333,False
+7,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+7,8,Dragapult Blaziken,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+7,8,Dragapult Blaziken,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+7,8,Dragapult Blaziken,Crustle,30,11,19,0,0,0,0.366667,True
+7,8,Dragapult Blaziken,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+7,8,Dragapult Blaziken,Mega Abomasnow ex,30,9,21,0,0,0,0.300000,True
+7,8,Dragapult Blaziken,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+7,9,Ogerpon Box,Alakazam Dudunsparce,30,27,2,1,8,0,0.900000,False
+7,9,Ogerpon Box,Crustle,30,12,18,0,0,0,0.400000,False
+7,9,Ogerpon Box,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+7,9,Ogerpon Box,Dragapult,30,19,11,0,0,0,0.633333,False
+7,9,Ogerpon Box,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+7,9,Ogerpon Box,Hydrapple,30,15,15,0,0,0,0.500000,False
+7,9,Ogerpon Box,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+7,9,Ogerpon Box,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+7,9,Ogerpon Box,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+7,9,Ogerpon Box,Crustle,30,12,18,0,0,0,0.400000,True
+7,9,Ogerpon Box,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+7,9,Ogerpon Box,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+7,9,Ogerpon Box,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+7,10,Crustle,Alakazam Dudunsparce,30,27,2,1,1,0,0.900000,False
+7,10,Crustle,Crustle,30,15,15,0,0,0,0.500000,False
+7,10,Crustle,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+7,10,Crustle,Dragapult,30,24,6,0,0,0,0.800000,False
+7,10,Crustle,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+7,10,Crustle,Hydrapple,30,17,13,0,0,0,0.566667,False
+7,10,Crustle,Raging Bolt Ogerpon,30,14,16,0,0,0,0.466667,False
+7,10,Crustle,Dragapult Blaziken,30,25,5,0,0,0,0.833333,False
+7,10,Crustle,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+7,10,Crustle,Crustle,30,10,20,0,0,0,0.333333,True
+7,10,Crustle,Mega Lucario ex,30,5,25,0,0,0,0.166667,True
+7,10,Crustle,Mega Abomasnow ex,30,16,14,0,0,0,0.533333,True
+7,10,Crustle,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+7,11,Mega Lucario ex,Alakazam Dudunsparce,30,28,0,2,7,0,0.933333,False
+7,11,Mega Lucario ex,Crustle,30,21,9,0,0,0,0.700000,False
+7,11,Mega Lucario ex,Dragapult Dusknoir,30,26,4,0,0,0,0.866667,False
+7,11,Mega Lucario ex,Dragapult,30,24,6,0,0,0,0.800000,False
+7,11,Mega Lucario ex,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+7,11,Mega Lucario ex,Hydrapple,30,24,6,0,0,0,0.800000,False
+7,11,Mega Lucario ex,Raging Bolt Ogerpon,30,24,6,0,0,0,0.800000,False
+7,11,Mega Lucario ex,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+7,11,Mega Lucario ex,Ogerpon Box,30,27,3,0,0,0,0.900000,False
+7,11,Mega Lucario ex,Crustle,30,23,7,0,0,0,0.766667,True
+7,11,Mega Lucario ex,Mega Lucario ex,30,16,14,0,0,0,0.533333,True
+7,11,Mega Lucario ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+7,11,Mega Lucario ex,Iono's Bellibolt ex,30,26,4,0,0,0,0.866667,True
+7,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,29,1,0,5,0,0.966667,False
+7,12,Mega Abomasnow ex,Crustle,30,18,12,0,0,0,0.600000,False
+7,12,Mega Abomasnow ex,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+7,12,Mega Abomasnow ex,Dragapult,30,14,16,0,0,0,0.466667,False
+7,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+7,12,Mega Abomasnow ex,Hydrapple,30,18,12,0,0,0,0.600000,False
+7,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+7,12,Mega Abomasnow ex,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+7,12,Mega Abomasnow ex,Ogerpon Box,30,24,6,0,0,0,0.800000,False
+7,12,Mega Abomasnow ex,Crustle,30,11,19,0,0,0,0.366667,True
+7,12,Mega Abomasnow ex,Mega Lucario ex,30,14,16,0,0,0,0.466667,True
+7,12,Mega Abomasnow ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+7,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+7,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,29,1,0,1,0,0.966667,False
+7,13,Iono's Bellibolt ex,Crustle,30,14,16,0,0,0,0.466667,False
+7,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,13,17,0,0,0,0.433333,False
+7,13,Iono's Bellibolt ex,Dragapult,30,12,18,0,0,0,0.400000,False
+7,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+7,13,Iono's Bellibolt ex,Hydrapple,30,19,11,0,0,0,0.633333,False
+7,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,13,17,0,0,0,0.433333,False
+7,13,Iono's Bellibolt ex,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+7,13,Iono's Bellibolt ex,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+7,13,Iono's Bellibolt ex,Crustle,30,15,15,0,0,0,0.500000,True
+7,13,Iono's Bellibolt ex,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+7,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,18,12,0,0,0,0.600000,True
+7,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+8,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,17,11,2,4,0,0.566667,False
+8,1,Alakazam Dudunsparce,Crustle,30,6,24,0,0,0,0.200000,False
+8,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,9,21,0,0,0,0.300000,False
+8,1,Alakazam Dudunsparce,Dragapult,30,5,25,0,0,0,0.166667,False
+8,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,6,24,0,0,0,0.200000,False
+8,1,Alakazam Dudunsparce,Hydrapple,30,2,28,0,0,0,0.066667,False
+8,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,7,23,0,0,0,0.233333,False
+8,1,Alakazam Dudunsparce,Dragapult Blaziken,30,3,27,0,0,0,0.100000,False
+8,1,Alakazam Dudunsparce,Ogerpon Box,30,4,26,0,0,0,0.133333,False
+8,1,Alakazam Dudunsparce,Crustle,30,0,30,0,1,0,0.000000,True
+8,1,Alakazam Dudunsparce,Mega Lucario ex,30,0,30,0,0,0,0.000000,True
+8,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,0,30,0,0,0,0.000000,True
+8,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,2,28,0,0,0,0.066667,True
+8,2,Crustle,Alakazam Dudunsparce,30,27,1,2,3,0,0.900000,False
+8,2,Crustle,Crustle,30,17,13,0,0,0,0.566667,False
+8,2,Crustle,Dragapult Dusknoir,30,27,3,0,0,0,0.900000,False
+8,2,Crustle,Dragapult,30,20,10,0,0,0,0.666667,False
+8,2,Crustle,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+8,2,Crustle,Hydrapple,30,19,11,0,0,0,0.633333,False
+8,2,Crustle,Raging Bolt Ogerpon,30,18,11,1,0,0,0.600000,False
+8,2,Crustle,Dragapult Blaziken,30,24,6,0,0,0,0.800000,False
+8,2,Crustle,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+8,2,Crustle,Crustle,30,16,14,0,0,0,0.533333,True
+8,2,Crustle,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+8,2,Crustle,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+8,2,Crustle,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+8,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,27,3,0,2,0,0.900000,False
+8,3,Dragapult Dusknoir,Crustle,30,8,22,0,0,0,0.266667,False
+8,3,Dragapult Dusknoir,Dragapult Dusknoir,30,13,17,0,0,0,0.433333,False
+8,3,Dragapult Dusknoir,Dragapult,30,6,24,0,0,0,0.200000,False
+8,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+8,3,Dragapult Dusknoir,Hydrapple,30,10,20,0,0,0,0.333333,False
+8,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,11,19,0,0,0,0.366667,False
+8,3,Dragapult Dusknoir,Dragapult Blaziken,30,10,20,0,0,0,0.333333,False
+8,3,Dragapult Dusknoir,Ogerpon Box,30,11,19,0,0,0,0.366667,False
+8,3,Dragapult Dusknoir,Crustle,30,11,19,0,0,0,0.366667,True
+8,3,Dragapult Dusknoir,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+8,3,Dragapult Dusknoir,Mega Abomasnow ex,30,4,26,0,0,0,0.133333,True
+8,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,12,18,0,0,0,0.400000,True
+8,4,Dragapult,Alakazam Dudunsparce,30,23,7,0,5,0,0.766667,False
+8,4,Dragapult,Crustle,30,18,12,0,0,0,0.600000,False
+8,4,Dragapult,Dragapult Dusknoir,30,25,5,0,0,0,0.833333,False
+8,4,Dragapult,Dragapult,30,14,16,0,0,0,0.466667,False
+8,4,Dragapult,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+8,4,Dragapult,Hydrapple,30,15,15,0,0,0,0.500000,False
+8,4,Dragapult,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+8,4,Dragapult,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+8,4,Dragapult,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+8,4,Dragapult,Crustle,30,13,17,0,0,0,0.433333,True
+8,4,Dragapult,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+8,4,Dragapult,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+8,4,Dragapult,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+8,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,28,2,0,2,0,0.933333,False
+8,5,Dragapult Dudunsparce,Crustle,30,8,22,0,0,0,0.266667,False
+8,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+8,5,Dragapult Dudunsparce,Dragapult,30,9,21,0,0,0,0.300000,False
+8,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,12,18,0,0,0,0.400000,False
+8,5,Dragapult Dudunsparce,Hydrapple,30,17,13,0,0,0,0.566667,False
+8,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+8,5,Dragapult Dudunsparce,Dragapult Blaziken,30,12,18,0,0,0,0.400000,False
+8,5,Dragapult Dudunsparce,Ogerpon Box,30,13,17,0,0,0,0.433333,False
+8,5,Dragapult Dudunsparce,Crustle,30,13,17,0,0,0,0.433333,True
+8,5,Dragapult Dudunsparce,Mega Lucario ex,30,2,28,0,0,0,0.066667,True
+8,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,6,24,0,0,0,0.200000,True
+8,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+8,6,Hydrapple,Alakazam Dudunsparce,30,27,1,2,5,0,0.900000,False
+8,6,Hydrapple,Crustle,30,14,16,0,0,0,0.466667,False
+8,6,Hydrapple,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+8,6,Hydrapple,Dragapult,30,13,17,0,0,0,0.433333,False
+8,6,Hydrapple,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+8,6,Hydrapple,Hydrapple,30,18,12,0,0,0,0.600000,False
+8,6,Hydrapple,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+8,6,Hydrapple,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+8,6,Hydrapple,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+8,6,Hydrapple,Crustle,30,15,15,0,0,0,0.500000,True
+8,6,Hydrapple,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+8,6,Hydrapple,Mega Abomasnow ex,30,16,14,0,0,0,0.533333,True
+8,6,Hydrapple,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+8,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,28,1,1,5,0,0.933333,False
+8,7,Raging Bolt Ogerpon,Crustle,30,16,14,0,0,0,0.533333,False
+8,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+8,7,Raging Bolt Ogerpon,Dragapult,30,17,13,0,0,0,0.566667,False
+8,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+8,7,Raging Bolt Ogerpon,Hydrapple,30,16,14,0,0,0,0.533333,False
+8,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+8,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+8,7,Raging Bolt Ogerpon,Ogerpon Box,30,11,19,0,0,0,0.366667,False
+8,7,Raging Bolt Ogerpon,Crustle,30,11,19,0,0,0,0.366667,True
+8,7,Raging Bolt Ogerpon,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+8,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+8,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+8,8,Dragapult Blaziken,Alakazam Dudunsparce,30,27,0,3,6,0,0.900000,False
+8,8,Dragapult Blaziken,Crustle,30,9,21,0,0,0,0.300000,False
+8,8,Dragapult Blaziken,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+8,8,Dragapult Blaziken,Dragapult,30,13,17,0,0,0,0.433333,False
+8,8,Dragapult Blaziken,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+8,8,Dragapult Blaziken,Hydrapple,30,18,12,0,0,0,0.600000,False
+8,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+8,8,Dragapult Blaziken,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+8,8,Dragapult Blaziken,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+8,8,Dragapult Blaziken,Crustle,30,10,20,0,0,0,0.333333,True
+8,8,Dragapult Blaziken,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+8,8,Dragapult Blaziken,Mega Abomasnow ex,30,7,23,0,0,0,0.233333,True
+8,8,Dragapult Blaziken,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+8,9,Ogerpon Box,Alakazam Dudunsparce,30,30,0,0,3,0,1.000000,False
+8,9,Ogerpon Box,Crustle,30,6,24,0,0,0,0.200000,False
+8,9,Ogerpon Box,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+8,9,Ogerpon Box,Dragapult,30,21,9,0,0,0,0.700000,False
+8,9,Ogerpon Box,Dragapult Dudunsparce,30,17,13,0,0,0,0.566667,False
+8,9,Ogerpon Box,Hydrapple,30,17,13,0,0,0,0.566667,False
+8,9,Ogerpon Box,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+8,9,Ogerpon Box,Dragapult Blaziken,30,21,9,0,0,0,0.700000,False
+8,9,Ogerpon Box,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+8,9,Ogerpon Box,Crustle,30,17,13,0,0,0,0.566667,True
+8,9,Ogerpon Box,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+8,9,Ogerpon Box,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+8,9,Ogerpon Box,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+8,10,Crustle,Alakazam Dudunsparce,30,27,3,0,1,0,0.900000,False
+8,10,Crustle,Crustle,30,11,19,0,0,0,0.366667,False
+8,10,Crustle,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+8,10,Crustle,Dragapult,30,20,10,0,0,0,0.666667,False
+8,10,Crustle,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+8,10,Crustle,Hydrapple,30,18,12,0,0,0,0.600000,False
+8,10,Crustle,Raging Bolt Ogerpon,30,18,12,0,0,0,0.600000,False
+8,10,Crustle,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+8,10,Crustle,Ogerpon Box,30,22,8,0,0,0,0.733333,False
+8,10,Crustle,Crustle,30,18,11,1,0,0,0.600000,True
+8,10,Crustle,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+8,10,Crustle,Mega Abomasnow ex,30,23,7,0,0,0,0.766667,True
+8,10,Crustle,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+8,11,Mega Lucario ex,Alakazam Dudunsparce,30,30,0,0,4,0,1.000000,False
+8,11,Mega Lucario ex,Crustle,30,21,9,0,0,0,0.700000,False
+8,11,Mega Lucario ex,Dragapult Dusknoir,30,25,5,0,0,0,0.833333,False
+8,11,Mega Lucario ex,Dragapult,30,23,7,0,0,0,0.766667,False
+8,11,Mega Lucario ex,Dragapult Dudunsparce,30,22,8,0,0,0,0.733333,False
+8,11,Mega Lucario ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+8,11,Mega Lucario ex,Raging Bolt Ogerpon,30,24,6,0,0,0,0.800000,False
+8,11,Mega Lucario ex,Dragapult Blaziken,30,27,3,0,0,0,0.900000,False
+8,11,Mega Lucario ex,Ogerpon Box,30,26,4,0,0,0,0.866667,False
+8,11,Mega Lucario ex,Crustle,30,26,4,0,0,0,0.866667,True
+8,11,Mega Lucario ex,Mega Lucario ex,30,15,14,1,0,0,0.500000,True
+8,11,Mega Lucario ex,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+8,11,Mega Lucario ex,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+8,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,30,0,0,4,0,1.000000,False
+8,12,Mega Abomasnow ex,Crustle,30,16,14,0,0,0,0.533333,False
+8,12,Mega Abomasnow ex,Dragapult Dusknoir,30,22,8,0,0,0,0.733333,False
+8,12,Mega Abomasnow ex,Dragapult,30,18,12,0,0,0,0.600000,False
+8,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,22,8,0,0,0,0.733333,False
+8,12,Mega Abomasnow ex,Hydrapple,30,20,10,0,0,0,0.666667,False
+8,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,26,4,0,0,0,0.866667,False
+8,12,Mega Abomasnow ex,Dragapult Blaziken,30,21,9,0,0,0,0.700000,False
+8,12,Mega Abomasnow ex,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+8,12,Mega Abomasnow ex,Crustle,30,12,18,0,0,0,0.400000,True
+8,12,Mega Abomasnow ex,Mega Lucario ex,30,20,10,0,0,0,0.666667,True
+8,12,Mega Abomasnow ex,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+8,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+8,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,28,2,0,0,0,0.933333,False
+8,13,Iono's Bellibolt ex,Crustle,30,18,12,0,0,0,0.600000,False
+8,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+8,13,Iono's Bellibolt ex,Dragapult,30,19,11,0,0,0,0.633333,False
+8,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,17,13,0,0,0,0.566667,False
+8,13,Iono's Bellibolt ex,Hydrapple,30,19,11,0,0,0,0.633333,False
+8,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+8,13,Iono's Bellibolt ex,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+8,13,Iono's Bellibolt ex,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+8,13,Iono's Bellibolt ex,Crustle,30,12,18,0,0,0,0.400000,True
+8,13,Iono's Bellibolt ex,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+8,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+8,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+9,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,21,7,2,5,0,0.700000,False
+9,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,False
+9,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,8,22,0,0,0,0.266667,False
+9,1,Alakazam Dudunsparce,Dragapult,30,7,23,0,0,0,0.233333,False
+9,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,5,25,0,0,0,0.166667,False
+9,1,Alakazam Dudunsparce,Hydrapple,30,1,29,0,0,0,0.033333,False
+9,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,5,25,0,0,0,0.166667,False
+9,1,Alakazam Dudunsparce,Dragapult Blaziken,30,3,27,0,0,0,0.100000,False
+9,1,Alakazam Dudunsparce,Ogerpon Box,30,3,27,0,0,0,0.100000,False
+9,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,True
+9,1,Alakazam Dudunsparce,Mega Lucario ex,30,1,29,0,0,0,0.033333,True
+9,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,1,29,0,0,0,0.033333,True
+9,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,1,29,0,0,0,0.033333,True
+9,2,Crustle,Alakazam Dudunsparce,30,27,1,2,2,0,0.900000,False
+9,2,Crustle,Crustle,30,15,15,0,0,0,0.500000,False
+9,2,Crustle,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+9,2,Crustle,Dragapult,30,19,11,0,0,0,0.633333,False
+9,2,Crustle,Dragapult Dudunsparce,30,20,9,1,0,0,0.666667,False
+9,2,Crustle,Hydrapple,30,19,11,0,0,0,0.633333,False
+9,2,Crustle,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+9,2,Crustle,Dragapult Blaziken,30,25,5,0,0,0,0.833333,False
+9,2,Crustle,Ogerpon Box,30,22,7,1,0,0,0.733333,False
+9,2,Crustle,Crustle,30,20,10,0,0,0,0.666667,True
+9,2,Crustle,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+9,2,Crustle,Mega Abomasnow ex,30,18,12,0,0,0,0.600000,True
+9,2,Crustle,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+9,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,27,3,0,4,0,0.900000,False
+9,3,Dragapult Dusknoir,Crustle,30,5,25,0,0,0,0.166667,False
+9,3,Dragapult Dusknoir,Dragapult Dusknoir,30,12,18,0,0,0,0.400000,False
+9,3,Dragapult Dusknoir,Dragapult,30,10,20,0,0,0,0.333333,False
+9,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+9,3,Dragapult Dusknoir,Hydrapple,30,14,16,0,0,0,0.466667,False
+9,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,12,18,0,0,0,0.400000,False
+9,3,Dragapult Dusknoir,Dragapult Blaziken,30,10,20,0,0,0,0.333333,False
+9,3,Dragapult Dusknoir,Ogerpon Box,30,9,21,0,0,0,0.300000,False
+9,3,Dragapult Dusknoir,Crustle,30,2,28,0,0,0,0.066667,True
+9,3,Dragapult Dusknoir,Mega Lucario ex,30,3,27,0,0,0,0.100000,True
+9,3,Dragapult Dusknoir,Mega Abomasnow ex,30,5,25,0,0,0,0.166667,True
+9,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,14,16,0,0,0,0.466667,True
+9,4,Dragapult,Alakazam Dudunsparce,30,24,3,3,7,0,0.800000,False
+9,4,Dragapult,Crustle,30,14,16,0,0,0,0.466667,False
+9,4,Dragapult,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+9,4,Dragapult,Dragapult,30,14,16,0,0,0,0.466667,False
+9,4,Dragapult,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+9,4,Dragapult,Hydrapple,30,18,12,0,0,0,0.600000,False
+9,4,Dragapult,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+9,4,Dragapult,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+9,4,Dragapult,Ogerpon Box,30,17,13,0,0,0,0.566667,False
+9,4,Dragapult,Crustle,30,13,17,0,0,0,0.433333,True
+9,4,Dragapult,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+9,4,Dragapult,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+9,4,Dragapult,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+9,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,30,0,0,2,0,1.000000,False
+9,5,Dragapult Dudunsparce,Crustle,30,9,21,0,0,0,0.300000,False
+9,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,12,18,0,0,0,0.400000,False
+9,5,Dragapult Dudunsparce,Dragapult,30,10,20,0,0,0,0.333333,False
+9,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,12,18,0,0,0,0.400000,False
+9,5,Dragapult Dudunsparce,Hydrapple,30,10,20,0,0,0,0.333333,False
+9,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,12,18,0,0,0,0.400000,False
+9,5,Dragapult Dudunsparce,Dragapult Blaziken,30,16,14,0,0,0,0.533333,False
+9,5,Dragapult Dudunsparce,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+9,5,Dragapult Dudunsparce,Crustle,30,8,22,0,0,0,0.266667,True
+9,5,Dragapult Dudunsparce,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+9,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+9,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,17,13,0,0,0,0.566667,True
+9,6,Hydrapple,Alakazam Dudunsparce,30,27,0,3,6,0,0.900000,False
+9,6,Hydrapple,Crustle,30,12,18,0,0,0,0.400000,False
+9,6,Hydrapple,Dragapult Dusknoir,30,12,18,0,0,0,0.400000,False
+9,6,Hydrapple,Dragapult,30,14,16,0,0,0,0.466667,False
+9,6,Hydrapple,Dragapult Dudunsparce,30,11,19,0,0,0,0.366667,False
+9,6,Hydrapple,Hydrapple,30,10,20,0,0,0,0.333333,False
+9,6,Hydrapple,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+9,6,Hydrapple,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+9,6,Hydrapple,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+9,6,Hydrapple,Crustle,30,11,19,0,0,0,0.366667,True
+9,6,Hydrapple,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+9,6,Hydrapple,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+9,6,Hydrapple,Iono's Bellibolt ex,30,16,14,0,0,0,0.533333,True
+9,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,26,1,3,9,0,0.866667,False
+9,7,Raging Bolt Ogerpon,Crustle,30,11,19,0,0,0,0.366667,False
+9,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+9,7,Raging Bolt Ogerpon,Dragapult,30,17,13,0,0,0,0.566667,False
+9,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+9,7,Raging Bolt Ogerpon,Hydrapple,30,10,20,0,0,0,0.333333,False
+9,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+9,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+9,7,Raging Bolt Ogerpon,Ogerpon Box,30,19,11,0,0,0,0.633333,False
+9,7,Raging Bolt Ogerpon,Crustle,30,13,17,0,0,0,0.433333,True
+9,7,Raging Bolt Ogerpon,Mega Lucario ex,30,7,23,0,0,0,0.233333,True
+9,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,7,23,0,0,0,0.233333,True
+9,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,24,6,0,0,0,0.800000,True
+9,8,Dragapult Blaziken,Alakazam Dudunsparce,30,27,3,0,1,0,0.900000,False
+9,8,Dragapult Blaziken,Crustle,30,12,18,0,0,0,0.400000,False
+9,8,Dragapult Blaziken,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+9,8,Dragapult Blaziken,Dragapult,30,18,12,0,0,0,0.600000,False
+9,8,Dragapult Blaziken,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+9,8,Dragapult Blaziken,Hydrapple,30,22,8,0,0,0,0.733333,False
+9,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+9,8,Dragapult Blaziken,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+9,8,Dragapult Blaziken,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+9,8,Dragapult Blaziken,Crustle,30,12,18,0,0,0,0.400000,True
+9,8,Dragapult Blaziken,Mega Lucario ex,30,12,17,1,0,0,0.400000,True
+9,8,Dragapult Blaziken,Mega Abomasnow ex,30,3,27,0,0,0,0.100000,True
+9,8,Dragapult Blaziken,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+9,9,Ogerpon Box,Alakazam Dudunsparce,30,28,0,2,6,0,0.933333,False
+9,9,Ogerpon Box,Crustle,30,9,21,0,0,0,0.300000,False
+9,9,Ogerpon Box,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+9,9,Ogerpon Box,Dragapult,30,21,9,0,0,0,0.700000,False
+9,9,Ogerpon Box,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+9,9,Ogerpon Box,Hydrapple,30,15,15,0,0,0,0.500000,False
+9,9,Ogerpon Box,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+9,9,Ogerpon Box,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+9,9,Ogerpon Box,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+9,9,Ogerpon Box,Crustle,30,13,17,0,0,0,0.433333,True
+9,9,Ogerpon Box,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+9,9,Ogerpon Box,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+9,9,Ogerpon Box,Iono's Bellibolt ex,30,19,11,0,0,0,0.633333,True
+9,10,Crustle,Alakazam Dudunsparce,30,27,2,1,1,0,0.900000,False
+9,10,Crustle,Crustle,30,18,12,0,0,0,0.600000,False
+9,10,Crustle,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+9,10,Crustle,Dragapult,30,16,14,0,0,0,0.533333,False
+9,10,Crustle,Dragapult Dudunsparce,30,21,9,0,0,0,0.700000,False
+9,10,Crustle,Hydrapple,30,15,15,0,0,0,0.500000,False
+9,10,Crustle,Raging Bolt Ogerpon,30,20,10,0,0,0,0.666667,False
+9,10,Crustle,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+9,10,Crustle,Ogerpon Box,30,15,14,1,0,0,0.500000,False
+9,10,Crustle,Crustle,30,14,16,0,0,0,0.466667,True
+9,10,Crustle,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+9,10,Crustle,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+9,10,Crustle,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+9,11,Mega Lucario ex,Alakazam Dudunsparce,30,28,0,2,6,0,0.933333,False
+9,11,Mega Lucario ex,Crustle,30,22,8,0,0,0,0.733333,False
+9,11,Mega Lucario ex,Dragapult Dusknoir,30,28,2,0,0,0,0.933333,False
+9,11,Mega Lucario ex,Dragapult,30,18,12,0,0,0,0.600000,False
+9,11,Mega Lucario ex,Dragapult Dudunsparce,30,24,6,0,0,0,0.800000,False
+9,11,Mega Lucario ex,Hydrapple,30,23,7,0,0,0,0.766667,False
+9,11,Mega Lucario ex,Raging Bolt Ogerpon,30,24,6,0,0,0,0.800000,False
+9,11,Mega Lucario ex,Dragapult Blaziken,30,24,6,0,0,0,0.800000,False
+9,11,Mega Lucario ex,Ogerpon Box,30,24,6,0,0,0,0.800000,False
+9,11,Mega Lucario ex,Crustle,30,25,5,0,0,0,0.833333,True
+9,11,Mega Lucario ex,Mega Lucario ex,30,21,9,0,0,0,0.700000,True
+9,11,Mega Lucario ex,Mega Abomasnow ex,30,16,14,0,0,0,0.533333,True
+9,11,Mega Lucario ex,Iono's Bellibolt ex,30,27,3,0,0,0,0.900000,True
+9,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,29,0,1,5,0,0.966667,False
+9,12,Mega Abomasnow ex,Crustle,30,16,14,0,0,0,0.533333,False
+9,12,Mega Abomasnow ex,Dragapult Dusknoir,30,24,6,0,0,0,0.800000,False
+9,12,Mega Abomasnow ex,Dragapult,30,20,10,0,0,0,0.666667,False
+9,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,22,8,0,0,0,0.733333,False
+9,12,Mega Abomasnow ex,Hydrapple,30,21,9,0,0,0,0.700000,False
+9,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+9,12,Mega Abomasnow ex,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+9,12,Mega Abomasnow ex,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+9,12,Mega Abomasnow ex,Crustle,30,6,24,0,0,0,0.200000,True
+9,12,Mega Abomasnow ex,Mega Lucario ex,30,18,12,0,0,0,0.600000,True
+9,12,Mega Abomasnow ex,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+9,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,20,10,0,0,0,0.666667,True
+9,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,30,0,0,3,0,1.000000,False
+9,13,Iono's Bellibolt ex,Crustle,30,14,16,0,0,0,0.466667,False
+9,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+9,13,Iono's Bellibolt ex,Dragapult,30,16,14,0,0,0,0.533333,False
+9,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,16,14,0,0,0,0.533333,False
+9,13,Iono's Bellibolt ex,Hydrapple,30,19,11,0,0,0,0.633333,False
+9,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,21,9,0,0,0,0.700000,False
+9,13,Iono's Bellibolt ex,Dragapult Blaziken,30,15,15,0,0,0,0.500000,False
+9,13,Iono's Bellibolt ex,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+9,13,Iono's Bellibolt ex,Crustle,30,12,18,0,0,0,0.400000,True
+9,13,Iono's Bellibolt ex,Mega Lucario ex,30,6,24,0,0,0,0.200000,True
+9,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,13,17,0,0,0,0.433333,True
+9,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+10,1,Alakazam Dudunsparce,Alakazam Dudunsparce,30,18,8,4,4,0,0.600000,False
+10,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,False
+10,1,Alakazam Dudunsparce,Dragapult Dusknoir,30,6,24,0,0,0,0.200000,False
+10,1,Alakazam Dudunsparce,Dragapult,30,10,20,0,0,0,0.333333,False
+10,1,Alakazam Dudunsparce,Dragapult Dudunsparce,30,6,24,0,0,0,0.200000,False
+10,1,Alakazam Dudunsparce,Hydrapple,30,0,30,0,0,0,0.000000,False
+10,1,Alakazam Dudunsparce,Raging Bolt Ogerpon,30,6,24,0,0,0,0.200000,False
+10,1,Alakazam Dudunsparce,Dragapult Blaziken,30,8,22,0,1,0,0.266667,False
+10,1,Alakazam Dudunsparce,Ogerpon Box,30,0,30,0,0,0,0.000000,False
+10,1,Alakazam Dudunsparce,Crustle,30,0,30,0,0,0,0.000000,True
+10,1,Alakazam Dudunsparce,Mega Lucario ex,30,0,30,0,0,0,0.000000,True
+10,1,Alakazam Dudunsparce,Mega Abomasnow ex,30,0,30,0,0,0,0.000000,True
+10,1,Alakazam Dudunsparce,Iono's Bellibolt ex,30,1,29,0,0,0,0.033333,True
+10,2,Crustle,Alakazam Dudunsparce,30,30,0,0,2,0,1.000000,False
+10,2,Crustle,Crustle,30,13,16,1,0,0,0.433333,False
+10,2,Crustle,Dragapult Dusknoir,30,25,5,0,0,0,0.833333,False
+10,2,Crustle,Dragapult,30,14,16,0,0,0,0.466667,False
+10,2,Crustle,Dragapult Dudunsparce,30,20,10,0,0,0,0.666667,False
+10,2,Crustle,Hydrapple,30,18,12,0,0,0,0.600000,False
+10,2,Crustle,Raging Bolt Ogerpon,30,19,10,1,0,0,0.633333,False
+10,2,Crustle,Dragapult Blaziken,30,22,8,0,0,0,0.733333,False
+10,2,Crustle,Ogerpon Box,30,16,14,0,0,0,0.533333,False
+10,2,Crustle,Crustle,30,19,11,0,0,0,0.633333,True
+10,2,Crustle,Mega Lucario ex,30,12,18,0,0,0,0.400000,True
+10,2,Crustle,Mega Abomasnow ex,30,16,14,0,0,0,0.533333,True
+10,2,Crustle,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+10,3,Dragapult Dusknoir,Alakazam Dudunsparce,30,22,7,1,2,0,0.733333,False
+10,3,Dragapult Dusknoir,Crustle,30,6,24,0,0,0,0.200000,False
+10,3,Dragapult Dusknoir,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+10,3,Dragapult Dusknoir,Dragapult,30,5,25,0,0,0,0.166667,False
+10,3,Dragapult Dusknoir,Dragapult Dudunsparce,30,4,26,0,0,0,0.133333,False
+10,3,Dragapult Dusknoir,Hydrapple,30,9,21,0,0,0,0.300000,False
+10,3,Dragapult Dusknoir,Raging Bolt Ogerpon,30,13,17,0,0,0,0.433333,False
+10,3,Dragapult Dusknoir,Dragapult Blaziken,30,14,16,0,0,0,0.466667,False
+10,3,Dragapult Dusknoir,Ogerpon Box,30,6,24,0,0,0,0.200000,False
+10,3,Dragapult Dusknoir,Crustle,30,10,20,0,0,0,0.333333,True
+10,3,Dragapult Dusknoir,Mega Lucario ex,30,4,26,0,0,0,0.133333,True
+10,3,Dragapult Dusknoir,Mega Abomasnow ex,30,5,24,1,0,0,0.166667,True
+10,3,Dragapult Dusknoir,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+10,4,Dragapult,Alakazam Dudunsparce,30,25,4,1,3,0,0.833333,False
+10,4,Dragapult,Crustle,30,16,14,0,0,0,0.533333,False
+10,4,Dragapult,Dragapult Dusknoir,30,17,13,0,0,0,0.566667,False
+10,4,Dragapult,Dragapult,30,15,15,0,0,0,0.500000,False
+10,4,Dragapult,Dragapult Dudunsparce,30,16,14,0,0,0,0.533333,False
+10,4,Dragapult,Hydrapple,30,18,12,0,0,0,0.600000,False
+10,4,Dragapult,Raging Bolt Ogerpon,30,15,15,0,0,0,0.500000,False
+10,4,Dragapult,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+10,4,Dragapult,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+10,4,Dragapult,Crustle,30,18,12,0,0,0,0.600000,True
+10,4,Dragapult,Mega Lucario ex,30,8,22,0,0,0,0.266667,True
+10,4,Dragapult,Mega Abomasnow ex,30,12,18,0,0,0,0.400000,True
+10,4,Dragapult,Iono's Bellibolt ex,30,16,14,0,0,0,0.533333,True
+10,5,Dragapult Dudunsparce,Alakazam Dudunsparce,30,26,2,2,8,0,0.866667,False
+10,5,Dragapult Dudunsparce,Crustle,30,5,25,0,0,0,0.166667,False
+10,5,Dragapult Dudunsparce,Dragapult Dusknoir,30,14,16,0,0,0,0.466667,False
+10,5,Dragapult Dudunsparce,Dragapult,30,12,18,0,0,0,0.400000,False
+10,5,Dragapult Dudunsparce,Dragapult Dudunsparce,30,14,16,0,0,0,0.466667,False
+10,5,Dragapult Dudunsparce,Hydrapple,30,16,14,0,0,0,0.533333,False
+10,5,Dragapult Dudunsparce,Raging Bolt Ogerpon,30,13,17,0,0,0,0.433333,False
+10,5,Dragapult Dudunsparce,Dragapult Blaziken,30,12,18,0,0,0,0.400000,False
+10,5,Dragapult Dudunsparce,Ogerpon Box,30,12,18,0,0,0,0.400000,False
+10,5,Dragapult Dudunsparce,Crustle,30,17,13,0,0,0,0.566667,True
+10,5,Dragapult Dudunsparce,Mega Lucario ex,30,10,20,0,0,0,0.333333,True
+10,5,Dragapult Dudunsparce,Mega Abomasnow ex,30,8,22,0,0,0,0.266667,True
+10,5,Dragapult Dudunsparce,Iono's Bellibolt ex,30,15,15,0,0,0,0.500000,True
+10,6,Hydrapple,Alakazam Dudunsparce,30,30,0,0,1,0,1.000000,False
+10,6,Hydrapple,Crustle,30,9,21,0,0,0,0.300000,False
+10,6,Hydrapple,Dragapult Dusknoir,30,18,12,0,0,0,0.600000,False
+10,6,Hydrapple,Dragapult,30,11,19,0,0,0,0.366667,False
+10,6,Hydrapple,Dragapult Dudunsparce,30,13,17,0,0,0,0.433333,False
+10,6,Hydrapple,Hydrapple,30,17,13,0,0,0,0.566667,False
+10,6,Hydrapple,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+10,6,Hydrapple,Dragapult Blaziken,30,12,18,0,0,0,0.400000,False
+10,6,Hydrapple,Ogerpon Box,30,21,9,0,0,0,0.700000,False
+10,6,Hydrapple,Crustle,30,13,17,0,0,0,0.433333,True
+10,6,Hydrapple,Mega Lucario ex,30,11,19,0,0,0,0.366667,True
+10,6,Hydrapple,Mega Abomasnow ex,30,14,16,0,0,0,0.466667,True
+10,6,Hydrapple,Iono's Bellibolt ex,30,22,8,0,0,0,0.733333,True
+10,7,Raging Bolt Ogerpon,Alakazam Dudunsparce,30,29,1,0,3,0,0.966667,False
+10,7,Raging Bolt Ogerpon,Crustle,30,15,15,0,0,0,0.500000,False
+10,7,Raging Bolt Ogerpon,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+10,7,Raging Bolt Ogerpon,Dragapult,30,17,13,0,0,0,0.566667,False
+10,7,Raging Bolt Ogerpon,Dragapult Dudunsparce,30,15,15,0,0,0,0.500000,False
+10,7,Raging Bolt Ogerpon,Hydrapple,30,12,18,0,0,0,0.400000,False
+10,7,Raging Bolt Ogerpon,Raging Bolt Ogerpon,30,12,18,0,0,0,0.400000,False
+10,7,Raging Bolt Ogerpon,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+10,7,Raging Bolt Ogerpon,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+10,7,Raging Bolt Ogerpon,Crustle,30,10,19,1,0,0,0.333333,True
+10,7,Raging Bolt Ogerpon,Mega Lucario ex,30,2,28,0,0,0,0.066667,True
+10,7,Raging Bolt Ogerpon,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+10,7,Raging Bolt Ogerpon,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+10,8,Dragapult Blaziken,Alakazam Dudunsparce,30,23,5,2,3,0,0.766667,False
+10,8,Dragapult Blaziken,Crustle,30,13,17,0,0,0,0.433333,False
+10,8,Dragapult Blaziken,Dragapult Dusknoir,30,15,15,0,0,0,0.500000,False
+10,8,Dragapult Blaziken,Dragapult,30,14,16,0,0,0,0.466667,False
+10,8,Dragapult Blaziken,Dragapult Dudunsparce,30,10,20,0,0,0,0.333333,False
+10,8,Dragapult Blaziken,Hydrapple,30,16,14,0,0,0,0.533333,False
+10,8,Dragapult Blaziken,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+10,8,Dragapult Blaziken,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+10,8,Dragapult Blaziken,Ogerpon Box,30,14,16,0,0,0,0.466667,False
+10,8,Dragapult Blaziken,Crustle,30,15,15,0,0,0,0.500000,True
+10,8,Dragapult Blaziken,Mega Lucario ex,30,16,14,0,0,0,0.533333,True
+10,8,Dragapult Blaziken,Mega Abomasnow ex,30,10,20,0,0,0,0.333333,True
+10,8,Dragapult Blaziken,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
+10,9,Ogerpon Box,Alakazam Dudunsparce,30,30,0,0,3,0,1.000000,False
+10,9,Ogerpon Box,Crustle,30,11,19,0,0,0,0.366667,False
+10,9,Ogerpon Box,Dragapult Dusknoir,30,16,14,0,0,0,0.533333,False
+10,9,Ogerpon Box,Dragapult,30,17,13,0,0,0,0.566667,False
+10,9,Ogerpon Box,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+10,9,Ogerpon Box,Hydrapple,30,15,15,0,0,0,0.500000,False
+10,9,Ogerpon Box,Raging Bolt Ogerpon,30,16,14,0,0,0,0.533333,False
+10,9,Ogerpon Box,Dragapult Blaziken,30,19,11,0,0,0,0.633333,False
+10,9,Ogerpon Box,Ogerpon Box,30,15,15,0,0,0,0.500000,False
+10,9,Ogerpon Box,Crustle,30,12,18,0,0,0,0.400000,True
+10,9,Ogerpon Box,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+10,9,Ogerpon Box,Mega Abomasnow ex,30,11,19,0,0,0,0.366667,True
+10,9,Ogerpon Box,Iono's Bellibolt ex,30,23,7,0,0,0,0.766667,True
+10,10,Crustle,Alakazam Dudunsparce,30,27,3,0,1,0,0.900000,False
+10,10,Crustle,Crustle,30,17,13,0,0,0,0.566667,False
+10,10,Crustle,Dragapult Dusknoir,30,19,11,0,0,0,0.633333,False
+10,10,Crustle,Dragapult,30,18,12,0,0,0,0.600000,False
+10,10,Crustle,Dragapult Dudunsparce,30,19,11,0,0,0,0.633333,False
+10,10,Crustle,Hydrapple,30,16,14,0,0,0,0.533333,False
+10,10,Crustle,Raging Bolt Ogerpon,30,19,11,0,0,0,0.633333,False
+10,10,Crustle,Dragapult Blaziken,30,17,13,0,0,0,0.566667,False
+10,10,Crustle,Ogerpon Box,30,20,10,0,0,0,0.666667,False
+10,10,Crustle,Crustle,30,13,17,0,0,0,0.433333,True
+10,10,Crustle,Mega Lucario ex,30,3,27,0,0,0,0.100000,True
+10,10,Crustle,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+10,10,Crustle,Iono's Bellibolt ex,30,21,9,0,0,0,0.700000,True
+10,11,Mega Lucario ex,Alakazam Dudunsparce,30,29,1,0,3,0,0.966667,False
+10,11,Mega Lucario ex,Crustle,30,22,8,0,0,0,0.733333,False
+10,11,Mega Lucario ex,Dragapult Dusknoir,30,26,4,0,0,0,0.866667,False
+10,11,Mega Lucario ex,Dragapult,30,18,12,0,0,0,0.600000,False
+10,11,Mega Lucario ex,Dragapult Dudunsparce,30,22,8,0,0,0,0.733333,False
+10,11,Mega Lucario ex,Hydrapple,30,20,10,0,0,0,0.666667,False
+10,11,Mega Lucario ex,Raging Bolt Ogerpon,30,24,6,0,0,0,0.800000,False
+10,11,Mega Lucario ex,Dragapult Blaziken,30,23,7,0,0,0,0.766667,False
+10,11,Mega Lucario ex,Ogerpon Box,30,27,3,0,0,0,0.900000,False
+10,11,Mega Lucario ex,Crustle,30,24,6,0,0,0,0.800000,True
+10,11,Mega Lucario ex,Mega Lucario ex,30,17,13,0,0,0,0.566667,True
+10,11,Mega Lucario ex,Mega Abomasnow ex,30,17,12,1,0,0,0.566667,True
+10,11,Mega Lucario ex,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+10,12,Mega Abomasnow ex,Alakazam Dudunsparce,30,29,1,0,2,0,0.966667,False
+10,12,Mega Abomasnow ex,Crustle,30,15,15,0,0,0,0.500000,False
+10,12,Mega Abomasnow ex,Dragapult Dusknoir,30,20,10,0,0,0,0.666667,False
+10,12,Mega Abomasnow ex,Dragapult,30,21,9,0,0,0,0.700000,False
+10,12,Mega Abomasnow ex,Dragapult Dudunsparce,30,24,6,0,0,0,0.800000,False
+10,12,Mega Abomasnow ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+10,12,Mega Abomasnow ex,Raging Bolt Ogerpon,30,22,8,0,0,0,0.733333,False
+10,12,Mega Abomasnow ex,Dragapult Blaziken,30,27,3,0,0,0,0.900000,False
+10,12,Mega Abomasnow ex,Ogerpon Box,30,23,7,0,0,0,0.766667,False
+10,12,Mega Abomasnow ex,Crustle,30,11,19,0,0,0,0.366667,True
+10,12,Mega Abomasnow ex,Mega Lucario ex,30,21,9,0,0,0,0.700000,True
+10,12,Mega Abomasnow ex,Mega Abomasnow ex,30,18,12,0,0,0,0.600000,True
+10,12,Mega Abomasnow ex,Iono's Bellibolt ex,30,25,5,0,0,0,0.833333,True
+10,13,Iono's Bellibolt ex,Alakazam Dudunsparce,30,28,0,2,3,0,0.933333,False
+10,13,Iono's Bellibolt ex,Crustle,30,15,15,0,0,0,0.500000,False
+10,13,Iono's Bellibolt ex,Dragapult Dusknoir,30,21,9,0,0,0,0.700000,False
+10,13,Iono's Bellibolt ex,Dragapult,30,12,18,0,0,0,0.400000,False
+10,13,Iono's Bellibolt ex,Dragapult Dudunsparce,30,18,12,0,0,0,0.600000,False
+10,13,Iono's Bellibolt ex,Hydrapple,30,22,8,0,0,0,0.733333,False
+10,13,Iono's Bellibolt ex,Raging Bolt Ogerpon,30,17,13,0,0,0,0.566667,False
+10,13,Iono's Bellibolt ex,Dragapult Blaziken,30,18,12,0,0,0,0.600000,False
+10,13,Iono's Bellibolt ex,Ogerpon Box,30,18,12,0,0,0,0.600000,False
+10,13,Iono's Bellibolt ex,Crustle,30,16,14,0,0,0,0.533333,True
+10,13,Iono's Bellibolt ex,Mega Lucario ex,30,9,21,0,0,0,0.300000,True
+10,13,Iono's Bellibolt ex,Mega Abomasnow ex,30,15,15,0,0,0,0.500000,True
+10,13,Iono's Bellibolt ex,Iono's Bellibolt ex,30,18,12,0,0,0,0.600000,True
