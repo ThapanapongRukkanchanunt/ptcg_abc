@@ -1237,6 +1237,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   attachments. This is a useful shaped PPO input; proceed with the deck-12-only
   PPO update/eval, but scale no further unless the held-out eval clearly beats
   the previous noisy +2 / 30 result.
+- Tactical-shaped deck-12 PPO eval job `73757` scored 8 / 30 wins against
+  built-in `sample_dragapult`, matching the unshaped PPO result and only +2 wins
+  above the 6 / 30 iteration-5 baseline. Do not scale shaped PPO to more decks.
+  Next work should pivot to stronger direct supervision or diagnostics:
+  rule/search-selected tactical targets for missed attack/attachment states,
+  richer action-level reports, or checking whether `phase5-full` search/heuristic
+  selection is overriding the learned policy.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

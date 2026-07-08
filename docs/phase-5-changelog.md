@@ -4514,3 +4514,48 @@ Conclusion and next step:
   against `sample_dragapult`.
 - This still should not be scaled to all decks unless the shaped update improves
   the held-out 30-game eval by more than the previous noisy +2 / 30 result.
+
+## 2026-07-08 - Deck 12 Tactical PPO Eval Result
+
+Uploaded and inspected:
+
+- `phase5_public_agent_deck12_dragapult_100_tactical_update_30g.json`.
+- `phase5_public_agent_deck12_dragapult_100_tactical_update_30g.md`.
+- `slurm-73757-phase5-public-eval.out`.
+
+Evaluation:
+
+- ERAWAN eval job: `73757`.
+- Agent: `phase5-full`.
+- Checkpoint family:
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists`.
+- Filters: `PUBLIC_AGENT_KEYS=sample_dragapult`, `DECK_INDICES=12`.
+- Result: 8 / 30 wins, 22 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2667 win rate.
+- Public-agent gate: failed; strict per-matchup diagnostic failed.
+- Search telemetry: 518 searched decisions, 98 search-changed decisions,
+  0 search errors, 0 candidate errors, 1,826 candidate probes, 0 truncated
+  candidates, average search 0.0094s, max search 0.0885s.
+
+Comparison:
+
+- Iteration-5 baseline deck-12 eval vs `sample_dragapult`: 6 / 30 wins.
+- Unshaped 100-game PPO update eval: 8 / 30 wins.
+- Tactical-shaped 100-game PPO update eval: 8 / 30 wins.
+- Tactical shaping matched the previous noisy +2 / 30 result but did not add
+  measurable held-out improvement.
+
+Conclusion and next step:
+
+- Do not scale this shaped PPO setup to more decks. The shaped data produced a
+  real diagnostic signal for missed attachment/attack opportunities, but the
+  PPO update did not turn that signal into better held-out play.
+- The result strengthens the conclusion that sparse/loss-heavy on-policy PPO,
+  even with small tactical reward shaping, is not enough for this failure mode.
+- Next implementation should pivot to stronger direct supervision or diagnostics:
+  train a deck/opponent specialist on rule-selected or search-selected tactical
+  targets for the same situations, add richer action-level reports for the
+  missed attach/attack rows, or change the agent/action selection logic if the
+  eval traces show the policy is still vetoed by search/heuristics.
+- The shaped PPO training report was not included in this upload; add its
+  examples/mean-advantage/final-loss details here if it becomes available.
