@@ -4657,3 +4657,67 @@ Next ERAWAN steps:
 2. Run `phase5_search_score_components_conda.sbatch` on that trace.
 3. Inspect win/loss component ranges and selected-minus-baseline margins before
    changing heuristic/neural weights.
+
+## 2026-07-08 - Deck 12 Search Score-Component Diagnostic Result
+
+Uploaded and inspected:
+
+- `phase5_public_agent_deck12_dragapult_tactical_full_trace_100g.json`.
+- `phase5_public_agent_deck12_dragapult_tactical_full_trace_100g.md`.
+- `phase5_public_agent_deck12_dragapult_tactical_full_trace_status.json`.
+- `phase5_public_agent_deck12_dragapult_tactical_score_components.json`.
+- `phase5_public_agent_deck12_dragapult_tactical_score_components.md`.
+
+Targeted traced evaluation:
+
+- Agent/checkpoint: `phase5-full` using
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists`.
+- Matchup: deck 12 Mega Abomasnow ex vs built-in `sample_dragapult`.
+- Result: 23 / 100 wins, 77 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2300 win rate.
+- Search telemetry: 1,599 searched decisions, 313 search-changed decisions,
+  0 search errors, 0 candidate errors, 5,577 candidate probes, 0 truncated
+  candidates, average search 0.0085s, max search 0.0804s.
+
+Score-component diagnostic:
+
+- Trace records: 1,599; candidate probes: 5,577; comparable records: 1,599.
+- Outcome split: 393 decision traces from winning games, 1,206 from losing
+  games.
+- Active config signature:
+  `rule_prior_weight=0.08`, `policy_prior_weight=0.0`,
+  `neural_action_value_weight=0.0`, `neural_tactical_weight=0.0`.
+- Selected tactical-score range was 101.5000 versus prior-score range 0.0800,
+  or 1,268.75x wider.
+- Mean selected-minus-baseline margins:
+  - overall combined/tactical/prior: 0.8505 / 0.8592 / -0.0087;
+  - wins combined/tactical/prior: 3.0494 / 3.0589 / -0.0095;
+  - losses combined/tactical/prior: 0.1340 / 0.1424 / -0.0084.
+- Selected candidate means:
+  - wins: tactical 14.9622, prior 0.0705, combined 15.0326;
+  - losses: tactical 1.3423, prior 0.0716, combined 1.4139.
+- Neural priors were not part of the combined score in this run. The recorded
+  action-Q and neural-tactical normalized priors also had negative
+  selected-minus-baseline margins, especially in winning traces, so simply
+  turning those weights on with positive coefficients is not yet justified.
+- Damage delta was higher in losing traces than winning traces:
+  selected damage-delta mean 21.2852 in losses versus 3.5369 in wins, while
+  winning traces had much larger tactical/combined margins. This suggests many
+  losing lines chase short-horizon damage without converting to prize/terminal
+  progress.
+
+Conclusion and next step:
+
+- `0.08` is effectively only a tie-breaker against raw `tactical_score`. The
+  current scale does not make tactical and prior functions comparable.
+- However, the diagnostic does not show that search is confidently choosing bad
+  moves in losing games: winning traces have much stronger positive
+  selected-over-baseline tactical/combined margins than losing traces.
+- Do not blindly raise neural action-Q or neural tactical weights. First
+  implement an ablation that normalizes the rollout tactical score across root
+  candidates before combining, then evaluate a small grid such as normalized
+  tactical weight 1.0 with policy-prior weights 0.1, 0.25, and 0.5 while keeping
+  action-Q/neural-tactical weights at 0.0.
+- If normalized-tactical policy-prior ablations still fail below the 50% gate,
+  the next training change should target longer-horizon setup/value rather than
+  more sparse PPO on this matchup.

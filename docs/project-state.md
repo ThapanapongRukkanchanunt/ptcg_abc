@@ -1260,6 +1260,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   tactical, neural, prior, and combined score ranges by win/loss sequence.
   Use this before changing `RootSearchConfig` weights; existing eval
   JSON/markdown reports do not contain discarded candidate component values.
+- Deck-12 score-component result on July 8, 2026: traced `phase5-full` eval
+  against built-in `sample_dragapult` scored 23 / 100. The selected
+  `tactical_score` range was 101.5 versus prior range 0.08, and the active
+  config had neural action-Q/tactical weights at 0.0. Winning traces had much
+  higher selected-minus-baseline combined margins than losing traces, while
+  losing traces showed higher immediate damage delta. Next search-weight work
+  should normalize rollout tactical score before combining and test small
+  policy-prior weights; do not blindly enable neural Q/tactical weights yet.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
