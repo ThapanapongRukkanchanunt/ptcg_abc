@@ -4616,3 +4616,44 @@ Conclusion and next step:
     tactical targets in those states;
   - then evaluate both pure neural and `phase5-full` again to check whether the
     learned policy actually moved.
+
+## 2026-07-08 - Search Score-Component Trace Diagnostics
+
+Implementation:
+
+- Added opt-in public-agent eval search trace export for `phase5-full` /
+  `Phase5SearchPolicyAgent` runs:
+  - CLI args on `rl-evaluate-phase5-public-agents`:
+    `--search-trace-output` and `--search-trace-games`;
+  - SLURM env vars in `scripts/slurm/phase5_public_agent_eval_conda.sbatch`:
+    `SEARCH_TRACE_OUTPUT` and `SEARCH_TRACE_GAMES`;
+  - trace rows include `game_outcome` (`win`, `loss`, `draw`, `timeout`,
+    `error`), deck/opponent metadata, and all root-search candidate component
+    fields.
+- Added `rl-diagnose-search-score-components` and
+  `scripts/slurm/phase5_search_score_components_conda.sbatch`.
+- The diagnostic reads a root-search trace JSONL and summarizes, overall and by
+  `game_outcome`:
+  - selected, baseline, and all-candidate ranges/means;
+  - selected-minus-baseline margins;
+  - `tactical_score`, raw neural outputs, normalized priors, `prior_score`,
+    and `combined_score`;
+  - config signatures for the active search weights.
+
+Purpose:
+
+- Existing public-agent eval JSON/markdown reports do not contain discarded
+  candidate score components, so they cannot answer whether tactical, neural,
+  or rule-prior terms are mis-scaled in winning vs losing sequences.
+- The new trace-and-diagnose path is the next diagnostic before changing
+  `RootSearchConfig` weights. It should show whether raw `tactical_score`
+  dominates the normalized prior terms, or whether losing sequences have high
+  selected-over-baseline `combined_score` margins despite poor outcomes.
+
+Next ERAWAN steps:
+
+1. Rerun a targeted deck-12 vs built-in `sample_dragapult` `phase5-full` eval
+   with `SEARCH_TRACE_OUTPUT` enabled.
+2. Run `phase5_search_score_components_conda.sbatch` on that trace.
+3. Inspect win/loss component ranges and selected-minus-baseline margins before
+   changing heuristic/neural weights.

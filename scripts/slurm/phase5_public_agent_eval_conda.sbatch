@@ -32,6 +32,8 @@ FAIL_ON_GATE="${FAIL_ON_GATE:-0}"
 REPORT_JSON="${REPORT_JSON:-reports/phase5_public_agent_eval_iter0005_30g.json}"
 REPORT_MD="${REPORT_MD:-reports/phase5_public_agent_eval_iter0005_30g.md}"
 STATUS_JSON="${STATUS_JSON:-reports/phase5_public_agent_status.json}"
+SEARCH_TRACE_OUTPUT="${SEARCH_TRACE_OUTPUT:-}"
+SEARCH_TRACE_GAMES="${SEARCH_TRACE_GAMES:-0}"
 
 echo "Phase 5 public-agent evaluation"
 echo "PUBLIC_AGENT_ROOTS=$PUBLIC_AGENT_ROOTS"
@@ -49,6 +51,8 @@ echo "FAIL_ON_GATE=$FAIL_ON_GATE"
 echo "REPORT_JSON=$REPORT_JSON"
 echo "REPORT_MD=$REPORT_MD"
 echo "STATUS_JSON=$STATUS_JSON"
+echo "SEARCH_TRACE_OUTPUT=$SEARCH_TRACE_OUTPUT"
+echo "SEARCH_TRACE_GAMES=$SEARCH_TRACE_GAMES"
 
 EXTRA_ARGS=()
 ROOT_ARGS=()
@@ -71,6 +75,10 @@ if [[ -n "$SPECIALIST_MODEL_DIR" ]]; then
 fi
 if [[ "$FAIL_ON_GATE" != "0" ]]; then
   EXTRA_ARGS+=(--fail-on-gate)
+fi
+if [[ -n "$SEARCH_TRACE_OUTPUT" ]]; then
+  EXTRA_ARGS+=(--search-trace-output "$SEARCH_TRACE_OUTPUT")
+  EXTRA_ARGS+=(--search-trace-games "$SEARCH_TRACE_GAMES")
 fi
 
 "$PY" -m ptcg_abc rl-evaluate-phase5-public-agents \

@@ -11,7 +11,12 @@ from ptcg_abc.evaluation import Phase3RequiredBenchmarkResult, Phase3RequiredBen
 from ptcg_abc.rl.dataset import write_decision_jsonl
 from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_decision_frame
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
-from ptcg_abc.rl.phase5_diagnostics import diagnose_search_distillation, diagnose_search_traces
+from ptcg_abc.rl.phase5_diagnostics import (
+    diagnose_search_distillation,
+    diagnose_search_score_components,
+    diagnose_search_traces,
+    write_search_score_component_markdown,
+)
 from ptcg_abc.rl.phase5_search import (
     CandidateEvaluation,
     RootSearchConfig,
@@ -517,6 +522,23 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(trace_diagnose_args.command, "rl-diagnose-search-traces")
         self.assertEqual(trace_diagnose_args.trace_input, Path("experiments/eval-traces.jsonl"))
 
+        score_diagnose_args = parser.parse_args(
+            [
+                "rl-diagnose-search-score-components",
+                "--trace-input",
+                "experiments/public-score-traces.jsonl",
+            ]
+        )
+
+        self.assertEqual(
+            score_diagnose_args.command,
+            "rl-diagnose-search-score-components",
+        )
+        self.assertEqual(
+            score_diagnose_args.trace_input,
+            Path("experiments/public-score-traces.jsonl"),
+        )
+
         weighted_train_args = parser.parse_args(
             [
                 "rl-train-bc",
@@ -937,6 +959,117 @@ class Phase4RlTests(unittest.TestCase):
             [{"deck_index": 3, "opponent": "Mega Abomasnow ex", "count": 1}],
         )
         self.assertLess(diagnostics.mean_search_minus_baseline_combined_score, 0)
+
+    def test_phase5_score_component_diagnostics_groups_by_outcome(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            trace = root / "score-traces.jsonl"
+            rows = [
+                {
+                    "baseline_indices": [0],
+                    "search_indices": [1],
+                    "changed": True,
+                    "game_outcome": "win",
+                    "config": {
+                        "rule_prior_weight": 0.08,
+                        "policy_prior_weight": 0.0,
+                        "neural_action_value_weight": 0.0,
+                        "neural_tactical_weight": 0.0,
+                    },
+                    "candidates": [
+                        {
+                            "indices": [0],
+                            "option_type": "END",
+                            "tactical_score": 0.0,
+                            "rule_score": 4.0,
+                            "rule_prior": 1.0,
+                            "policy_score": 0.1,
+                            "policy_prior": 0.0,
+                            "neural_action_value": 0.0,
+                            "neural_action_value_prior": 0.0,
+                            "neural_tactical_score": 0.0,
+                            "neural_tactical_prior": 0.0,
+                            "prior_score": 0.08,
+                            "combined_score": 0.08,
+                        },
+                        {
+                            "indices": [1],
+                            "option_type": "ATTACK",
+                            "tactical_score": 1.0,
+                            "rule_score": 1.0,
+                            "rule_prior": 0.0,
+                            "policy_score": 0.9,
+                            "policy_prior": 1.0,
+                            "neural_action_value": 0.5,
+                            "neural_action_value_prior": 1.0,
+                            "neural_tactical_score": 0.25,
+                            "neural_tactical_prior": 1.0,
+                            "prior_score": 0.0,
+                            "combined_score": 1.0,
+                        },
+                    ],
+                },
+                {
+                    "baseline_indices": [0],
+                    "search_indices": [1],
+                    "changed": True,
+                    "game_outcome": "loss",
+                    "config": {"rule_prior_weight": 0.08},
+                    "candidates": [
+                        {
+                            "indices": [0],
+                            "option_type": "ATTACH",
+                            "tactical_score": 0.5,
+                            "rule_score": 3.0,
+                            "rule_prior": 1.0,
+                            "prior_score": 0.08,
+                            "combined_score": 0.58,
+                        },
+                        {
+                            "indices": [1],
+                            "option_type": "END",
+                            "tactical_score": 0.0,
+                            "rule_score": 1.0,
+                            "rule_prior": 0.0,
+                            "prior_score": 0.0,
+                            "combined_score": 0.0,
+                        },
+                    ],
+                },
+            ]
+            trace.write_text(
+                "\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n",
+                encoding="utf-8",
+            )
+
+            diagnostics = diagnose_search_score_components(trace)
+            report_md = root / "score-components.md"
+            write_search_score_component_markdown(
+                diagnostics,
+                report_md,
+                trace_path=trace,
+            )
+            report_text = report_md.read_text(encoding="utf-8")
+
+        self.assertEqual(diagnostics["records"], 2)
+        self.assertEqual(diagnostics["outcomes"], {"loss": 1, "win": 1})
+        self.assertAlmostEqual(
+            diagnostics["by_outcome"]["win"]["components"]["tactical_score"][
+                "selected_candidates"
+            ]["mean"],
+            1.0,
+        )
+        self.assertAlmostEqual(
+            diagnostics["by_outcome"]["loss"]["components"]["combined_score"][
+                "selected_candidates"
+            ]["mean"],
+            0.0,
+        )
+        self.assertAlmostEqual(
+            diagnostics["overall"]["selected_minus_baseline"]["combined_score"]["mean"],
+            0.17,
+        )
+        self.assertIn("Win", report_text)
 
     def test_selfplay_default_plan_rotates_all_ordered_deck_pairs(self):
         decks = [FakePreparedDeck(index, f"deck-{index}") for index in range(1, 10)]

@@ -75,7 +75,9 @@ from ptcg_abc.rl.phase5_search import (
 )
 from ptcg_abc.rl.phase5_diagnostics import (
     diagnose_search_distillation,
+    diagnose_search_score_components,
     diagnose_search_traces,
+    write_search_score_component_markdown,
     write_trace_diagnostic_markdown,
 )
 from ptcg_abc.rl.phase5_policy import Phase5PolicyUnavailable
@@ -951,6 +953,26 @@ def command_rl_diagnose_search_traces(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_rl_diagnose_search_score_components(args: argparse.Namespace) -> int:
+    if not args.trace_input.exists():
+        print(f"Phase 5 search trace file not found at {args.trace_input}.", file=sys.stderr)
+        return 2
+    diagnostics = diagnose_search_score_components(args.trace_input)
+    args.report_json.parent.mkdir(parents=True, exist_ok=True)
+    args.report_json.write_text(
+        json.dumps(diagnostics, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    write_search_score_component_markdown(
+        diagnostics,
+        args.report_md,
+        trace_path=args.trace_input,
+    )
+    print(json.dumps(diagnostics, indent=2, sort_keys=True))
+    print(f"Wrote Phase 5 search score-component diagnostics to {args.report_md}.")
+    return 0
+
+
 def command_rl_diagnose_phase5_symbolic(args: argparse.Namespace) -> int:
     if not args.dataset.exists():
         print(f"Phase 5 decision dataset not found at {args.dataset}.", file=sys.stderr)
@@ -1227,6 +1249,8 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             games_per_matchup=args.games_per_matchup,
             max_steps=args.max_steps,
             search_config=_root_search_config_from_args(args),
+            search_trace_path=args.search_trace_output,
+            search_trace_game_limit=args.search_trace_games,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -2932,6 +2956,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_diagnose_traces.set_defaults(func=command_rl_diagnose_search_traces)
 
+    rl_diagnose_scores = subparsers.add_parser(
+        "rl-diagnose-search-score-components",
+        help="Summarize root-search candidate score components by game outcome.",
+    )
+    rl_diagnose_scores.add_argument(
+        "--trace-input",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_public_agent_score_traces.jsonl",
+    )
+    rl_diagnose_scores.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("reports") / "phase5_search_score_components.json",
+    )
+    rl_diagnose_scores.add_argument(
+        "--report-md",
+        type=_path,
+        default=Path("reports") / "phase5_search_score_components.md",
+    )
+    rl_diagnose_scores.set_defaults(func=command_rl_diagnose_search_score_components)
+
     rl_diagnose_symbolic = subparsers.add_parser(
         "rl-diagnose-phase5-symbolic",
         help="Diagnose a Phase 5 symbolic checkpoint against search-improved decisions.",
@@ -3195,6 +3240,18 @@ def build_parser() -> argparse.ArgumentParser:
     rl_evaluate_public.add_argument("--games-per-matchup", type=int, default=2)
     rl_evaluate_public.add_argument("--max-steps", type=int, default=600)
     _add_phase5_search_config_args(rl_evaluate_public)
+    rl_evaluate_public.add_argument(
+        "--search-trace-output",
+        type=_path,
+        default=None,
+        help="Optional JSONL output for phase5-full public-agent root-search traces.",
+    )
+    rl_evaluate_public.add_argument(
+        "--search-trace-games",
+        type=int,
+        default=0,
+        help="Number of games per matchup to trace; use 0 for all traced public-agent eval games.",
+    )
     rl_evaluate_public.add_argument(
         "--report-json",
         type=_path,

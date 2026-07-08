@@ -1253,6 +1253,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   they are currently helping. Use pure neural eval only as a diagnostic while
   the next implementation targets direct supervision/action-level diagnostics
   for missed attack and attachment decisions.
+- Current score-scaling diagnostic: public-agent `phase5-full` evals can now
+  write root-search candidate traces with game outcomes using
+  `SEARCH_TRACE_OUTPUT` / `--search-trace-output`, and
+  `scripts/slurm/phase5_search_score_components_conda.sbatch` summarizes
+  tactical, neural, prior, and combined score ranges by win/loss sequence.
+  Use this before changing `RootSearchConfig` weights; existing eval
+  JSON/markdown reports do not contain discarded candidate component values.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

@@ -153,6 +153,173 @@ class SearchDistillDiagnostics:
         return asdict(self)
 
 
+SCORE_COMPONENT_FIELDS: tuple[str, ...] = (
+    "tactical_score",
+    "rule_score",
+    "rule_prior",
+    "policy_score",
+    "policy_prior",
+    "neural_action_value",
+    "neural_action_value_prior",
+    "neural_tactical_score",
+    "neural_tactical_prior",
+    "prior_score",
+    "combined_score",
+    "damage_delta",
+    "self_damage_delta",
+    "rollout_steps",
+)
+
+
+@dataclass
+class _OnlineScoreStats:
+    count: int = 0
+    total: float = 0.0
+    low: float | None = None
+    high: float | None = None
+    positive: int = 0
+    negative: int = 0
+    zero: int = 0
+
+    def add(self, value: float) -> None:
+        self.count += 1
+        self.total += value
+        self.low = value if self.low is None else min(self.low, value)
+        self.high = value if self.high is None else max(self.high, value)
+        if value > 1e-9:
+            self.positive += 1
+        elif value < -1e-9:
+            self.negative += 1
+        else:
+            self.zero += 1
+
+    def to_dict(self) -> dict[str, Any]:
+        low = self.low if self.low is not None else 0.0
+        high = self.high if self.high is not None else 0.0
+        return {
+            "count": self.count,
+            "min": low,
+            "max": high,
+            "range": high - low if self.count else 0.0,
+            "mean": self.total / self.count if self.count else 0.0,
+            "positive": self.positive,
+            "negative": self.negative,
+            "zero": self.zero,
+            "positive_rate": self.positive / self.count if self.count else 0.0,
+            "negative_rate": self.negative / self.count if self.count else 0.0,
+        }
+
+
+@dataclass
+class _ScoreComponentGroup:
+    records: int = 0
+    changed_records: int = 0
+    search_errors: int = 0
+    candidate_probes: int = 0
+    candidate_errors: int = 0
+    selected_records: int = 0
+    baseline_records: int = 0
+    comparable_records: int = 0
+    selected_truncated_records: int = 0
+    baseline_truncated_records: int = 0
+    all_candidate_stats: dict[str, _OnlineScoreStats] = field(default_factory=dict)
+    selected_candidate_stats: dict[str, _OnlineScoreStats] = field(default_factory=dict)
+    baseline_candidate_stats: dict[str, _OnlineScoreStats] = field(default_factory=dict)
+    margin_stats: dict[str, _OnlineScoreStats] = field(default_factory=dict)
+    selected_option_types: Counter[str] = field(default_factory=Counter)
+    baseline_option_types: Counter[str] = field(default_factory=Counter)
+
+    def add_record(self, payload: dict[str, Any]) -> None:
+        self.records += 1
+        self.changed_records += int(bool(payload.get("changed")))
+        self.search_errors += int(bool(payload.get("search_error")))
+        candidates = list(payload.get("candidates", []) or [])
+        self.candidate_probes += len(candidates)
+        self.candidate_errors += sum(1 for candidate in candidates if candidate.get("error"))
+        for candidate in candidates:
+            self._add_candidate_stats(self.all_candidate_stats, candidate)
+
+        selected = _candidate_for_indices(candidates, payload.get("search_indices"))
+        baseline = _candidate_for_indices(candidates, payload.get("baseline_indices"))
+        if selected is not None:
+            self.selected_records += 1
+            self.selected_truncated_records += int(bool(selected.get("truncated")))
+            self.selected_option_types[str(selected.get("option_type", ""))] += 1
+            self._add_candidate_stats(self.selected_candidate_stats, selected)
+        if baseline is not None:
+            self.baseline_records += 1
+            self.baseline_truncated_records += int(bool(baseline.get("truncated")))
+            self.baseline_option_types[str(baseline.get("option_type", ""))] += 1
+            self._add_candidate_stats(self.baseline_candidate_stats, baseline)
+        if selected is None or baseline is None:
+            return
+        self.comparable_records += 1
+        for field_name in SCORE_COMPONENT_FIELDS:
+            selected_value = _maybe_float(selected.get(field_name))
+            baseline_value = _maybe_float(baseline.get(field_name))
+            if selected_value is None or baseline_value is None:
+                continue
+            self.margin_stats.setdefault(field_name, _OnlineScoreStats()).add(
+                selected_value - baseline_value
+            )
+
+    def _add_candidate_stats(
+        self,
+        destination: dict[str, _OnlineScoreStats],
+        candidate: dict[str, Any],
+    ) -> None:
+        for field_name in SCORE_COMPONENT_FIELDS:
+            value = _maybe_float(candidate.get(field_name))
+            if value is not None:
+                destination.setdefault(field_name, _OnlineScoreStats()).add(value)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "records": self.records,
+            "changed_records": self.changed_records,
+            "changed_rate": self.changed_records / self.records if self.records else 0.0,
+            "search_errors": self.search_errors,
+            "candidate_probes": self.candidate_probes,
+            "candidate_errors": self.candidate_errors,
+            "candidate_error_rate": (
+                self.candidate_errors / self.candidate_probes
+                if self.candidate_probes
+                else 0.0
+            ),
+            "selected_records": self.selected_records,
+            "baseline_records": self.baseline_records,
+            "comparable_records": self.comparable_records,
+            "selected_truncated_records": self.selected_truncated_records,
+            "baseline_truncated_records": self.baseline_truncated_records,
+            "selected_option_types": dict(self.selected_option_types.most_common()),
+            "baseline_option_types": dict(self.baseline_option_types.most_common()),
+            "components": {
+                field_name: {
+                    "all_candidates": self.all_candidate_stats.get(
+                        field_name,
+                        _OnlineScoreStats(),
+                    ).to_dict(),
+                    "selected_candidates": self.selected_candidate_stats.get(
+                        field_name,
+                        _OnlineScoreStats(),
+                    ).to_dict(),
+                    "baseline_candidates": self.baseline_candidate_stats.get(
+                        field_name,
+                        _OnlineScoreStats(),
+                    ).to_dict(),
+                }
+                for field_name in SCORE_COMPONENT_FIELDS
+            },
+            "selected_minus_baseline": {
+                field_name: self.margin_stats.get(
+                    field_name,
+                    _OnlineScoreStats(),
+                ).to_dict()
+                for field_name in SCORE_COMPONENT_FIELDS
+            },
+        }
+
+
 def diagnose_search_distillation(
     *,
     dataset_path: Path,
@@ -338,6 +505,167 @@ def diagnose_search_traces(path: Path) -> TraceDiagnostics:
             tactical_margin_sum / divisor if comparable else 0.0
         ),
     )
+
+
+def diagnose_search_score_components(path: Path) -> dict[str, Any]:
+    overall = _ScoreComponentGroup()
+    by_outcome: dict[str, _ScoreComponentGroup] = defaultdict(_ScoreComponentGroup)
+    config_counter: Counter[str] = Counter()
+
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            payload = json.loads(stripped)
+            outcome = str(payload.get("game_outcome") or "unknown")
+            overall.add_record(payload)
+            by_outcome[outcome].add_record(payload)
+            config = payload.get("config")
+            if isinstance(config, dict):
+                config_counter[_score_config_signature(config)] += 1
+
+    overall_payload = overall.to_dict()
+    by_outcome_payload = {
+        outcome: group.to_dict()
+        for outcome, group in sorted(
+            by_outcome.items(),
+            key=lambda item: (-item[1].records, item[0]),
+        )
+    }
+    diagnostics = {
+        "trace_path": path.as_posix(),
+        "records": overall.records,
+        "candidate_probes": overall.candidate_probes,
+        "comparable_records": overall.comparable_records,
+        "outcomes": dict(sorted((key, value.records) for key, value in by_outcome.items())),
+        "score_component_fields": list(SCORE_COMPONENT_FIELDS),
+        "config_signatures": [
+            {"config": json.loads(signature), "records": count}
+            for signature, count in config_counter.most_common()
+        ],
+        "overall": overall_payload,
+        "by_outcome": by_outcome_payload,
+    }
+    diagnostics["weighting_hints"] = _score_component_weighting_hints(diagnostics)
+    return diagnostics
+
+
+def write_search_score_component_markdown(
+    diagnostics: dict[str, Any],
+    path: Path,
+    *,
+    trace_path: Path | None = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    trace_label = trace_path.as_posix() if trace_path is not None else diagnostics.get(
+        "trace_path",
+        "not provided",
+    )
+    lines = [
+        "# Phase 5 Search Score-Component Diagnostics",
+        "",
+        f"- Trace: `{trace_label}`",
+        f"- Records: {diagnostics.get('records', 0)}",
+        f"- Candidate probes: {diagnostics.get('candidate_probes', 0)}",
+        f"- Comparable records: {diagnostics.get('comparable_records', 0)}",
+        "",
+        "## Weighting Hints",
+        "",
+    ]
+    hints = list(diagnostics.get("weighting_hints", []) or [])
+    if hints:
+        lines.extend(f"- {hint}" for hint in hints)
+    else:
+        lines.append("- No weighting hints were generated.")
+
+    lines.extend(
+        [
+            "",
+            "## Outcomes",
+            "",
+            (
+                "| Outcome | Records | Changed | Comparable | "
+                "Selected tactical mean/range | Selected prior mean/range | "
+                "Selected combined mean/range | Mean selected-baseline tactical | "
+                "Mean selected-baseline prior | Mean selected-baseline combined |"
+            ),
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for outcome, group in diagnostics.get("by_outcome", {}).items():
+        lines.append(
+            "| "
+            f"{outcome} | "
+            f"{group['records']} | "
+            f"{group['changed_records']} | "
+            f"{group['comparable_records']} | "
+            f"{_mean_range(group, 'tactical_score')} | "
+            f"{_mean_range(group, 'prior_score')} | "
+            f"{_mean_range(group, 'combined_score')} | "
+            f"{_margin_mean(group, 'tactical_score'):.6f} | "
+            f"{_margin_mean(group, 'prior_score'):.6f} | "
+            f"{_margin_mean(group, 'combined_score'):.6f} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Selected Candidate Means",
+            "",
+            "| Component | Overall | Win | Loss | Draw | Timeout | Error | Unknown |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for field_name in SCORE_COMPONENT_FIELDS:
+        lines.append(
+            f"| {field_name} | "
+            f"{_component_mean(diagnostics['overall'], field_name):.6f} | "
+            f"{_outcome_component_mean(diagnostics, 'win', field_name):.6f} | "
+            f"{_outcome_component_mean(diagnostics, 'loss', field_name):.6f} | "
+            f"{_outcome_component_mean(diagnostics, 'draw', field_name):.6f} | "
+            f"{_outcome_component_mean(diagnostics, 'timeout', field_name):.6f} | "
+            f"{_outcome_component_mean(diagnostics, 'error', field_name):.6f} | "
+            f"{_outcome_component_mean(diagnostics, 'unknown', field_name):.6f} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Selected Minus Baseline",
+            "",
+            "| Component | Overall mean | Win mean | Loss mean | Overall positive rate | Win positive rate | Loss positive rate |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for field_name in SCORE_COMPONENT_FIELDS:
+        lines.append(
+            f"| {field_name} | "
+            f"{_margin_mean(diagnostics['overall'], field_name):.6f} | "
+            f"{_outcome_margin_mean(diagnostics, 'win', field_name):.6f} | "
+            f"{_outcome_margin_mean(diagnostics, 'loss', field_name):.6f} | "
+            f"{_margin_positive_rate(diagnostics['overall'], field_name):.3f} | "
+            f"{_outcome_margin_positive_rate(diagnostics, 'win', field_name):.3f} | "
+            f"{_outcome_margin_positive_rate(diagnostics, 'loss', field_name):.3f} |"
+        )
+
+    lines.extend(["", "## Config Signatures", ""])
+    configs = list(diagnostics.get("config_signatures", []) or [])
+    if configs:
+        for item in configs:
+            config = item["config"]
+            lines.append(
+                "- "
+                f"records={item['records']} "
+                f"rule_prior_weight={config.get('rule_prior_weight')} "
+                f"policy_prior_weight={config.get('policy_prior_weight')} "
+                f"neural_action_value_weight={config.get('neural_action_value_weight')} "
+                f"neural_tactical_weight={config.get('neural_tactical_weight')}"
+            )
+    else:
+        lines.append("- None")
+
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 def _iter_decision_jsonl(path: Path) -> Iterable[DecisionFrame]:
@@ -632,6 +960,188 @@ def _candidate_score(candidate: dict[str, Any], key: str) -> float:
         return float(candidate.get(key, 0.0))
     except (TypeError, ValueError):
         return 0.0
+
+
+def _maybe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _candidate_for_indices(
+    candidates: Sequence[dict[str, Any]],
+    indices: Any,
+) -> dict[str, Any] | None:
+    wanted = tuple(int(index) for index in (indices or []))
+    for candidate in candidates:
+        candidate_indices = tuple(int(index) for index in candidate.get("indices", []) or [])
+        if candidate_indices == wanted:
+            return candidate
+    return None
+
+
+def _score_config_signature(config: dict[str, Any]) -> str:
+    keys = [
+        "rule_prior_weight",
+        "policy_prior_weight",
+        "neural_action_value_weight",
+        "neural_tactical_weight",
+        "damage_weight",
+        "self_damage_weight",
+        "prize_weight",
+        "opponent_prize_weight",
+        "setup_weight",
+        "hand_weight",
+        "terminal_win_score",
+        "terminal_loss_score",
+        "truncated_penalty",
+        "top_k",
+        "max_rollout_steps",
+    ]
+    return json.dumps(
+        {key: config.get(key) for key in keys if key in config},
+        sort_keys=True,
+    )
+
+
+def _score_component_weighting_hints(diagnostics: dict[str, Any]) -> list[str]:
+    overall = diagnostics.get("overall", {})
+    tactical = _component_stats(overall, "tactical_score")
+    prior = _component_stats(overall, "prior_score")
+    policy_prior = _component_stats(overall, "policy_prior")
+    q_prior = _component_stats(overall, "neural_action_value_prior")
+    neural_tactical_prior = _component_stats(overall, "neural_tactical_prior")
+    combined_margin = _margin_stats(overall, "combined_score")
+    tactical_margin = _margin_stats(overall, "tactical_score")
+    prior_margin = _margin_stats(overall, "prior_score")
+
+    hints: list[str] = []
+    tactical_range = float(tactical.get("range", 0.0))
+    prior_range = float(prior.get("range", 0.0))
+    if tactical_range > 0 and prior_range > 0:
+        ratio = tactical_range / prior_range
+        hints.append(
+            "Selected tactical-score range is "
+            f"{ratio:.2f}x selected prior-score range "
+            f"({tactical_range:.6f} vs {prior_range:.6f})."
+        )
+        if ratio > 5.0:
+            hints.append(
+                "Tactical score is much wider than the weighted neural/rule prior; "
+                "increase prior weights or normalize tactical before combining if "
+                "wins depend on lower-tactical neural choices."
+            )
+        elif ratio < 0.2:
+            hints.append(
+                "Weighted priors are much wider than tactical score; reduce prior "
+                "weights if the agent ignores immediate board gains."
+            )
+    elif tactical_range > 0:
+        hints.append(
+            "Selected prior-score range is zero while tactical varies; current "
+            "prior weights are not changing action ranking in these traces."
+        )
+
+    prior_sources = {
+        "policy_prior": policy_prior,
+        "neural_action_value_prior": q_prior,
+        "neural_tactical_prior": neural_tactical_prior,
+    }
+    for name, stats in prior_sources.items():
+        if int(stats.get("count", 0)) and float(stats.get("range", 0.0)) == 0.0:
+            hints.append(f"{name} is flat across selected candidates in this trace.")
+
+    hints.append(
+        "Mean selected-minus-baseline margins: "
+        f"combined={float(combined_margin.get('mean', 0.0)):.6f}, "
+        f"tactical={float(tactical_margin.get('mean', 0.0)):.6f}, "
+        f"prior={float(prior_margin.get('mean', 0.0)):.6f}."
+    )
+    if float(combined_margin.get("mean", 0.0)) < 0:
+        hints.append(
+            "Selected candidates score below the baseline on average; inspect "
+            "failed traces before raising exploration or PPO pressure."
+        )
+
+    by_outcome = diagnostics.get("by_outcome", {})
+    win_combined = _outcome_margin_mean(diagnostics, "win", "combined_score")
+    loss_combined = _outcome_margin_mean(diagnostics, "loss", "combined_score")
+    if by_outcome.get("win") and by_outcome.get("loss"):
+        hints.append(
+            "Win/loss mean selected-minus-baseline combined margins are "
+            f"{win_combined:.6f} / {loss_combined:.6f}."
+        )
+        if loss_combined > win_combined:
+            hints.append(
+                "Losing sequences have higher selected-over-baseline combined "
+                "margins than winning sequences; the scoring function may be "
+                "confident in the wrong short-horizon signals."
+            )
+
+    return hints
+
+
+def _component_stats(group: dict[str, Any], field_name: str) -> dict[str, Any]:
+    return (
+        group.get("components", {})
+        .get(field_name, {})
+        .get("selected_candidates", {})
+    )
+
+
+def _margin_stats(group: dict[str, Any], field_name: str) -> dict[str, Any]:
+    return group.get("selected_minus_baseline", {}).get(field_name, {})
+
+
+def _component_mean(group: dict[str, Any], field_name: str) -> float:
+    return float(_component_stats(group, field_name).get("mean", 0.0))
+
+
+def _margin_mean(group: dict[str, Any], field_name: str) -> float:
+    return float(_margin_stats(group, field_name).get("mean", 0.0))
+
+
+def _margin_positive_rate(group: dict[str, Any], field_name: str) -> float:
+    return float(_margin_stats(group, field_name).get("positive_rate", 0.0))
+
+
+def _outcome_group(
+    diagnostics: dict[str, Any],
+    outcome: str,
+) -> dict[str, Any]:
+    return diagnostics.get("by_outcome", {}).get(outcome, {})
+
+
+def _outcome_component_mean(
+    diagnostics: dict[str, Any],
+    outcome: str,
+    field_name: str,
+) -> float:
+    return _component_mean(_outcome_group(diagnostics, outcome), field_name)
+
+
+def _outcome_margin_mean(
+    diagnostics: dict[str, Any],
+    outcome: str,
+    field_name: str,
+) -> float:
+    return _margin_mean(_outcome_group(diagnostics, outcome), field_name)
+
+
+def _outcome_margin_positive_rate(
+    diagnostics: dict[str, Any],
+    outcome: str,
+    field_name: str,
+) -> float:
+    return _margin_positive_rate(_outcome_group(diagnostics, outcome), field_name)
+
+
+def _mean_range(group: dict[str, Any], field_name: str) -> str:
+    stats = _component_stats(group, field_name)
+    return f"{float(stats.get('mean', 0.0)):.6f}/{float(stats.get('range', 0.0)):.6f}"
 
 
 def _diagnostic_example(frame: DecisionFrame, row: dict[str, Any]) -> dict[str, Any]:

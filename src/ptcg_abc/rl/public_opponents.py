@@ -262,8 +262,13 @@ def run_phase5_public_agent_benchmark(
     games_per_matchup: int = 2,
     max_steps: int = 600,
     search_config: Any | None = None,
+    search_trace_path: Path | None = None,
+    search_trace_game_limit: int = 0,
 ) -> tuple[Phase3RequiredBenchmarkResult, list[PublicAgentStatus]]:
     card_data, attack_data = load_engine_metadata(sample_dir)
+    if search_trace_path is not None:
+        search_trace_path.parent.mkdir(parents=True, exist_ok=True)
+        search_trace_path.write_text("", encoding="utf-8")
     our_decks = _selected_phase5_decks(deck_indices)
     opponents, statuses = discover_phase5_public_opponents(
         sample_dir=sample_dir,
@@ -321,6 +326,23 @@ def run_phase5_public_agent_benchmark(
                 _record_row_outcome(row, result, our_is_player0=our_is_player0)
                 if isinstance(our_agent, Phase5SearchPolicyAgent):
                     _accumulate_search_telemetry(row.search_telemetry, our_agent.search_telemetry())
+                    if _should_write_public_search_trace(
+                        search_trace_path,
+                        game_index=game_index,
+                        trace_game_limit=search_trace_game_limit,
+                    ):
+                        assert search_trace_path is not None
+                        _write_public_search_traces(
+                            our_agent,
+                            search_trace_path,
+                            game_index=game_index,
+                            deck_index=our_deck.index,
+                            deck_label=our_deck.label,
+                            opponent=opponent.label,
+                            opponent_key=opponent.key,
+                            result=result,
+                            our_player_index=0 if our_is_player0 else 1,
+                        )
             row.search_telemetry = _finalize_search_telemetry(row.search_telemetry)
             _accumulate_search_telemetry(aggregate_search, row.search_telemetry)
             row.win_rate = row.wins / row.games if row.games else 0.0
@@ -619,6 +641,71 @@ def _selected_phase5_decks(deck_indices: Sequence[int] | None) -> list[PreparedD
         if index not in [deck.index for deck in selected]:
             selected.append(by_index[index])
     return selected
+
+
+def _should_write_public_search_trace(
+    path: Path | None,
+    *,
+    game_index: int,
+    trace_game_limit: int,
+) -> bool:
+    if path is None:
+        return False
+    return trace_game_limit <= 0 or game_index < trace_game_limit
+
+
+def _write_public_search_traces(
+    agent: Phase5SearchPolicyAgent,
+    path: Path,
+    *,
+    game_index: int,
+    deck_index: int,
+    deck_label: str,
+    opponent: str,
+    opponent_key: str,
+    result: Any,
+    our_player_index: int,
+) -> int:
+    if not agent.traces:
+        return 0
+    outcome = _public_game_outcome(result, our_player_index=our_player_index)
+    records = 0
+    error = getattr(result, "error", None)
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        for trace in agent.traces:
+            payload = trace.to_dict()
+            payload.update(
+                {
+                    "game_index": int(game_index),
+                    "deck_index": int(deck_index),
+                    "deck_label": deck_label,
+                    "opponent": opponent,
+                    "opponent_key": opponent_key,
+                    "our_player_index": int(our_player_index),
+                    "game_outcome": outcome,
+                    "winner": getattr(result, "winner", None),
+                    "leader": getattr(result, "leader", None),
+                    "finished": bool(getattr(result, "finished", False)),
+                    "started": bool(getattr(result, "started", False)),
+                    "error": str(error) if error is not None else None,
+                }
+            )
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+            records += 1
+    return records
+
+
+def _public_game_outcome(result: Any, *, our_player_index: int) -> str:
+    if getattr(result, "error", None):
+        return "error"
+    if bool(getattr(result, "started", False)) and not bool(getattr(result, "finished", False)):
+        return "timeout"
+    effective = getattr(result, "winner", None)
+    if effective is None:
+        effective = getattr(result, "leader", None)
+    if effective is None:
+        return "draw"
+    return "win" if int(effective) == int(our_player_index) else "loss"
 
 
 def _tactical_reward_for_frame(

@@ -2387,6 +2387,63 @@ measuring the wrong failure mode; if missed attack/attach counts are high, use
 those counts to tune the reward weights or add a supervised rule-specialist
 target.
 
+### Search Score-Component Diagnostics
+
+Use this when deciding whether to change the `phase5-full` action equation
+weights. Normal public-agent eval reports do not store discarded candidate
+scores, so first run a traced eval, then summarize the trace by win/loss
+outcome.
+
+Run a targeted deck-12 vs built-in `sample_dragapult` eval with full
+root-search traces:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=100 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_public_agent_micro/deck12_dragapult_tactical_full_100g_score_traces.jsonl \
+  SEARCH_TRACE_GAMES=0 \
+  REPORT_JSON=reports/phase5_public_agent_deck12_dragapult_tactical_full_trace_100g.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_dragapult_tactical_full_trace_100g.md \
+  STATUS_JSON=reports/phase5_public_agent_deck12_dragapult_tactical_full_trace_status.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_dragapult_tactical_full_trace_eval_job.txt
+```
+
+After the traced eval finishes, summarize score components by outcome:
+
+```bash
+JOB=$(
+  TRACE_INPUT=experiments/rl/phase5_public_agent_micro/deck12_dragapult_tactical_full_100g_score_traces.jsonl \
+  REPORT_JSON=reports/phase5_public_agent_deck12_dragapult_tactical_score_components.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_dragapult_tactical_score_components.md \
+  sbatch --parsable --cpus-per-task=1 scripts/slurm/phase5_search_score_components_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_dragapult_tactical_score_components_job.txt
+```
+
+Interpretation checklist:
+
+- Compare selected-candidate `tactical_score` range against `prior_score`
+  range. If tactical is much wider, neural/rule prior weights are too small to
+  affect most decisions.
+- Compare selected-minus-baseline `combined_score`, `tactical_score`, and
+  `prior_score` margins for wins vs losses. If losses have higher combined
+  margins than wins, the current score function is confidently selecting the
+  wrong short-horizon signals.
+- Only tune `RootSearchConfig` weights after this report; otherwise the change
+  is guesswork.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

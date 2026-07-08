@@ -80,6 +80,10 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "12",
                 "--public-agent-key",
                 "sample_dragapult",
+                "--search-trace-output",
+                "experiments/public-score-traces.jsonl",
+                "--search-trace-games",
+                "5",
             ]
         )
         self.assertEqual(
@@ -88,6 +92,11 @@ class PublicAgentRosterTests(unittest.TestCase):
         )
         self.assertEqual(eval_args.deck_index, [12])
         self.assertEqual(eval_args.public_agent_key, ["sample_dragapult"])
+        self.assertEqual(
+            eval_args.search_trace_output,
+            Path("experiments/public-score-traces.jsonl"),
+        )
+        self.assertEqual(eval_args.search_trace_games, 5)
 
         traj_args = parser.parse_args(
             [
