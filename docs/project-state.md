@@ -1277,6 +1277,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists/deck-12.pt`
   from that narrow rule window with value loss enabled, then compare normalized
   tactical-only search against normalized tactical plus leaf-value search.
+- Deck-12 leaf state-value eval result on July 8, 2026: same checkpoint
+  `deck12_rule_bootstrap_value` scored 20 / 100 with normalized tactical-only
+  search and 29 / 100 with normalized tactical 0.5 + policy prior 0.25 + leaf
+  state value 0.5. Both had 0 errors/timeouts. This is positive evidence that
+  learned leaf value adds useful signal, but it still fails the 50% gate. Next
+  inspect score-component diagnostics for both traces and the missing
+  rule-vs-rule trajectory/train reports before scaling.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

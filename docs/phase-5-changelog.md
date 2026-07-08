@@ -4769,3 +4769,86 @@ Experiment plan:
 - Promote the idea only if the leaf-value variant improves the same-matchup
   win rate without introducing search/candidate errors or obvious END/attack
   regressions.
+
+## 2026-07-08 - Deck 12 Leaf State-Value Search Eval Result
+
+Uploaded and inspected:
+
+- `phase5_public_agent_deck12_rule_bootstrap_norm_tactical_100g.json`.
+- `phase5_public_agent_deck12_rule_bootstrap_norm_tactical_100g.md`.
+- `phase5_public_agent_deck12_rule_bootstrap_norm_tactical_status.json`.
+- `slurm-73774-phase5-public-eval.out`.
+- `phase5_public_agent_deck12_rule_bootstrap_leaf_value_100g.json`.
+- `phase5_public_agent_deck12_rule_bootstrap_leaf_value_100g.md`.
+- `phase5_public_agent_deck12_rule_bootstrap_leaf_value_status.json`.
+- `slurm-73775-phase5-public-eval.out`.
+
+Shared setup:
+
+- Agent/checkpoint: `phase5-full` using
+  `models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists`.
+- Matchup: deck 12 Mega Abomasnow ex vs built-in `sample_dragapult`.
+- Games per matchup: 100; max steps: 600.
+- Opponent availability: built-in `sample_dragapult` available; no missing
+  opponents.
+
+Normalized tactical baseline:
+
+- ERAWAN job: `73774`.
+- Search config:
+  - `NORMALIZE_TACTICAL_SCORE=1`;
+  - `TACTICAL_SCORE_WEIGHT=1.0`;
+  - `POLICY_PRIOR_WEIGHT=0.25`;
+  - `LEAF_STATE_VALUE_WEIGHT=0.0`.
+- Result: 20 / 100 wins, 80 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2000 win rate.
+- Public-agent gate: failed.
+- Search telemetry: 1,619 searched decisions, 344 search-changed decisions,
+  0 search errors, 0 candidate errors, 5,627 candidate probes, 0 truncated
+  candidates, average search 0.0082s, max search 0.0745s.
+
+Leaf state-value variant:
+
+- ERAWAN job: `73775`.
+- Search config:
+  - `NORMALIZE_TACTICAL_SCORE=1`;
+  - `TACTICAL_SCORE_WEIGHT=0.5`;
+  - `POLICY_PRIOR_WEIGHT=0.25`;
+  - `LEAF_STATE_VALUE_WEIGHT=0.5`.
+- Result: 29 / 100 wins, 71 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2900 win rate.
+- Public-agent gate: failed.
+- Search telemetry: 1,654 searched decisions, 290 search-changed decisions,
+  0 search errors, 0 candidate errors, 5,702 candidate probes, 0 truncated
+  candidates, average search 0.0228s, max search 0.0871s.
+
+Comparison and conclusion:
+
+- Leaf state-value search improved the same-checkpoint normalized-tactical
+  baseline by +9 wins over 100 games, with no errors/timeouts.
+- The value variant also improved over the earlier tactical-shaped checkpoint
+  traced eval at 23 / 100, though that comparison changes both checkpoint and
+  scoring mix and should be treated as weaker evidence than the +9 same-run
+  ablation.
+- The leaf value path costs more search time, about 0.0228s average versus
+  0.0082s, but remains operationally acceptable for this narrow eval.
+- This is the first positive evidence that learned state value can add useful
+  signal beyond handcrafted end-of-turn tactical scoring. It is not yet enough:
+  29 / 100 is still far below the 50% specialized-opponent gate.
+
+Next steps:
+
+- Run score-component diagnostics on both trace files to verify that
+  `leaf_state_value_score` separates winning and losing sequences:
+  - `experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value_norm_tactical_traces.jsonl`;
+  - `experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_leaf_value_traces.jsonl`.
+- Inspect the rule-vs-rule trajectory report and deck-12 training report before
+  scaling; they were not included with this upload.
+- If diagnostics confirm useful value calibration, run a small leaf-value grid
+  on the same checkpoint, for example:
+  - tactical/value `0.75/0.25`;
+  - tactical/value `0.5/0.5` (current best);
+  - tactical/value `0.25/0.75`;
+  keeping policy prior at `0.25`.
+- Do not scale beyond deck 12 until the single-matchup result approaches the
+  50% gate or the trace diagnostics identify a clear next value-training fix.
