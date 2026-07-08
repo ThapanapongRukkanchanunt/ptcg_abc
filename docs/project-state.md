@@ -1246,6 +1246,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   supervision or diagnostics: rule/search-selected tactical targets for missed
   attack/attachment states, richer action-level reports, or checking whether
   `phase5-full` search/heuristic selection is overriding the learned policy.
+- Pure-neural ablation of the tactical-shaped deck-12 checkpoint scored only
+  7 / 100 wins against built-in `sample_dragapult`, with 0 timeouts/errors.
+  This is close to the shaped collection result of 8 / 100 and much worse than
+  `phase5-full` at 8 / 30. Do not remove search/heuristics from the final agent;
+  they are currently helping. Use pure neural eval only as a diagnostic while
+  the next implementation targets direct supervision/action-level diagnostics
+  for missed attack and attachment decisions.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

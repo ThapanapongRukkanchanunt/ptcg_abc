@@ -4574,3 +4574,45 @@ Conclusion and next step:
   targets for the same situations, add richer action-level reports for the
   missed attach/attack rows, or change the agent/action selection logic if the
   eval traces show the policy is still vetoed by search/heuristics.
+
+## 2026-07-08 - Deck 12 Pure-Neural Ablation Eval
+
+Uploaded and inspected:
+
+- `phase5_public_agent_deck12_dragapult_100_tactical_pure_rl_100g.json`.
+- `phase5_public_agent_deck12_dragapult_100_tactical_pure_rl_100g.md`.
+- `phase5_public_agent_deck12_dragapult_100_tactical_pure_rl_status.json`.
+
+Evaluation:
+
+- Agent: `phase5-rl`, pure stochastic neural policy without root search.
+- Checkpoint family:
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists`.
+- Filters: `PUBLIC_AGENT_KEYS=sample_dragapult`, `DECK_INDICES=12`.
+- Result: 7 / 100 wins, 93 losses, 0 draws, 0 timeouts, 0 errors,
+  0.0700 win rate.
+- Public-agent gate: failed; strict per-matchup diagnostic failed.
+- Available opponent: built-in `sample_dragapult`.
+
+Comparison:
+
+- Iteration-5 baseline `phase5-full`: 6 / 30 wins.
+- Unshaped 100-game PPO update with `phase5-full`: 8 / 30 wins.
+- Tactical-shaped 100-game PPO update with `phase5-full`: 8 / 30 wins.
+- Tactical-shaped 100-game PPO update with pure `phase5-rl`: 7 / 100 wins.
+- The pure-neural eval is close to the shaped training collection result
+  (8 / 100 wins), and much worse than the `phase5-full` search/heuristic stack.
+
+Conclusion and next step:
+
+- Do not remove search/heuristics from the final or package agent. This ablation
+  shows they are helping, not hiding a better neural policy.
+- The current neural policy is still too weak on deck 12 vs sample Dragapult.
+  The next implementation should not be another PPO-only loop; use direct
+  supervision or diagnostics:
+  - generate action-level missed attack/attachment reports from the shaped
+    trajectory file;
+  - train a deck/opponent specialist from rule-selected or search-selected
+    tactical targets in those states;
+  - then evaluate both pure neural and `phase5-full` again to check whether the
+    learned policy actually moved.
