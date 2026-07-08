@@ -18,10 +18,12 @@ export PYTHONPATH="$SLURM_SUBMIT_DIR/src"
 PY="$SLURM_SUBMIT_DIR/.conda_ptcg/bin/python"
 
 PUBLIC_AGENT_ROOTS="${PUBLIC_AGENT_ROOTS:-${PUBLIC_AGENT_ROOT:-data/public_agents}}"
+PUBLIC_AGENT_KEYS="${PUBLIC_AGENT_KEYS:-}"
 ROSTER_NOTEBOOK="${ROSTER_NOTEBOOK:-}"
 MODEL="${MODEL:-models/rl/phase5_generalist_policy_13deck_10k.pt}"
 SPECIALIST_MODEL_DIR="${SPECIALIST_MODEL_DIR:-models/rl/phase5_league_alpha/iter-0005/specialists}"
 AGENT="${AGENT:-phase5-full}"
+DECK_INDICES="${DECK_INDICES:-}"
 GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-30}"
 MAX_STEPS="${MAX_STEPS:-600}"
 REQUIRE_MIN_OPPONENTS="${REQUIRE_MIN_OPPONENTS:-1}"
@@ -33,10 +35,12 @@ STATUS_JSON="${STATUS_JSON:-reports/phase5_public_agent_status.json}"
 
 echo "Phase 5 public-agent evaluation"
 echo "PUBLIC_AGENT_ROOTS=$PUBLIC_AGENT_ROOTS"
+echo "PUBLIC_AGENT_KEYS=$PUBLIC_AGENT_KEYS"
 echo "ROSTER_NOTEBOOK=$ROSTER_NOTEBOOK"
 echo "AGENT=$AGENT"
 echo "MODEL=$MODEL"
 echo "SPECIALIST_MODEL_DIR=$SPECIALIST_MODEL_DIR"
+echo "DECK_INDICES=$DECK_INDICES"
 echo "GAMES_PER_MATCHUP=$GAMES_PER_MATCHUP"
 echo "MAX_STEPS=$MAX_STEPS"
 echo "REQUIRE_MIN_OPPONENTS=$REQUIRE_MIN_OPPONENTS"
@@ -48,8 +52,16 @@ echo "STATUS_JSON=$STATUS_JSON"
 
 EXTRA_ARGS=()
 ROOT_ARGS=()
+KEY_ARGS=()
+DECK_ARGS=()
 for root in $PUBLIC_AGENT_ROOTS; do
   ROOT_ARGS+=(--public-agent-root "$root")
+done
+for key in $PUBLIC_AGENT_KEYS; do
+  KEY_ARGS+=(--public-agent-key "$key")
+done
+for index in $DECK_INDICES; do
+  DECK_ARGS+=(--deck-index "$index")
 done
 if [[ -n "$ROSTER_NOTEBOOK" ]]; then
   EXTRA_ARGS+=(--roster-notebook "$ROSTER_NOTEBOOK")
@@ -63,6 +75,8 @@ fi
 
 "$PY" -m ptcg_abc rl-evaluate-phase5-public-agents \
   "${ROOT_ARGS[@]}" \
+  "${KEY_ARGS[@]}" \
+  "${DECK_ARGS[@]}" \
   --agent "$AGENT" \
   --model "$MODEL" \
   --games-per-matchup "$GAMES_PER_MATCHUP" \

@@ -46,6 +46,7 @@ class PublicAgentTrajectorySummary:
     deck_indices: list[int]
     public_agent_roots: list[str]
     roster_notebook: str | None
+    public_agent_keys: list[str] | None
     available_opponents: list[dict[str, Any]]
     unavailable_opponents: list[dict[str, Any]]
     deck_games: dict[str, int]
@@ -211,8 +212,9 @@ def discover_phase5_public_opponents(
     include_public: bool = True,
     include_samples: bool = True,
     include_builtin_samples: bool = True,
+    public_agent_keys: Sequence[str] | None = None,
 ) -> tuple[list[LoadedPublicAgent], list[PublicAgentStatus]]:
-    return discover_public_agents(
+    opponents, statuses = discover_public_agents(
         roots=public_agent_roots,
         sample_dir=sample_dir,
         roster_notebook=roster_notebook,
@@ -220,6 +222,7 @@ def discover_phase5_public_opponents(
         include_samples=include_samples,
         include_builtin_samples=include_builtin_samples,
     )
+    return _filter_public_opponents(opponents, statuses, public_agent_keys)
 
 
 def run_phase5_public_agent_benchmark(
@@ -230,6 +233,7 @@ def run_phase5_public_agent_benchmark(
     include_public: bool = True,
     include_samples: bool = True,
     include_builtin_samples: bool = True,
+    public_agent_keys: Sequence[str] | None = None,
     require_min_opponents: int = 1,
     agent_kind: str = "phase5-full",
     model_path: Path | None = None,
@@ -248,6 +252,7 @@ def run_phase5_public_agent_benchmark(
         include_public=include_public,
         include_samples=include_samples,
         include_builtin_samples=include_builtin_samples,
+        public_agent_keys=public_agent_keys,
     )
     if len(opponents) < require_min_opponents:
         raise ValueError(
@@ -324,6 +329,7 @@ def generate_phase5_public_agent_trajectories(
     include_public: bool = True,
     include_samples: bool = True,
     include_builtin_samples: bool = True,
+    public_agent_keys: Sequence[str] | None = None,
     require_min_opponents: int = 1,
     agent_kind: str = "phase5-rl",
     model_path: Path | None = None,
@@ -346,6 +352,7 @@ def generate_phase5_public_agent_trajectories(
         include_public=include_public,
         include_samples=include_samples,
         include_builtin_samples=include_builtin_samples,
+        public_agent_keys=public_agent_keys,
     )
     if len(opponents) < require_min_opponents:
         raise ValueError(
@@ -511,6 +518,7 @@ def generate_phase5_public_agent_trajectories(
         deck_indices=[deck.index for deck in our_decks],
         public_agent_roots=[root.as_posix() for root in public_agent_roots],
         roster_notebook=roster_notebook.as_posix() if roster_notebook else None,
+        public_agent_keys=_normalized_public_agent_keys(public_agent_keys),
         available_opponents=[opponent.to_status().to_dict() for opponent in opponents],
         unavailable_opponents=[
             status.to_dict() for status in statuses if status.status != "available"
@@ -565,6 +573,40 @@ def _selected_phase5_decks(deck_indices: Sequence[int] | None) -> list[PreparedD
         if index not in [deck.index for deck in selected]:
             selected.append(by_index[index])
     return selected
+
+
+def _filter_public_opponents(
+    opponents: Sequence[LoadedPublicAgent],
+    statuses: Sequence[PublicAgentStatus],
+    public_agent_keys: Sequence[str] | None,
+) -> tuple[list[LoadedPublicAgent], list[PublicAgentStatus]]:
+    selected = _normalized_public_agent_keys(public_agent_keys)
+    if not selected:
+        return list(opponents), list(statuses)
+    selected_set = set(selected)
+    known_keys = {opponent.key for opponent in opponents} | {
+        status.source.key for status in statuses
+    }
+    unknown = [key for key in selected if key not in known_keys]
+    if unknown:
+        raise ValueError(f"Unknown public-agent key(s): {', '.join(unknown)}.")
+    return (
+        [opponent for opponent in opponents if opponent.key in selected_set],
+        [status for status in statuses if status.source.key in selected_set],
+    )
+
+
+def _normalized_public_agent_keys(
+    public_agent_keys: Sequence[str] | None,
+) -> list[str] | None:
+    if not public_agent_keys:
+        return None
+    selected: list[str] = []
+    for key in public_agent_keys:
+        clean = str(key).strip()
+        if clean and clean not in selected:
+            selected.append(clean)
+    return selected or None
 
 
 def _public_opponent_label(opponent: LoadedPublicAgent) -> str:

@@ -1161,6 +1161,7 @@ def command_phase5_public_agent_roster(args: argparse.Namespace) -> int:
             include_public=not args.samples_only,
             include_samples=not args.public_only,
             include_builtin_samples=not args.no_builtin_samples,
+            public_agent_keys=args.public_agent_key or None,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -1216,6 +1217,7 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             include_public=not args.samples_only,
             include_samples=not args.public_only,
             include_builtin_samples=not args.no_builtin_samples,
+            public_agent_keys=args.public_agent_key or None,
             require_min_opponents=args.require_min_opponents,
             agent_kind=args.agent,
             model_path=model_path,
@@ -1296,6 +1298,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             include_public=not args.samples_only,
             include_samples=not args.public_only,
             include_builtin_samples=not args.no_builtin_samples,
+            public_agent_keys=args.public_agent_key or None,
             require_min_opponents=args.require_min_opponents,
             agent_kind=args.agent,
             model_path=model_path,
@@ -2460,6 +2463,12 @@ def build_parser() -> argparse.ArgumentParser:
     phase5_public_roster.add_argument("--public-only", action="store_true")
     phase5_public_roster.add_argument("--samples-only", action="store_true")
     phase5_public_roster.add_argument(
+        "--public-agent-key",
+        action="append",
+        default=[],
+        help="Restrict discovery output to a specific public-agent key. Repeatable.",
+    )
+    phase5_public_roster.add_argument(
         "--no-builtin-samples",
         action="store_true",
         help="Disable repo-bundled sample-agent adapters during discovery.",
@@ -2491,6 +2500,12 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--public-only", action="store_true")
     rl_public_trajectories.add_argument("--samples-only", action="store_true")
     rl_public_trajectories.add_argument("--no-builtin-samples", action="store_true")
+    rl_public_trajectories.add_argument(
+        "--public-agent-key",
+        action="append",
+        default=[],
+        help="Restrict trajectory generation to a specific public-agent key. Repeatable.",
+    )
     rl_public_trajectories.add_argument("--require-min-opponents", type=int, default=1)
     rl_public_trajectories.add_argument(
         "--agent",
@@ -3103,6 +3118,12 @@ def build_parser() -> argparse.ArgumentParser:
     rl_evaluate_public.add_argument("--public-only", action="store_true")
     rl_evaluate_public.add_argument("--samples-only", action="store_true")
     rl_evaluate_public.add_argument("--no-builtin-samples", action="store_true")
+    rl_evaluate_public.add_argument(
+        "--public-agent-key",
+        action="append",
+        default=[],
+        help="Restrict evaluation to a specific public-agent key. Repeatable.",
+    )
     rl_evaluate_public.add_argument("--require-min-opponents", type=int, default=1)
     rl_evaluate_public.add_argument(
         "--min-opponent-win-rate",

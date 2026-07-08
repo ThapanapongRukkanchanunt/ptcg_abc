@@ -2210,6 +2210,101 @@ diagnostics, such as successful-trajectory filtering, denser tactical rewards,
 opponent demonstrations where applicable, or decision-level traces for missed
 setup, attack, and energy-attachment actions.
 
+### One-Deck Public-Agent Micro Experiment
+
+The `phase5-rl` collector samples from the neural policy distribution with a
+temperature, not epsilon-greedy random legal-action injection. Before another
+large public-agent curriculum pass, use a one-deck, one-opponent PPO signal
+check to see whether 100 on-policy games can improve a targeted specialist.
+
+Recommended first target: deck 12 Mega Abomasnow ex against the built-in
+`sample_dragapult` opponent, starting from the current best package candidate,
+`models/rl/phase5_league_alpha/iter-0005/specialists`.
+
+Baseline eval for the single matchup:
+
+```bash
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  REPORT_JSON=reports/phase5_public_agent_deck12_dragapult_baseline_30g.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_dragapult_baseline_30g.md \
+  STATUS_JSON=reports/phase5_public_agent_deck12_dragapult_baseline_status.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_deck12_dragapult_baseline_job.txt
+```
+
+Collect 100 games of on-policy data for only that matchup:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  AGENT=phase5-rl \
+  GAMES_PER_MATCHUP=100 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  OUTPUT="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100.jsonl \
+  REPORT_JSON=experiments/rl/phase5_public_agent_deck12_dragapult_100_trajectories_report.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_public_agent_trajectories.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_deck12_dragapult_100_trajectories_job.txt
+```
+
+Update only deck 12 into an isolated checkpoint root:
+
+```bash
+JOB=$(
+  ITERATION=12 \
+  DECK_INDICES=12 \
+  TRAJECTORY_DATASET="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100.jsonl \
+  SOURCE_CHECKPOINT_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  OUTPUT_CHECKPOINT_DIR=models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100/specialists \
+  REPORT_JSON=experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_ppo_report.json \
+  REPORT_DIR=experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_ppo \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_ppo_specialists_train.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_ppo_job.txt
+```
+
+Evaluate only deck 12 from that isolated checkpoint root:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  REPORT_JSON=reports/phase5_public_agent_deck12_dragapult_100_update_30g.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_dragapult_100_update_30g.md \
+  STATUS_JSON=reports/phase5_public_agent_deck12_dragapult_100_update_status.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_deck12_dragapult_100_update_eval_job.txt
+```
+
+Only promote the idea if the post-update single-matchup eval beats the baseline
+by a clear margin with zero errors/timeouts. Otherwise, stop and change the
+training signal before spending more compute.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

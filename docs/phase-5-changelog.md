@@ -4297,3 +4297,32 @@ Conclusion and next step:
   `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` as a failed
   targeted PPO experiment unless later analysis identifies a narrow deck-specific
   use.
+
+## 2026-07-08 - Public-Agent Micro-Experiment Filters
+
+Implementation:
+
+- Confirmed the current `phase5-rl` collector uses stochastic neural-policy
+  sampling with a temperature and records `policy_on_policy=true` frames; it is
+  not epsilon-greedy random legal-action exploration.
+- Added optional public-agent key filtering to public-agent roster discovery,
+  public-agent evaluation, and public-agent trajectory generation via
+  `--public-agent-key`.
+- Exposed `PUBLIC_AGENT_KEYS` in the public-agent roster/eval/trajectory SLURM
+  wrappers.
+- Exposed `DECK_INDICES` in the public-agent eval and trajectory SLURM wrappers,
+  matching the existing CLI and trainer deck filter behavior.
+- Added parser coverage for the new targeted public-agent/deck filter path.
+
+Experiment decision:
+
+- Before another broad public-agent curriculum pass, run a one-deck,
+  one-opponent signal check: deck 12 Mega Abomasnow ex vs built-in
+  `sample_dragapult`, starting from
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- Collect 100 on-policy `phase5-rl` games, update only deck 12 into
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100/specialists`,
+  then evaluate only deck 12 vs `sample_dragapult`.
+- Promote the idea only if the post-update eval beats the single-matchup
+  baseline by a clear margin with zero errors/timeouts; otherwise, change the
+  training signal before spending more compute.

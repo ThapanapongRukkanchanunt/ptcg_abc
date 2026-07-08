@@ -1203,6 +1203,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_public_agent_curriculum/iter-0006/specialists` as a failed
   targeted PPO experiment. Next work should change the training pipeline or add
   decision-level diagnostics before spending more curriculum compute.
+- The current `phase5-rl` data collector is stochastic neural-policy sampling
+  with temperature, not epsilon-greedy random legal-action exploration. The
+  next recommended diagnostic is a small one-deck, one-opponent micro
+  experiment: deck 12 Mega Abomasnow ex vs built-in `sample_dragapult`, 100
+  on-policy games from the iteration-5 specialist checkpoint, update only deck
+  12 into
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100/specialists`,
+  and compare a 30-game single-matchup eval against the same-deck baseline.
+  Public-agent commands and SLURM wrappers now support `PUBLIC_AGENT_KEYS` and
+  deck filters so this can run without touching the broad checkpoint families.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
