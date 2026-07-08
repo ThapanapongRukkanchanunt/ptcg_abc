@@ -4522,6 +4522,21 @@ Uploaded and inspected:
 - `phase5_public_agent_deck12_dragapult_100_tactical_update_30g.json`.
 - `phase5_public_agent_deck12_dragapult_100_tactical_update_30g.md`.
 - `slurm-73757-phase5-public-eval.out`.
+- `deck12_vs_sample_dragapult_100_tactical_ppo_report.json`.
+
+PPO update:
+
+- Iteration label: `13`.
+- Selected deck indices: `[12]`.
+- Source checkpoint:
+  `models/rl/phase5_league_alpha/iter-0005/specialists/deck-12.pt`.
+- Output checkpoint:
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists/deck-12.pt`.
+- Training consumed 2,626 / 2,626 on-policy examples, skipped 0 no-target rows
+  and 0 off-policy rows.
+- Mean advantage: -0.5657, compared with -1.1553 for the unshaped 100-game PPO
+  micro update.
+- Final loss: -0.0885.
 
 Evaluation:
 
@@ -4550,12 +4565,12 @@ Conclusion and next step:
 - Do not scale this shaped PPO setup to more decks. The shaped data produced a
   real diagnostic signal for missed attachment/attack opportunities, but the
   PPO update did not turn that signal into better held-out play.
-- The result strengthens the conclusion that sparse/loss-heavy on-policy PPO,
-  even with small tactical reward shaping, is not enough for this failure mode.
+- The shaped reward improved the training signal, moving mean advantage from
+  -1.1553 to -0.5657, but did not improve held-out evaluation beyond the
+  previous 8 / 30 result. This strengthens the conclusion that PPO-only updates
+  on small, mostly losing windows are not enough for this failure mode.
 - Next implementation should pivot to stronger direct supervision or diagnostics:
   train a deck/opponent specialist on rule-selected or search-selected tactical
   targets for the same situations, add richer action-level reports for the
   missed attach/attack rows, or change the agent/action selection logic if the
   eval traces show the policy is still vetoed by search/heuristics.
-- The shaped PPO training report was not included in this upload; add its
-  examples/mean-advantage/final-loss details here if it becomes available.
