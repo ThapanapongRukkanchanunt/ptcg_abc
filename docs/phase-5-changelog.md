@@ -4326,3 +4326,85 @@ Experiment decision:
 - Promote the idea only if the post-update eval beats the single-matchup
   baseline by a clear margin with zero errors/timeouts; otherwise, change the
   training signal before spending more compute.
+
+## 2026-07-08 - Deck 12 vs Sample Dragapult Micro Experiment Result
+
+Uploaded and inspected:
+
+- `phase5_public_agent_deck12_dragapult_baseline_30g.json`;
+  `phase5_public_agent_deck12_dragapult_baseline_30g.md`.
+- `phase5_public_agent_deck12_dragapult_100_trajectories_report.json`;
+  `slurm-73732-phase5-public-traj.out`;
+  `slurm-73732-phase5-public-traj.err`.
+- `deck12_vs_sample_dragapult_100_ppo_report.json`;
+  `deck-12_ppo_report.json`;
+  `slurm-73733-phase5-alpha-ppo-specialists.out`.
+- `phase5_public_agent_deck12_dragapult_100_update_30g.json`;
+  `phase5_public_agent_deck12_dragapult_100_update_30g.md`;
+  `slurm-73734-phase5-public-eval.out`;
+  `slurm-73734-phase5-public-eval.err`.
+
+Baseline single-matchup eval:
+
+- Checkpoint family:
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- Deck/opponent: deck 12 Mega Abomasnow ex vs built-in `sample_dragapult`.
+- Result: 6 / 30 wins, 24 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2000 win rate.
+- Search telemetry: 445 searched decisions, 81 changed decisions,
+  0 search errors, 0 candidate errors, average search 0.0082s, max 0.0690s.
+
+Trajectory collection:
+
+- ERAWAN job: `73732`.
+- Agent: `phase5-rl`.
+- Filters: `PUBLIC_AGENT_KEYS=sample_dragapult`, `DECK_INDICES=12`.
+- Source specialist root:
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- Raw output:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100.jsonl`.
+- Result: 100 / 100 games started, 2,527 trajectory rows, 8 wins,
+  92 losses, 0 draws, 0 timeouts, 0 errors.
+- The SLURM stderr contained only the known PyTorch nested-tensor prototype
+  warning.
+
+PPO update:
+
+- ERAWAN job: `73733`.
+- Iteration label: `12`; selected deck indices: `[12]`.
+- Source checkpoint:
+  `models/rl/phase5_league_alpha/iter-0005/specialists/deck-12.pt`.
+- Output checkpoint:
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100/specialists/deck-12.pt`.
+- Training consumed 2,527 / 2,527 on-policy examples, skipped 0 no-target and
+  0 off-policy rows.
+- Mean advantage: -1.1553; final loss: 0.0137.
+
+Post-update single-matchup eval:
+
+- ERAWAN job: `73734`.
+- Checkpoint:
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100/specialists/deck-12.pt`.
+- Result: 8 / 30 wins, 22 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2667 win rate.
+- Delta from baseline: +2 wins over 30 games, +0.0667 win rate.
+- Search telemetry: 543 searched decisions, 110 changed decisions,
+  0 search errors, 0 candidate errors, average search 0.0094s, max 0.0666s.
+
+Conclusion and next step:
+
+- The targeted command path is valid: public-agent key filtering, deck filtering,
+  one-deck trajectory collection, one-deck PPO update, and one-deck eval all
+  worked without runtime errors.
+- The learning result is not strong enough to promote or scale. The post-update
+  score improved from 6 / 30 to 8 / 30, but that is a small noisy change and
+  remains far below the 50% public-agent gate.
+- The training data was heavily loss-dominated: only 8 wins in 100 collection
+  games and mean PPO advantage -1.1553. This reinforces the earlier conclusion
+  that repeating sparse terminal-reward PPO on mostly losing trajectories is not
+  the right next broad pipeline.
+- Do not continue by scaling this exact 100-game PPO setup to more decks.
+  Next useful work should change the training signal: add denser tactical
+  rewards/diagnostics for required actions such as energy attachment and
+  attacking, collect or weight successful trajectories, or add a supervised
+  rule-specialist target before further online PPO.

@@ -1213,6 +1213,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   and compare a 30-game single-matchup eval against the same-deck baseline.
   Public-agent commands and SLURM wrappers now support `PUBLIC_AGENT_KEYS` and
   deck filters so this can run without touching the broad checkpoint families.
+- Deck 12 vs built-in `sample_dragapult` micro experiment completed on ERAWAN:
+  baseline iteration-5 specialist scored 6 / 30 wins; 100-game `phase5-rl`
+  collection produced 8 / 100 wins and 2,527 trajectory rows; deck-12-only PPO
+  consumed all 2,527 on-policy examples with mean advantage -1.1553; post-update
+  eval scored 8 / 30 wins. The path is operationally valid, but the improvement
+  is too small/noisy and still far below the 50% gate. Do not scale this exact
+  sparse terminal-reward PPO loop; next work should change the training signal
+  with denser tactical rewards/diagnostics, successful-trajectory weighting, or
+  supervised rule-specialist targets.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
