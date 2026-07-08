@@ -372,8 +372,81 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             )
         return candidates
 
+    def _candidate_leaf_state_value(
+        self,
+        final_observation: Any,
+        *,
+        root_player: int,
+    ) -> float | None:
+        if self.config.leaf_state_value_weight == 0.0:
+            return None
+        try:
+            perspective_observation = _PerspectiveObservation(
+                final_observation,
+                root_player,
+            )
+            leaf_state = self.state_adapter.parse(perspective_observation)
+            belief = self.memory.belief_state(
+                leaf_state,
+                own_deck_ids=self.deck_ids,
+                opponent_deck_ids=self.opponent_deck_ids,
+            )
+            encoded = self.encoder.encode(leaf_state, [], belief)
+            torch = self.torch
+            with torch.no_grad():
+                output = self.model(
+                    torch.tensor(
+                        [encoded.global_features],
+                        dtype=torch.float32,
+                        device=self.device,
+                    ),
+                    torch.tensor(
+                        [encoded.entity_features],
+                        dtype=torch.float32,
+                        device=self.device,
+                    ),
+                    torch.tensor(
+                        [encoded.entity_mask],
+                        dtype=torch.float32,
+                        device=self.device,
+                    ),
+                    torch.tensor(
+                        [encoded.legal_action_features],
+                        dtype=torch.float32,
+                        device=self.device,
+                    ),
+                    torch.tensor(
+                        [encoded.legal_action_mask],
+                        dtype=torch.float32,
+                        device=self.device,
+                    ),
+                    None,
+                    None,
+                )
+            return float(output["state_value"][0].detach().cpu().item())
+        except Exception:
+            return None
+
 
 def _get(value: Any, name: str, default: Any = None) -> Any:
     if isinstance(value, dict):
         return value.get(name, default)
     return getattr(value, name, default)
+
+
+class _PerspectiveObservation:
+    def __init__(self, observation: Any, player_index: int) -> None:
+        self._observation = observation
+        self.current = _PerspectiveCurrent(_get(observation, "current"), player_index)
+
+    def __getattr__(self, name: str) -> Any:
+        return _get(self._observation, name)
+
+
+class _PerspectiveCurrent:
+    def __init__(self, current: Any, player_index: int) -> None:
+        self._current = current
+        self.yourIndex = int(player_index)
+
+    def __getattr__(self, name: str) -> Any:
+        return _get(self._current, name)

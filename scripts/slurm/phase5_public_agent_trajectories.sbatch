@@ -77,7 +77,7 @@ done
 if [[ -n "$ROSTER_NOTEBOOK" ]]; then
   EXTRA_ARGS+=(--roster-notebook "$ROSTER_NOTEBOOK")
 fi
-if [[ -n "$SPECIALIST_MODEL_DIR" ]]; then
+if [[ -n "$SPECIALIST_MODEL_DIR" && "$AGENT" != "rule" ]]; then
   EXTRA_ARGS+=(--specialist-model-dir "$SPECIALIST_MODEL_DIR")
 fi
 if [[ -n "$OVERWRITE_FLAG" ]]; then

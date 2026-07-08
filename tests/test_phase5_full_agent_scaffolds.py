@@ -105,6 +105,47 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertEqual(candidates[1].neural_action_value_prior, 1.0)
         self.assertEqual(candidates[1].combined_score, 1.0)
 
+    def test_search_candidate_scoring_accepts_normalized_leaf_value(self):
+        candidates = [
+            CandidateEvaluation(
+                indices=[0],
+                option_index=0,
+                option_type="END",
+                card_name="",
+                attack_id=None,
+                rule_score=0.0,
+                rule_rank=1,
+                tactical_score=20.0,
+                leaf_state_value=-0.4,
+            ),
+            CandidateEvaluation(
+                indices=[1],
+                option_index=1,
+                option_type="PLAY",
+                card_name="B",
+                attack_id=None,
+                rule_score=0.0,
+                rule_rank=2,
+                tactical_score=10.0,
+                leaf_state_value=0.6,
+            ),
+        ]
+
+        _score_candidates(
+            candidates,
+            RootSearchConfig(
+                rule_prior_weight=0.0,
+                tactical_score_weight=0.25,
+                normalize_tactical_score=True,
+                leaf_state_value_weight=0.75,
+            ),
+        )
+
+        self.assertEqual(candidates[0].tactical_score_prior, 1.0)
+        self.assertEqual(candidates[1].leaf_state_value_prior, 1.0)
+        self.assertAlmostEqual(candidates[0].combined_score, 0.25)
+        self.assertAlmostEqual(candidates[1].combined_score, 0.75)
+
     def test_policy_pool_rotation_is_deterministic(self):
         paths = [Path("a.pt"), Path("b.pt"), Path("c.pt")]
 
@@ -244,6 +285,11 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "0.1",
                 "--neural-action-value-weight",
                 "0.2",
+                "--normalize-tactical-score",
+                "--tactical-score-weight",
+                "0.5",
+                "--leaf-state-value-weight",
+                "0.75",
                 "--specialist-model-dir",
                 "models/rl/phase5_league_alpha/iter-0000/specialists",
             ]
@@ -291,6 +337,9 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
 
         self.assertEqual(league_args.policy_prior_weight, 0.1)
         self.assertEqual(league_args.neural_action_value_weight, 0.2)
+        self.assertTrue(league_args.normalize_tactical_score)
+        self.assertEqual(league_args.tactical_score_weight, 0.5)
+        self.assertEqual(league_args.leaf_state_value_weight, 0.75)
         self.assertEqual(
             league_args.specialist_model_dir,
             Path("models/rl/phase5_league_alpha/iter-0000/specialists"),

@@ -105,6 +105,8 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "12",
                 "--public-agent-key",
                 "sample_dragapult",
+                "--agent",
+                "rule",
                 "--outcome-reward-scale",
                 "0.25",
                 "--tactical-reward-mode",
@@ -117,6 +119,7 @@ class PublicAgentRosterTests(unittest.TestCase):
         )
         self.assertEqual(traj_args.deck_index, [12])
         self.assertEqual(traj_args.public_agent_key, ["sample_dragapult"])
+        self.assertEqual(traj_args.agent, "rule")
         self.assertEqual(traj_args.outcome_reward_scale, 0.25)
         self.assertEqual(traj_args.tactical_reward_mode, "basic")
 

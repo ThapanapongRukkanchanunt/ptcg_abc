@@ -2444,6 +2444,114 @@ Interpretation checklist:
 - Only tune `RootSearchConfig` weights after this report; otherwise the change
   is guesswork.
 
+### One-Deck Leaf State-Value Search Experiment
+
+This is the narrow test for replacing/mixing handcrafted rollout leaf scoring
+with the neural `state_value` head. It uses only deck 12 Mega Abomasnow ex
+against built-in `sample_dragapult`, and starts from rule-vs-rule bootstrap
+trajectories instead of the failed loss-heavy PPO loop.
+
+Generate rule-vs-rule bootstrap trajectories for the matchup:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  AGENT=rule \
+  GAMES_PER_MATCHUP=500 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  OUTPUT="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_rule_500.jsonl \
+  REPORT_JSON=experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_rule_500_trajectories_report.json \
+  sbatch --parsable --cpus-per-task=4 scripts/slurm/phase5_public_agent_trajectories.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_rule_500_trajectories_job.txt
+```
+
+Train a deck-12 bootstrap/value specialist only from that rule-vs-rule window:
+
+```bash
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  ITERATION=21 \
+  DECK_INDICES=12 \
+  SELFPLAY_DATASET="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_rule_500.jsonl \
+  NO_DECISION_DATASET=1 \
+  CHECKPOINT_DIR=models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists \
+  REPORT_DIR=experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists \
+  REPORT_JSON=experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value_train_report.json \
+  EPOCHS=3 \
+  PAIRWISE_CHANGED=0 \
+  VALUE_LOSS_WEIGHT=1.0 \
+  ACTION_VALUE_LOSS_WEIGHT=0.25 \
+  TACTICAL_LOSS_WEIGHT=0.0 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_deck_specialists_train.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value_train_job.txt
+```
+
+Evaluate the normalized tactical baseline from the new checkpoint:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=100 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  NORMALIZE_TACTICAL_SCORE=1 \
+  TACTICAL_SCORE_WEIGHT=1.0 \
+  POLICY_PRIOR_WEIGHT=0.25 \
+  LEAF_STATE_VALUE_WEIGHT=0.0 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value_norm_tactical_traces.jsonl \
+  SEARCH_TRACE_GAMES=0 \
+  REPORT_JSON=reports/phase5_public_agent_deck12_rule_bootstrap_norm_tactical_100g.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_rule_bootstrap_norm_tactical_100g.md \
+  STATUS_JSON=reports/phase5_public_agent_deck12_rule_bootstrap_norm_tactical_status.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_norm_tactical_eval_job.txt
+```
+
+Evaluate the leaf-value variant from the same checkpoint:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=100 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  NORMALIZE_TACTICAL_SCORE=1 \
+  TACTICAL_SCORE_WEIGHT=0.5 \
+  POLICY_PRIOR_WEIGHT=0.25 \
+  LEAF_STATE_VALUE_WEIGHT=0.5 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_leaf_value_traces.jsonl \
+  SEARCH_TRACE_GAMES=0 \
+  REPORT_JSON=reports/phase5_public_agent_deck12_rule_bootstrap_leaf_value_100g.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_rule_bootstrap_leaf_value_100g.md \
+  STATUS_JSON=reports/phase5_public_agent_deck12_rule_bootstrap_leaf_value_status.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_rule_bootstrap_leaf_value_eval_job.txt
+```
+
+After either eval, summarize its trace with
+`scripts/slurm/phase5_search_score_components_conda.sbatch` to inspect
+`leaf_state_value`, `leaf_state_value_prior`, and `leaf_state_value_score` by
+win/loss outcome.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

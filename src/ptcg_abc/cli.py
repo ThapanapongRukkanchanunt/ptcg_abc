@@ -124,9 +124,14 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
     fields = {
         "top_k": getattr(args, "search_top_k", None),
         "max_rollout_steps": getattr(args, "search_rollout_steps", None),
+        "tactical_score_weight": getattr(args, "tactical_score_weight", None),
+        "normalize_tactical_score": (
+            True if getattr(args, "normalize_tactical_score", False) else None
+        ),
         "policy_prior_weight": getattr(args, "policy_prior_weight", None),
         "neural_action_value_weight": getattr(args, "neural_action_value_weight", None),
         "neural_tactical_weight": getattr(args, "neural_tactical_weight", None),
+        "leaf_state_value_weight": getattr(args, "leaf_state_value_weight", None),
     }
     if all(value is None for value in fields.values()):
         return None
@@ -137,6 +142,16 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
             fields["max_rollout_steps"]
             if fields["max_rollout_steps"] is not None
             else base_config.max_rollout_steps
+        ),
+        tactical_score_weight=(
+            fields["tactical_score_weight"]
+            if fields["tactical_score_weight"] is not None
+            else base_config.tactical_score_weight
+        ),
+        normalize_tactical_score=(
+            fields["normalize_tactical_score"]
+            if fields["normalize_tactical_score"] is not None
+            else base_config.normalize_tactical_score
         ),
         policy_prior_weight=(
             fields["policy_prior_weight"]
@@ -152,6 +167,11 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
             fields["neural_tactical_weight"]
             if fields["neural_tactical_weight"] is not None
             else base_config.neural_tactical_weight
+        ),
+        leaf_state_value_weight=(
+            fields["leaf_state_value_weight"]
+            if fields["leaf_state_value_weight"] is not None
+            else base_config.leaf_state_value_weight
         ),
     )
 
@@ -186,6 +206,17 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         help="Optional normalized policy-logit prior weight inside root-search scoring.",
     )
     parser.add_argument(
+        "--tactical-score-weight",
+        type=float,
+        default=None,
+        help="Weight for root-search rollout tactical score.",
+    )
+    parser.add_argument(
+        "--normalize-tactical-score",
+        action="store_true",
+        help="Normalize rollout tactical score across candidates before scoring.",
+    )
+    parser.add_argument(
         "--neural-action-value-weight",
         type=float,
         default=None,
@@ -196,6 +227,12 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         type=float,
         default=None,
         help="Optional normalized neural tactical-head prior weight inside root-search scoring.",
+    )
+    parser.add_argument(
+        "--leaf-state-value-weight",
+        type=float,
+        default=None,
+        help="Optional normalized leaf state-value weight inside root-search scoring.",
     )
 
 
@@ -1293,11 +1330,12 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    if args.specialist_model_dir is not None:
+    specialist_model_dir = None if args.agent == "rule" else args.specialist_model_dir
+    if specialist_model_dir is not None:
         missing = [
-            args.specialist_model_dir / f"deck-{deck_index:02d}.pt"
+            specialist_model_dir / f"deck-{deck_index:02d}.pt"
             for deck_index in (args.deck_index or PHASE5_ALPHA_DECK_INDICES)
-            if not (args.specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
+            if not (specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
         ]
         if missing:
             preview = ", ".join(path.as_posix() for path in missing[:3])
@@ -1327,7 +1365,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             require_min_opponents=args.require_min_opponents,
             agent_kind=args.agent,
             model_path=model_path,
-            specialist_model_dir=args.specialist_model_dir,
+            specialist_model_dir=specialist_model_dir,
             deck_indices=args.deck_index or None,
             games_per_matchup=args.games_per_matchup,
             max_steps=args.max_steps,
@@ -2542,7 +2580,7 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--require-min-opponents", type=int, default=1)
     rl_public_trajectories.add_argument(
         "--agent",
-        choices=["phase5-search", "phase5-full", "phase5-rl"],
+        choices=["rule", "phase5-search", "phase5-full", "phase5-rl"],
         default="phase5-rl",
     )
     rl_public_trajectories.add_argument(

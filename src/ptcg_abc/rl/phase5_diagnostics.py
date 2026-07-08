@@ -155,6 +155,11 @@ class SearchDistillDiagnostics:
 
 SCORE_COMPONENT_FIELDS: tuple[str, ...] = (
     "tactical_score",
+    "tactical_score_prior",
+    "tactical_score_component",
+    "leaf_state_value",
+    "leaf_state_value_prior",
+    "leaf_state_value_score",
     "rule_score",
     "rule_prior",
     "policy_score",
@@ -657,10 +662,13 @@ def write_search_score_component_markdown(
             lines.append(
                 "- "
                 f"records={item['records']} "
+                f"tactical_score_weight={config.get('tactical_score_weight')} "
+                f"normalize_tactical_score={config.get('normalize_tactical_score')} "
                 f"rule_prior_weight={config.get('rule_prior_weight')} "
                 f"policy_prior_weight={config.get('policy_prior_weight')} "
                 f"neural_action_value_weight={config.get('neural_action_value_weight')} "
-                f"neural_tactical_weight={config.get('neural_tactical_weight')}"
+                f"neural_tactical_weight={config.get('neural_tactical_weight')} "
+                f"leaf_state_value_weight={config.get('leaf_state_value_weight')}"
             )
     else:
         lines.append("- None")
@@ -986,9 +994,12 @@ def _candidate_for_indices(
 def _score_config_signature(config: dict[str, Any]) -> str:
     keys = [
         "rule_prior_weight",
+        "tactical_score_weight",
+        "normalize_tactical_score",
         "policy_prior_weight",
         "neural_action_value_weight",
         "neural_tactical_weight",
+        "leaf_state_value_weight",
         "damage_weight",
         "self_damage_weight",
         "prize_weight",

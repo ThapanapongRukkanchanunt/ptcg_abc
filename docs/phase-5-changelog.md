@@ -4721,3 +4721,51 @@ Conclusion and next step:
 - If normalized-tactical policy-prior ablations still fail below the 50% gate,
   the next training change should target longer-horizon setup/value rather than
   more sparse PPO on this matchup.
+
+## 2026-07-08 - Leaf State-Value Search Ablation Implementation
+
+Implementation:
+
+- Added opt-in leaf state-value scoring to Phase 5 root search.
+- New `RootSearchConfig` fields:
+  - `tactical_score_weight` (default `1.0`);
+  - `normalize_tactical_score` (default `False`);
+  - `leaf_state_value_weight` (default `0.0`).
+- Defaults preserve the old search equation:
+  `combined_score = tactical_score + prior_score`.
+- With `normalize_tactical_score=True`, rollout tactical score is normalized
+  across root candidates before weighting.
+- With `leaf_state_value_weight > 0`, `Phase5SearchPolicyAgent` evaluates each
+  rolled leaf state using the existing Phase 5 `state_value` head from the root
+  player's perspective and adds the normalized leaf value to candidate scoring.
+- Candidate traces now include:
+  - `tactical_score_prior`;
+  - `tactical_score_component`;
+  - `leaf_state_value`;
+  - `leaf_state_value_prior`;
+  - `leaf_state_value_score`.
+- `rl-generate-phase5-public-agent-trajectories` now accepts `--agent rule` so
+  one-deck rule-vs-rule bootstrap trajectories can be generated against a
+  specialized public/sample opponent.
+- `scripts/slurm/phase5_deck_specialists_train.sbatch` now supports
+  `NO_DECISION_DATASET`, `SELFPLAY_WEIGHT`, `VALUE_LOSS_WEIGHT`,
+  `ACTION_VALUE_LOSS_WEIGHT`, and `TACTICAL_LOSS_WEIGHT` so a start network can
+  be trained from only the narrow rule-vs-rule trajectory window.
+- `scripts/slurm/phase5_public_agent_eval_conda.sbatch` now accepts
+  `NORMALIZE_TACTICAL_SCORE`, `TACTICAL_SCORE_WEIGHT`, `POLICY_PRIOR_WEIGHT`,
+  `NEURAL_ACTION_VALUE_WEIGHT`, `NEURAL_TACTICAL_WEIGHT`, and
+  `LEAF_STATE_VALUE_WEIGHT`.
+
+Experiment plan:
+
+- Use deck 12 Mega Abomasnow ex vs built-in `sample_dragapult`.
+- Generate rule-agent trajectories for our deck against the specialized
+  sample Dragapult rule opponent.
+- Train an isolated deck-12 specialist from that rule-vs-rule trajectory file
+  with value loss enabled.
+- Evaluate two one-deck variants:
+  - normalized tactical + policy prior, no leaf value;
+  - normalized tactical + policy prior + leaf state value.
+- Promote the idea only if the leaf-value variant improves the same-matchup
+  win rate without introducing search/candidate errors or obvious END/attack
+  regressions.

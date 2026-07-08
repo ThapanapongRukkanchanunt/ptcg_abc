@@ -1268,6 +1268,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   losing traces showed higher immediate damage delta. Next search-weight work
   should normalize rollout tactical score before combining and test small
   policy-prior weights; do not blindly enable neural Q/tactical weights yet.
+- Leaf state-value search ablation is now implemented but not yet run. Root
+  search can opt into normalized rollout tactical scoring and normalized
+  `state_value` leaf scoring with `--normalize-tactical-score`,
+  `--tactical-score-weight`, and `--leaf-state-value-weight`. The next ERAWAN
+  experiment is deck 12 vs built-in `sample_dragapult`: collect 500
+  rule-vs-rule trajectories, train
+  `models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists/deck-12.pt`
+  from that narrow rule window with value loss enabled, then compare normalized
+  tactical-only search against normalized tactical plus leaf-value search.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

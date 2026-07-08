@@ -43,9 +43,12 @@ class RootSearchConfig:
     terminal_win_score: float = 100.0
     terminal_loss_score: float = -100.0
     truncated_penalty: float = 0.25
+    tactical_score_weight: float = 1.0
+    normalize_tactical_score: bool = False
     policy_prior_weight: float = 0.0
     neural_action_value_weight: float = 0.0
     neural_tactical_weight: float = 0.0
+    leaf_state_value_weight: float = 0.0
     root_select_types: tuple[str, ...] = ("MAIN",)
     root_contexts: tuple[str, ...] = ("MAIN",)
 
@@ -84,6 +87,11 @@ class CandidateEvaluation:
     truncated: bool = False
     error: str | None = None
     tactical_score: float = 0.0
+    tactical_score_prior: float = 0.0
+    tactical_score_component: float = 0.0
+    leaf_state_value: float = 0.0
+    leaf_state_value_prior: float = 0.0
+    leaf_state_value_score: float = 0.0
     rule_prior: float = 0.0
     policy_score: float = 0.0
     policy_prior: float = 0.0
@@ -400,6 +408,12 @@ class OneTurnRootSearchAgent:
                 config=self.config,
                 truncated=candidate.truncated,
             )
+            leaf_value = self._candidate_leaf_state_value(
+                final_observation,
+                root_player=root_player,
+            )
+            if leaf_value is not None:
+                candidate.leaf_state_value = float(leaf_value)
             candidate.end_turn = int(_get(final_current, "turn", 0) or 0)
             result = _get(final_current, "result", None)
             candidate.end_result = int(result) if result is not None else None
@@ -412,6 +426,14 @@ class OneTurnRootSearchAgent:
         except Exception as exc:
             candidate.error = f"{type(exc).__name__}: {exc}"
             candidate.tactical_score = -999.0
+
+    def _candidate_leaf_state_value(
+        self,
+        final_observation: Any,
+        *,
+        root_player: int,
+    ) -> float | None:
+        return None
 
     def _base_metadata(
         self,
@@ -766,12 +788,18 @@ def _candidate_evaluations(
 
 def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSearchConfig) -> None:
     successful = [candidate for candidate in candidates if candidate.error is None]
+    tactical_score_norm = _normalized_candidate_values(successful, "tactical_score")
+    leaf_value_norm = _normalized_candidate_values(successful, "leaf_state_value")
     rule_norm = _normalized_candidate_values(successful, "rule_score")
     policy_norm = _normalized_candidate_values(successful, "policy_score")
     q_norm = _normalized_candidate_values(successful, "neural_action_value")
     tactical_norm = _normalized_candidate_values(successful, "neural_tactical_score")
     for candidate in candidates:
         if candidate.error is not None:
+            candidate.tactical_score_prior = 0.0
+            candidate.tactical_score_component = candidate.tactical_score
+            candidate.leaf_state_value_prior = 0.0
+            candidate.leaf_state_value_score = 0.0
             candidate.rule_prior = 0.0
             candidate.policy_prior = 0.0
             candidate.neural_action_value_prior = 0.0
@@ -779,17 +807,34 @@ def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSea
             candidate.prior_score = 0.0
             candidate.combined_score = candidate.tactical_score
             continue
+        candidate.tactical_score_prior = tactical_score_norm.get(id(candidate), 0.0)
+        candidate.leaf_state_value_prior = leaf_value_norm.get(id(candidate), 0.0)
         candidate.rule_prior = rule_norm.get(id(candidate), 0.0)
         candidate.policy_prior = policy_norm.get(id(candidate), 0.0)
         candidate.neural_action_value_prior = q_norm.get(id(candidate), 0.0)
         candidate.neural_tactical_prior = tactical_norm.get(id(candidate), 0.0)
+        tactical_input = (
+            candidate.tactical_score_prior
+            if config.normalize_tactical_score
+            else candidate.tactical_score
+        )
+        candidate.tactical_score_component = (
+            config.tactical_score_weight * tactical_input
+        )
+        candidate.leaf_state_value_score = (
+            config.leaf_state_value_weight * candidate.leaf_state_value_prior
+        )
         candidate.prior_score = (
             config.rule_prior_weight * candidate.rule_prior
             + config.policy_prior_weight * candidate.policy_prior
             + config.neural_action_value_weight * candidate.neural_action_value_prior
             + config.neural_tactical_weight * candidate.neural_tactical_prior
         )
-        candidate.combined_score = candidate.tactical_score + candidate.prior_score
+        candidate.combined_score = (
+            candidate.tactical_score_component
+            + candidate.leaf_state_value_score
+            + candidate.prior_score
+        )
 
 
 def _normalized_candidate_values(
