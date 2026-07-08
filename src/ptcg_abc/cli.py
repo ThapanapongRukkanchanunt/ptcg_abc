@@ -88,6 +88,7 @@ from ptcg_abc.rl.phase5_alpha_league import (
     train_phase5_deck_specialists_ppo,
 )
 from ptcg_abc.rl.public_opponents import (
+    PublicAgentTacticalRewardConfig,
     discover_phase5_public_opponents,
     format_public_agent_gate_markdown,
     generate_phase5_public_agent_trajectories,
@@ -1309,6 +1310,14 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             game_offset=args.game_offset,
             search_config=_root_search_config_from_args(args),
             overwrite=args.overwrite,
+            outcome_reward_scale=args.outcome_reward_scale,
+            tactical_reward_config=PublicAgentTacticalRewardConfig(
+                mode=args.tactical_reward_mode,
+                attack_bonus=args.tactical_attack_bonus,
+                attach_bonus=args.tactical_attach_bonus,
+                missed_attack_penalty=args.tactical_missed_attack_penalty,
+                missed_attach_penalty=args.tactical_missed_attach_penalty,
+            ),
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -2533,6 +2542,30 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--games-per-matchup", type=int, default=2)
     rl_public_trajectories.add_argument("--game-offset", type=int, default=0)
     rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
+    rl_public_trajectories.add_argument(
+        "--outcome-reward-scale",
+        type=float,
+        default=1.0,
+        help="Scale terminal outcome reward before adding tactical step rewards.",
+    )
+    rl_public_trajectories.add_argument(
+        "--tactical-reward-mode",
+        choices=["none", "basic"],
+        default="none",
+        help="Optional dense reward for attack/energy-attachment decisions.",
+    )
+    rl_public_trajectories.add_argument("--tactical-attack-bonus", type=float, default=0.10)
+    rl_public_trajectories.add_argument("--tactical-attach-bonus", type=float, default=0.06)
+    rl_public_trajectories.add_argument(
+        "--tactical-missed-attack-penalty",
+        type=float,
+        default=-0.10,
+    )
+    rl_public_trajectories.add_argument(
+        "--tactical-missed-attach-penalty",
+        type=float,
+        default=-0.06,
+    )
     _add_phase5_search_config_args(rl_public_trajectories)
     rl_public_trajectories.add_argument(
         "--output",

@@ -1222,6 +1222,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   sparse terminal-reward PPO loop; next work should change the training signal
   with denser tactical rewards/diagnostics, successful-trajectory weighting, or
   supervised rule-specialist targets.
+- Public-agent trajectory generation now has opt-in tactical reward shaping.
+  Defaults preserve old behavior, but the next deck-12 diagnostic should use
+  `OUTCOME_REWARD_SCALE=0.25` and `TACTICAL_REWARD_MODE=basic` so attack and
+  energy-attachment decisions receive per-step credit/penalty. The shaped
+  trajectory report includes `reward_shaping` and `tactical_reward_summary`;
+  inspect those counts before deciding whether to tune PPO, reward weights, or a
+  supervised rule-specialist target.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

@@ -4408,3 +4408,55 @@ Conclusion and next step:
   rewards/diagnostics for required actions such as energy attachment and
   attacking, collect or weight successful trajectories, or add a supervised
   rule-specialist target before further online PPO.
+
+## 2026-07-08 - Public-Agent Tactical Reward Shaping
+
+Implementation:
+
+- Added opt-in public-agent trajectory reward shaping. The default remains the
+  old behavior: `--outcome-reward-scale 1.0` and
+  `--tactical-reward-mode none`.
+- Added `PublicAgentTacticalRewardConfig` with a `basic` mode that:
+  - rewards selected attack actions;
+  - rewards selected energy-attach actions;
+  - penalizes ending while attack/attach actions are available;
+  - penalizes attacking while an attach action is still available.
+- Public-agent trajectory rows now record:
+  - original terminal/outcome reward;
+  - outcome reward scale;
+  - scaled outcome reward;
+  - tactical step reward;
+  - booleans for attack/attach availability, selected attack/attach, selected
+    end, empty selection, missed attack, and missed attach.
+- Public-agent trajectory reports now include `reward_shaping` and
+  `tactical_reward_summary`.
+- Exposed the shaping controls through
+  `rl-generate-phase5-public-agent-trajectories` and
+  `scripts/slurm/phase5_public_agent_trajectories.sbatch`:
+  - `OUTCOME_REWARD_SCALE`;
+  - `TACTICAL_REWARD_MODE`;
+  - `TACTICAL_ATTACK_BONUS`;
+  - `TACTICAL_ATTACH_BONUS`;
+  - `TACTICAL_MISSED_ATTACK_PENALTY`;
+  - `TACTICAL_MISSED_ATTACH_PENALTY`.
+- Added unit coverage for public-agent parser flags and basic tactical reward
+  math.
+
+Next ERAWAN diagnostic:
+
+- Rerun the same deck-12 vs built-in `sample_dragapult` micro experiment with
+  shaped trajectories:
+  - `OUTCOME_REWARD_SCALE=0.25`;
+  - `TACTICAL_REWARD_MODE=basic`;
+  - attack bonus `0.10`;
+  - attach bonus `0.06`;
+  - missed attack penalty `-0.10`;
+  - missed attach penalty `-0.06`.
+- Write shaped raw data to
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100_tactical.jsonl`,
+  update only deck 12 into
+  `models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists`,
+  then evaluate only deck 12 vs `sample_dragapult`.
+- Interpret the shaped run using both the eval delta and
+  `tactical_reward_summary`; if missed attack/attach counts are low, this is not
+  the right failure-mode diagnostic.

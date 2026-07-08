@@ -11,8 +11,11 @@ from ptcg_abc.public_agents import (
     public_agent_sources,
 )
 from ptcg_abc.evaluation import Phase3RequiredBenchmarkRow
+from ptcg_abc.rl.records import ActionFrame, DecisionFrame
 from ptcg_abc.rl.public_opponents import (
+    PublicAgentTacticalRewardConfig,
     _filter_public_opponents,
+    _tactical_reward_for_frame,
     summarize_public_agent_gate,
 )
 
@@ -93,6 +96,10 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "12",
                 "--public-agent-key",
                 "sample_dragapult",
+                "--outcome-reward-scale",
+                "0.25",
+                "--tactical-reward-mode",
+                "basic",
             ]
         )
         self.assertEqual(
@@ -101,6 +108,8 @@ class PublicAgentRosterTests(unittest.TestCase):
         )
         self.assertEqual(traj_args.deck_index, [12])
         self.assertEqual(traj_args.public_agent_key, ["sample_dragapult"])
+        self.assertEqual(traj_args.outcome_reward_scale, 0.25)
+        self.assertEqual(traj_args.tactical_reward_mode, "basic")
 
     def test_public_agent_key_filter_preserves_selected_statuses(self):
         source_a = PublicAgentSource(
@@ -139,6 +148,36 @@ class PublicAgentRosterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown public-agent key"):
             _filter_public_opponents([loaded], [loaded.to_status()], ["missing_key"])
 
+    def test_basic_tactical_reward_marks_attack_and_attach_choices(self):
+        frame = _public_tactical_frame()
+        config = PublicAgentTacticalRewardConfig(mode="basic")
+
+        attack_reward, attack_meta = _tactical_reward_for_frame(frame, [0], config)
+        self.assertAlmostEqual(attack_reward, 0.04)
+        self.assertTrue(attack_meta["tactical_attack_taken"])
+        self.assertTrue(attack_meta["tactical_missed_attach"])
+
+        attach_reward, attach_meta = _tactical_reward_for_frame(frame, [1], config)
+        self.assertAlmostEqual(attach_reward, 0.06)
+        self.assertTrue(attach_meta["tactical_attach_taken"])
+        self.assertFalse(attach_meta["tactical_missed_attack"])
+
+        end_reward, end_meta = _tactical_reward_for_frame(frame, [2], config)
+        self.assertAlmostEqual(end_reward, -0.16)
+        self.assertTrue(end_meta["tactical_missed_attack"])
+        self.assertTrue(end_meta["tactical_missed_attach"])
+
+    def test_tactical_reward_default_is_noop_with_metadata(self):
+        reward, metadata = _tactical_reward_for_frame(
+            _public_tactical_frame(),
+            [2],
+            PublicAgentTacticalRewardConfig(),
+        )
+
+        self.assertEqual(reward, 0.0)
+        self.assertEqual(metadata["tactical_reward_mode"], "none")
+        self.assertTrue(metadata["tactical_attack_available"])
+
     def test_public_agent_gate_summarizes_opponents_and_decks(self):
         rows = [
             Phase3RequiredBenchmarkRow(
@@ -173,6 +212,24 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(summary["worst_opponent"]["key"], "agent-b")
         self.assertEqual(summary["controlled_decks"][0]["win_rate"], 0.5)
         self.assertEqual(len(summary["failing_opponents"]), 1)
+
+
+def _public_tactical_frame() -> DecisionFrame:
+    return DecisionFrame(
+        select_type="MAIN",
+        context="MAIN",
+        min_count=1,
+        max_count=1,
+        target_count=1,
+        legal_options=[
+            ActionFrame(index=0, option_type="ATTACK", features={}),
+            ActionFrame(index=1, option_type="ATTACH", features={}),
+            ActionFrame(index=2, option_type="END", features={}),
+        ],
+        rule_selected_indices=[0],
+        board={},
+        board_image=[],
+    )
 
 
 if __name__ == "__main__":

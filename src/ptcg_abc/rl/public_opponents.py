@@ -21,7 +21,7 @@ from ptcg_abc.public_agents import (
     discover_public_agents,
 )
 from ptcg_abc.rl.dataset import append_trajectory_jsonl
-from ptcg_abc.rl.records import TrajectoryStep
+from ptcg_abc.rl.records import DecisionFrame, TrajectoryStep
 from ptcg_abc.rl.rewards import reward_from_result_metadata
 from ptcg_abc.rl.workflow import (
     RecordingPolicyAgent,
@@ -64,7 +64,27 @@ class PublicAgentTrajectorySummary:
     errors: int
     timeouts: int
     search_telemetry: dict[str, Any]
+    reward_shaping: dict[str, Any]
+    tactical_reward_summary: dict[str, Any]
     specialist_model_dir: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class PublicAgentTacticalRewardConfig:
+    mode: str = "none"
+    attack_bonus: float = 0.10
+    attach_bonus: float = 0.06
+    missed_attack_penalty: float = -0.10
+    missed_attach_penalty: float = -0.06
+
+    def __post_init__(self) -> None:
+        if self.mode not in {"none", "basic"}:
+            raise ValueError(
+                f"Unsupported public-agent tactical reward mode: {self.mode}."
+            )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -340,6 +360,8 @@ def generate_phase5_public_agent_trajectories(
     game_offset: int = 0,
     search_config: Any | None = None,
     overwrite: bool = False,
+    outcome_reward_scale: float = 1.0,
+    tactical_reward_config: PublicAgentTacticalRewardConfig | None = None,
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
         raise ValueError(f"Trajectory output already exists at {output_path}.")
@@ -374,6 +396,8 @@ def generate_phase5_public_agent_trajectories(
     opponent_draws = {opponent.key: 0 for opponent in opponents}
     matchups: dict[str, dict[str, int]] = {}
     aggregate_search: dict[str, Any] = {}
+    tactical_config = tactical_reward_config or PublicAgentTacticalRewardConfig()
+    tactical_summary = _empty_tactical_reward_summary(tactical_config)
 
     local_game_index = 0
     for our_deck in our_decks:
@@ -470,14 +494,31 @@ def generate_phase5_public_agent_trajectories(
                 }
                 reward = reward_from_result_metadata(final_metadata)
                 for record in recorder.frames:
-                    frame = _with_metadata(record.frame, final_metadata)
+                    tactical_reward, tactical_metadata = _tactical_reward_for_frame(
+                        record.frame,
+                        record.chosen_indices,
+                        tactical_config,
+                    )
+                    _accumulate_tactical_reward(tactical_summary, tactical_metadata)
+                    scaled_outcome_reward = float(outcome_reward_scale) * reward
+                    step_reward = scaled_outcome_reward + tactical_reward
+                    frame = _with_metadata(
+                        record.frame,
+                        final_metadata
+                        | {
+                            "outcome_reward": reward,
+                            "outcome_reward_scale": float(outcome_reward_scale),
+                            "scaled_outcome_reward": scaled_outcome_reward,
+                        }
+                        | tactical_metadata,
+                    )
                     append_trajectory_jsonl(
                         TrajectoryStep(
                             decision=frame,
                             chosen_indices=record.chosen_indices,
                             logprob=record.logprob,
                             value=record.value,
-                            reward=reward,
+                            reward=step_reward,
                             terminal=result.finished,
                             truncated=not result.finished and result.error is None,
                         ),
@@ -538,6 +579,11 @@ def generate_phase5_public_agent_trajectories(
         errors=errors,
         timeouts=timeouts,
         search_telemetry=_finalize_search_telemetry(aggregate_search),
+        reward_shaping={
+            "outcome_reward_scale": float(outcome_reward_scale),
+            "tactical_reward": tactical_config.to_dict(),
+        },
+        tactical_reward_summary=_finalize_tactical_reward_summary(tactical_summary),
         specialist_model_dir=specialist_model_dir.as_posix() if specialist_model_dir else None,
     )
 
@@ -573,6 +619,115 @@ def _selected_phase5_decks(deck_indices: Sequence[int] | None) -> list[PreparedD
         if index not in [deck.index for deck in selected]:
             selected.append(by_index[index])
     return selected
+
+
+def _tactical_reward_for_frame(
+    frame: DecisionFrame,
+    chosen_indices: Sequence[int],
+    config: PublicAgentTacticalRewardConfig,
+) -> tuple[float, dict[str, Any]]:
+    selected = {int(index) for index in chosen_indices}
+    selected_actions = [
+        action for action in frame.legal_options if int(action.index) in selected
+    ]
+    attack_available = any(action.option_type == "ATTACK" for action in frame.legal_options)
+    attach_available = any(action.option_type == "ATTACH" for action in frame.legal_options)
+    attack_taken = any(action.option_type == "ATTACK" for action in selected_actions)
+    attach_taken = any(action.option_type == "ATTACH" for action in selected_actions)
+    end_selected = any(action.option_type == "END" for action in selected_actions)
+    empty_selection = not selected_actions
+
+    reward = 0.0
+    missed_attack = False
+    missed_attach = False
+    if config.mode == "basic":
+        if attack_taken:
+            reward += config.attack_bonus
+        elif attack_available and (end_selected or empty_selection):
+            reward += config.missed_attack_penalty
+            missed_attack = True
+
+        if attach_taken:
+            reward += config.attach_bonus
+        elif attach_available and (attack_taken or end_selected or empty_selection):
+            reward += config.missed_attach_penalty
+            missed_attach = True
+
+    metadata = {
+        "tactical_reward_mode": config.mode,
+        "tactical_step_reward": reward,
+        "tactical_attack_available": attack_available,
+        "tactical_attack_taken": attack_taken,
+        "tactical_attach_available": attach_available,
+        "tactical_attach_taken": attach_taken,
+        "tactical_end_selected": end_selected,
+        "tactical_empty_selection": empty_selection,
+        "tactical_missed_attack": missed_attack,
+        "tactical_missed_attach": missed_attach,
+    }
+    return reward, metadata
+
+
+def _empty_tactical_reward_summary(
+    config: PublicAgentTacticalRewardConfig,
+) -> dict[str, Any]:
+    return {
+        "mode": config.mode,
+        "steps": 0,
+        "reward_sum": 0.0,
+        "attack_available": 0,
+        "attack_taken": 0,
+        "attach_available": 0,
+        "attach_taken": 0,
+        "end_selected": 0,
+        "empty_selection": 0,
+        "missed_attack": 0,
+        "missed_attach": 0,
+    }
+
+
+def _accumulate_tactical_reward(
+    summary: dict[str, Any],
+    metadata: dict[str, Any],
+) -> None:
+    summary["steps"] += 1
+    summary["reward_sum"] += float(metadata.get("tactical_step_reward", 0.0))
+    for field, key in (
+        ("attack_available", "tactical_attack_available"),
+        ("attack_taken", "tactical_attack_taken"),
+        ("attach_available", "tactical_attach_available"),
+        ("attach_taken", "tactical_attach_taken"),
+        ("end_selected", "tactical_end_selected"),
+        ("empty_selection", "tactical_empty_selection"),
+        ("missed_attack", "tactical_missed_attack"),
+        ("missed_attach", "tactical_missed_attach"),
+    ):
+        summary[field] += int(bool(metadata.get(key, False)))
+
+
+def _finalize_tactical_reward_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    output = dict(summary)
+    steps = int(output.get("steps", 0) or 0)
+    output["avg_reward"] = (
+        float(output.get("reward_sum", 0.0)) / steps if steps else 0.0
+    )
+    for key in (
+        "attack_taken",
+        "missed_attack",
+        "attach_taken",
+        "missed_attach",
+        "end_selected",
+    ):
+        denominator_key = (
+            "attack_available" if "attack" in key else "attach_available"
+        )
+        if key == "end_selected":
+            denominator_key = "steps"
+        denominator = int(output.get(denominator_key, 0) or 0)
+        output[f"{key}_rate"] = (
+            float(output.get(key, 0)) / denominator if denominator else 0.0
+        )
+    return output
 
 
 def _filter_public_opponents(

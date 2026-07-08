@@ -2305,6 +2305,88 @@ Only promote the idea if the post-update single-matchup eval beats the baseline
 by a clear margin with zero errors/timeouts. Otherwise, stop and change the
 training signal before spending more compute.
 
+### One-Deck Tactical-Reward Micro Experiment
+
+After the first deck-12 PPO micro experiment, the post-update eval moved only
+from 6 / 30 to 8 / 30 wins and the 100-game data window itself was 8 / 100
+wins. The next diagnostic should keep the same narrow matchup but change the
+training signal so correct attack/energy decisions are not drowned out by
+repeated terminal-loss rewards.
+
+Generate a shaped trajectory window. This keeps the same deck/opponent filters,
+scales terminal outcome reward to 25%, and adds small per-decision rewards for
+taking attack/attach actions plus penalties for ending/attacking while obvious
+attack/attach actions are available:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  AGENT=phase5-rl \
+  GAMES_PER_MATCHUP=100 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  OUTCOME_REWARD_SCALE=0.25 \
+  TACTICAL_REWARD_MODE=basic \
+  TACTICAL_ATTACK_BONUS=0.10 \
+  TACTICAL_ATTACH_BONUS=0.06 \
+  TACTICAL_MISSED_ATTACK_PENALTY=-0.10 \
+  TACTICAL_MISSED_ATTACH_PENALTY=-0.06 \
+  OUTPUT="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100_tactical.jsonl \
+  REPORT_JSON=experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical_trajectories_report.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_public_agent_trajectories.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical_trajectories_job.txt
+```
+
+Update only deck 12 from the shaped trajectory file:
+
+```bash
+JOB=$(
+  ITERATION=13 \
+  DECK_INDICES=12 \
+  TRAJECTORY_DATASET="$GAME_DATA_ROOT"/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100_tactical.jsonl \
+  SOURCE_CHECKPOINT_DIR=models/rl/phase5_league_alpha/iter-0005/specialists \
+  OUTPUT_CHECKPOINT_DIR=models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists \
+  REPORT_JSON=experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical_ppo_report.json \
+  REPORT_DIR=experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical_ppo \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_alpha_ppo_specialists_train.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical_ppo_job.txt
+```
+
+Evaluate only deck 12 from the shaped checkpoint:
+
+```bash
+JOB=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_dragapult \
+  DECK_INDICES=12 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical/specialists \
+  AGENT=phase5-full \
+  GAMES_PER_MATCHUP=30 \
+  MAX_STEPS=600 \
+  REQUIRE_MIN_OPPONENTS=1 \
+  REPORT_JSON=reports/phase5_public_agent_deck12_dragapult_100_tactical_update_30g.json \
+  REPORT_MD=reports/phase5_public_agent_deck12_dragapult_100_tactical_update_30g.md \
+  STATUS_JSON=reports/phase5_public_agent_deck12_dragapult_100_tactical_update_status.json \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=2 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_public_agent_micro/deck12_vs_sample_dragapult_100_tactical_eval_job.txt
+```
+
+Inspect the trajectory report's `tactical_reward_summary` before interpreting
+the PPO result. If attack/attach opportunities are rare, this diagnostic is
+measuring the wrong failure mode; if missed attack/attach counts are high, use
+those counts to tune the reward weights or add a supervised rule-specialist
+target.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
