@@ -1229,6 +1229,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   trajectory report includes `reward_shaping` and `tactical_reward_summary`;
   inspect those counts before deciding whether to tune PPO, reward weights, or a
   supervised rule-specialist target.
+- Shaped deck-12 vs built-in `sample_dragapult` trajectory job `73752`
+  completed: 100 / 100 games, 8 wins, 92 losses, 2,626 trajectory rows,
+  0 timeouts, and 0 errors. Tactical summary showed 868 attack opportunities
+  with 353 attacks taken and 39 conservative missed attacks, plus 976 attach
+  opportunities with 449 attachments taken and 134 conservative missed
+  attachments. This is a useful shaped PPO input; proceed with the deck-12-only
+  PPO update/eval, but scale no further unless the held-out eval clearly beats
+  the previous noisy +2 / 30 result.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

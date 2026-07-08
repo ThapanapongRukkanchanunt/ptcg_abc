@@ -4460,3 +4460,57 @@ Next ERAWAN diagnostic:
 - Interpret the shaped run using both the eval delta and
   `tactical_reward_summary`; if missed attack/attach counts are low, this is not
   the right failure-mode diagnostic.
+
+## 2026-07-08 - Deck 12 Tactical Trajectory Result
+
+Uploaded and inspected:
+
+- `deck12_vs_sample_dragapult_100_tactical_trajectories_report.json`.
+- `slurm-73752-phase5-public-traj.out`.
+
+ERAWAN trajectory job:
+
+- Job: `73752`.
+- Agent: `phase5-rl`.
+- Source specialist root:
+  `models/rl/phase5_league_alpha/iter-0005/specialists`.
+- Filters: `PUBLIC_AGENT_KEYS=sample_dragapult`, `DECK_INDICES=12`.
+- Reward shaping:
+  - `OUTCOME_REWARD_SCALE=0.25`;
+  - `TACTICAL_REWARD_MODE=basic`;
+  - attack bonus `0.10`;
+  - attach bonus `0.06`;
+  - missed attack penalty `-0.10`;
+  - missed attach penalty `-0.06`.
+- Raw output:
+  `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agent_rule_train/deck12_vs_sample_dragapult_100_tactical.jsonl`.
+
+Collection result:
+
+- 100 / 100 games started.
+- 2,626 trajectory rows.
+- 8 wins, 92 losses, 0 draws, 0 timeouts, 0 errors.
+- Same game-level win count as the unshaped 100-game deck-12 window, but with
+  per-step tactical rewards recorded for PPO.
+
+Tactical reward summary:
+
+- Steps: 2,626.
+- Tactical reward sum: 50.3000; average tactical reward per step: 0.0192.
+- Attack opportunities: 868.
+- Attacks taken: 353, 0.4067 attack-taken rate.
+- Conservatively missed attacks: 39, 0.0449 missed-attack rate.
+- Attachment opportunities: 976.
+- Attachments taken: 449, 0.4600 attach-taken rate.
+- Conservatively missed attachments: 134, 0.1373 missed-attach rate.
+- End selected: 240, 0.0914 of steps.
+
+Conclusion and next step:
+
+- This is a useful shaped PPO input. Missed attack/attach counts are not zero,
+  and missed attachment is the clearer tactical signal.
+- Proceed with a deck-12-only PPO update from
+  `deck12_vs_sample_dragapult_100_tactical.jsonl`, then evaluate only deck 12
+  against `sample_dragapult`.
+- This still should not be scaled to all decks unless the shaped update improves
+  the held-out 30-game eval by more than the previous noisy +2 / 30 result.
