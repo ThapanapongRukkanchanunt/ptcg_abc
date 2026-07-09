@@ -1292,6 +1292,13 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   handcrafted tactical leaf score in this setup, but still well below the 50%
   gate. Next inspect the two 50:50 trace files with the score-component SLURM
   diagnostic before more weight tuning.
+- Phase 5 policy size diagnostic on July 9, 2026: the active
+  `AlphaStarTurnPolicy` config has 542,596 trainable parameters per specialist,
+  or 7,053,748 if all 13 stored deck specialists are counted together.
+  AlphaStar's public Nature supplementary architecture is much deeper and wider
+  but does not publish a single verified total parameter count; do not treat the
+  current deck-12 failure as a pure model-size problem until the trace/value
+  target diagnostics are cleaner.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

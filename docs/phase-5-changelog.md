@@ -4926,3 +4926,61 @@ Comparison and conclusion:
   but it is not sufficient for deck 12. Next work should inspect the two new
   trace files with the score-component SLURM diagnostic before tuning weights
   further or scaling the method to more decks.
+
+## 2026-07-09 - Phase 5 Policy Parameter Count Diagnostic
+
+Local architecture inspected:
+
+- Model: `AlphaStarTurnPolicy` in `src/ptcg_abc/rl/phase5_policy.py`.
+- Active Phase 5 config:
+  - `global_dim=17`;
+  - `entity_dim=28`;
+  - `action_dim=53`;
+  - `d_model=128`;
+  - `nhead=4`;
+  - `transformer_layers=2`;
+  - `feedforward_dim=256`;
+  - `turn_hidden_dim=128`.
+- Exact parameter count by module shape:
+  - global encoder: 2,560;
+  - entity encoder: 3,968;
+  - action encoder: 7,168;
+  - 2-layer entity transformer: 264,960;
+  - turn GRU: 99,072;
+  - policy/action-value/tactical heads: 148,227 total;
+  - state-value head: 16,641.
+- Total per checkpoint: 542,596 trainable parameters.
+- Total if all 13 deck-specialist checkpoints are counted as a stored ensemble:
+  7,053,748 parameters. Inference normally uses the relevant deck specialist,
+  so per-game active neural capacity remains roughly 0.54M parameters.
+
+AlphaStar comparison source:
+
+- DeepMind's Nature paper does not publish a single total parameter count in
+  the main article. Its code-availability note points to Supplementary Data
+  `detailed-architecture.txt` for the neural architecture and hyperparameters.
+- The inspected supplementary architecture describes a much larger model than
+  this Phase 5 TCG implementation:
+  - up to 512 entities;
+  - a 3-layer entity transformer with 2 attention heads, 128-dimensional
+    keys/queries/values, 256-channel outputs, and 1024-hidden MLPs;
+  - a 128x128 spatial encoder with convolutional downsampling and 4 residual
+    blocks;
+  - a 3-layer LSTM core with 384 hidden units per layer;
+  - autoregressive action argument heads, including an action-type head with
+    16 residual blocks of size 256;
+  - value/baseline heads with additional 16-resblock stacks.
+
+Conclusion:
+
+- The current TCG Phase 5 network is intentionally tiny relative to AlphaStar:
+  about 0.54M active parameters per specialist, or 7.05M stored parameters for
+  all 13 specialists.
+- AlphaStar's public supplementary architecture is not directly reducible to a
+  verified total parameter count without reimplementing every preprocessing,
+  action-space, gating, and baseline module, but its module widths and depth are
+  clearly at least an order of magnitude larger than the active TCG specialist.
+- For the current deck-12 bottleneck, the latest evidence still points more to
+  training signal/search scoring than raw parameter count: leaf state value
+  helped, but still failed the 50% gate. Do not scale model size blindly before
+  fixing the target signal and score diagnostics.
