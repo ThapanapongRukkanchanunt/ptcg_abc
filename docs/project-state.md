@@ -1284,6 +1284,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   learned leaf value adds useful signal, but it still fails the 50% gate. Next
   inspect score-component diagnostics for both traces and the missing
   rule-vs-rule trajectory/train reports before scaling.
+- Clean deck-12 score-mixture ablation on July 9, 2026: with the same
+  `deck12_rule_bootstrap_value` checkpoint and built-in `sample_dragapult`
+  matchup, policy prior 0.5 + tactical score 0.5 scored 23 / 100, while policy
+  prior 0.5 + leaf state value 0.5 scored 28 / 100. Both had 0
+  errors/timeouts. This confirms leaf state value is more useful than the
+  handcrafted tactical leaf score in this setup, but still well below the 50%
+  gate. Next inspect the two 50:50 trace files with the score-component SLURM
+  diagnostic before more weight tuning.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

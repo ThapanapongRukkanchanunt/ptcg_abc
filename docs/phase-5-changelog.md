@@ -4852,3 +4852,77 @@ Next steps:
   keeping policy prior at `0.25`.
 - Do not scale beyond deck 12 until the single-matchup result approaches the
   50% gate or the trace diagnostics identify a clear next value-training fix.
+
+## 2026-07-09 - Deck 12 Policy/Leaf vs Policy/Tactical 50:50 Result
+
+Uploaded and inspected:
+
+- `phase5_public_agent_deck12_policy50_tactical50_100g.json`.
+- `phase5_public_agent_deck12_policy50_tactical50_100g.md`.
+- `phase5_public_agent_deck12_policy50_tactical50_status.json`.
+- `slurm-73781-phase5-public-eval.out`.
+- `phase5_public_agent_deck12_policy50_leaf50_100g.json`.
+- `phase5_public_agent_deck12_policy50_leaf50_100g.md`.
+- `phase5_public_agent_deck12_policy50_leaf50_status.json`.
+- `slurm-73782-phase5-public-eval.out`.
+
+Shared setup:
+
+- Agent/checkpoint: `phase5-full` using
+  `models/rl/phase5_public_agent_micro/deck12_rule_bootstrap_value/specialists`.
+- Matchup: deck 12 Mega Abomasnow ex vs built-in `sample_dragapult`.
+- Games per matchup: 100; max steps: 600.
+- Search traces:
+  - tactical run:
+    `experiments/rl/phase5_public_agent_micro/deck12_policy50_tactical50_traces.jsonl`;
+  - leaf run:
+    `experiments/rl/phase5_public_agent_micro/deck12_policy50_leaf50_traces.jsonl`.
+
+Policy-prior plus tactical-score 50:50:
+
+- ERAWAN job: `73781`.
+- Search config:
+  - `NORMALIZE_TACTICAL_SCORE=1`;
+  - `TACTICAL_SCORE_WEIGHT=0.5`;
+  - `POLICY_PRIOR_WEIGHT=0.5`;
+  - `LEAF_STATE_VALUE_WEIGHT=0.0`.
+- Result: 23 / 100 wins, 77 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2300 win rate.
+- Public-agent gate: failed.
+- Search telemetry: 1,795 searched decisions, 117 search-changed decisions,
+  0 search errors, 0 candidate errors, 6,140 candidate probes, 0 truncated
+  candidates, average search 0.0079s, max search 0.0875s.
+
+Policy-prior plus leaf state-value 50:50:
+
+- ERAWAN job: `73782`.
+- Search config:
+  - `NORMALIZE_TACTICAL_SCORE=1`;
+  - `TACTICAL_SCORE_WEIGHT=0.0`;
+  - `POLICY_PRIOR_WEIGHT=0.5`;
+  - `LEAF_STATE_VALUE_WEIGHT=0.5`.
+- Result: 28 / 100 wins, 72 losses, 0 draws, 0 timeouts, 0 errors,
+  0.2800 win rate.
+- Public-agent gate: failed.
+- Search telemetry: 1,747 searched decisions, 144 search-changed decisions,
+  0 search errors, 0 candidate errors, 6,019 candidate probes, 0 truncated
+  candidates, average search 0.0225s, max search 0.1013s.
+
+Comparison and conclusion:
+
+- The clean 50:50 ablation confirms the earlier pattern: learned leaf state
+  value outperformed handcrafted end-of-turn tactical score by +5 wins over
+  100 games when both were paired equally with the policy prior.
+- The policy-plus-leaf result, 28 / 100, is close to the earlier mixed
+  tactical/value result at 29 / 100, so the useful signal appears to come from
+  the leaf value rather than from the exact scoring mixture.
+- Policy-plus-tactical at 23 / 100 is above the normalized tactical-only
+  baseline at 20 / 100 and matches the earlier traced tactical-shaped result at
+  23 / 100, but it still does not approach the 50% specialized-opponent gate.
+- Leaf scoring costs more inference time, about 0.0225s average search versus
+  0.0079s for tactical scoring, but remains operationally acceptable for this
+  one-deck diagnostic.
+- This is positive evidence for adding a learned state-value term to search,
+  but it is not sufficient for deck 12. Next work should inspect the two new
+  trace files with the score-component SLURM diagnostic before tuning weights
+  further or scaling the method to more decks.
