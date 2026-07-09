@@ -5064,3 +5064,60 @@ Next ERAWAN action:
   `OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario`,
   `CONTROLLED_DECK_INDEX=101`, `GENERATIONS=10`,
   `TRAIN_GAMES_PER_GENERATION=1000`, and `EVAL_GAMES_PER_GENERATION=100`.
+
+## 2026-07-09 - Official Engine Source Audit
+
+Context:
+
+- Kaggle discussion 717141 announces the official competition game engine source
+  on the competition Data page as `ptcg_engine`.
+- Current Kaggle data download contains:
+  - `ptcg_engine/ptcgProgram 22/` C++ source and README;
+  - `sample_submission/sample_submission/cg/` Python ctypes wrapper and compiled
+    engine binaries.
+- The active repo's `src/ptcg_abc/simulator.py` is not a copied engine. It is a
+  thin runner around whatever Kaggle `cg` package is supplied by `sample_dir`.
+
+Comparison:
+
+- Our packaged Phase 5 submission `cg` Python wrappers match the current Kaggle
+  sample wrapper for:
+  - `api.py`: SHA256
+    `593F1298E52A635F90F8F505A52113E9AF114F444C293404E37906F18EE06CED`;
+  - `game.py`: SHA256
+    `3BD3D4F4A369A11E6D2F5DA9094CF15EBC410A2221835E6417B7CFF4883F1FC2`;
+  - `utils.py`: SHA256
+    `60F29665CEE0A88525D6F0383BC45959A6262D16FE35EF380AECE1E0EA13C49B`;
+  - `__init__.py`: empty-file SHA256
+    `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855`.
+- `sim.py` differs only in platform library selection. Current Kaggle sample
+  adds `platform`, Darwin `libcg.dylib`, and arm64/aarch64 `libcg-arm64.so`
+  support. The ctypes API declarations are otherwise unchanged.
+- The compiled engine binaries do not match:
+  - our `cg.dll`: 1,523,200 bytes, SHA256
+    `C7C87EB76513784B0089B02DCF9D57466A1B0B2217DF4CFC9AF8C74DEDA3969F`;
+  - current Kaggle `cg.dll`: 1,525,248 bytes, SHA256
+    `9EA2B0A751029689BFF3DDCCB5F29A98EDD46961DAD264490ED121EF704FB500`;
+  - our `libcg.so`: 1,338,304 bytes, SHA256
+    `75D7D619B56E5AD4C5CAEADC698E61FAECC650678DCEAB52AD687F08D5676BEB`;
+  - current Kaggle `libcg.so`: 1,342,400 bytes, SHA256
+    `FFD89BF923525A3E6FEB5E6201E96A866C0F456895499ED5C4A566303CAAE67C`.
+- Current Kaggle sample also includes `libcg.dylib` and `libcg-arm64.so`, which
+  our packaged submission copies do not include.
+
+Smoke:
+
+- Direct `run_battle_smoke` through current Kaggle sample data loaded and ran
+  20 steps with no error.
+- The same direct smoke through the older local sample submission also loaded
+  and ran 20 steps with no error.
+
+Conclusion:
+
+- The active Python runner can use the official current sample engine package
+  when pointed at that `sample_dir`.
+- Existing packaged submissions and local historical sample copies do not match
+  the current official compiled engine binaries released with `ptcg_engine`.
+- Before new Kaggle submissions, refresh copied `cg` directories from the
+  current Kaggle sample submission so packaging uses the current official
+  binaries and platform loader.

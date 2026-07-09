@@ -1309,6 +1309,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   plus one loss compact JSON/HTML replay view per generation. Submit
   `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch` as the next
   ERAWAN job for this experiment.
+- Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
+  the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
+  official C++ competition engine source. The repo's Python simulator remains a
+  thin wrapper around the Kaggle `cg` package. Current packaged Phase 5 `cg`
+  copies match Kaggle's current Python `api.py`, `game.py`, and `utils.py`, but
+  the compiled binaries are older: our `libcg.so` hash is
+  `75D7D619B56E5AD4C5CAEADC698E61FAECC650678DCEAB52AD687F08D5676BEB` while the
+  current Kaggle sample `libcg.so` hash is
+  `FFD89BF923525A3E6FEB5E6201E96A866C0F456895499ED5C4A566303CAAE67C`. Refresh
+  packaged `cg` directories from the current Kaggle sample before the next
+  Kaggle submission package.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,
