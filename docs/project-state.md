@@ -1328,6 +1328,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   sparse-reward curriculum; next try dense tactical rewards, explicit penalties
   for ending while useful attack/attach choices are available, or a
   rule-demonstration warm-start before PPO.
+- One-deck mixed rule/epsilon curriculum implementation on July 9, 2026: added
+  `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`. It creates a
+  retained generation-0 1000-game rule-vs-rule Dragapult-vs-Lucario bootstrap
+  dataset, then each generation trains `deck-101.pt` on that retained rule data
+  plus a fresh 1000-game epsilon-model-vs-rule window from the previous
+  checkpoint. Only the fresh epsilon JSONL is deleted after PPO update; the rule
+  bootstrap JSONL is kept and reused. The script intentionally leaves
+  `--require-on-policy` off by default so off-policy rule demonstrations are not
+  filtered out.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

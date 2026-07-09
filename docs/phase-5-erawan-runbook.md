@@ -2649,6 +2649,66 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_one_deck_public_epsilon_dragapult_lucario_retry_job.txt
 ```
 
+### One-Deck Mixed Rule/Epsilon Curriculum
+
+Use this after the sparse epsilon-only run. It keeps the same controlled deck
+pair, but generation 0 first creates a retained rule-vs-rule Dragapult vs
+Lucario trajectory window. Each model generation then trains on two trajectory
+datasets:
+
+- the retained generation-0 rule-vs-rule bootstrap window;
+- a newly generated epsilon-model-vs-rule window from the previous checkpoint.
+
+The script deletes only the per-generation epsilon window after a successful PPO
+update. The rule bootstrap JSONL is kept and reused for every generation.
+Because rule-vs-rule frames are off-policy demonstrations, the mixed script does
+not pass `--require-on-policy` by default.
+
+Submit the full 10-generation mixed job:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_mixed \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=10 \
+  RULE_BOOTSTRAP_GAMES=1000 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=100 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_public_mixed_dragapult_lucario_job.txt
+```
+
+Key repo artifacts:
+
+- checkpoints:
+  `models/rl/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/gen-000*/specialists/deck-101.pt`;
+- per-generation reports and replay views:
+  `experiments/rl/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/gen-000*/`;
+- eval reports:
+  `reports/phase5_dragapult_vs_lucario_mixed_gen-000*_eval_100g.json`;
+  `reports/phase5_dragapult_vs_lucario_mixed_gen-000*_eval_100g.md`.
+
+Retained rule bootstrap data:
+
+`$GAME_DATA_ROOT/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl`
+
+Per-generation epsilon raw windows are temporary and are deleted after the PPO
+update succeeds:
+
+`$GAME_DATA_ROOT/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/generations/gen-000*/raw_train/`
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

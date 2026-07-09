@@ -5249,3 +5249,38 @@ Artifact notes:
   `D:\pokemon_rl\erawan_pull\phase5_dragapult_vs_lucario_epsilon_73820`.
 - Gen-0010 replay artifacts include one loss and one win compact JSON/HTML view
   under that folder's `gen-0010-replays` directory.
+
+## 2026-07-09 - One-Deck Mixed Rule/Epsilon Curriculum
+
+Implementation:
+
+- Added `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`.
+- The mixed script keeps the same focused one-deck matchup:
+  - controlled learner deck: built-in `sample_dragapult`;
+  - opponent: built-in rule-based `sample_lucario`;
+  - synthetic controlled deck index: `101`.
+- Generation 0 initializes a scratch `deck-101.pt` checkpoint and generates a
+  retained 1000-game rule-vs-rule bootstrap dataset:
+  `${GAME_DATA_ROOT}/phase5_one_deck_public_mixed/${RUN_NAME}/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl`.
+- For every model generation, the script generates a fresh epsilon-model-vs-rule
+  dataset from the previous checkpoint and trains with both trajectory inputs:
+  the retained rule bootstrap dataset and the fresh epsilon dataset.
+- This makes the intended mix 50/50 by requested game windows: 1000
+  rule-vs-rule bootstrap games plus 1000 newly generated epsilon-vs-rule games
+  per generation by default.
+- After a successful PPO update, only the fresh epsilon JSONL is deleted. The
+  rule bootstrap JSONL is retained and reused across all generations.
+- The mixed script intentionally does not pass `--require-on-policy` by default
+  because rule-vs-rule frames are off-policy demonstrations with zero
+  logprob/value metadata. The epsilon half remains on-policy.
+- Updated `docs/phase-5-erawan-runbook.md` with the ERAWAN submit command and
+  artifact paths.
+
+Next ERAWAN action:
+
+- Pull the latest `origin/main`, then submit
+  `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch` with
+  `RUN_NAME=phase5_dragapult_vs_lucario_mixed`.
+- Inspect the per-generation eval reports and PPO summaries after completion,
+  especially whether attach/attack rates stay near the rule bootstrap behavior
+  instead of collapsing toward `END`.
