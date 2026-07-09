@@ -101,12 +101,16 @@ class PublicAgentRosterTests(unittest.TestCase):
         traj_args = parser.parse_args(
             [
                 "rl-generate-phase5-public-agent-trajectories",
-                "--deck-index",
-                "12",
-                "--public-agent-key",
+                "--controlled-public-agent-key",
                 "sample_dragapult",
+                "--controlled-deck-index",
+                "101",
+                "--public-agent-key",
+                "sample_lucario",
                 "--agent",
-                "rule",
+                "phase5-epsilon",
+                "--policy-epsilon",
+                "0.75",
                 "--outcome-reward-scale",
                 "0.25",
                 "--tactical-reward-mode",
@@ -117,11 +121,55 @@ class PublicAgentRosterTests(unittest.TestCase):
             traj_args.func.__name__,
             "command_rl_generate_phase5_public_agent_trajectories",
         )
-        self.assertEqual(traj_args.deck_index, [12])
-        self.assertEqual(traj_args.public_agent_key, ["sample_dragapult"])
-        self.assertEqual(traj_args.agent, "rule")
+        self.assertEqual(traj_args.controlled_public_agent_key, "sample_dragapult")
+        self.assertEqual(traj_args.controlled_deck_index, 101)
+        self.assertEqual(traj_args.public_agent_key, ["sample_lucario"])
+        self.assertEqual(traj_args.agent, "phase5-epsilon")
+        self.assertEqual(traj_args.policy_epsilon, 0.75)
         self.assertEqual(traj_args.outcome_reward_scale, 0.25)
         self.assertEqual(traj_args.tactical_reward_mode, "basic")
+
+        eval_public_args = parser.parse_args(
+            [
+                "rl-evaluate-phase5-public-agents",
+                "--controlled-public-agent-key",
+                "sample_dragapult",
+                "--controlled-deck-index",
+                "101",
+                "--public-agent-key",
+                "sample_lucario",
+                "--agent",
+                "phase5-symbolic",
+                "--replay-output-dir",
+                "experiments/replays",
+                "--saved-win-replays",
+                "1",
+                "--saved-loss-replays",
+                "1",
+            ]
+        )
+        self.assertEqual(eval_public_args.controlled_public_agent_key, "sample_dragapult")
+        self.assertEqual(eval_public_args.controlled_deck_index, 101)
+        self.assertEqual(eval_public_args.agent, "phase5-symbolic")
+        self.assertEqual(eval_public_args.saved_win_replays, 1)
+        self.assertEqual(eval_public_args.saved_loss_replays, 1)
+
+        init_args = parser.parse_args(
+            [
+                "rl-init-phase5-policy-checkpoint",
+                "--checkpoint",
+                "models/rl/scratch/deck-101.pt",
+                "--deck-index",
+                "101",
+                "--controlled-public-agent-key",
+                "sample_dragapult",
+            ]
+        )
+        self.assertEqual(
+            init_args.func.__name__,
+            "command_rl_init_phase5_policy_checkpoint",
+        )
+        self.assertEqual(init_args.deck_index, 101)
 
     def test_public_agent_key_filter_preserves_selected_statuses(self):
         source_a = PublicAgentSource(

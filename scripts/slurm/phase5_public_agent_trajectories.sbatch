@@ -17,10 +17,13 @@ mkdir -p experiments/rl reports
 GAME_DATA_ROOT="${GAME_DATA_ROOT:-/project/SIGGI/thapanapong.r@cmu.ac.th}"
 PUBLIC_AGENT_ROOTS="${PUBLIC_AGENT_ROOTS:-${PUBLIC_AGENT_ROOT:-data/public_agents}}"
 PUBLIC_AGENT_KEYS="${PUBLIC_AGENT_KEYS:-}"
+CONTROLLED_PUBLIC_AGENT_KEY="${CONTROLLED_PUBLIC_AGENT_KEY:-}"
+CONTROLLED_DECK_INDEX="${CONTROLLED_DECK_INDEX:-101}"
 ROSTER_NOTEBOOK="${ROSTER_NOTEBOOK:-}"
 MODEL="${MODEL:-models/rl/phase5_generalist_policy_13deck_10k.pt}"
 SPECIALIST_MODEL_DIR="${SPECIALIST_MODEL_DIR:-models/rl/phase5_league_alpha/iter-0005/specialists}"
 AGENT="${AGENT:-phase5-rl}"
+POLICY_EPSILON="${POLICY_EPSILON:-0.0}"
 DECK_INDICES="${DECK_INDICES:-}"
 GAMES_PER_MATCHUP="${GAMES_PER_MATCHUP:-10}"
 MAX_STEPS="${MAX_STEPS:-600}"
@@ -43,8 +46,11 @@ echo "Phase 5 public-agent trajectory generation"
 echo "GAME_DATA_ROOT=$GAME_DATA_ROOT"
 echo "PUBLIC_AGENT_ROOTS=$PUBLIC_AGENT_ROOTS"
 echo "PUBLIC_AGENT_KEYS=$PUBLIC_AGENT_KEYS"
+echo "CONTROLLED_PUBLIC_AGENT_KEY=$CONTROLLED_PUBLIC_AGENT_KEY"
+echo "CONTROLLED_DECK_INDEX=$CONTROLLED_DECK_INDEX"
 echo "ROSTER_NOTEBOOK=$ROSTER_NOTEBOOK"
 echo "AGENT=$AGENT"
+echo "POLICY_EPSILON=$POLICY_EPSILON"
 echo "MODEL=$MODEL"
 echo "SPECIALIST_MODEL_DIR=$SPECIALIST_MODEL_DIR"
 echo "DECK_INDICES=$DECK_INDICES"
@@ -77,8 +83,15 @@ done
 if [[ -n "$ROSTER_NOTEBOOK" ]]; then
   EXTRA_ARGS+=(--roster-notebook "$ROSTER_NOTEBOOK")
 fi
+if [[ -n "$CONTROLLED_PUBLIC_AGENT_KEY" ]]; then
+  EXTRA_ARGS+=(--controlled-public-agent-key "$CONTROLLED_PUBLIC_AGENT_KEY")
+  EXTRA_ARGS+=(--controlled-deck-index "$CONTROLLED_DECK_INDEX")
+fi
 if [[ -n "$SPECIALIST_MODEL_DIR" && "$AGENT" != "rule" ]]; then
   EXTRA_ARGS+=(--specialist-model-dir "$SPECIALIST_MODEL_DIR")
+fi
+if [[ "$AGENT" == "phase5-epsilon" ]]; then
+  EXTRA_ARGS+=(--policy-epsilon "$POLICY_EPSILON")
 fi
 if [[ -n "$OVERWRITE_FLAG" ]]; then
   EXTRA_ARGS+=(--overwrite)

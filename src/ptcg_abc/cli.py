@@ -104,6 +104,7 @@ from ptcg_abc.rl.snapshots import run_rule_vs_benchmark_snapshots
 from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_policy
 from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
+    initialize_phase5_policy_checkpoint,
     train_phase5_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
@@ -1119,6 +1120,29 @@ def command_rl_train_phase5_alpha_ppo_specialists(args: argparse.Namespace) -> i
     return 0
 
 
+def command_rl_init_phase5_policy_checkpoint(args: argparse.Namespace) -> int:
+    try:
+        summary = initialize_phase5_policy_checkpoint(
+            checkpoint_path=args.checkpoint,
+            report_path=args.report_json,
+            max_entities=args.max_entities,
+            max_actions=args.max_actions,
+            max_previous_actions=args.max_previous_actions,
+            d_model=args.d_model,
+            metadata={
+                "deck_index": args.deck_index,
+                "controlled_public_agent_key": args.controlled_public_agent_key,
+                "experiment": args.experiment,
+            },
+            overwrite=args.overwrite,
+        )
+    except (Phase5PolicyUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
 def command_rl_generate_phase5_alpha_bootstrap(args: argparse.Namespace) -> int:
     if not args.sample_dir.exists():
         print(
@@ -1205,6 +1229,13 @@ def _public_agent_roots_from_args(args: argparse.Namespace) -> list[Path]:
     return roots or [Path("data") / "public_agents"]
 
 
+def _public_controlled_deck_indices_from_args(args: argparse.Namespace) -> list[int]:
+    controlled_key = getattr(args, "controlled_public_agent_key", None)
+    if controlled_key:
+        return [int(getattr(args, "controlled_deck_index", 101))]
+    return list(getattr(args, "deck_index", []) or PHASE5_ALPHA_DECK_INDICES)
+
+
 def command_phase5_public_agent_roster(args: argparse.Namespace) -> int:
     if not args.sample_dir.exists():
         print(
@@ -1251,7 +1282,7 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
     if specialist_model_dir is not None:
         missing = [
             specialist_model_dir / f"deck-{deck_index:02d}.pt"
-            for deck_index in (args.deck_index or PHASE5_ALPHA_DECK_INDICES)
+            for deck_index in _public_controlled_deck_indices_from_args(args)
             if not (specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
         ]
         if missing:
@@ -1263,7 +1294,8 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             )
             return 2
     if (
-        args.agent in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl"}
+        args.agent
+        in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"}
         and model_path is None
         and specialist_model_dir is None
     ):
@@ -1279,6 +1311,8 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             include_builtin_samples=not args.no_builtin_samples,
             public_agent_keys=args.public_agent_key or None,
             require_min_opponents=args.require_min_opponents,
+            controlled_public_agent_key=args.controlled_public_agent_key,
+            controlled_deck_index=args.controlled_deck_index,
             agent_kind=args.agent,
             model_path=model_path,
             specialist_model_dir=specialist_model_dir,
@@ -1288,6 +1322,11 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             search_config=_root_search_config_from_args(args),
             search_trace_path=args.search_trace_output,
             search_trace_game_limit=args.search_trace_games,
+            policy_epsilon=args.policy_epsilon,
+            replay_output_dir=args.replay_output_dir,
+            saved_win_replays=args.saved_win_replays,
+            saved_loss_replays=args.saved_loss_replays,
+            replay_trace_limit=args.replay_trace_limit,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -1334,7 +1373,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
     if specialist_model_dir is not None:
         missing = [
             specialist_model_dir / f"deck-{deck_index:02d}.pt"
-            for deck_index in (args.deck_index or PHASE5_ALPHA_DECK_INDICES)
+            for deck_index in _public_controlled_deck_indices_from_args(args)
             if not (specialist_model_dir / f"deck-{deck_index:02d}.pt").exists()
         ]
         if missing:
@@ -1346,7 +1385,8 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             )
             return 2
     if (
-        args.agent in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl"}
+        args.agent
+        in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"}
         and model_path is None
         and args.specialist_model_dir is None
     ):
@@ -1363,6 +1403,8 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             include_builtin_samples=not args.no_builtin_samples,
             public_agent_keys=args.public_agent_key or None,
             require_min_opponents=args.require_min_opponents,
+            controlled_public_agent_key=args.controlled_public_agent_key,
+            controlled_deck_index=args.controlled_deck_index,
             agent_kind=args.agent,
             model_path=model_path,
             specialist_model_dir=specialist_model_dir,
@@ -1380,6 +1422,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
                 missed_attack_penalty=args.tactical_missed_attack_penalty,
                 missed_attach_penalty=args.tactical_missed_attach_penalty,
             ),
+            policy_epsilon=args.policy_epsilon,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -2577,11 +2620,28 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Restrict trajectory generation to a specific public-agent key. Repeatable.",
     )
+    rl_public_trajectories.add_argument(
+        "--controlled-public-agent-key",
+        default=None,
+        help="Use this public/sample agent's deck as the model-controlled deck.",
+    )
+    rl_public_trajectories.add_argument(
+        "--controlled-deck-index",
+        type=int,
+        default=101,
+        help="Synthetic deck index for --controlled-public-agent-key trajectory records.",
+    )
     rl_public_trajectories.add_argument("--require-min-opponents", type=int, default=1)
     rl_public_trajectories.add_argument(
         "--agent",
-        choices=["rule", "phase5-search", "phase5-full", "phase5-rl"],
+        choices=["rule", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"],
         default="phase5-rl",
+    )
+    rl_public_trajectories.add_argument(
+        "--policy-epsilon",
+        type=float,
+        default=0.0,
+        help="Epsilon-greedy random legal-action probability for phase5-epsilon.",
     )
     rl_public_trajectories.add_argument(
         "--model",
@@ -2819,6 +2879,22 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_alpha_ppo_specialists.set_defaults(
         func=command_rl_train_phase5_alpha_ppo_specialists
     )
+
+    rl_init_phase5_policy = subparsers.add_parser(
+        "rl-init-phase5-policy-checkpoint",
+        help="Create a scratch Phase 5 symbolic policy checkpoint.",
+    )
+    rl_init_phase5_policy.add_argument("--checkpoint", type=_path, required=True)
+    rl_init_phase5_policy.add_argument("--report-json", type=_path, default=None)
+    rl_init_phase5_policy.add_argument("--deck-index", type=int, default=None)
+    rl_init_phase5_policy.add_argument("--controlled-public-agent-key", default=None)
+    rl_init_phase5_policy.add_argument("--experiment", default="")
+    rl_init_phase5_policy.add_argument("--max-entities", type=int, default=96)
+    rl_init_phase5_policy.add_argument("--max-actions", type=int, default=128)
+    rl_init_phase5_policy.add_argument("--max-previous-actions", type=int, default=16)
+    rl_init_phase5_policy.add_argument("--d-model", type=int, default=128)
+    rl_init_phase5_policy.add_argument("--overwrite", action="store_true")
+    rl_init_phase5_policy.set_defaults(func=command_rl_init_phase5_policy_checkpoint)
 
     rl_alpha_clean = subparsers.add_parser(
         "rl-clean-phase5-alpha-iteration",
@@ -3240,6 +3316,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Restrict evaluation to a specific public-agent key. Repeatable.",
     )
+    rl_evaluate_public.add_argument(
+        "--controlled-public-agent-key",
+        default=None,
+        help="Use this public/sample agent's deck as the model-controlled deck.",
+    )
+    rl_evaluate_public.add_argument(
+        "--controlled-deck-index",
+        type=int,
+        default=101,
+        help="Synthetic deck index for --controlled-public-agent-key checkpoints/reports.",
+    )
     rl_evaluate_public.add_argument("--require-min-opponents", type=int, default=1)
     rl_evaluate_public.add_argument(
         "--min-opponent-win-rate",
@@ -3254,8 +3341,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate_public.add_argument(
         "--agent",
-        choices=["phase5-search", "phase5-full", "phase5-rl"],
+        choices=["phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"],
         default="phase5-full",
+    )
+    rl_evaluate_public.add_argument(
+        "--policy-epsilon",
+        type=float,
+        default=0.0,
+        help="Epsilon-greedy random legal-action probability for phase5-epsilon.",
     )
     rl_evaluate_public.add_argument(
         "--model",
@@ -3290,6 +3383,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="Number of games per matchup to trace; use 0 for all traced public-agent eval games.",
     )
+    rl_evaluate_public.add_argument(
+        "--replay-output-dir",
+        type=_path,
+        default=None,
+        help="Optional directory for compact JSON and HTML replay views.",
+    )
+    rl_evaluate_public.add_argument("--saved-win-replays", type=int, default=0)
+    rl_evaluate_public.add_argument("--saved-loss-replays", type=int, default=0)
+    rl_evaluate_public.add_argument("--replay-trace-limit", type=int, default=120)
     rl_evaluate_public.add_argument(
         "--report-json",
         type=_path,

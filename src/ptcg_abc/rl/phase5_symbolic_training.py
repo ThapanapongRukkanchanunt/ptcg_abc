@@ -222,6 +222,19 @@ class Phase5PPOTrainingSummary:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class Phase5PolicyInitSummary:
+    checkpoint_path: str
+    max_entities: int
+    max_actions: int
+    max_previous_actions: int
+    config: dict[str, Any]
+    metadata: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
 class Phase5TurnContext:
     def __init__(self, *, max_previous_actions: int) -> None:
         self.max_previous_actions = max_previous_actions
@@ -1150,6 +1163,59 @@ def train_phase5_ppo_policy_from_trajectories(
         max_actions=max_actions,
         max_previous_actions=max_previous_actions,
         config=config.to_dict(),
+    )
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    return summary
+
+
+def initialize_phase5_policy_checkpoint(
+    *,
+    checkpoint_path: Path,
+    report_path: Path | None = None,
+    max_entities: int = 96,
+    max_actions: int = 128,
+    max_previous_actions: int = 16,
+    d_model: int = 128,
+    metadata: dict[str, Any] | None = None,
+    overwrite: bool = False,
+) -> Phase5PolicyInitSummary:
+    if checkpoint_path.exists() and not overwrite:
+        raise ValueError(f"Scratch checkpoint already exists at {checkpoint_path}.")
+    torch, _ = _require_torch()
+    encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
+    empty_encoded = encoder.encode(decision_frame_to_state(_empty_frame()), [])
+    config = make_phase5_policy_config(
+        global_dim=len(empty_encoded.global_features),
+        entity_dim=_entity_dim(encoder),
+        action_dim=_action_dim(encoder),
+        d_model=d_model,
+    )
+    model = AlphaStarTurnPolicy(config)
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = model.checkpoint_payload()
+    payload["format"] = PHASE5_POLICY_CHECKPOINT_FORMAT
+    payload["encoder"] = {
+        "max_entities": max_entities,
+        "max_actions": max_actions,
+        "max_previous_actions": max_previous_actions,
+    }
+    payload["metadata"] = {
+        "training": "phase5_scratch_init",
+        "checkpoint_path": checkpoint_path.as_posix(),
+    } | dict(metadata or {})
+    torch.save(payload, checkpoint_path)
+    summary = Phase5PolicyInitSummary(
+        checkpoint_path=checkpoint_path.as_posix(),
+        max_entities=max_entities,
+        max_actions=max_actions,
+        max_previous_actions=max_previous_actions,
+        config=config.to_dict(),
+        metadata=dict(payload["metadata"]),
     )
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)

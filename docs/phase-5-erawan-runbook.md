@@ -2552,6 +2552,69 @@ After either eval, summarize its trace with
 `leaf_state_value`, `leaf_state_value_prior`, and `leaf_state_value_score` by
 win/loss outcome.
 
+## 18.5 One-Deck Epsilon Curriculum: Dragapult vs Lucario
+
+This experiment trains a fresh model-controlled official sample Dragapult ex
+deck against a fixed rule-based official sample Mega Lucario ex deck. It is
+separate from the 13-deck Alpha league artifacts.
+
+The run uses:
+
+- controlled learner deck: built-in `sample_dragapult`;
+- opponent: built-in `sample_lucario` rule-agent fallback;
+- synthetic controlled deck index: `101`;
+- generation 0: scratch random Phase 5 policy checkpoint;
+- generations 1-10: 1000 epsilon-greedy training games, PPO update, 100-game
+  zero-exploration eval;
+- epsilon schedule: linearly decays from `1.0` on generation 1 to `0.10` on
+  generation 10;
+- raw trajectory JSONL: deleted after the PPO update succeeds;
+- retained eval replay artifacts: at most one win and one loss per generation,
+  saved as compact JSON plus static HTML web views.
+
+Submit the full 10-generation job:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_epsilon \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=10 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=100 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_public_epsilon_dragapult_lucario_job.txt
+```
+
+Key repo artifacts:
+
+- checkpoints:
+  `models/rl/phase5_one_deck_public_epsilon/phase5_dragapult_vs_lucario_epsilon/gen-000*/specialists/deck-101.pt`;
+- per-generation reports and replay views:
+  `experiments/rl/phase5_one_deck_public_epsilon/phase5_dragapult_vs_lucario_epsilon/gen-000*/`;
+- eval reports:
+  `reports/phase5_dragapult_vs_lucario_epsilon_gen-000*_eval_100g.json`;
+  `reports/phase5_dragapult_vs_lucario_epsilon_gen-000*_eval_100g.md`.
+
+Raw training windows are written under:
+
+`$GAME_DATA_ROOT/phase5_one_deck_public_epsilon/phase5_dragapult_vs_lucario_epsilon/generations/gen-000*/raw_train/`
+
+The script removes each generation's trajectory JSONL immediately after the
+successful PPO update. Keep checkpoints, reports, and the small replay HTML/JSON
+files.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

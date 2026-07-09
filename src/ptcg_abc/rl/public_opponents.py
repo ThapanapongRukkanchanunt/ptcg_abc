@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from html import escape
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Callable, Sequence
@@ -9,6 +10,7 @@ from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
 from ptcg_abc.evaluation import (
     Phase3RequiredBenchmarkResult,
     Phase3RequiredBenchmarkRow,
+    Phase3RequiredDebugGame,
     PreparedDeck,
     TOURNAMENT_559_REQUESTED_RANKS,
     TOURNAMENT_559_SOURCE_URL,
@@ -26,6 +28,7 @@ from ptcg_abc.rl.rewards import reward_from_result_metadata
 from ptcg_abc.rl.workflow import (
     RecordingPolicyAgent,
     _accumulate_search_telemetry,
+    _compact_replay_trace,
     _finalize_search_telemetry,
     _make_agent,
     _phase5_specialist_model_path,
@@ -67,9 +70,23 @@ class PublicAgentTrajectorySummary:
     reward_shaping: dict[str, Any]
     tactical_reward_summary: dict[str, Any]
     specialist_model_dir: str | None = None
+    controlled_public_agent_key: str | None = None
+    controlled_deck_index: int | None = None
+    policy_epsilon: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class PublicControlledDeck:
+    index: int
+    label: str
+    archetype: str
+    tournament_rank: int
+    card_ids: list[int]
+    source_key: str
+    source_ref: str
 
 
 @dataclass(frozen=True)
@@ -255,6 +272,8 @@ def run_phase5_public_agent_benchmark(
     include_builtin_samples: bool = True,
     public_agent_keys: Sequence[str] | None = None,
     require_min_opponents: int = 1,
+    controlled_public_agent_key: str | None = None,
+    controlled_deck_index: int = 101,
     agent_kind: str = "phase5-full",
     model_path: Path | None = None,
     specialist_model_dir: Path | None = None,
@@ -264,12 +283,27 @@ def run_phase5_public_agent_benchmark(
     search_config: Any | None = None,
     search_trace_path: Path | None = None,
     search_trace_game_limit: int = 0,
+    policy_epsilon: float = 0.0,
+    replay_output_dir: Path | None = None,
+    saved_win_replays: int = 0,
+    saved_loss_replays: int = 0,
+    replay_trace_limit: int = 120,
 ) -> tuple[Phase3RequiredBenchmarkResult, list[PublicAgentStatus]]:
     card_data, attack_data = load_engine_metadata(sample_dir)
     if search_trace_path is not None:
         search_trace_path.parent.mkdir(parents=True, exist_ok=True)
         search_trace_path.write_text("", encoding="utf-8")
-    our_decks = _selected_phase5_decks(deck_indices)
+    our_decks = _selected_controlled_decks(
+        sample_dir=sample_dir,
+        public_agent_roots=public_agent_roots,
+        roster_notebook=roster_notebook,
+        include_public=include_public,
+        include_samples=include_samples,
+        include_builtin_samples=include_builtin_samples,
+        deck_indices=deck_indices,
+        controlled_public_agent_key=controlled_public_agent_key,
+        controlled_deck_index=controlled_deck_index,
+    )
     opponents, statuses = discover_phase5_public_opponents(
         sample_dir=sample_dir,
         public_agent_roots=public_agent_roots,
@@ -285,37 +319,84 @@ def run_phase5_public_agent_benchmark(
             f"required at least {require_min_opponents}."
         )
     rows: list[Phase3RequiredBenchmarkRow] = []
+    debug_games: list[Phase3RequiredDebugGame] = []
     aggregate_search: dict[str, Any] = {}
+    saved_replay_counts = {"win": 0, "loss": 0}
+    if replay_output_dir is not None:
+        replay_output_dir.mkdir(parents=True, exist_ok=True)
     for our_deck in our_decks:
-        our_model_path = _phase5_specialist_model_path(specialist_model_dir, our_deck.index)
+        our_model_path = _phase5_specialist_model_path(
+            specialist_model_dir,
+            _controlled_deck_index(our_deck),
+        )
         if our_model_path is None:
             our_model_path = model_path
         for opponent in opponents:
             row = Phase3RequiredBenchmarkRow(
-                deck_index=our_deck.index,
-                deck_label=our_deck.label,
-                archetype=our_deck.archetype,
-                tournament_rank=our_deck.deck.result.placement_rank,
+                deck_index=_controlled_deck_index(our_deck),
+                deck_label=_controlled_deck_label(our_deck),
+                archetype=_controlled_deck_archetype(our_deck),
+                tournament_rank=_controlled_deck_rank(our_deck),
                 opponent=opponent.label,
                 opponent_deck_label=_public_opponent_label(opponent),
                 games=games_per_matchup,
             )
             for game_index in range(games_per_matchup):
                 our_is_player0 = game_index % 2 == 0
-                our_agent = _make_agent(
+                reward_metadata = {
+                    "game_index": game_index + 1,
+                    "deck_index": row.deck_index,
+                    "deck_label": row.deck_label,
+                    "opponent_agent_key": opponent.key,
+                    "opponent_agent_label": opponent.label,
+                    "opponent_source_ref": opponent.source.source_ref,
+                    "opponent_deck_label": _public_opponent_label(opponent),
+                    "collector": "phase5_public_rule_opponents_eval",
+                    "agent": agent_kind,
+                    "specialist_model_dir": (
+                        specialist_model_dir.as_posix() if specialist_model_dir else None
+                    ),
+                    "specialist_model_path": (
+                        our_model_path.as_posix()
+                        if specialist_model_dir and our_model_path
+                        else None
+                    ),
+                    "controlled_public_agent_key": controlled_public_agent_key,
+                    "policy_epsilon": float(policy_epsilon),
+                }
+                base_agent = _make_agent(
                     agent_kind,
-                    our_deck.card_ids,
+                    _controlled_deck_ids(our_deck),
                     card_data,
                     attack_data,
                     model_path=our_model_path,
                     opponent_deck_ids=opponent.deck_ids,
                     sample_dir=sample_dir,
                     search_config=search_config,
+                    policy_epsilon=policy_epsilon,
+                )
+                should_capture = _should_capture_public_replay(
+                    replay_output_dir,
+                    saved_replay_counts=saved_replay_counts,
+                    saved_win_replays=saved_win_replays,
+                    saved_loss_replays=saved_loss_replays,
+                )
+                our_agent = (
+                    RecordingPolicyAgent(
+                        base_agent,
+                        _controlled_deck_ids(our_deck),
+                        card_data=card_data,
+                        attack_data=attack_data,
+                        reward_metadata=reward_metadata,
+                        trace_limit=replay_trace_limit,
+                    )
+                    if should_capture
+                    else base_agent
                 )
                 opponent_agent = opponent.make_agent()
                 result = run_battle(
-                    our_deck.card_ids if our_is_player0 else opponent.deck_ids,
-                    opponent.deck_ids if our_is_player0 else our_deck.card_ids,
+                    _controlled_deck_ids(our_deck) if our_is_player0 else opponent.deck_ids,
+                    opponent.deck_ids if our_is_player0 else _controlled_deck_ids(our_deck),
                     sample_dir=sample_dir,
                     agent0=our_agent if our_is_player0 else opponent_agent,
                     agent1=opponent_agent if our_is_player0 else our_agent,
@@ -324,8 +405,9 @@ def run_phase5_public_agent_benchmark(
                     max_steps=max_steps,
                 )
                 _record_row_outcome(row, result, our_is_player0=our_is_player0)
-                if isinstance(our_agent, Phase5SearchPolicyAgent):
-                    _accumulate_search_telemetry(row.search_telemetry, our_agent.search_telemetry())
+                search_agent = _search_agent_from_public_agent(our_agent)
+                if search_agent is not None:
+                    _accumulate_search_telemetry(row.search_telemetry, search_agent.search_telemetry())
                     if _should_write_public_search_trace(
                         search_trace_path,
                         game_index=game_index,
@@ -333,16 +415,32 @@ def run_phase5_public_agent_benchmark(
                     ):
                         assert search_trace_path is not None
                         _write_public_search_traces(
-                            our_agent,
+                            search_agent,
                             search_trace_path,
                             game_index=game_index,
-                            deck_index=our_deck.index,
-                            deck_label=our_deck.label,
+                            deck_index=row.deck_index,
+                            deck_label=row.deck_label,
                             opponent=opponent.label,
                             opponent_key=opponent.key,
                             result=result,
                             our_player_index=0 if our_is_player0 else 1,
                         )
+                if isinstance(our_agent, RecordingPolicyAgent):
+                    replay = _public_replay_debug_game(
+                        row,
+                        result,
+                        our_agent=our_agent,
+                        game_index=game_index,
+                        our_player_index=0 if our_is_player0 else 1,
+                    )
+                    if _maybe_write_public_replay(
+                        replay,
+                        replay_output_dir,
+                        saved_replay_counts=saved_replay_counts,
+                        saved_win_replays=saved_win_replays,
+                        saved_loss_replays=saved_loss_replays,
+                    ):
+                        debug_games.append(replay)
             row.search_telemetry = _finalize_search_telemetry(row.search_telemetry)
             _accumulate_search_telemetry(aggregate_search, row.search_telemetry)
             row.win_rate = row.wins / row.games if row.games else 0.0
@@ -355,7 +453,7 @@ def run_phase5_public_agent_benchmark(
             games_per_matchup=games_per_matchup,
             max_steps=max_steps,
             rows=rows,
-            debug_games=[],
+            debug_games=debug_games,
             search_telemetry=_finalize_search_telemetry(aggregate_search),
         ),
         statuses,
@@ -373,6 +471,8 @@ def generate_phase5_public_agent_trajectories(
     include_builtin_samples: bool = True,
     public_agent_keys: Sequence[str] | None = None,
     require_min_opponents: int = 1,
+    controlled_public_agent_key: str | None = None,
+    controlled_deck_index: int = 101,
     agent_kind: str = "phase5-rl",
     model_path: Path | None = None,
     specialist_model_dir: Path | None = None,
@@ -384,11 +484,22 @@ def generate_phase5_public_agent_trajectories(
     overwrite: bool = False,
     outcome_reward_scale: float = 1.0,
     tactical_reward_config: PublicAgentTacticalRewardConfig | None = None,
+    policy_epsilon: float = 0.0,
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
         raise ValueError(f"Trajectory output already exists at {output_path}.")
     card_data, attack_data = load_engine_metadata(sample_dir)
-    our_decks = _selected_phase5_decks(deck_indices)
+    our_decks = _selected_controlled_decks(
+        sample_dir=sample_dir,
+        public_agent_roots=public_agent_roots,
+        roster_notebook=roster_notebook,
+        include_public=include_public,
+        include_samples=include_samples,
+        include_builtin_samples=include_builtin_samples,
+        deck_indices=deck_indices,
+        controlled_public_agent_key=controlled_public_agent_key,
+        controlled_deck_index=controlled_deck_index,
+    )
     opponents, statuses = discover_phase5_public_opponents(
         sample_dir=sample_dir,
         public_agent_roots=public_agent_roots,
@@ -408,10 +519,10 @@ def generate_phase5_public_agent_trajectories(
 
     games_requested = len(our_decks) * len(opponents) * games_per_matchup
     games_started = steps_written = wins = losses = draws = errors = timeouts = 0
-    deck_games = {str(deck.index): 0 for deck in our_decks}
-    deck_wins = {str(deck.index): 0 for deck in our_decks}
-    deck_losses = {str(deck.index): 0 for deck in our_decks}
-    deck_draws = {str(deck.index): 0 for deck in our_decks}
+    deck_games = {str(_controlled_deck_index(deck)): 0 for deck in our_decks}
+    deck_wins = {str(_controlled_deck_index(deck)): 0 for deck in our_decks}
+    deck_losses = {str(_controlled_deck_index(deck)): 0 for deck in our_decks}
+    deck_draws = {str(_controlled_deck_index(deck)): 0 for deck in our_decks}
     opponent_games = {opponent.key: 0 for opponent in opponents}
     opponent_wins = {opponent.key: 0 for opponent in opponents}
     opponent_losses = {opponent.key: 0 for opponent in opponents}
@@ -423,15 +534,18 @@ def generate_phase5_public_agent_trajectories(
 
     local_game_index = 0
     for our_deck in our_decks:
-        our_model_path = _phase5_specialist_model_path(specialist_model_dir, our_deck.index)
+        deck_index = _controlled_deck_index(our_deck)
+        deck_label = _controlled_deck_label(our_deck)
+        our_card_ids = _controlled_deck_ids(our_deck)
+        our_model_path = _phase5_specialist_model_path(specialist_model_dir, deck_index)
         if our_model_path is None:
             our_model_path = model_path
         for opponent in opponents:
-            pair_key = f"{our_deck.index}-vs-{opponent.key}"
+            pair_key = f"{deck_index}-vs-{opponent.key}"
             matchup = matchups.setdefault(
                 pair_key,
                 {
-                    "deck_index": our_deck.index,
+                    "deck_index": deck_index,
                     "opponent_key": opponent.key,
                     "games": 0,
                     "wins": 0,
@@ -448,14 +562,16 @@ def generate_phase5_public_agent_trajectories(
                 reward_metadata = {
                     "game_index": absolute_game_index + 1,
                     "local_game_index": local_game_index,
-                    "deck_index": our_deck.index,
-                    "deck_label": our_deck.label,
+                    "deck_index": deck_index,
+                    "deck_label": deck_label,
                     "opponent_agent_key": opponent.key,
                     "opponent_agent_label": opponent.label,
                     "opponent_source_ref": opponent.source.source_ref,
                     "opponent_deck_label": _public_opponent_label(opponent),
                     "collector": "phase5_public_rule_opponents",
                     "agent": agent_kind,
+                    "controlled_public_agent_key": controlled_public_agent_key,
+                    "policy_epsilon": float(policy_epsilon),
                     "specialist_model_dir": (
                         specialist_model_dir.as_posix() if specialist_model_dir else None
                     ),
@@ -466,23 +582,24 @@ def generate_phase5_public_agent_trajectories(
                 recorder = RecordingPolicyAgent(
                     _make_agent(
                         agent_kind,
-                        our_deck.card_ids,
+                        our_card_ids,
                         card_data,
                         attack_data,
                         model_path=our_model_path,
                         opponent_deck_ids=opponent.deck_ids,
                         sample_dir=sample_dir,
                         search_config=search_config,
+                        policy_epsilon=policy_epsilon,
                     ),
-                    our_deck.card_ids,
+                    our_card_ids,
                     card_data=card_data,
                     attack_data=attack_data,
                     reward_metadata=reward_metadata,
                 )
                 opponent_agent = opponent.make_agent()
                 result = run_battle(
-                    our_deck.card_ids if our_is_player0 else opponent.deck_ids,
-                    opponent.deck_ids if our_is_player0 else our_deck.card_ids,
+                    our_card_ids if our_is_player0 else opponent.deck_ids,
+                    opponent.deck_ids if our_is_player0 else our_card_ids,
                     sample_dir=sample_dir,
                     agent0=recorder if our_is_player0 else opponent_agent,
                     agent1=opponent_agent if our_is_player0 else recorder,
@@ -494,7 +611,7 @@ def generate_phase5_public_agent_trajectories(
                 errors += int(result.error is not None)
                 timeout = int(result.started and not result.finished and result.error is None)
                 timeouts += timeout
-                deck_games[str(our_deck.index)] += 1
+                deck_games[str(deck_index)] += 1
                 opponent_games[opponent.key] += 1
                 matchup["games"] += 1
                 matchup["errors"] += int(result.error is not None)
@@ -550,7 +667,7 @@ def generate_phase5_public_agent_trajectories(
 
                 if result.error:
                     draws += 1
-                    deck_draws[str(our_deck.index)] += 1
+                    deck_draws[str(deck_index)] += 1
                     opponent_draws[opponent.key] += 1
                     matchup["draws"] += 1
                     continue
@@ -558,17 +675,17 @@ def generate_phase5_public_agent_trajectories(
                 our_player_index = 0 if our_is_player0 else 1
                 if effective is None:
                     draws += 1
-                    deck_draws[str(our_deck.index)] += 1
+                    deck_draws[str(deck_index)] += 1
                     opponent_draws[opponent.key] += 1
                     matchup["draws"] += 1
                 elif effective == our_player_index:
                     wins += 1
-                    deck_wins[str(our_deck.index)] += 1
+                    deck_wins[str(deck_index)] += 1
                     opponent_losses[opponent.key] += 1
                     matchup["wins"] += 1
                 else:
                     losses += 1
-                    deck_losses[str(our_deck.index)] += 1
+                    deck_losses[str(deck_index)] += 1
                     opponent_wins[opponent.key] += 1
                     matchup["losses"] += 1
 
@@ -578,7 +695,7 @@ def generate_phase5_public_agent_trajectories(
         games_started=games_started,
         steps=steps_written,
         output_path=output_path.as_posix(),
-        deck_indices=[deck.index for deck in our_decks],
+        deck_indices=[_controlled_deck_index(deck) for deck in our_decks],
         public_agent_roots=[root.as_posix() for root in public_agent_roots],
         roster_notebook=roster_notebook.as_posix() if roster_notebook else None,
         public_agent_keys=_normalized_public_agent_keys(public_agent_keys),
@@ -607,6 +724,9 @@ def generate_phase5_public_agent_trajectories(
         },
         tactical_reward_summary=_finalize_tactical_reward_summary(tactical_summary),
         specialist_model_dir=specialist_model_dir.as_posix() if specialist_model_dir else None,
+        controlled_public_agent_key=controlled_public_agent_key,
+        controlled_deck_index=controlled_deck_index if controlled_public_agent_key else None,
+        policy_epsilon=float(policy_epsilon) if agent_kind == "phase5-epsilon" else None,
     )
 
 
@@ -641,6 +761,229 @@ def _selected_phase5_decks(deck_indices: Sequence[int] | None) -> list[PreparedD
         if index not in [deck.index for deck in selected]:
             selected.append(by_index[index])
     return selected
+
+
+def _selected_controlled_decks(
+    *,
+    sample_dir: Path,
+    public_agent_roots: Sequence[Path],
+    roster_notebook: Path | None,
+    include_public: bool,
+    include_samples: bool,
+    include_builtin_samples: bool,
+    deck_indices: Sequence[int] | None,
+    controlled_public_agent_key: str | None,
+    controlled_deck_index: int,
+) -> list[Any]:
+    if not controlled_public_agent_key:
+        return list(_selected_phase5_decks(deck_indices))
+    if deck_indices:
+        raise ValueError(
+            "Use either --deck-index for Phase 5 league decks or "
+            "--controlled-public-agent-key for a public/sample controlled deck, not both."
+        )
+    opponents, statuses = discover_phase5_public_opponents(
+        sample_dir=sample_dir,
+        public_agent_roots=public_agent_roots,
+        roster_notebook=roster_notebook,
+        include_public=include_public,
+        include_samples=include_samples,
+        include_builtin_samples=include_builtin_samples,
+        public_agent_keys=[controlled_public_agent_key],
+    )
+    if len(opponents) != 1:
+        errors = [
+            f"{status.source.key}: {status.error or status.status}"
+            for status in statuses
+            if status.source.key == controlled_public_agent_key
+        ]
+        detail = "; ".join(errors) if errors else "not available"
+        raise ValueError(
+            f"Controlled public/sample deck {controlled_public_agent_key!r} is {detail}."
+        )
+    source = opponents[0]
+    return [
+        PublicControlledDeck(
+            index=int(controlled_deck_index),
+            label=source.label,
+            archetype=source.label,
+            tournament_rank=int(controlled_deck_index),
+            card_ids=list(source.deck_ids),
+            source_key=source.key,
+            source_ref=source.source.source_ref,
+        )
+    ]
+
+
+def _controlled_deck_index(deck: Any) -> int:
+    return int(deck.index)
+
+
+def _controlled_deck_label(deck: Any) -> str:
+    return str(deck.label)
+
+
+def _controlled_deck_archetype(deck: Any) -> str:
+    return str(deck.archetype)
+
+
+def _controlled_deck_rank(deck: Any) -> int:
+    if isinstance(deck, PublicControlledDeck):
+        return int(deck.tournament_rank)
+    return int(deck.deck.result.placement_rank)
+
+
+def _controlled_deck_ids(deck: Any) -> list[int]:
+    return list(deck.card_ids)
+
+
+def _search_agent_from_public_agent(agent: Any) -> Phase5SearchPolicyAgent | None:
+    if isinstance(agent, Phase5SearchPolicyAgent):
+        return agent
+    wrapped = getattr(agent, "agent", None)
+    if isinstance(wrapped, Phase5SearchPolicyAgent):
+        return wrapped
+    return None
+
+
+def _should_capture_public_replay(
+    replay_output_dir: Path | None,
+    *,
+    saved_replay_counts: dict[str, int],
+    saved_win_replays: int,
+    saved_loss_replays: int,
+) -> bool:
+    if replay_output_dir is None:
+        return False
+    return (
+        saved_replay_counts.get("win", 0) < max(0, saved_win_replays)
+        or saved_replay_counts.get("loss", 0) < max(0, saved_loss_replays)
+    )
+
+
+def _public_replay_debug_game(
+    row: Phase3RequiredBenchmarkRow,
+    result: Any,
+    *,
+    our_agent: RecordingPolicyAgent,
+    game_index: int,
+    our_player_index: int,
+) -> Phase3RequiredDebugGame:
+    return Phase3RequiredDebugGame(
+        deck_index=row.deck_index,
+        deck_label=row.deck_label,
+        archetype=row.archetype,
+        tournament_rank=row.tournament_rank,
+        opponent=row.opponent,
+        game_index=game_index + 1,
+        outcome=_public_game_outcome(result, our_player_index=our_player_index),
+        our_player_index=our_player_index,
+        steps=int(getattr(result, "steps", 0) or 0),
+        prize_counts=getattr(result, "prize_counts", None),
+        error=getattr(result, "error", None),
+        trace=_compact_replay_trace(our_agent.frames),
+    )
+
+
+def _maybe_write_public_replay(
+    replay: Phase3RequiredDebugGame,
+    replay_output_dir: Path | None,
+    *,
+    saved_replay_counts: dict[str, int],
+    saved_win_replays: int,
+    saved_loss_replays: int,
+) -> bool:
+    if replay_output_dir is None:
+        return False
+    outcome = "win" if replay.outcome == "win" else "loss" if replay.outcome == "loss" else ""
+    if not outcome:
+        return False
+    limit = max(0, saved_win_replays if outcome == "win" else saved_loss_replays)
+    if saved_replay_counts.get(outcome, 0) >= limit:
+        return False
+    saved_replay_counts[outcome] = saved_replay_counts.get(outcome, 0) + 1
+    stem = (
+        f"deck-{replay.deck_index:02d}-vs-{_slug(replay.opponent)}-"
+        f"game-{replay.game_index:04d}-{outcome}"
+    )
+    json_path = replay_output_dir / f"{stem}.json"
+    html_path = replay_output_dir / f"{stem}.html"
+    payload = replay.to_dict() | {
+        "visualizer_url": None,
+        "html_path": html_path.as_posix(),
+    }
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    html_path.write_text(_public_replay_html(payload), encoding="utf-8")
+    return True
+
+
+def _public_replay_html(payload: dict[str, Any]) -> str:
+    title = (
+        f"Deck {payload.get('deck_index')} vs {payload.get('opponent')} "
+        f"{payload.get('outcome')}"
+    )
+    rows = []
+    for step, record in enumerate(payload.get("trace", []), start=1):
+        chosen = ", ".join(
+            _action_label(action) for action in record.get("chosen_options", [])
+        )
+        top_rule = "<br>".join(
+            escape(_action_label(action)) for action in record.get("top_rule_options", [])
+        )
+        board = record.get("board", {})
+        board_text = escape(json.dumps(board, sort_keys=True))
+        rows.append(
+            "<tr>"
+            f"<td>{step}</td>"
+            f"<td>{escape(str(record.get('turn', '')))}</td>"
+            f"<td>{escape(str(record.get('select_type', '')))}</td>"
+            f"<td>{escape(chosen)}</td>"
+            f"<td>{top_rule}</td>"
+            f"<td><code>{board_text}</code></td>"
+            "</tr>"
+        )
+    return "\n".join(
+        [
+            "<!doctype html>",
+            "<html><head><meta charset=\"utf-8\">",
+            f"<title>{escape(title)}</title>",
+            "<style>",
+            "body{font-family:system-ui,Arial,sans-serif;margin:24px;line-height:1.4}",
+            "table{border-collapse:collapse;width:100%;font-size:13px}",
+            "th,td{border:1px solid #ddd;padding:6px;vertical-align:top}",
+            "th{background:#f5f5f5;text-align:left}",
+            "code{white-space:pre-wrap;font-size:12px}",
+            "</style></head><body>",
+            f"<h1>{escape(title)}</h1>",
+            "<ul>",
+            f"<li>Outcome: {escape(str(payload.get('outcome')))}</li>",
+            f"<li>Steps: {escape(str(payload.get('steps')))}</li>",
+            f"<li>Prize counts: {escape(str(payload.get('prize_counts')))}</li>",
+            "</ul>",
+            "<table><thead><tr><th>#</th><th>Turn</th><th>Select</th>"
+            "<th>Chosen</th><th>Top Rule Options</th><th>Board</th></tr></thead><tbody>",
+            *rows,
+            "</tbody></table></body></html>",
+        ]
+    )
+
+
+def _action_label(action: dict[str, Any]) -> str:
+    pieces = [str(action.get("type", ""))]
+    if action.get("card_name"):
+        pieces.append(str(action["card_name"]))
+    elif action.get("card_id") is not None:
+        pieces.append(f"card {action['card_id']}")
+    if action.get("target_name"):
+        pieces.append(f"-> {action['target_name']}")
+    elif action.get("target_card_id") is not None:
+        pieces.append(f"-> card {action['target_card_id']}")
+    return " ".join(piece for piece in pieces if piece)
+
+
+def _slug(value: str) -> str:
+    chars = [char.lower() if char.isalnum() else "-" for char in value]
+    return "-".join(part for part in "".join(chars).split("-") if part) or "replay"
 
 
 def _should_write_public_search_trace(

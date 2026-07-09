@@ -10,6 +10,7 @@ from typing import Any, Sequence
 from ptcg_abc.agent import HybridRlAgent, RuleBasedAgent
 from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
 from ptcg_abc.agent.phase5_symbolic import (
+    Phase5EpsilonGreedyPolicyAgent,
     Phase5SamplingPolicyAgent,
     Phase5SymbolicPolicyAgent,
 )
@@ -1454,6 +1455,7 @@ def _make_agent(
     opponent_deck_ids: Sequence[int] | None = None,
     sample_dir: Path | None = None,
     search_config: RootSearchConfig | None = None,
+    policy_epsilon: float = 0.0,
 ) -> Any:
     if agent_kind == "rule":
         return _quiet_rule_agent(deck_ids, card_data, attack_data)
@@ -1470,6 +1472,14 @@ def _make_agent(
             card_data=card_data,
             attack_data=attack_data,
             checkpoint_path=model_path,
+        )
+    if agent_kind == "phase5-epsilon":
+        return Phase5EpsilonGreedyPolicyAgent(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=model_path,
+            epsilon=policy_epsilon,
         )
     if agent_kind in {"phase5-search", "phase5-full"}:
         if opponent_deck_ids is None or sample_dir is None:
@@ -1519,6 +1529,12 @@ def _policy_metadata(agent: Any) -> dict[str, Any]:
         metadata["policy_mode"] = payload["mode"]
     if "temperature" in payload:
         metadata["policy_temperature"] = _safe_float(payload.get("temperature"), default=1.0)
+    if "epsilon" in payload:
+        metadata["policy_epsilon"] = _safe_float(payload.get("epsilon"), default=0.0)
+    if "epsilon_random_steps" in payload:
+        metadata["policy_epsilon_random_steps"] = int(payload["epsilon_random_steps"])
+    if "epsilon_greedy_steps" in payload:
+        metadata["policy_epsilon_greedy_steps"] = int(payload["epsilon_greedy_steps"])
     if "target_count" in payload:
         metadata["policy_target_count"] = int(payload["target_count"])
     return metadata

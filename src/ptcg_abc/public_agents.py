@@ -337,6 +337,11 @@ def load_public_agent(
             return _load_builtin_sample_dragapult(source)
         except Exception:
             pass
+    if include_builtin_samples and source.key == "sample_lucario":
+        try:
+            return _load_builtin_sample_lucario(source, sample_dir=sample_dir)
+        except Exception:
+            pass
     candidates = _candidate_paths(source, roots)
     errors: list[str] = []
     for path in candidates:
@@ -385,6 +390,49 @@ def _load_builtin_sample_dragapult(source: PublicAgentSource) -> LoadedPublicAge
         make_agent=factory,
         built_in=True,
     )
+
+
+def _load_builtin_sample_lucario(
+    source: PublicAgentSource,
+    *,
+    sample_dir: Path,
+) -> LoadedPublicAgent:
+    from ptcg_abc.agent.rule_based import RuleBasedAgent
+    from ptcg_abc.evaluation import REQUIRED_PHASE3_SAMPLE_DECKS
+    from ptcg_abc.simulator import load_engine_metadata
+
+    deck_ids = _validated_deck(_sample_deck_by_name(REQUIRED_PHASE3_SAMPLE_DECKS, "lucario"))
+    card_data, attack_data = load_engine_metadata(sample_dir)
+
+    def factory() -> PublicAgentAdapter:
+        return PublicAgentAdapter(
+            source=source,
+            deck_ids=deck_ids,
+            agent_factory=lambda: RuleBasedAgent(
+                deck_ids,
+                card_data=card_data,
+                attack_data=attack_data,
+            ),
+        )
+
+    return LoadedPublicAgent(
+        source=source,
+        path=None,
+        deck_ids=deck_ids,
+        make_agent=factory,
+        built_in=True,
+    )
+
+
+def _sample_deck_by_name(
+    records: Sequence[tuple[str, Sequence[int], str]],
+    needle: str,
+) -> list[int]:
+    clean = needle.casefold()
+    for name, card_ids, _ in records:
+        if clean in name.casefold():
+            return list(card_ids)
+    raise ValueError(f"No required sample deck matching {needle!r}.")
 
 
 def _load_external_agent(

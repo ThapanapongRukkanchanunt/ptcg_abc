@@ -1299,6 +1299,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   but does not publish a single verified total parameter count; do not treat the
   current deck-12 failure as a pure model-size problem until the trace/value
   target diagnostics are cleaner.
+- One-deck epsilon curriculum implementation on July 9, 2026: added an
+  opt-in 10-generation Dragapult-vs-Lucario script that starts from a scratch
+  `deck-101.pt` checkpoint, trains the model-controlled official sample
+  Dragapult ex deck against built-in rule-based sample Mega Lucario ex, decays
+  epsilon-greedy exploration from 1.0 to 0.10, collects 1000 games per
+  generation, runs a 100-game zero-exploration eval after each PPO update,
+  deletes each raw trajectory JSONL after successful update, and keeps one win
+  plus one loss compact JSON/HTML replay view per generation. Submit
+  `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch` as the next
+  ERAWAN job for this experiment.
 - Full-agent scaffolds added on June 30, 2026:
   - reusable Phase 5 opponent-prior inference,
   - direct Kaggle zip packaging and raw-exec-safe generated `main.py`,

@@ -4984,3 +4984,83 @@ Conclusion:
   training signal/search scoring than raw parameter count: leaf state value
   helped, but still failed the 50% gate. Do not scale model size blindly before
   fixing the target signal and score diagnostics.
+
+## 2026-07-09 - One-Deck Epsilon Curriculum Implementation
+
+User-requested experiment:
+
+- Learner deck: official sample Dragapult ex.
+- Fixed rule-based opponent: official sample Mega Lucario ex.
+- Start from scratch.
+- Train for 10 generations against rule-based play.
+- Use epsilon-greedy exploration, generation 1 at 100% random legal-action
+  exploration and generation 10 at 10%, linearly decayed.
+- Generate 1000 training games per generation.
+- Evaluate every generation with zero exploration for 100 games.
+- Delete each generation's raw replay/trajectory data after it has been used
+  for the generation update.
+- Retain only small reports, checkpoints, and one win plus one loss visual replay
+  view per generation.
+
+Implementation:
+
+- Added `Phase5EpsilonGreedyPolicyAgent`, an on-policy epsilon-greedy Phase 5
+  policy agent.
+  - `epsilon=1.0` means uniformly random legal-action selection.
+  - `epsilon=0.10` means 10% random legal-action exploration and 90% greedy
+    neural-policy selection.
+  - Recorded trajectory metadata includes `policy_epsilon`,
+    `policy_epsilon_random_steps`, `policy_epsilon_greedy_steps`, behavior
+    `logprob`, and `policy_on_policy=true`.
+- Added `rl-init-phase5-policy-checkpoint` to create a scratch Phase 5 symbolic
+  policy checkpoint with the standard 96-entity/128-action encoder and 128-wide
+  model.
+- Extended public-agent trajectory/eval commands with:
+  - `--controlled-public-agent-key`;
+  - `--controlled-deck-index`;
+  - `--policy-epsilon`.
+- Public-agent trajectory/eval can now use a public/sample deck as the
+  model-controlled deck instead of only the 13 Phase 5 league decks. The
+  Dragapult-vs-Lucario experiment uses synthetic controlled deck index `101`,
+  so checkpoints are named `deck-101.pt`.
+- Added a built-in `sample_lucario` fallback: official sample Mega Lucario deck
+  IDs controlled by the repo's `RuleBasedAgent`. This avoids requiring the
+  external Kaggle sample Lucario notebook on ERAWAN.
+- Public-agent eval can now save compact JSON and static HTML replay views with:
+  - `--replay-output-dir`;
+  - `--saved-win-replays`;
+  - `--saved-loss-replays`;
+  - `--replay-trace-limit`.
+- Added `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch`.
+  It initializes generation 0 from scratch, then loops:
+  collect 1000 epsilon-greedy games -> PPO update -> delete raw JSONL -> 100-game
+  zero-exploration eval -> retain one win and one loss replay view.
+- Updated `scripts/slurm/phase5_public_agent_trajectories.sbatch` and
+  `scripts/slurm/phase5_public_agent_eval_conda.sbatch` to pass the new
+  controlled-deck, epsilon, and replay-retention options.
+- Updated `docs/phase-5-erawan-runbook.md` with the one-command ERAWAN
+  submission and artifact layout.
+
+Validation:
+
+- `py_compile` passed for:
+  - `src/ptcg_abc/agent/phase5_symbolic.py`;
+  - `src/ptcg_abc/rl/workflow.py`;
+  - `src/ptcg_abc/public_agents.py`;
+  - `src/ptcg_abc/rl/public_opponents.py`;
+  - `src/ptcg_abc/rl/phase5_symbolic_training.py`;
+  - `src/ptcg_abc/cli.py`.
+- `unittest tests.test_public_agents tests.test_phase5_alpha_league` passed.
+- CLI help checks passed for:
+  - `rl-generate-phase5-public-agent-trajectories`;
+  - `rl-evaluate-phase5-public-agents`;
+  - `rl-init-phase5-policy-checkpoint`.
+
+Next ERAWAN action:
+
+- Submit `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch` with
+  `RUN_NAME=phase5_dragapult_vs_lucario_epsilon`,
+  `CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult`,
+  `OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario`,
+  `CONTROLLED_DECK_INDEX=101`, `GENERATIONS=10`,
+  `TRAIN_GAMES_PER_GENERATION=1000`, and `EVAL_GAMES_PER_GENERATION=100`.

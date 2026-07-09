@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import io
+import math
+import random
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -345,6 +347,151 @@ class Phase5SamplingPolicyAgent(Phase5SymbolicPolicyAgent):
             extra={
                 "temperature": self.temperature,
                 "target_count": target_count,
+            },
+        )
+        return selected
+
+
+class Phase5EpsilonGreedyPolicyAgent(Phase5SymbolicPolicyAgent):
+    """Epsilon-greedy Phase 5 policy for high-exploration curriculum collection."""
+
+    def __init__(
+        self,
+        deck_ids: Sequence[int],
+        *,
+        card_data: Sequence[Any] = (),
+        attack_data: Sequence[Any] = (),
+        checkpoint_path: Path | str | None = None,
+        device: str | None = None,
+        epsilon: float = 0.1,
+        seed: int | None = None,
+    ) -> None:
+        if epsilon < 0.0 or epsilon > 1.0:
+            raise ValueError("Phase5EpsilonGreedyPolicyAgent epsilon must be in [0, 1].")
+        self.epsilon = float(epsilon)
+        self.rng = random.Random(seed)
+        super().__init__(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=checkpoint_path,
+            device=device,
+            use_rule_tiebreak=False,
+        )
+
+    def act(self, observation: Any) -> list[int]:
+        self._set_policy_metadata(
+            logprob=0.0,
+            value=0.0,
+            on_policy=False,
+            mode="unobserved",
+            extra={"epsilon": self.epsilon},
+        )
+        select = _get(observation, "select")
+        if select is None:
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=False,
+                mode="decklist",
+                extra={"epsilon": self.epsilon},
+            )
+            return list(self.deck_ids)
+
+        state = self.state_adapter.parse(observation)
+        legal_actions = self.legal_adapter.parse(observation)
+        if not legal_actions:
+            selected = self.fallback_agent.act(observation)
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=False,
+                mode="fallback_no_legal_actions",
+                extra={"epsilon": self.epsilon},
+            )
+            return selected
+
+        self._reset_turn_context_if_needed(state)
+        self.memory.observe(state)
+        belief = self.memory.belief_state(state, own_deck_ids=self.deck_ids)
+        encoded = self.encoder.encode(state, legal_actions, belief)
+        target_count = _target_count(encoded.legal_action_mask, legal_actions)
+        if target_count <= 0:
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=True,
+                mode="empty_selection",
+                extra={"epsilon": self.epsilon},
+            )
+            return []
+
+        outputs = self._score_model_outputs(encoded)
+        state_value = float(outputs["state_value"])
+        encoded_positions = [
+            position
+            for position, index in enumerate(encoded.legal_action_indices)
+            if index >= 0 and encoded.legal_action_mask[position] > 0
+        ]
+        selected_positions: list[int] = []
+        remaining = list(encoded_positions)
+        logprob = 0.0
+        random_steps = 0
+        greedy_steps = 0
+        for _ in range(target_count):
+            if not remaining:
+                break
+            greedy_position = max(
+                remaining,
+                key=lambda position: (
+                    outputs["action_logits"][position],
+                    -encoded.legal_action_indices[position],
+                ),
+            )
+            explore = self.rng.random() < self.epsilon
+            if explore:
+                selected_position = self.rng.choice(remaining)
+                random_steps += 1
+            else:
+                selected_position = greedy_position
+                greedy_steps += 1
+            remaining_count = len(remaining)
+            step_probability = self.epsilon / max(1, remaining_count)
+            if selected_position == greedy_position:
+                step_probability += 1.0 - self.epsilon
+            logprob += math.log(max(step_probability, 1.0e-12))
+            remaining.remove(selected_position)
+            selected_positions.append(selected_position)
+
+        selected = [
+            encoded.legal_action_indices[position]
+            for position in selected_positions
+            if encoded.legal_action_indices[position] >= 0
+        ]
+        min_count = max(0, int(getattr(legal_actions[0], "min_count", 0) or 0))
+        if len(selected) < min_count:
+            selected = self.fallback_agent.act(observation)
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=state_value,
+                on_policy=False,
+                mode="fallback_min_count",
+                extra={"epsilon": self.epsilon},
+            )
+            return _valid_indices(selected, len(legal_actions))
+
+        selected = _valid_indices(selected, len(legal_actions))
+        self._observe_selected_actions(encoded.legal_action_features, selected_positions)
+        self._set_policy_metadata(
+            logprob=logprob,
+            value=state_value,
+            on_policy=True,
+            mode="epsilon_greedy",
+            extra={
+                "epsilon": self.epsilon,
+                "target_count": target_count,
+                "epsilon_random_steps": random_steps,
+                "epsilon_greedy_steps": greedy_steps,
             },
         )
         return selected
