@@ -43,6 +43,7 @@ MODEL_ROOT="${MODEL_ROOT:-models/rl/phase5_one_deck_public_epsilon/${RUN_NAME}}"
 REPORT_ROOT="${REPORT_ROOT:-experiments/rl/phase5_one_deck_public_epsilon/${RUN_NAME}}"
 RAW_ROOT="${RAW_ROOT:-${GAME_DATA_ROOT}/phase5_one_deck_public_epsilon/${RUN_NAME}}"
 OVERWRITE_SCRATCH="${OVERWRITE_SCRATCH:-0}"
+REUSE_EXISTING_TRAJECTORIES="${REUSE_EXISTING_TRAJECTORIES:-0}"
 
 echo "Phase 5 one-deck public epsilon curriculum"
 echo "GAME_DATA_ROOT=$GAME_DATA_ROOT"
@@ -60,6 +61,7 @@ echo "MAX_STEPS=$MAX_STEPS"
 echo "MODEL_ROOT=$MODEL_ROOT"
 echo "REPORT_ROOT=$REPORT_ROOT"
 echo "RAW_ROOT=$RAW_ROOT"
+echo "REUSE_EXISTING_TRAJECTORIES=$REUSE_EXISTING_TRAJECTORIES"
 
 ROOT_ARGS=()
 for root in $PUBLIC_AGENT_ROOTS; do
@@ -128,7 +130,6 @@ for generation in $(seq 1 "$GENERATIONS"); do
   EPSILON="$(epsilon_for_generation "$generation")"
   TRAJECTORY_DATASET="${GEN_RAW_DIR}/phase5_public_epsilon_gen-${padded}.jsonl"
   TRAJECTORY_REPORT="${GEN_REPORT_DIR}/trajectory_report.json"
-  PPO_REPORT_DIR="${GEN_REPORT_DIR}/ppo"
   PPO_REPORT_JSON="${GEN_REPORT_DIR}/ppo_report.json"
   EVAL_JSON="reports/${RUN_NAME}_gen-${padded}_eval_100g.json"
   EVAL_MD="reports/${RUN_NAME}_gen-${padded}_eval_100g.md"
@@ -141,31 +142,34 @@ for generation in $(seq 1 "$GENERATIONS"); do
   echo "CURRENT_DIR=$CURRENT_DIR"
   echo "TRAJECTORY_DATASET=$TRAJECTORY_DATASET"
 
-  "$PY" -m ptcg_abc rl-generate-phase5-public-agent-trajectories \
-    "${ROOT_ARGS[@]}" \
-    "${OPPONENT_ARGS[@]}" \
-    --controlled-public-agent-key "$CONTROLLED_PUBLIC_AGENT_KEY" \
-    --controlled-deck-index "$CONTROLLED_DECK_INDEX" \
-    --agent phase5-epsilon \
-    --policy-epsilon "$EPSILON" \
-    --specialist-model-dir "$PREVIOUS_DIR" \
-    --games-per-matchup "$TRAIN_GAMES_PER_GENERATION" \
-    --max-steps "$MAX_STEPS" \
-    --require-min-opponents 1 \
-    --outcome-reward-scale "$OUTCOME_REWARD_SCALE" \
-    --tactical-reward-mode "$TACTICAL_REWARD_MODE" \
-    --output "$TRAJECTORY_DATASET" \
-    --report-json "$TRAJECTORY_REPORT" \
-    --overwrite
+  if [[ "$REUSE_EXISTING_TRAJECTORIES" != "0" && -s "$TRAJECTORY_DATASET" ]]; then
+    echo "Reusing existing trajectory dataset: $TRAJECTORY_DATASET"
+  else
+    "$PY" -m ptcg_abc rl-generate-phase5-public-agent-trajectories \
+      "${ROOT_ARGS[@]}" \
+      "${OPPONENT_ARGS[@]}" \
+      --controlled-public-agent-key "$CONTROLLED_PUBLIC_AGENT_KEY" \
+      --controlled-deck-index "$CONTROLLED_DECK_INDEX" \
+      --agent phase5-epsilon \
+      --policy-epsilon "$EPSILON" \
+      --specialist-model-dir "$PREVIOUS_DIR" \
+      --games-per-matchup "$TRAIN_GAMES_PER_GENERATION" \
+      --max-steps "$MAX_STEPS" \
+      --require-min-opponents 1 \
+      --outcome-reward-scale "$OUTCOME_REWARD_SCALE" \
+      --tactical-reward-mode "$TACTICAL_REWARD_MODE" \
+      --output "$TRAJECTORY_DATASET" \
+      --report-json "$TRAJECTORY_REPORT" \
+      --overwrite
+  fi
 
-  "$PY" -m ptcg_abc rl-train-phase5-alpha-ppo-specialists \
+  "$PY" -m ptcg_abc rl-train-phase5-ppo \
     --trajectory-dataset "$TRAJECTORY_DATASET" \
-    --source-checkpoint-dir "$PREVIOUS_DIR" \
-    --output-checkpoint-dir "$CURRENT_DIR" \
-    --report-dir "$PPO_REPORT_DIR" \
+    --checkpoint "${PREVIOUS_DIR}/deck-$(printf "%02d" "$CONTROLLED_DECK_INDEX").pt" \
+    --output-checkpoint "${CURRENT_DIR}/deck-$(printf "%02d" "$CONTROLLED_DECK_INDEX").pt" \
     --report-json "$PPO_REPORT_JSON" \
-    --iteration "$generation" \
-    --deck-index "$CONTROLLED_DECK_INDEX" \
+    --deck-index-filter "$CONTROLLED_DECK_INDEX" \
+    --require-on-policy \
     --epochs "$EPOCHS" \
     --batch-size "$BATCH_SIZE" \
     --learning-rate "$LEARNING_RATE" \

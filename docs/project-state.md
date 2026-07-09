@@ -1309,6 +1309,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   plus one loss compact JSON/HTML replay view per generation. Submit
   `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch` as the next
   ERAWAN job for this experiment.
+- One-deck epsilon curriculum job 73798 on July 9, 2026: generation-1
+  trajectory collection completed with 1000 / 1000 games, 41,431 trajectory
+  steps, 57 / 943 / 0 wins/losses/draws, and 0 errors/timeouts at epsilon 1.0,
+  then failed before PPO update with `Unknown Phase 5 league deck index: 101`.
+  Root cause was using the 13-deck league specialist PPO wrapper for synthetic
+  public deck index 101. The script now uses single-checkpoint
+  `rl-train-phase5-ppo --deck-index-filter 101 --require-on-policy` and supports
+  `REUSE_EXISTING_TRAJECTORIES=1` for retrying from the completed gen-0001 raw
+  JSONL if it remains on ERAWAN.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

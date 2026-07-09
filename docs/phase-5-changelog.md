@@ -5121,3 +5121,64 @@ Conclusion:
 - Before new Kaggle submissions, refresh copied `cg` directories from the
   current Kaggle sample submission so packaging uses the current official
   binaries and platform loader.
+
+## 2026-07-09 - One-Deck Epsilon Curriculum Job 73798 Recovery
+
+ERAWAN result:
+
+- SLURM job: `73798`, script
+  `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch`.
+- Run name: `phase5_dragapult_vs_lucario_epsilon`.
+- Controlled learner: built-in `sample_dragapult`, synthetic deck index `101`.
+- Opponent: built-in rule-based `sample_lucario`.
+- Scratch generation-0 checkpoint was created at
+  `models/rl/phase5_one_deck_public_epsilon/phase5_dragapult_vs_lucario_epsilon/gen-0000/specialists/deck-101.pt`.
+- Generation 1 trajectory collection completed:
+  - epsilon: 1.0;
+  - games requested/started: 1000 / 1000;
+  - trajectory steps: 41,431;
+  - wins/losses/draws: 57 / 943 / 0;
+  - errors/timeouts: 0 / 0;
+  - attack taken rate: 0.1796;
+  - attach taken rate: 0.4063;
+  - output raw JSONL:
+    `/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_public_epsilon/phase5_dragapult_vs_lucario_epsilon/generations/gen-0001/raw_train/phase5_public_epsilon_gen-0001.jsonl`;
+  - trajectory report:
+    `experiments/rl/phase5_one_deck_public_epsilon/phase5_dragapult_vs_lucario_epsilon/gen-0001/trajectory_report.json`.
+- The job failed immediately after trajectory collection with:
+  `Unknown Phase 5 league deck index: 101.`
+
+Diagnosis:
+
+- The original one-deck script used
+  `rl-train-phase5-alpha-ppo-specialists`, which intentionally validates deck
+  indices against the 13-deck Phase 5 league.
+- The one-deck public-agent experiment uses a synthetic public deck index
+  (`101`), so it should not use the 13-deck league wrapper for its PPO update.
+
+Implementation fix:
+
+- Updated `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch` to
+  train each generation with the generic single-checkpoint
+  `rl-train-phase5-ppo` command:
+  - source checkpoint:
+    `PREVIOUS_DIR/deck-101.pt`;
+  - output checkpoint:
+    `CURRENT_DIR/deck-101.pt`;
+  - filter:
+    `--deck-index-filter 101`;
+  - on-policy guard:
+    `--require-on-policy`.
+- Added `REUSE_EXISTING_TRAJECTORIES=1` support to skip trajectory generation
+  when a generation raw JSONL already exists. This allows job 73798's completed
+  generation-1 trajectory window to be reused if it is still present.
+- Updated the ERAWAN runbook with a retry command using
+  `REUSE_EXISTING_TRAJECTORIES=1`.
+
+Next ERAWAN action:
+
+- Pull the fix, then resubmit the one-deck epsilon curriculum with
+  `REUSE_EXISTING_TRAJECTORIES=1`.
+- If the generation-1 raw JSONL was removed manually, omit
+  `REUSE_EXISTING_TRAJECTORIES=1` or leave it set; the script will regenerate
+  any missing raw window.

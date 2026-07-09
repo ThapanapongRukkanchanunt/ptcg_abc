@@ -2615,6 +2615,40 @@ The script removes each generation's trajectory JSONL immediately after the
 successful PPO update. Keep checkpoints, reports, and the small replay HTML/JSON
 files.
 
+Recovery note for job 73798:
+
+- Job 73798 completed generation-1 trajectory collection, then failed before
+  PPO update because the original script called the 13-deck league specialist
+  wrapper with custom deck index `101`.
+- The script now uses the single-checkpoint Phase 5 PPO updater for the
+  controlled public deck and supports `REUSE_EXISTING_TRAJECTORIES=1`.
+- If the generation-1 raw JSONL still exists, rerun with
+  `REUSE_EXISTING_TRAJECTORIES=1` to avoid replaying those 1000 games:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_epsilon \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=10 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=100 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  MAX_STEPS=600 \
+  REUSE_EXISTING_TRAJECTORIES=1 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_public_epsilon_dragapult_lucario_retry_job.txt
+```
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
