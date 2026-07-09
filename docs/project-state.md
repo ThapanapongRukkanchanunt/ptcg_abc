@@ -1318,6 +1318,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `rl-train-phase5-ppo --deck-index-filter 101 --require-on-policy` and supports
   `REUSE_EXISTING_TRAJECTORIES=1` for retrying from the completed gen-0001 raw
   JSONL if it remains on ERAWAN.
+- One-deck epsilon curriculum retry 73820 on July 9, 2026: the
+  Dragapult-vs-Lucario 10-generation scratch PPO curriculum completed end to
+  end with 1000 train games and 100 zero-exploration eval games per generation.
+  There were no eval errors/timeouts, but the policy did not improve: best eval
+  was generations 6-7 at 5 / 100 wins and final generation 10 was 2 / 100 wins.
+  As epsilon decayed, attack/attach rates collapsed while `END` selections rose
+  from 0.1403 at generation 1 to 0.5777 at generation 10. Do not scale this same
+  sparse-reward curriculum; next try dense tactical rewards, explicit penalties
+  for ending while useful attack/attach choices are available, or a
+  rule-demonstration warm-start before PPO.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

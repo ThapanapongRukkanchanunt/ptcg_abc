@@ -5182,3 +5182,70 @@ Next ERAWAN action:
 - If the generation-1 raw JSONL was removed manually, omit
   `REUSE_EXISTING_TRAJECTORIES=1` or leave it set; the script will regenerate
   any missing raw window.
+
+## 2026-07-09 - One-Deck Epsilon Curriculum Retry 73820 Result
+
+ERAWAN result:
+
+- SLURM job: `73820`, script
+  `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch`.
+- Run name: `phase5_dragapult_vs_lucario_epsilon`.
+- Controlled learner: built-in `sample_dragapult`, synthetic deck index `101`.
+- Opponent: built-in rule-based `sample_lucario`.
+- The retry used `REUSE_EXISTING_TRAJECTORIES=1` and reused the generation-1
+  raw JSONL from job `73798`; generations 2-10 generated fresh raw windows.
+- The curriculum completed all 10 generations with 1000 training games and 100
+  zero-exploration eval games per generation. The stderr contained repeated
+  PyTorch nested-tensor warnings only; there were no eval errors or timeouts.
+
+Eval summary:
+
+| Generation | Eval wins | Eval losses | Win rate | Gate |
+| ---: | ---: | ---: | ---: | --- |
+| 1 | 2 | 98 | 0.020 | fail |
+| 2 | 1 | 99 | 0.010 | fail |
+| 3 | 2 | 98 | 0.020 | fail |
+| 4 | 3 | 97 | 0.030 | fail |
+| 5 | 1 | 99 | 0.010 | fail |
+| 6 | 5 | 95 | 0.050 | fail |
+| 7 | 5 | 95 | 0.050 | fail |
+| 8 | 3 | 97 | 0.030 | fail |
+| 9 | 2 | 98 | 0.020 | fail |
+| 10 | 2 | 98 | 0.020 | fail |
+
+Training-window telemetry from the retry:
+
+| Generation | Epsilon | Train wins | Train losses | Attack taken rate | Attach taken rate | End selected rate |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1.0 | 57 | 943 | 0.1796 | 0.4063 | 0.1403 |
+| 2 | 0.9 | 64 | 936 | 0.1495 | 0.3532 | 0.1603 |
+| 3 | 0.8 | 42 | 958 | 0.1180 | 0.2925 | 0.1967 |
+| 4 | 0.7 | 32 | 968 | 0.1014 | 0.2490 | 0.2400 |
+| 5 | 0.6 | 30 | 970 | 0.0748 | 0.1974 | 0.2936 |
+| 6 | 0.5 | 16 | 984 | 0.0711 | 0.1513 | 0.3403 |
+| 7 | 0.4 | 13 | 987 | 0.0476 | 0.1297 | 0.3975 |
+| 8 | 0.3 | 8 | 992 | 0.0345 | 0.0839 | 0.4525 |
+| 9 | 0.2 | 8 | 992 | 0.0178 | 0.0601 | 0.5045 |
+| 10 | 0.1 | 20 | 980 | 0.0084 | 0.0294 | 0.5777 |
+
+Conclusion:
+
+- The one-deck epsilon curriculum pipeline now runs end to end and cleans raw
+  training windows after PPO updates, but scratch PPO from sparse terminal
+  outcomes did not learn a usable Dragapult-vs-Lucario policy.
+- Best eval checkpoints were generations 6 and 7 at only 5 / 100 wins; final
+  generation 10 fell back to 2 / 100 wins.
+- As exploration decayed, the learner selected `END` more often and attached or
+  attacked much less often. This matches the observed Kaggle replay failure mode
+  where neural agents sometimes skip available attach/attack lines.
+- Do not scale this same sparse-reward curriculum. The next experiment should
+  add stronger dense tactical reward or explicit `END` penalties when useful
+  attack/attach options are available, or warm-start the learner from
+  rule-demonstration/behavior-cloning data before PPO.
+
+Artifact notes:
+
+- Pulled local inspection folder:
+  `D:\pokemon_rl\erawan_pull\phase5_dragapult_vs_lucario_epsilon_73820`.
+- Gen-0010 replay artifacts include one loss and one win compact JSON/HTML view
+  under that folder's `gen-0010-replays` directory.
