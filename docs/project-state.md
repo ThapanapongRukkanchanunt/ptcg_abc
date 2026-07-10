@@ -1348,6 +1348,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `models/rl/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/gen-0007/specialists/deck-101.pt`.
   Run a larger zero-exploration confirmation eval for generation 7 before
   packaging or promoting.
+- One-deck mixed gen7 confirmation job 73901 on July 10, 2026: 1000-game eval
+  of gen7 against rule Lucario scored 462 / 1000 wins, 537 losses, 1 draw, and
+  0 timeouts/errors. This beats the retained rule-vs-rule baseline of 424 /
+  1000 wins: fixed-baseline one-sided binomial `p ~= 0.0084`, sampled-baseline
+  two-proportion one-sided `p ~= 0.0436`. It still fails the 50% target, with a
+  Wilson 95% interval around 0.431-0.493. Treat mixed gen7 as a real
+  baseline-beating improvement but not a promoted/package-ready policy; continue
+  from gen7 with the rule bootstrap anchor retained.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

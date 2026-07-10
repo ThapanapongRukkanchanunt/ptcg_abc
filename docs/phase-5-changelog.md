@@ -5352,3 +5352,46 @@ Conclusion:
 - Do not package based only on the 100-game report. Run a larger zero-exploration
   confirmation eval for generation 7, preferably 500-1000 games, before treating
   it as promoted.
+
+## 2026-07-10 - One-Deck Mixed Gen7 1000-Game Confirmation
+
+ERAWAN result:
+
+- SLURM job: `73901`, script
+  `scripts/slurm/phase5_public_agent_eval_conda.sbatch`.
+- Evaluated checkpoint:
+  `models/rl/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/gen-0007/specialists`.
+- Controlled learner: built-in `sample_dragapult`, synthetic deck index `101`.
+- Opponent: built-in rule-based `sample_lucario`.
+- Games per matchup: 1000.
+- Stderr contained one PyTorch nested-tensor warning only.
+
+Result:
+
+- Wins/losses/draws: 462 / 537 / 1.
+- Timeouts/errors: 0 / 0.
+- Win rate: 0.462.
+- Public-agent 50% gate: fail.
+
+Baseline comparison:
+
+- Rule-vs-rule Dragapult vs Lucario baseline from the mixed run's retained
+  generation-0 bootstrap was 424 / 1000, or 0.424.
+- The gen7 mixed checkpoint beat the fixed 0.424 baseline:
+  462 / 1000, one-sided binomial tail `p ~= 0.0084`.
+- Compared against the sampled 424 / 1000 rule baseline, the two-proportion
+  one-sided z test gives `p ~= 0.0436`; this just clears a one-sided 95%
+  baseline-improvement threshold.
+- Wilson 95% interval for gen7 confirmation win rate is approximately
+  0.431-0.493, so the current checkpoint still does not have credible evidence
+  of being above 50%.
+
+Conclusion:
+
+- The mixed rule/epsilon curriculum produced a real improvement over the
+  rule-only Dragapult baseline, but not enough to pass the 50% target against
+  rule Lucario.
+- Next training should continue from the gen7 checkpoint rather than gen10,
+  and should keep the retained rule bootstrap anchor. Good next knobs are more
+  mixed generations with lower epsilon, larger rule/eval windows, or a mild
+  dense tactical reward while retaining the rule demonstrations.
