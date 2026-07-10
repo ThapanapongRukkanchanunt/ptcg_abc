@@ -1337,6 +1337,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   bootstrap JSONL is kept and reused. The script intentionally leaves
   `--require-on-policy` off by default so off-policy rule demonstrations are not
   filtered out.
+- One-deck mixed rule/epsilon curriculum job 73877 on July 10, 2026: completed
+  all 10 generations with 0 eval errors/timeouts. Retained rule bootstrap was
+  424 / 1000 wins with attack/attach/end rates 0.2586 / 0.4127 / 0.0160. The
+  mixed curriculum fixed the epsilon-only END-collapse pattern: generation-10
+  epsilon-window rates were 0.2388 / 0.4169 / 0.0335, compared with
+  epsilon-only generation-10 rates of 0.0084 / 0.0294 / 0.5777. Best eval was
+  generation 7 at 52 / 100 wins; generation 5 reached 50 / 100; generation 10
+  was 45 / 100. Current candidate checkpoint is
+  `models/rl/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/gen-0007/specialists/deck-101.pt`.
+  Run a larger zero-exploration confirmation eval for generation 7 before
+  packaging or promoting.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

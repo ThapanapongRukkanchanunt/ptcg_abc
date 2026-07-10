@@ -5284,3 +5284,71 @@ Next ERAWAN action:
 - Inspect the per-generation eval reports and PPO summaries after completion,
   especially whether attach/attack rates stay near the rule bootstrap behavior
   instead of collapsing toward `END`.
+
+## 2026-07-10 - One-Deck Mixed Rule/Epsilon Curriculum Result
+
+ERAWAN result:
+
+- SLURM job: `73877`, script
+  `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`.
+- Run name: `phase5_dragapult_vs_lucario_mixed`.
+- Controlled learner: built-in `sample_dragapult`, synthetic deck index `101`.
+- Opponent: built-in rule-based `sample_lucario`.
+- The job completed all 10 generations with 1000 epsilon training games and 100
+  zero-exploration eval games per generation. Stderr contained repeated PyTorch
+  nested-tensor warnings only; eval reports had 0 errors and 0 timeouts.
+
+Retained rule bootstrap:
+
+- Games requested/started: 1000 / 1000.
+- Steps: 84,036.
+- Wins/losses/draws: 424 / 576 / 0.
+- Errors/timeouts: 0 / 0.
+- Attack taken rate: 0.2586.
+- Attach taken rate: 0.4127.
+- End selected rate: 0.0160.
+
+Eval summary:
+
+| Generation | Eval wins | Eval losses | Draws | Win rate | Gate |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 33 | 66 | 1 | 0.330 | fail |
+| 2 | 49 | 50 | 1 | 0.490 | fail |
+| 3 | 48 | 52 | 0 | 0.480 | fail |
+| 4 | 44 | 55 | 1 | 0.440 | fail |
+| 5 | 50 | 50 | 0 | 0.500 | pass at threshold |
+| 6 | 43 | 57 | 0 | 0.430 | fail |
+| 7 | 52 | 48 | 0 | 0.520 | pass |
+| 8 | 46 | 53 | 1 | 0.460 | fail |
+| 9 | 39 | 61 | 0 | 0.390 | fail |
+| 10 | 45 | 55 | 0 | 0.450 | fail |
+
+Epsilon-window behavior:
+
+| Generation | Epsilon | Train wins | Train losses | Attack taken rate | Attach taken rate | End selected rate |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1.0 | 68 | 932 | 0.1742 | 0.4151 | 0.1418 |
+| 2 | 0.9 | 64 | 936 | 0.1807 | 0.4096 | 0.1321 |
+| 3 | 0.8 | 85 | 915 | 0.1716 | 0.4239 | 0.1215 |
+| 4 | 0.7 | 87 | 913 | 0.1676 | 0.4245 | 0.1112 |
+| 5 | 0.6 | 97 | 903 | 0.1766 | 0.4311 | 0.0980 |
+| 6 | 0.5 | 113 | 886 | 0.1753 | 0.4278 | 0.0867 |
+| 7 | 0.4 | 147 | 853 | 0.1830 | 0.4219 | 0.0736 |
+| 8 | 0.3 | 179 | 821 | 0.1984 | 0.4325 | 0.0613 |
+| 9 | 0.2 | 253 | 745 | 0.2153 | 0.4325 | 0.0472 |
+| 10 | 0.1 | 363 | 634 | 0.2388 | 0.4169 | 0.0335 |
+
+Conclusion:
+
+- The retained rule-vs-rule bootstrap anchor fixed the main failure mode from
+  the sparse epsilon-only run. The model no longer collapses toward ending turns:
+  generation-10 `END` selections were 0.0335 instead of 0.5777 in the
+  epsilon-only run, while attach rates stayed near the rule bootstrap rate.
+- The best checkpoint is generation 7:
+  `models/rl/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/gen-0007/specialists/deck-101.pt`.
+- Generation 7 scored 52 / 100 against rule Lucario, and generation 5 scored
+  exactly 50 / 100. This is the first focused one-deck run to reach the 50%
+  rule-agent gate, but the 100-game eval is still noisy.
+- Do not package based only on the 100-game report. Run a larger zero-exploration
+  confirmation eval for generation 7, preferably 500-1000 games, before treating
+  it as promoted.
