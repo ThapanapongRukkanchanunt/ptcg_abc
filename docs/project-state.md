@@ -1365,6 +1365,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   Dragapult vs rule Lucario and trained Lucario vs rule Dragapult after every
   supervised epoch, with defaults of min 10 epochs, max 50 epochs, and early
   stop after 10 non-improving combined-eval epochs.
+- Rule-only epoch diagnostic job 73948 on July 11, 2026: completed epochs 1-18
+  and early-stopped after 10 non-improving combined-eval epochs. Eval had 36
+  reports, 0 errors/timeouts, and 4 draws. Baselines were Dragapult rule vs
+  Lucario rule 424 / 1000, Lucario rule vs Dragapult rule 191 / 1000, combined
+  615 / 2000. Best epoch was epoch 8: combined 77 / 200, Dragapult 50 / 100,
+  Lucario 27 / 100. Combined and Lucario beat baseline statistically, but
+  Dragapult did not reach the 52 / 100 threshold over its 0.424 baseline. Both
+  train accuracies reached 1.000 by epoch 2, so more rule-only epochs are not
+  the main fix. Next diagnostic should use rule-teacher dataset aggregation:
+  collect model-visited states, label them with rule-agent choices, append to
+  bootstrap data, and retrain.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a
