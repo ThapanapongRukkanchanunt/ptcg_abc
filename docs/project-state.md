@@ -1356,6 +1356,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   Wilson 95% interval around 0.431-0.493. Treat mixed gen7 as a real
   baseline-beating improvement but not a promoted/package-ready policy; continue
   from gen7 with the rule bootstrap anchor retained.
+- Rule-only epoch diagnostic implementation on July 11, 2026: added
+  `--initial-checkpoint` to `rl-train-phase5-generalist` and added
+  `scripts/slurm/phase5_one_deck_rule_epoch_bc.sbatch`. The script trains two
+  synthetic public-deck specialists from rule-vs-rule trajectories only:
+  Dragapult `deck-101.pt` from rule Dragapult vs rule Lucario, and Lucario
+  `deck-102.pt` from rule Lucario vs rule Dragapult. It evaluates trained
+  Dragapult vs rule Lucario and trained Lucario vs rule Dragapult after every
+  supervised epoch, with defaults of min 10 epochs, max 50 epochs, and early
+  stop after 10 non-improving combined-eval epochs.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

@@ -2709,6 +2709,60 @@ update succeeds:
 
 `$GAME_DATA_ROOT/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/generations/gen-000*/raw_train/`
 
+### One-Deck Rule-Only Epoch Diagnostic
+
+Use this to test whether the neural policy can learn stable rule-agent play from
+rule-vs-rule trajectories alone. It trains two synthetic public-deck specialists:
+
+- `deck-101.pt`: sample Dragapult ex trained from rule Dragapult vs rule Lucario;
+- `deck-102.pt`: sample Mega Lucario ex trained from rule Lucario vs rule Dragapult.
+
+The script evaluates after every supervised epoch:
+
+- trained Dragapult vs rule Lucario;
+- trained Lucario vs rule Dragapult.
+
+It runs at least `MIN_EPOCHS`, up to `MAX_EPOCHS`, and optionally early-stops if
+the combined two-matchup eval wins do not improve for `EARLY_STOP_PATIENCE`
+epochs. By default it reuses the retained Dragapult-vs-Lucario rule bootstrap
+from the mixed experiment if present, and generates the Lucario-vs-Dragapult
+rule bootstrap once.
+
+Submit the default 10-50 epoch diagnostic:
+
+```bash
+git pull --ff-only origin main
+
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_lucario_rule_epoch_bc \
+  RULE_GAMES_PER_MATCHUP=1000 \
+  EVAL_GAMES_PER_EPOCH=100 \
+  MIN_EPOCHS=10 \
+  MAX_EPOCHS=50 \
+  EARLY_STOP_PATIENCE=10 \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_rule_epoch_bc.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_rule_epoch_bc_job.txt
+```
+
+Key artifacts:
+
+- checkpoints:
+  `models/rl/phase5_one_deck_rule_epoch_bc/phase5_dragapult_lucario_rule_epoch_bc/epoch-000*/specialists/deck-101.pt`;
+  `models/rl/phase5_one_deck_rule_epoch_bc/phase5_dragapult_lucario_rule_epoch_bc/epoch-000*/specialists/deck-102.pt`;
+- per-epoch train/eval summaries:
+  `experiments/rl/phase5_one_deck_rule_epoch_bc/phase5_dragapult_lucario_rule_epoch_bc/epoch-000*/`;
+- eval reports:
+  `reports/phase5_dragapult_lucario_rule_epoch_bc_epoch-*_dragapult_vs_lucario_100g.json`;
+  `reports/phase5_dragapult_lucario_rule_epoch_bc_epoch-*_lucario_vs_dragapult_100g.json`.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

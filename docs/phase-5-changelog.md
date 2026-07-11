@@ -5395,3 +5395,35 @@ Conclusion:
   and should keep the retained rule bootstrap anchor. Good next knobs are more
   mixed generations with lower epsilon, larger rule/eval windows, or a mild
   dense tactical reward while retaining the rule demonstrations.
+
+## 2026-07-11 - Rule-Only Epoch Diagnostic Implementation
+
+Implementation:
+
+- Added resume support to `rl-train-phase5-generalist` via
+  `--initial-checkpoint`, so supervised rule-demonstration training can continue
+  one epoch at a time while writing an evaluation checkpoint after every epoch.
+- Added `scripts/slurm/phase5_one_deck_rule_epoch_bc.sbatch`.
+- The diagnostic trains two synthetic public-deck specialists from rule-vs-rule
+  trajectories only:
+  - `deck-101.pt`: sample Dragapult ex trained from rule Dragapult vs rule
+    Lucario;
+  - `deck-102.pt`: sample Mega Lucario ex trained from rule Lucario vs rule
+    Dragapult.
+- The script evaluates after each supervised epoch:
+  - trained Dragapult vs rule Lucario;
+  - trained Lucario vs rule Dragapult.
+- Default schedule: at least 10 epochs, at most 50 epochs, early stop if the
+  combined two-matchup eval win count does not improve for 10 epochs.
+- By default the script reuses the retained Dragapult-vs-Lucario rule bootstrap
+  from `phase5_dragapult_vs_lucario_mixed` if it exists, and generates the
+  Lucario-vs-Dragapult rule bootstrap once.
+- Updated `docs/phase-5-erawan-runbook.md` with the ERAWAN submit command and
+  artifact paths.
+
+Rationale:
+
+- This isolates supervised imitation capacity from PPO/self-play. If the neural
+  policy cannot match or surpass rule-agent behavior under repeated rule-only
+  epochs, the next bottleneck is likely representation/action scoring rather
+  than exploration.

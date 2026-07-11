@@ -256,6 +256,8 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "selfplay-a.jsonl",
                 "--selfplay-dataset",
                 "selfplay-b.jsonl",
+                "--initial-checkpoint",
+                "previous.pt",
                 "--checkpoint",
                 "generalist.pt",
             ]
@@ -270,6 +272,7 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             "command_rl_train_phase5_generalist",
         )
         self.assertEqual(len(generalist_args.selfplay_dataset), 2)
+        self.assertEqual(generalist_args.initial_checkpoint, Path("previous.pt"))
 
     @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
     def test_symbolic_trainer_writes_checkpoint(self):

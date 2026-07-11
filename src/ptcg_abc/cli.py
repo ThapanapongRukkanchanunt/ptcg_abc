@@ -771,6 +771,7 @@ def command_rl_train_phase5_generalist(args: argparse.Namespace) -> int:
             decision_dataset_path=decision_dataset,
             selfplay_dataset_paths=selfplay_datasets,
             checkpoint_path=args.checkpoint,
+            initial_checkpoint_path=args.initial_checkpoint,
             report_path=args.report_json,
             epochs=args.epochs,
             batch_size=args.batch_size,
@@ -2245,6 +2246,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--checkpoint",
         type=_path,
         default=Path("models") / "rl" / "phase5_generalist_policy.pt",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--initial-checkpoint",
+        type=_path,
+        default=None,
+        help="Optional source checkpoint to continue training from.",
     )
     rl_train_phase5_generalist.add_argument(
         "--report-json",

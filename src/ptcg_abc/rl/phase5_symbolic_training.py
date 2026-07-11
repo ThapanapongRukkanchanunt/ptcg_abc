@@ -699,6 +699,7 @@ def train_phase5_generalist_policy(
     decision_dataset_path: Path | None,
     selfplay_dataset_paths: Sequence[Path] = (),
     checkpoint_path: Path,
+    initial_checkpoint_path: Path | None = None,
     report_path: Path | None = None,
     epochs: int = 1,
     batch_size: int = 64,
@@ -734,16 +735,41 @@ def train_phase5_generalist_policy(
             f"{pairwise_negatives!r}. Expected one of "
             f"{', '.join(PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES)}."
         )
+    initial_checkpoint: dict[str, Any] | None = None
+    if initial_checkpoint_path is not None:
+        if not initial_checkpoint_path.exists():
+            raise ValueError(f"Initial Phase 5 checkpoint not found at {initial_checkpoint_path}.")
+        initial_checkpoint = torch.load(
+            initial_checkpoint_path,
+            map_location="cpu",
+            weights_only=False,
+        )
+        if initial_checkpoint.get("format") != PHASE5_POLICY_CHECKPOINT_FORMAT:
+            raise ValueError(
+                "Unsupported initial Phase 5 checkpoint format: "
+                f"{initial_checkpoint.get('format')}"
+            )
+        encoder_config = initial_checkpoint.get("encoder", {})
+        max_entities = int(encoder_config.get("max_entities", max_entities))
+        max_actions = int(encoder_config.get("max_actions", max_actions))
+        max_previous_actions = int(
+            encoder_config.get("max_previous_actions", max_previous_actions)
+        )
+        config = Phase5PolicyConfig(**initial_checkpoint["config"])
+    else:
+        encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
+        empty_encoded = encoder.encode(decision_frame_to_state(_empty_frame()), [])
+        config = make_phase5_policy_config(
+            global_dim=len(empty_encoded.global_features),
+            entity_dim=_entity_dim(encoder),
+            action_dim=_action_dim(encoder),
+            d_model=d_model,
+        )
     encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
-    empty_encoded = encoder.encode(decision_frame_to_state(_empty_frame()), [])
-    config = make_phase5_policy_config(
-        global_dim=len(empty_encoded.global_features),
-        entity_dim=_entity_dim(encoder),
-        action_dim=_action_dim(encoder),
-        d_model=d_model,
-    )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = AlphaStarTurnPolicy(config).to(device)
+    if initial_checkpoint is not None:
+        model.load_state_dict(initial_checkpoint["state_dict"], strict=False)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     final_loss = 0.0
@@ -913,6 +939,9 @@ def train_phase5_generalist_policy(
     }
     checkpoint["metadata"] = {
         "training": "phase5_generalist_mixed",
+        "initial_checkpoint_path": (
+            initial_checkpoint_path.as_posix() if initial_checkpoint_path else None
+        ),
         "decision_dataset_path": (
             str(decision_dataset_path.as_posix()) if decision_dataset_path else None
         ),
