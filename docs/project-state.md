@@ -1376,6 +1376,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   the main fix. Next diagnostic should use rule-teacher dataset aggregation:
   collect model-visited states, label them with rule-agent choices, append to
   bootstrap data, and retrain.
+- One-deck rule-teacher DAgger implementation on July 12, 2026: added optional
+  teacher-label recording to public-agent trajectory generation via
+  `--teacher-agent rule`, added deterministic `--agent phase5-symbolic` support
+  to that generator, and added
+  `scripts/slurm/phase5_one_deck_rule_teacher_dagger.sbatch`. The script starts
+  from the rule-only epoch-8 Dragapult/Lucario checkpoint family, retains the
+  original rule bootstrap data, aggregates model-visited correction windows
+  labeled by the rule teacher, retrains `deck-101.pt` and `deck-102.pt`, and
+  evaluates both one-deck directions after each iteration. Submit this DAgger
+  diagnostic next using the runbook defaults.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

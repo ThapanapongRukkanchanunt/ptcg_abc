@@ -73,6 +73,7 @@ class PublicAgentTrajectorySummary:
     controlled_public_agent_key: str | None = None
     controlled_deck_index: int | None = None
     policy_epsilon: float | None = None
+    teacher_agent: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -485,9 +486,12 @@ def generate_phase5_public_agent_trajectories(
     outcome_reward_scale: float = 1.0,
     tactical_reward_config: PublicAgentTacticalRewardConfig | None = None,
     policy_epsilon: float = 0.0,
+    teacher_agent_kind: str | None = None,
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
         raise ValueError(f"Trajectory output already exists at {output_path}.")
+    if teacher_agent_kind is not None and teacher_agent_kind != "rule":
+        raise ValueError(f"Unsupported trajectory teacher agent: {teacher_agent_kind}.")
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = _selected_controlled_decks(
         sample_dir=sample_dir,
@@ -570,6 +574,7 @@ def generate_phase5_public_agent_trajectories(
                     "opponent_deck_label": _public_opponent_label(opponent),
                     "collector": "phase5_public_rule_opponents",
                     "agent": agent_kind,
+                    "teacher_agent": teacher_agent_kind,
                     "controlled_public_agent_key": controlled_public_agent_key,
                     "policy_epsilon": float(policy_epsilon),
                     "specialist_model_dir": (
@@ -595,6 +600,17 @@ def generate_phase5_public_agent_trajectories(
                     card_data=card_data,
                     attack_data=attack_data,
                     reward_metadata=reward_metadata,
+                    target_agent=(
+                        _make_agent(
+                            teacher_agent_kind,
+                            our_card_ids,
+                            card_data,
+                            attack_data,
+                        )
+                        if teacher_agent_kind is not None
+                        else None
+                    ),
+                    target_agent_kind=teacher_agent_kind,
                 )
                 opponent_agent = opponent.make_agent()
                 result = run_battle(
@@ -727,6 +743,7 @@ def generate_phase5_public_agent_trajectories(
         controlled_public_agent_key=controlled_public_agent_key,
         controlled_deck_index=controlled_deck_index if controlled_public_agent_key else None,
         policy_epsilon=float(policy_epsilon) if agent_kind == "phase5-epsilon" else None,
+        teacher_agent=teacher_agent_kind,
     )
 
 

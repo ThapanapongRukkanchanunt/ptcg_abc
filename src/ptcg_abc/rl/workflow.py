@@ -1403,9 +1403,13 @@ class RecordingPolicyAgent:
         card_data: Sequence[Any],
         attack_data: Sequence[Any],
         reward_metadata: dict[str, Any],
+        target_agent: Any | None = None,
+        target_agent_kind: str | None = None,
         trace_limit: int = 0,
     ) -> None:
         self.agent = agent
+        self.target_agent = target_agent
+        self.target_agent_kind = target_agent_kind
         self.deck_ids = list(deck_ids)
         self.card_by_id = card_lookup(card_data)
         self.attack_by_id = attack_lookup(attack_data)
@@ -1419,23 +1423,37 @@ class RecordingPolicyAgent:
         if not should_record:
             return selected
         policy_metadata = _policy_metadata(self.agent)
+        target_selected = (
+            list(self.target_agent.act(observation))
+            if self.target_agent is not None
+            else list(selected)
+        )
+        teacher_metadata: dict[str, Any] = {}
+        if self.target_agent_kind:
+            teacher_metadata = {
+                "teacher_agent": self.target_agent_kind,
+                "behavior_selected_indices": list(selected),
+                "teacher_selected_indices": list(target_selected),
+                "teacher_forced_target": True,
+            }
         frame = make_decision_frame(
             observation,
             deck_ids=self.deck_ids,
             card_by_id=self.card_by_id,
             attack_by_id=self.attack_by_id,
-            selected_indices=selected,
+            selected_indices=target_selected,
             reward_metadata=(
                 self.reward_metadata
                 | {"step_index": len(self.frames) + 1}
                 | policy_metadata
+                | teacher_metadata
             ),
         )
         if frame is not None:
             self.frames.append(
                 RecordedPolicyFrame(
                     frame=frame,
-                    chosen_indices=list(selected),
+                    chosen_indices=list(target_selected),
                     logprob=float(policy_metadata["policy_logprob"]),
                     value=float(policy_metadata["policy_value"]),
                     on_policy=bool(policy_metadata["policy_on_policy"]),

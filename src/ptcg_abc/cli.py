@@ -1424,6 +1424,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
                 missed_attach_penalty=args.tactical_missed_attach_penalty,
             ),
             policy_epsilon=args.policy_epsilon,
+            teacher_agent_kind=args.teacher_agent,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -2641,8 +2642,24 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--require-min-opponents", type=int, default=1)
     rl_public_trajectories.add_argument(
         "--agent",
-        choices=["rule", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"],
+        choices=[
+            "rule",
+            "phase5-symbolic",
+            "phase5-search",
+            "phase5-full",
+            "phase5-rl",
+            "phase5-epsilon",
+        ],
         default="phase5-rl",
+    )
+    rl_public_trajectories.add_argument(
+        "--teacher-agent",
+        choices=["rule"],
+        default=None,
+        help=(
+            "Label model-visited states with this teacher while executing "
+            "the selected --agent behavior."
+        ),
     )
     rl_public_trajectories.add_argument(
         "--policy-epsilon",

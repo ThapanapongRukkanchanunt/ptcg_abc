@@ -5508,3 +5508,44 @@ Conclusion:
   model against the rule opponent, record the model-visited states, label those
   states with rule-agent choices, add them to the rule bootstrap, and retrain.
   This is closer to DAgger and should directly address distribution shift.
+
+## 2026-07-12 - One-Deck Rule-Teacher DAgger Implementation
+
+Implementation:
+
+- Extended `RecordingPolicyAgent` with optional teacher-label recording. The
+  behavior agent still chooses the action executed in the game, but trajectory
+  records can now store a different teacher-selected target action along with
+  `behavior_selected_indices`, `teacher_selected_indices`, `teacher_agent`, and
+  `teacher_forced_target` metadata.
+- Added `--teacher-agent rule` to
+  `rl-generate-phase5-public-agent-trajectories`. The trajectory summary now
+  records `teacher_agent`; the command also accepts `--agent phase5-symbolic`
+  for deterministic model behavior during correction collection.
+- Added `scripts/slurm/phase5_one_deck_rule_teacher_dagger.sbatch`.
+  The script starts from the rule-only epoch-8 two-specialist checkpoint,
+  reuses or regenerates the retained Dragapult-vs-Lucario and
+  Lucario-vs-Dragapult rule bootstrap data, collects model-visited correction
+  windows labeled by the rule teacher, aggregates those correction JSONL files
+  across iterations, retrains `deck-101.pt` and `deck-102.pt`, and evaluates
+  both directions after each iteration.
+- Updated `docs/phase-5-erawan-runbook.md` with the default ERAWAN submit
+  command and artifact paths.
+
+Experiment intent:
+
+- Test the distribution-shift hypothesis from job `73948`: the neural policy
+  fit rule-visited states quickly, but failed to improve monotonically when it
+  acted in the environment. DAgger should expose the states the current model
+  actually visits and give supervised rule labels there.
+- The correction windows are intentionally retained for this bounded diagnostic
+  because DAgger requires aggregation. They live under
+  `$GAME_DATA_ROOT/phase5_one_deck_rule_teacher_dagger/...`, while reports and
+  checkpoints stay in the repo paths.
+
+Next ERAWAN step:
+
+- Run `scripts/slurm/phase5_one_deck_rule_teacher_dagger.sbatch` with the
+  runbook defaults, then inspect `iter-000*/iteration_summary.json`, the two
+  teacher trajectory reports per iteration, and the two 100-game eval reports
+  per iteration.

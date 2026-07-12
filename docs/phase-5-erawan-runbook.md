@@ -2763,6 +2763,62 @@ Key artifacts:
   `reports/phase5_dragapult_lucario_rule_epoch_bc_epoch-*_dragapult_vs_lucario_100g.json`;
   `reports/phase5_dragapult_lucario_rule_epoch_bc_epoch-*_lucario_vs_dragapult_100g.json`.
 
+### One-Deck Rule-Teacher DAgger Diagnostic
+
+Use this after the rule-only epoch diagnostic. It starts from the best
+rule-only checkpoint family, executes the trained model against the rule
+opponent, records the model-visited states, labels those states with a rule
+teacher action, appends the correction JSONL to the retained rule bootstrap,
+and retrains both one-deck specialists. This directly tests whether the policy
+failure is distribution shift away from rule-visited states.
+
+Default setup:
+
+- learner decks: built-in `sample_dragapult` as synthetic `deck-101.pt`, and
+  built-in `sample_lucario` as synthetic `deck-102.pt`;
+- base checkpoint:
+  `models/rl/phase5_one_deck_rule_epoch_bc/phase5_dragapult_lucario_rule_epoch_bc/epoch-0008/specialists`;
+- retained rule bootstrap data:
+  `$GAME_DATA_ROOT/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_mixed/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl`;
+  `$GAME_DATA_ROOT/phase5_one_deck_rule_epoch_bc/phase5_dragapult_lucario_rule_epoch_bc/rule_bootstrap/phase5_lucario_vs_dragapult_rule_bootstrap.jsonl`;
+- correction data is retained across DAgger iterations because the method
+  requires aggregation.
+
+Submit the default 10-iteration diagnostic:
+
+```bash
+git pull --ff-only origin main
+
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_lucario_rule_teacher_dagger \
+  BASE_MODEL_DIR=models/rl/phase5_one_deck_rule_epoch_bc/phase5_dragapult_lucario_rule_epoch_bc/epoch-0008/specialists \
+  DAGGER_ITERATIONS=10 \
+  TEACHER_GAMES_PER_ITERATION=500 \
+  EVAL_GAMES_PER_ITERATION=100 \
+  TRAIN_EPOCHS_PER_ITERATION=1 \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_rule_teacher_dagger.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_rule_teacher_dagger_job.txt
+```
+
+Key artifacts:
+
+- checkpoints:
+  `models/rl/phase5_one_deck_rule_teacher_dagger/phase5_dragapult_lucario_rule_teacher_dagger/iter-000*/specialists/deck-101.pt`;
+  `models/rl/phase5_one_deck_rule_teacher_dagger/phase5_dragapult_lucario_rule_teacher_dagger/iter-000*/specialists/deck-102.pt`;
+- per-iteration train/teacher/eval summaries:
+  `experiments/rl/phase5_one_deck_rule_teacher_dagger/phase5_dragapult_lucario_rule_teacher_dagger/iter-000*/`;
+- eval reports:
+  `reports/phase5_dragapult_lucario_rule_teacher_dagger_iter-*_dragapult_vs_lucario_100g.json`;
+  `reports/phase5_dragapult_lucario_rule_teacher_dagger_iter-*_lucario_vs_dragapult_100g.json`.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

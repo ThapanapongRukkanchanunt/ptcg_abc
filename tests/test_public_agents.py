@@ -115,6 +115,8 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "0.25",
                 "--tactical-reward-mode",
                 "basic",
+                "--teacher-agent",
+                "rule",
             ]
         )
         self.assertEqual(
@@ -128,6 +130,7 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(traj_args.policy_epsilon, 0.75)
         self.assertEqual(traj_args.outcome_reward_scale, 0.25)
         self.assertEqual(traj_args.tactical_reward_mode, "basic")
+        self.assertEqual(traj_args.teacher_agent, "rule")
 
         eval_public_args = parser.parse_args(
             [
