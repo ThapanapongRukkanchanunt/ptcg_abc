@@ -1386,6 +1386,18 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   labeled by the rule teacher, retrains `deck-101.pt` and `deck-102.pt`, and
   evaluates both one-deck directions after each iteration. Submit this DAgger
   diagnostic next using the runbook defaults.
+- One-deck rule-teacher DAgger job 73988 on July 12, 2026: completed base eval
+  plus iterations 1-10 with 2200 eval games, 0 errors/timeouts, and 6 draws.
+  The base checkpoint was best at 80 / 200 combined wins: Dragapult 52 / 100
+  and Lucario 28 / 100. The best post-update checkpoint was iteration 5 at 71 /
+  200, and final iteration 10 fell to 47 / 200. Root cause appears to be a
+  trainer-context bug in teacher-forced trajectories: teacher targets were used
+  both as labels and as previous-action history, while later states had actually
+  followed model behavior actions. The trainer now uses
+  `behavior_selected_indices` for previous-action context when
+  `teacher_forced_target` is set, while keeping the teacher action as the
+  supervised target. Rerun DAgger after pulling this fix; treat job 73988 as a
+  pre-fix diagnostic only.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

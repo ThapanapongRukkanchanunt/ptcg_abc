@@ -2772,6 +2772,11 @@ teacher action, appends the correction JSONL to the retained rule bootstrap,
 and retrains both one-deck specialists. This directly tests whether the policy
 failure is distribution shift away from rule-visited states.
 
+Job `73988` ran the first version of this diagnostic and did not improve over
+the base checkpoint. Pull a commit newer than `052ef59` before rerunning; the
+trainer now uses the model behavior action, not the teacher target, for
+previous-action history on teacher-forced trajectories.
+
 Default setup:
 
 - learner decks: built-in `sample_dragapult` as synthetic `deck-101.pt`, and

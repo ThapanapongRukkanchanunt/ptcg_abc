@@ -252,8 +252,35 @@ class Phase5TurnContext:
         self,
         record: Phase5SymbolicDecisionRecord,
     ) -> None:
+        self.observe_positions(record, record.target_positions)
+
+    def observe_indices(
+        self,
+        record: Phase5SymbolicDecisionRecord,
+        action_indices: Sequence[int],
+    ) -> None:
+        position_by_index = {
+            action_index: position
+            for position, action_index in enumerate(record.encoded.legal_action_indices)
+            if action_index >= 0
+        }
+        positions: list[int] = []
+        for action_index in action_indices:
+            try:
+                index = int(action_index)
+            except (TypeError, ValueError):
+                continue
+            if index in position_by_index:
+                positions.append(position_by_index[index])
+        self.observe_positions(record, positions)
+
+    def observe_positions(
+        self,
+        record: Phase5SymbolicDecisionRecord,
+        positions: Sequence[int],
+    ) -> None:
         action_rows = record.encoded.legal_action_features
-        for position in record.target_positions:
+        for position in positions:
             if 0 <= position < len(action_rows):
                 self._history.append(list(action_rows[position]))
         if len(self._history) > self.max_previous_actions:
@@ -456,6 +483,22 @@ def phase5_symbolic_record_from_trajectory(
         value_target=reward,
         action_value_target=reward,
     )
+
+
+def _trajectory_behavior_indices(step: TrajectoryStep) -> list[int] | None:
+    metadata = step.decision.reward_metadata
+    if not bool(metadata.get("teacher_forced_target", False)):
+        return None
+    raw_indices = metadata.get("behavior_selected_indices")
+    if not isinstance(raw_indices, Sequence) or isinstance(raw_indices, (str, bytes)):
+        return None
+    indices: list[int] = []
+    for value in raw_indices:
+        try:
+            indices.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return indices
 
 
 def build_phase5_symbolic_dataset(
@@ -909,7 +952,11 @@ def train_phase5_generalist_policy(
                     continue
                 add_record(record)
                 selfplay_examples += 1
-                selfplay_context.observe(record)
+                behavior_indices = _trajectory_behavior_indices(step)
+                if behavior_indices is None:
+                    selfplay_context.observe(record)
+                else:
+                    selfplay_context.observe_indices(record, behavior_indices)
                 if len(batch) >= max(1, batch_size):
                     flush_batch()
             if selfplay_limit is not None and selfplay_steps_seen >= selfplay_limit:
@@ -1128,7 +1175,11 @@ def train_phase5_ppo_policy_from_trajectories(
                 batch.append((record, float(step.logprob), advantage))
                 examples += 1
                 advantage_sum += advantage
-                context.observe(record)
+                behavior_indices = _trajectory_behavior_indices(step)
+                if behavior_indices is None:
+                    context.observe(record)
+                else:
+                    context.observe_indices(record, behavior_indices)
                 if len(batch) >= max(1, batch_size):
                     flush_batch()
             if selfplay_limit is not None and steps_seen >= selfplay_limit:

@@ -7,6 +7,7 @@ from ptcg_abc.rl.dataset import append_trajectory_jsonl, write_decision_jsonl
 from ptcg_abc.rl.phase5_encoder import Phase5SymbolicEncoder
 from ptcg_abc.rl.phase5_policy import TORCH_AVAILABLE
 from ptcg_abc.rl.phase5_symbolic_training import (
+    Phase5TurnContext,
     build_phase5_symbolic_dataset,
     decision_frame_to_legal_actions,
     decision_frame_to_state,
@@ -223,6 +224,42 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertEqual(sum(record.action_value_mask), 1.0)
         self.assertEqual(sum(record.tactical_mask), 3.0)
         self.assertEqual(record.weight, 2.5)
+
+    def test_teacher_trajectory_context_can_follow_behavior_action(self):
+        frame = _phase5_frame(
+            step_index=1,
+            selected=[1],
+            search=[1],
+            baseline=[1],
+        )
+        frame.reward_metadata["teacher_forced_target"] = True
+        frame.reward_metadata["behavior_selected_indices"] = [0]
+        step = TrajectoryStep(
+            decision=frame,
+            chosen_indices=[1],
+            reward=1.0,
+            terminal=False,
+        )
+        encoder = Phase5SymbolicEncoder(max_entities=8, max_actions=4)
+        record = phase5_symbolic_record_from_trajectory(
+            step,
+            encoder=encoder,
+            previous_action_features=[],
+            max_previous_actions=3,
+        )
+
+        self.assertIsNotNone(record)
+        assert record is not None
+        context = Phase5TurnContext(max_previous_actions=3)
+        self.assertEqual(context.previous_rows(frame), [])
+        context.observe_indices(record, frame.reward_metadata["behavior_selected_indices"])
+        rows = context.previous_rows(
+            _phase5_frame(step_index=2, selected=[1], search=[1], baseline=[1])
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0], record.encoded.legal_action_features[0])
+        self.assertNotEqual(rows[0], record.encoded.legal_action_features[1])
 
     def test_cli_exposes_symbolic_commands(self):
         parser = build_parser()
