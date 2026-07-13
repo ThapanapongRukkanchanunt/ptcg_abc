@@ -5624,3 +5624,75 @@ Next ERAWAN step:
 - Pull the new code and rerun the same DAgger command. If the rerun still fails
   to beat iteration 0, stop DAgger and switch to a cleaner value/policy
   evaluation diagnostic rather than adding more correction windows.
+
+## 2026-07-13 - Fixed One-Deck Rule-Teacher DAgger Result
+
+ERAWAN result:
+
+- SLURM job: `74006`, script
+  `scripts/slurm/phase5_one_deck_rule_teacher_dagger.sbatch`.
+- Run name: `phase5_dragapult_lucario_rule_teacher_dagger_fixed`.
+- The job completed base eval plus iterations 1-9, then early-stopped after
+  five non-improving iterations.
+- Evaluation reports: 20 matchup reports, 2000 total eval games, 0 errors, 0
+  timeouts, 4 draws.
+- Stderr contained repeated PyTorch nested-tensor warnings only.
+
+Eval summary:
+
+| Iteration | Combined wins / 200 | Dragapult vs Lucario | Lucario vs Dragapult |
+| ---: | ---: | ---: | ---: |
+| 0 | 63 | 52 / 100 | 11 / 100 |
+| 1 | 71 | 47 / 100 | 24 / 100 |
+| 2 | 62 | 35 / 100 | 27 / 100 |
+| 3 | 61 | 40 / 100 | 21 / 100 |
+| 4 | 78 | 53 / 100 | 25 / 100 |
+| 5 | 60 | 47 / 100 | 13 / 100 |
+| 6 | 62 | 45 / 100 | 17 / 100 |
+| 7 | 67 | 52 / 100 | 15 / 100 |
+| 8 | 57 | 43 / 100 | 14 / 100 |
+| 9 | 63 | 50 / 100 | 13 / 100 |
+
+Best checkpoint:
+
+- Best combined checkpoint: iteration 4, with 78 / 200 combined wins.
+- Best Dragapult-vs-Lucario checkpoint: iteration 4, with 53 / 100 wins.
+- Best Lucario-vs-Dragapult checkpoint: iteration 2, with 27 / 100 wins.
+- Candidate model directory for confirmation:
+  `models/rl/phase5_one_deck_rule_teacher_dagger/phase5_dragapult_lucario_rule_teacher_dagger_fixed/iter-0004/specialists`.
+
+Teacher-collection and train diagnostics:
+
+- Dragapult correction windows across iterations 1-9: 4500 games, 371,380
+  trajectory steps, 1941 wins, 2547 losses, 12 draws, 0 errors/timeouts.
+- Lucario correction windows across iterations 1-9: 4500 games, 234,230
+  trajectory steps, 886 wins, 3611 losses, 3 draws, 0 errors/timeouts.
+- Train reports again reached accuracy 1.000 and final loss 0.0 throughout.
+  By iteration 9, the Dragapult aggregated train set contained 455,005 examples
+  across 10 datasets, and Lucario contained 286,141 examples across 10
+  datasets.
+
+Baseline comparison:
+
+- Iteration 4 combined win rate was 0.390. Against the combined rule-vs-rule
+  baseline of 0.3075, fixed-baseline one-sided binomial `p ~= 0.0080`.
+- Iteration 4 Dragapult win rate was 0.530. Against the retained Dragapult
+  rule-vs-rule baseline of 0.424, fixed-baseline one-sided binomial
+  `p ~= 0.0210`.
+- Iteration 2 Lucario win rate was 0.270. Against the Lucario rule-vs-rule
+  baseline of 0.191, fixed-baseline one-sided binomial `p ~= 0.0338`.
+- The fixed run's base eval was noisy: 63 / 200 combined, driven by Lucario
+  scoring only 11 / 100. Do not conclude iteration 4 is promoted based only on
+  the 100-game eval.
+
+Conclusion:
+
+- The teacher-context fix changed the DAgger result from clearly negative to a
+  small positive signal, especially for Dragapult.
+- The signal is still not promotion-ready. Dragapult crossed 50% in one
+  100-game eval, but Lucario did not; combined iteration 4 is similar to the
+  previous noisy base eval from job `73988` and needs larger confirmation.
+- Do not run more DAgger iterations yet. Confirm iteration 4 first with a
+  larger zero-exploration eval in both directions, preferably 1000 games per
+  matchup. If the larger eval confirms Dragapult but not Lucario, split the
+  next experiments by deck instead of updating both together.

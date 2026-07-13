@@ -1398,6 +1398,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `teacher_forced_target` is set, while keeping the teacher action as the
   supervised target. Rerun DAgger after pulling this fix; treat job 73988 as a
   pre-fix diagnostic only.
+- Fixed one-deck rule-teacher DAgger job 74006 on July 13, 2026: completed
+  base eval plus iterations 1-9 with 2000 eval games, 0 errors/timeouts, and 4
+  draws. Best combined checkpoint was iteration 4:
+  `models/rl/phase5_one_deck_rule_teacher_dagger/phase5_dragapult_lucario_rule_teacher_dagger_fixed/iter-0004/specialists`.
+  Iteration 4 scored 78 / 200 combined, Dragapult 53 / 100 vs rule Lucario,
+  and Lucario 25 / 100 vs rule Dragapult. This is a small positive signal
+  after the teacher-context fix, but not promotion-ready: Lucario remains weak
+  and the 100-game eval is noisy. Next run should be a larger zero-exploration
+  confirmation eval for iteration 4 in both directions, preferably 1000 games
+  per matchup, before running more DAgger iterations.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a
