@@ -1422,6 +1422,8 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
                 attach_bonus=args.tactical_attach_bonus,
                 missed_attack_penalty=args.tactical_missed_attack_penalty,
                 missed_attach_penalty=args.tactical_missed_attach_penalty,
+                fractional_prize_weight=args.tactical_fractional_prize_weight,
+                fractional_opponent_weight=args.tactical_fractional_opponent_weight,
             ),
             policy_epsilon=args.policy_epsilon,
             teacher_agent_kind=args.teacher_agent,
@@ -2696,9 +2698,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_public_trajectories.add_argument(
         "--tactical-reward-mode",
-        choices=["none", "basic"],
+        choices=["none", "basic", "fractional-prize", "basic-fractional-prize"],
         default="none",
-        help="Optional dense reward for attack/energy-attachment decisions.",
+        help=(
+            "Optional dense reward for public-agent trajectory steps. "
+            "Fractional-prize modes reward changes in prize and partial-KO progress."
+        ),
     )
     rl_public_trajectories.add_argument("--tactical-attack-bonus", type=float, default=0.10)
     rl_public_trajectories.add_argument("--tactical-attach-bonus", type=float, default=0.06)
@@ -2711,6 +2716,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--tactical-missed-attach-penalty",
         type=float,
         default=-0.06,
+    )
+    rl_public_trajectories.add_argument(
+        "--tactical-fractional-prize-weight",
+        type=float,
+        default=1.0,
+        help="Scale fractional prize-progress reward before adding it to the step reward.",
+    )
+    rl_public_trajectories.add_argument(
+        "--tactical-fractional-opponent-weight",
+        type=float,
+        default=1.0,
+        help="Scale opponent fractional prize-progress deltas before subtracting them.",
     )
     _add_phase5_search_config_args(rl_public_trajectories)
     rl_public_trajectories.add_argument(

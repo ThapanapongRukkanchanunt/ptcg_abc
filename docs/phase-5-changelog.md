@@ -5740,3 +5740,58 @@ Conclusion:
   problem by deck and inspect action-quality failures in confirmed games,
   especially Dragapult, where the mixed rule/epsilon gen7 checkpoint remains
   the better 1000-game candidate.
+
+## 2026-07-17 - Fractional Prize Reward Shaping
+
+Implementation:
+
+- Added opt-in public-agent tactical reward modes:
+  - `fractional-prize`;
+  - `basic-fractional-prize`.
+- Fractional prize progress is computed as:
+  `prizes_taken + sum(card_prize_value * damage_fraction)` over the opponent's
+  active and bench Pokemon from the controlled player's perspective.
+- `card_prize_value` is `3` for Mega ex, `2` for regular ex, and `1` otherwise.
+  This matches the Dragapult example: after KOing Mega Lucario ex and placing
+  60 damage on Riolu, progress is `3 + 60/80`; placing the same 60 damage on
+  Solrock is `3 + 60/110`.
+- The per-step fractional reward is:
+  `fractional_prize_weight * (our_delta - fractional_opponent_weight * opponent_delta)`.
+- The trajectory writer compares each controlled-agent decision board against
+  the next recorded controlled-agent decision board. If the decision is the
+  final recorded frame, it falls back to final prize counts so terminal KOs
+  still receive prize-progress reward.
+- The old attack/attach dense reward remains unchanged under `basic`. The new
+  `basic-fractional-prize` mode adds the old basic reward to the fractional
+  prize-progress reward, which is useful for early one-deck PPO because energy
+  attachment itself often has delayed credit.
+- Trajectory reports now summarize `basic_reward_sum`,
+  `fractional_prize_reward_sum`, `fractional_prize_delta_sum`,
+  `fractional_opponent_prize_delta_sum`, and average versions of those fields.
+- `rl-generate-phase5-public-agent-trajectories` now accepts:
+  - `--tactical-reward-mode {none,basic,fractional-prize,basic-fractional-prize}`;
+  - `--tactical-fractional-prize-weight`;
+  - `--tactical-fractional-opponent-weight`.
+- SLURM wrappers now pass through fractional-prize weights:
+  - `scripts/slurm/phase5_public_agent_trajectories.sbatch`;
+  - `scripts/slurm/phase5_one_deck_public_epsilon_curriculum.sbatch`;
+  - `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`;
+  - `scripts/slurm/phase5_one_deck_rule_teacher_dagger.sbatch`.
+
+Validation:
+
+- `py_compile` passed for `src/ptcg_abc/rl/public_opponents.py` and
+  `src/ptcg_abc/cli.py` using a temporary pycache prefix.
+- `PYTHONPATH=src python -m unittest tests.test_public_agents` passed.
+- `bash -n` passed for the updated SLURM scripts.
+
+Next ERAWAN experiment:
+
+- Run a clean one-deck Dragapult-vs-Lucario mixed curriculum from scratch with
+  retained rule-vs-rule bootstrap data plus per-generation epsilon-vs-rule data.
+- Use `OUTCOME_REWARD_SCALE=0.0`,
+  `TACTICAL_REWARD_MODE=basic-fractional-prize`,
+  `TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25`, and
+  `TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0`.
+- Compare generation evals against the retained rule-vs-rule baseline and the
+  previous mixed gen7 1000-game confirmation result.

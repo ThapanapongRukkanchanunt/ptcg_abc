@@ -114,7 +114,11 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "--outcome-reward-scale",
                 "0.25",
                 "--tactical-reward-mode",
-                "basic",
+                "basic-fractional-prize",
+                "--tactical-fractional-prize-weight",
+                "0.25",
+                "--tactical-fractional-opponent-weight",
+                "0.5",
                 "--teacher-agent",
                 "rule",
             ]
@@ -129,7 +133,9 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(traj_args.agent, "phase5-epsilon")
         self.assertEqual(traj_args.policy_epsilon, 0.75)
         self.assertEqual(traj_args.outcome_reward_scale, 0.25)
-        self.assertEqual(traj_args.tactical_reward_mode, "basic")
+        self.assertEqual(traj_args.tactical_reward_mode, "basic-fractional-prize")
+        self.assertEqual(traj_args.tactical_fractional_prize_weight, 0.25)
+        self.assertEqual(traj_args.tactical_fractional_opponent_weight, 0.5)
         self.assertEqual(traj_args.teacher_agent, "rule")
 
         eval_public_args = parser.parse_args(
@@ -241,6 +247,76 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(metadata["tactical_reward_mode"], "none")
         self.assertTrue(metadata["tactical_attack_available"])
 
+    def test_fractional_prize_reward_values_partial_prize_progress(self):
+        before = _public_tactical_frame(
+            board={
+                "my_prizes": 6,
+                "opponent_prizes": 6,
+                "my_active_card": {"hp": 200, "max_hp": 200},
+                "my_bench_cards": [],
+                "opponent_active_card": {
+                    "hp": 340,
+                    "max_hp": 340,
+                    "is_ex": True,
+                    "is_mega_ex": True,
+                },
+                "opponent_bench_cards": [
+                    {"hp": 80, "max_hp": 80},
+                    {"hp": 110, "max_hp": 110},
+                ],
+            }
+        )
+        riolu_after = _public_tactical_frame(
+            board={
+                "my_prizes": 3,
+                "opponent_prizes": 6,
+                "my_active_card": {"hp": 200, "max_hp": 200},
+                "my_bench_cards": [],
+                "opponent_active_card": {},
+                "opponent_bench_cards": [
+                    {"hp": 20, "max_hp": 80},
+                    {"hp": 110, "max_hp": 110},
+                ],
+            }
+        )
+        solrock_after = _public_tactical_frame(
+            board={
+                "my_prizes": 3,
+                "opponent_prizes": 6,
+                "my_active_card": {"hp": 200, "max_hp": 200},
+                "my_bench_cards": [],
+                "opponent_active_card": {},
+                "opponent_bench_cards": [
+                    {"hp": 80, "max_hp": 80},
+                    {"hp": 50, "max_hp": 110},
+                ],
+            }
+        )
+        config = PublicAgentTacticalRewardConfig(mode="fractional-prize")
+
+        riolu_reward, riolu_meta = _tactical_reward_for_frame(
+            before,
+            [0],
+            config,
+            next_frame=riolu_after,
+        )
+        solrock_reward, solrock_meta = _tactical_reward_for_frame(
+            before,
+            [0],
+            config,
+            next_frame=solrock_after,
+        )
+
+        self.assertAlmostEqual(riolu_reward, 3.75)
+        self.assertAlmostEqual(solrock_reward, 3.0 + (60.0 / 110.0))
+        self.assertGreater(riolu_reward, solrock_reward)
+        self.assertAlmostEqual(riolu_meta["tactical_fractional_prize_delta"], 3.75)
+        self.assertAlmostEqual(
+            solrock_meta["tactical_fractional_prize_delta"],
+            3.0 + (60.0 / 110.0),
+        )
+        self.assertEqual(riolu_meta["tactical_basic_reward"], 0.0)
+
     def test_public_agent_gate_summarizes_opponents_and_decks(self):
         rows = [
             Phase3RequiredBenchmarkRow(
@@ -277,7 +353,7 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(len(summary["failing_opponents"]), 1)
 
 
-def _public_tactical_frame() -> DecisionFrame:
+def _public_tactical_frame(board: dict | None = None) -> DecisionFrame:
     return DecisionFrame(
         select_type="MAIN",
         context="MAIN",
@@ -290,7 +366,7 @@ def _public_tactical_frame() -> DecisionFrame:
             ActionFrame(index=2, option_type="END", features={}),
         ],
         rule_selected_indices=[0],
-        board={},
+        board=board or {},
         board_image=[],
     )
 

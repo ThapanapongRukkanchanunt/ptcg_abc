@@ -1418,6 +1418,18 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   confirmation of 462 / 1000; Lucario did not meaningfully improve over its
   0.191 baseline. Stop scaling this two-deck DAgger loop; next inspect
   action-quality failures and split follow-up experiments by deck.
+- Fractional prize reward shaping was implemented on July 17, 2026 for
+  public-agent trajectory generation. New tactical reward modes
+  `fractional-prize` and `basic-fractional-prize` reward changes in
+  `prizes_taken + partial-KO progress`, with Mega ex / regular ex / normal
+  prize values of 3 / 2 / 1. The shaped scalar is
+  `fractional_prize_weight * (our_delta - fractional_opponent_weight * opponent_delta)`.
+  The next queued diagnostic should be a clean Dragapult-vs-Lucario mixed
+  rule/epsilon curriculum using `basic-fractional-prize`,
+  `OUTCOME_REWARD_SCALE=0.0`, `TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25`, and
+  `TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0`, then compare eval generations
+  against the retained rule-vs-rule baseline and the previous mixed gen7
+  confirmation.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

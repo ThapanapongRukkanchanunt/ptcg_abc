@@ -49,6 +49,8 @@ AGENT="${AGENT:-phase5-symbolic}"
 TEACHER_AGENT="${TEACHER_AGENT:-rule}"
 OUTCOME_REWARD_SCALE="${OUTCOME_REWARD_SCALE:-0.0}"
 TACTICAL_REWARD_MODE="${TACTICAL_REWARD_MODE:-none}"
+TACTICAL_FRACTIONAL_PRIZE_WEIGHT="${TACTICAL_FRACTIONAL_PRIZE_WEIGHT:-1.0}"
+TACTICAL_FRACTIONAL_OPPONENT_WEIGHT="${TACTICAL_FRACTIONAL_OPPONENT_WEIGHT:-1.0}"
 EVAL_BASE="${EVAL_BASE:-1}"
 REGENERATE_RULE_DATA="${REGENERATE_RULE_DATA:-0}"
 REUSE_EXISTING_TRAJECTORIES="${REUSE_EXISTING_TRAJECTORIES:-0}"
@@ -82,6 +84,8 @@ echo "AGENT=$AGENT"
 echo "TEACHER_AGENT=$TEACHER_AGENT"
 echo "OUTCOME_REWARD_SCALE=$OUTCOME_REWARD_SCALE"
 echo "TACTICAL_REWARD_MODE=$TACTICAL_REWARD_MODE"
+echo "TACTICAL_FRACTIONAL_PRIZE_WEIGHT=$TACTICAL_FRACTIONAL_PRIZE_WEIGHT"
+echo "TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=$TACTICAL_FRACTIONAL_OPPONENT_WEIGHT"
 echo "MODEL_ROOT=$MODEL_ROOT"
 echo "REPORT_ROOT=$REPORT_ROOT"
 echo "RAW_ROOT=$RAW_ROOT"
@@ -143,6 +147,8 @@ ensure_rule_dataset() {
     --require-min-opponents 1 \
     --outcome-reward-scale "$OUTCOME_REWARD_SCALE" \
     --tactical-reward-mode "$TACTICAL_REWARD_MODE" \
+    --tactical-fractional-prize-weight "$TACTICAL_FRACTIONAL_PRIZE_WEIGHT" \
+    --tactical-fractional-opponent-weight "$TACTICAL_FRACTIONAL_OPPONENT_WEIGHT" \
     --output "$output_path" \
     --report-json "$report_path" \
     --overwrite
@@ -174,6 +180,8 @@ generate_teacher_dataset() {
     --require-min-opponents 1 \
     --outcome-reward-scale "$OUTCOME_REWARD_SCALE" \
     --tactical-reward-mode "$TACTICAL_REWARD_MODE" \
+    --tactical-fractional-prize-weight "$TACTICAL_FRACTIONAL_PRIZE_WEIGHT" \
+    --tactical-fractional-opponent-weight "$TACTICAL_FRACTIONAL_OPPONENT_WEIGHT" \
     --output "$output_path" \
     --report-json "$report_path" \
     --overwrite

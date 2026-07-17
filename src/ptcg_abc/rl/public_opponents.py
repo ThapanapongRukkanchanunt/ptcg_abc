@@ -97,9 +97,16 @@ class PublicAgentTacticalRewardConfig:
     attach_bonus: float = 0.06
     missed_attack_penalty: float = -0.10
     missed_attach_penalty: float = -0.06
+    fractional_prize_weight: float = 1.0
+    fractional_opponent_weight: float = 1.0
 
     def __post_init__(self) -> None:
-        if self.mode not in {"none", "basic"}:
+        if self.mode not in {
+            "none",
+            "basic",
+            "fractional-prize",
+            "basic-fractional-prize",
+        }:
             raise ValueError(
                 f"Unsupported public-agent tactical reward mode: {self.mode}."
             )
@@ -648,11 +655,21 @@ def generate_phase5_public_agent_trajectories(
                     "collector": "phase5_public_rule_opponents",
                 }
                 reward = reward_from_result_metadata(final_metadata)
-                for record in recorder.frames:
+                records = list(recorder.frames)
+                our_player_index = 0 if our_is_player0 else 1
+                for record_index, record in enumerate(records):
+                    next_frame = (
+                        records[record_index + 1].frame
+                        if record_index + 1 < len(records)
+                        else None
+                    )
                     tactical_reward, tactical_metadata = _tactical_reward_for_frame(
                         record.frame,
                         record.chosen_indices,
                         tactical_config,
+                        next_frame=next_frame,
+                        final_prize_counts=result.prize_counts,
+                        player_index=our_player_index,
                     )
                     _accumulate_tactical_reward(tactical_summary, tactical_metadata)
                     scaled_outcome_reward = float(outcome_reward_scale) * reward
@@ -1072,6 +1089,10 @@ def _tactical_reward_for_frame(
     frame: DecisionFrame,
     chosen_indices: Sequence[int],
     config: PublicAgentTacticalRewardConfig,
+    *,
+    next_frame: DecisionFrame | None = None,
+    final_prize_counts: Sequence[int] | None = None,
+    player_index: int | None = None,
 ) -> tuple[float, dict[str, Any]]:
     selected = {int(index) for index in chosen_indices}
     selected_actions = [
@@ -1085,24 +1106,34 @@ def _tactical_reward_for_frame(
     empty_selection = not selected_actions
 
     reward = 0.0
+    basic_reward = 0.0
     missed_attack = False
     missed_attach = False
-    if config.mode == "basic":
+    if config.mode in {"basic", "basic-fractional-prize"}:
         if attack_taken:
-            reward += config.attack_bonus
+            basic_reward += config.attack_bonus
         elif attack_available and (end_selected or empty_selection):
-            reward += config.missed_attack_penalty
+            basic_reward += config.missed_attack_penalty
             missed_attack = True
 
         if attach_taken:
-            reward += config.attach_bonus
+            basic_reward += config.attach_bonus
         elif attach_available and (attack_taken or end_selected or empty_selection):
-            reward += config.missed_attach_penalty
+            basic_reward += config.missed_attach_penalty
             missed_attach = True
 
+    fractional_reward, fractional_metadata = _fractional_prize_reward_for_frame(
+        frame,
+        next_frame=next_frame,
+        final_prize_counts=final_prize_counts,
+        player_index=player_index,
+        config=config,
+    )
+    reward = basic_reward + fractional_reward
     metadata = {
         "tactical_reward_mode": config.mode,
         "tactical_step_reward": reward,
+        "tactical_basic_reward": basic_reward,
         "tactical_attack_available": attack_available,
         "tactical_attack_taken": attack_taken,
         "tactical_attach_available": attach_available,
@@ -1112,7 +1143,139 @@ def _tactical_reward_for_frame(
         "tactical_missed_attack": missed_attack,
         "tactical_missed_attach": missed_attach,
     }
+    metadata.update(fractional_metadata)
     return reward, metadata
+
+
+def _fractional_prize_reward_for_frame(
+    frame: DecisionFrame,
+    *,
+    next_frame: DecisionFrame | None,
+    final_prize_counts: Sequence[int] | None,
+    player_index: int | None,
+    config: PublicAgentTacticalRewardConfig,
+) -> tuple[float, dict[str, Any]]:
+    metadata: dict[str, Any] = {
+        "tactical_fractional_prize_before": None,
+        "tactical_fractional_prize_after": None,
+        "tactical_fractional_prize_delta": 0.0,
+        "tactical_fractional_opponent_prize_before": None,
+        "tactical_fractional_opponent_prize_after": None,
+        "tactical_fractional_opponent_prize_delta": 0.0,
+        "tactical_fractional_prize_reward": 0.0,
+        "tactical_fractional_prize_weight": float(config.fractional_prize_weight),
+        "tactical_fractional_opponent_weight": float(config.fractional_opponent_weight),
+        "tactical_fractional_prize_has_after_board": False,
+    }
+    if config.mode not in {"fractional-prize", "basic-fractional-prize"}:
+        return 0.0, metadata
+
+    after_board: dict[str, Any] | None = None
+    if next_frame is not None:
+        after_board = next_frame.board
+    else:
+        after_board = _board_with_final_prizes(
+            frame.board,
+            final_prize_counts=final_prize_counts,
+            player_index=player_index,
+        )
+    if after_board is None:
+        return 0.0, metadata
+
+    before_self = _fractional_prize_progress(frame.board, perspective="my")
+    after_self = _fractional_prize_progress(after_board, perspective="my")
+    before_opp = _fractional_prize_progress(frame.board, perspective="opponent")
+    after_opp = _fractional_prize_progress(after_board, perspective="opponent")
+    self_delta = after_self - before_self
+    opponent_delta = after_opp - before_opp
+    reward = float(config.fractional_prize_weight) * (
+        self_delta - float(config.fractional_opponent_weight) * opponent_delta
+    )
+
+    metadata.update(
+        {
+            "tactical_fractional_prize_before": before_self,
+            "tactical_fractional_prize_after": after_self,
+            "tactical_fractional_prize_delta": self_delta,
+            "tactical_fractional_opponent_prize_before": before_opp,
+            "tactical_fractional_opponent_prize_after": after_opp,
+            "tactical_fractional_opponent_prize_delta": opponent_delta,
+            "tactical_fractional_prize_reward": reward,
+            "tactical_fractional_prize_has_after_board": True,
+        }
+    )
+    return reward, metadata
+
+
+def _board_with_final_prizes(
+    board: dict[str, Any],
+    *,
+    final_prize_counts: Sequence[int] | None,
+    player_index: int | None,
+) -> dict[str, Any] | None:
+    if final_prize_counts is None or player_index is None:
+        return None
+    if len(final_prize_counts) < 2 or int(player_index) not in {0, 1}:
+        return None
+    output = dict(board)
+    output["my_prizes"] = int(final_prize_counts[int(player_index)])
+    output["opponent_prizes"] = int(final_prize_counts[1 - int(player_index)])
+    return output
+
+
+def _fractional_prize_progress(
+    board: dict[str, Any],
+    *,
+    perspective: str,
+) -> float:
+    if perspective == "my":
+        remaining_prizes = board.get("my_prizes", 6)
+        target_active = board.get("opponent_active_card")
+        target_bench = board.get("opponent_bench_cards", [])
+    elif perspective == "opponent":
+        remaining_prizes = board.get("opponent_prizes", 6)
+        target_active = board.get("my_active_card")
+        target_bench = board.get("my_bench_cards", [])
+    else:
+        raise ValueError(f"Unsupported fractional prize perspective: {perspective}.")
+
+    progress = 6.0 - _clamp_float(_safe_float(remaining_prizes, default=6.0), 0.0, 6.0)
+    cards: list[Any] = []
+    if isinstance(target_active, dict) and target_active:
+        cards.append(target_active)
+    if isinstance(target_bench, list):
+        cards.extend(card for card in target_bench if isinstance(card, dict) and card)
+    for card in cards:
+        progress += _card_fractional_prize_progress(card)
+    return progress
+
+
+def _card_fractional_prize_progress(card: dict[str, Any]) -> float:
+    max_hp = _safe_float(card.get("max_hp"), default=0.0)
+    if max_hp <= 0:
+        return 0.0
+    hp = _clamp_float(_safe_float(card.get("hp"), default=max_hp), 0.0, max_hp)
+    damage_fraction = _clamp_float((max_hp - hp) / max_hp, 0.0, 1.0)
+    return _card_prize_value(card) * damage_fraction
+
+
+def _card_prize_value(card: dict[str, Any]) -> float:
+    if bool(card.get("is_mega_ex", False)):
+        return 3.0
+    if bool(card.get("is_ex", False)):
+        return 2.0
+    return 1.0
+
+
+def _safe_float(value: Any, *, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _clamp_float(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(maximum, float(value)))
 
 
 def _empty_tactical_reward_summary(
@@ -1122,6 +1285,13 @@ def _empty_tactical_reward_summary(
         "mode": config.mode,
         "steps": 0,
         "reward_sum": 0.0,
+        "basic_reward_sum": 0.0,
+        "fractional_prize_reward_sum": 0.0,
+        "fractional_prize_delta_sum": 0.0,
+        "fractional_opponent_prize_delta_sum": 0.0,
+        "fractional_after_board": 0,
+        "fractional_prize_weight": float(config.fractional_prize_weight),
+        "fractional_opponent_weight": float(config.fractional_opponent_weight),
         "attack_available": 0,
         "attack_taken": 0,
         "attach_available": 0,
@@ -1139,6 +1309,19 @@ def _accumulate_tactical_reward(
 ) -> None:
     summary["steps"] += 1
     summary["reward_sum"] += float(metadata.get("tactical_step_reward", 0.0))
+    summary["basic_reward_sum"] += float(metadata.get("tactical_basic_reward", 0.0))
+    summary["fractional_prize_reward_sum"] += float(
+        metadata.get("tactical_fractional_prize_reward", 0.0)
+    )
+    summary["fractional_prize_delta_sum"] += float(
+        metadata.get("tactical_fractional_prize_delta", 0.0)
+    )
+    summary["fractional_opponent_prize_delta_sum"] += float(
+        metadata.get("tactical_fractional_opponent_prize_delta", 0.0)
+    )
+    summary["fractional_after_board"] += int(
+        bool(metadata.get("tactical_fractional_prize_has_after_board", False))
+    )
     for field, key in (
         ("attack_available", "tactical_attack_available"),
         ("attack_taken", "tactical_attack_taken"),
@@ -1157,6 +1340,25 @@ def _finalize_tactical_reward_summary(summary: dict[str, Any]) -> dict[str, Any]
     steps = int(output.get("steps", 0) or 0)
     output["avg_reward"] = (
         float(output.get("reward_sum", 0.0)) / steps if steps else 0.0
+    )
+    output["avg_basic_reward"] = (
+        float(output.get("basic_reward_sum", 0.0)) / steps if steps else 0.0
+    )
+    output["avg_fractional_prize_reward"] = (
+        float(output.get("fractional_prize_reward_sum", 0.0)) / steps
+        if steps
+        else 0.0
+    )
+    output["avg_fractional_prize_delta"] = (
+        float(output.get("fractional_prize_delta_sum", 0.0)) / steps if steps else 0.0
+    )
+    output["avg_fractional_opponent_prize_delta"] = (
+        float(output.get("fractional_opponent_prize_delta_sum", 0.0)) / steps
+        if steps
+        else 0.0
+    )
+    output["fractional_after_board_rate"] = (
+        float(output.get("fractional_after_board", 0)) / steps if steps else 0.0
     )
     for key in (
         "attack_taken",
