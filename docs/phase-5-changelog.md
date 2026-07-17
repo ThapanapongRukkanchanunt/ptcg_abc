@@ -5696,3 +5696,47 @@ Conclusion:
   larger zero-exploration eval in both directions, preferably 1000 games per
   matchup. If the larger eval confirms Dragapult but not Lucario, split the
   next experiments by deck instead of updating both together.
+
+## 2026-07-17 - Fixed DAgger Iteration 4 Confirmation
+
+ERAWAN result:
+
+- SLURM jobs: `74012` and `74013`, script
+  `scripts/slurm/phase5_public_agent_eval_conda.sbatch`.
+- Evaluated checkpoint:
+  `models/rl/phase5_one_deck_rule_teacher_dagger/phase5_dragapult_lucario_rule_teacher_dagger_fixed/iter-0004/specialists`.
+- Agent: `phase5-symbolic`.
+- Games per matchup: 1000.
+- Stderr contained PyTorch nested-tensor warnings only.
+
+Results:
+
+| Controlled deck | Opponent | Wins / games | Losses | Draws | Errors | Timeouts | Win rate | Wilson 95% |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Dragapult ex | Rule Mega Lucario ex | 449 / 1000 | 548 | 3 | 0 | 0 | 0.449 | 0.418-0.480 |
+| Mega Lucario ex | Rule Dragapult ex | 202 / 1000 | 798 | 0 | 0 | 0 | 0.202 | 0.178-0.228 |
+
+Baseline comparison:
+
+- Combined confirmation: 651 / 2000 = 0.3255. Against the combined
+  rule-vs-rule baseline of 0.3075, fixed-baseline one-sided binomial
+  `p ~= 0.0432`.
+- Dragapult confirmation: 449 / 1000 = 0.449. Against the retained
+  rule-vs-rule Dragapult baseline of 0.424, fixed-baseline one-sided binomial
+  `p ~= 0.0587`, which is not a 5% pass. It is also below the earlier mixed
+  gen7 1000-game confirmation of 462 / 1000.
+- Lucario confirmation: 202 / 1000 = 0.202. Against the Lucario rule-vs-rule
+  baseline of 0.191, fixed-baseline one-sided binomial `p ~= 0.198`, not
+  meaningful.
+
+Conclusion:
+
+- The 100-game fixed-DAgger iteration-4 bump was not confirmed. Both decks fail
+  the 50% public-agent gate, and neither individual matchup shows a strong
+  improvement over rule-vs-rule baseline at 1000 games.
+- The teacher-context fix made DAgger less harmful, but this DAgger recipe is
+  not enough to produce a promotable one-deck policy.
+- Stop scaling this two-deck DAgger loop for now. Next work should split the
+  problem by deck and inspect action-quality failures in confirmed games,
+  especially Dragapult, where the mixed rule/epsilon gen7 checkpoint remains
+  the better 1000-game candidate.

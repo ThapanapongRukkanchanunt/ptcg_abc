@@ -1408,6 +1408,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   and the 100-game eval is noisy. Next run should be a larger zero-exploration
   confirmation eval for iteration 4 in both directions, preferably 1000 games
   per matchup, before running more DAgger iterations.
+- Fixed DAgger iteration-4 confirmation jobs 74012 and 74013 on July 17, 2026:
+  the 1000-game eval did not confirm promotion. Dragapult vs rule Lucario scored
+  449 / 1000 with 3 draws, 0 errors/timeouts; Lucario vs rule Dragapult scored
+  202 / 1000 with 0 errors/timeouts. Combined was 651 / 2000, only a small
+  lift over the 0.3075 combined rule baseline (`p ~= 0.0432` fixed-baseline
+  one-sided binomial). Dragapult did not significantly beat its 0.424
+  rule-vs-rule baseline (`p ~= 0.0587`) and was below the earlier mixed gen7
+  confirmation of 462 / 1000; Lucario did not meaningfully improve over its
+  0.191 baseline. Stop scaling this two-deck DAgger loop; next inspect
+  action-quality failures and split follow-up experiments by deck.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a
