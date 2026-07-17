@@ -5804,3 +5804,74 @@ ERAWAN submission:
   `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`.
 - ERAWAN job id was recorded to
   `experiments/rl/phase5_one_deck_fractional_prize_job.txt`.
+
+## 2026-07-17 - Fractional Prize Mixed Curriculum Result
+
+ERAWAN result:
+
+- SLURM job: `74307`.
+- Run name: `phase5_dragapult_vs_lucario_fractional_prize`.
+- Script: `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`.
+- Controlled deck: sample Dragapult ex, synthetic deck index `101`.
+- Opponent: sample Mega Lucario ex rule-based public agent.
+- Schedule: 10 generations, 1000 retained rule-vs-rule bootstrap games, 1000
+  epsilon-vs-rule games per generation, 100 zero-exploration eval games per
+  generation.
+- Reward config: `OUTCOME_REWARD_SCALE=0.0`,
+  `TACTICAL_REWARD_MODE=basic-fractional-prize`,
+  `TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25`,
+  `TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0`.
+- Stderr contained only PyTorch nested-tensor warnings. No eval errors or
+  timeouts occurred.
+
+Eval results:
+
+| Generation | Epsilon | Eval wins / games | Win rate |
+| ---: | ---: | ---: | ---: |
+| 1 | 1.0 | 16 / 100 | 0.16 |
+| 2 | 0.9 | 20 / 100 | 0.20 |
+| 3 | 0.8 | 17 / 100 | 0.17 |
+| 4 | 0.7 | 20 / 100 | 0.20 |
+| 5 | 0.6 | 19 / 100 | 0.19 |
+| 6 | 0.5 | 15 / 100 | 0.15 |
+| 7 | 0.4 | 24 / 100 | 0.24 |
+| 8 | 0.3 | 22 / 100 | 0.22 |
+| 9 | 0.2 | 26 / 100 | 0.26 |
+| 10 | 0.1 | 20 / 100 | 0.20 |
+
+Training-data and reward diagnostics:
+
+- Retained rule bootstrap: 432 wins, 565 losses, 3 draws over 1000 games;
+  82,070 trajectory steps. This matches the retained Dragapult-vs-Lucario
+  rule-vs-rule baseline range.
+- Rule bootstrap reward summary:
+  - average total tactical reward: `+0.00622`;
+  - average fractional-prize component: `-0.00460`;
+  - average basic attack/attach component: `+0.01082`.
+- Epsilon-vs-rule training windows improved as epsilon decayed, but remained
+  weak: generation 1 scored 68 / 1000, generation 8 scored 146 / 1000,
+  generation 9 scored 144 / 1000, and generation 10 scored 171 / 1000.
+- Epsilon-window fractional reward stayed negative in every generation, though
+  it became less negative as epsilon decayed:
+  - generation 1 average fractional component: `-0.03264`;
+  - generation 10 average fractional component: `-0.01503`.
+
+Conclusion:
+
+- This fractional-prize mixed PPO run is not promotable. The best
+  zero-exploration checkpoint was generation 9 at 26 / 100, far below the
+  retained Dragapult rule-vs-rule baseline around 424 / 1000 and below the
+  earlier mixed gen7 confirmation of 462 / 1000.
+- The reward implementation is operationally valid, but the shaped signal is
+  not aligned enough for this PPO recipe. The fractional component is negative
+  even for the rule bootstrap window, so it can push the learner away from
+  useful rule-agent behavior.
+- Likely issue: the current reward compares one controlled-agent decision board
+  to the next controlled-agent decision board. That interval can include
+  multi-step attack subdecisions, Pokemon promotion, and the opponent's response,
+  so the dense reward is not a clean immediate reward for the selected action.
+- Do not continue this fractional-prize curriculum as-is. The next fix should
+  either record immediate post-action board deltas from the simulator or move
+  fractional-prize scoring into an attack/turn-end rollout evaluator, then
+  retest on a smaller one-generation diagnostic before another 10-generation
+  run.

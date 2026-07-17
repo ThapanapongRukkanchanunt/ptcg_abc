@@ -1432,6 +1432,21 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   confirmation. The ERAWAN run was submitted as SLURM job `74307` with run name
   `phase5_dragapult_vs_lucario_fractional_prize`; the job id was written to
   `experiments/rl/phase5_one_deck_fractional_prize_job.txt`.
+- Fractional prize mixed curriculum job 74307 completed on July 17, 2026 and
+  is not promotable. The best zero-exploration eval was generation 9 at
+  26 / 100 against rule Mega Lucario ex; generation 10 was 20 / 100. All ten
+  generations were far below the retained Dragapult-vs-Lucario rule-vs-rule
+  baseline around 424 / 1000 and below the earlier mixed gen7 confirmation of
+  462 / 1000. The rule bootstrap window itself was healthy at 432 / 1000, but
+  its average fractional-prize reward component was negative (`-0.00460`) while
+  the basic attack/attach component was positive (`+0.01082`). Epsilon windows
+  also had negative fractional-prize reward in every generation. Conclusion:
+  the implementation runs, but comparing one controlled-agent decision board to
+  the next controlled-agent decision board is probably not clean enough credit
+  assignment for dense fractional prizes. Do not continue this curriculum
+  as-is; first record immediate post-action board deltas or move fractional
+  prize scoring into an attack/turn-end rollout evaluator, then retest with a
+  small one-generation diagnostic.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a
