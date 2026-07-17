@@ -1429,7 +1429,9 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `OUTCOME_REWARD_SCALE=0.0`, `TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25`, and
   `TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0`, then compare eval generations
   against the retained rule-vs-rule baseline and the previous mixed gen7
-  confirmation.
+  confirmation. The ERAWAN run was submitted as SLURM job `74307` with run name
+  `phase5_dragapult_vs_lucario_fractional_prize`; the job id was written to
+  `experiments/rl/phase5_one_deck_fractional_prize_job.txt`.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

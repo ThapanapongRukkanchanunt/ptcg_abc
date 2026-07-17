@@ -5795,3 +5795,12 @@ Next ERAWAN experiment:
   `TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0`.
 - Compare generation evals against the retained rule-vs-rule baseline and the
   previous mixed gen7 1000-game confirmation result.
+
+ERAWAN submission:
+
+- Pushed implementation commit `ec05113`.
+- Submitted SLURM job `74307` for run
+  `phase5_dragapult_vs_lucario_fractional_prize` using
+  `scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch`.
+- ERAWAN job id was recorded to
+  `experiments/rl/phase5_one_deck_fractional_prize_job.txt`.
