@@ -1,3 +1,4 @@
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,10 +12,12 @@ from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
     decision_frame_to_legal_actions,
     decision_frame_to_state,
+    initialize_phase5_policy_checkpoint,
     phase5_symbolic_pairwise_positions,
     phase5_symbolic_record_from_decision,
     phase5_symbolic_record_from_trajectory,
     read_phase5_symbolic_jsonl,
+    train_phase5_bc_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
 )
@@ -299,6 +302,17 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "generalist.pt",
             ]
         )
+        bc_ppo_args = parser.parse_args(
+            [
+                "rl-train-phase5-bc-ppo",
+                "--rule-trajectory-dataset",
+                "rule.jsonl",
+                "--on-policy-trajectory-dataset",
+                "on-policy.jsonl",
+                "--checkpoint",
+                "previous.pt",
+            ]
+        )
 
         self.assertEqual(build_args.func.__name__, "command_rl_build_phase5_symbolic")
         self.assertEqual(train_args.func.__name__, "command_rl_train_phase5_symbolic")
@@ -310,6 +324,12 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         )
         self.assertEqual(len(generalist_args.selfplay_dataset), 2)
         self.assertEqual(generalist_args.initial_checkpoint, Path("previous.pt"))
+        self.assertEqual(
+            bc_ppo_args.func.__name__,
+            "command_rl_train_phase5_bc_ppo",
+        )
+        self.assertEqual(bc_ppo_args.bc_loss_weight, 1.0)
+        self.assertEqual(bc_ppo_args.ppo_policy_loss_weight, 1.0)
 
     @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
     def test_symbolic_trainer_writes_checkpoint(self):
@@ -386,6 +406,118 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             self.assertEqual(summary.action_value_examples, 1)
             self.assertGreater(summary.tactical_examples, 0)
             self.assertTrue(checkpoint_path.exists())
+            self.assertTrue(report_path.exists())
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+    def test_bc_ppo_trainer_balances_sources_and_rejects_invalid_ppo_records(self):
+        rule_frames = [
+            _phase5_frame(step_index=1, selected=[0]),
+            _phase5_frame(step_index=2, selected=[1]),
+        ]
+        valid_frame = _phase5_frame(step_index=1, selected=[1])
+        valid_frame.reward_metadata.update(
+            {
+                "policy_on_policy": True,
+                "policy_mode": "epsilon_mixture",
+                "policy_epsilon": 1.0,
+                "policy_temperature": 1.0,
+            }
+        )
+        unsupported_frame = _phase5_frame(step_index=2, selected=[0])
+        unsupported_frame.reward_metadata.update(
+            {
+                "policy_on_policy": True,
+                "policy_mode": "epsilon_greedy",
+                "policy_epsilon": 0.5,
+            }
+        )
+        off_policy_frame = _phase5_frame(step_index=3, selected=[2])
+        off_policy_frame.reward_metadata.update(
+            {
+                "policy_on_policy": False,
+                "policy_mode": "fallback_min_count",
+            }
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            checkpoint_path = root / "scratch.pt"
+            output_checkpoint_path = root / "updated.pt"
+            report_path = root / "bc_ppo_report.json"
+            rule_path = root / "rule.jsonl"
+            on_policy_path = root / "on_policy.jsonl"
+            initialize_phase5_policy_checkpoint(
+                checkpoint_path=checkpoint_path,
+                d_model=32,
+                max_entities=8,
+                max_actions=4,
+                max_previous_actions=3,
+            )
+            for frame in rule_frames:
+                append_trajectory_jsonl(
+                    TrajectoryStep(
+                        decision=frame,
+                        chosen_indices=list(frame.rule_selected_indices),
+                        reward=1.0,
+                        terminal=False,
+                    ),
+                    rule_path,
+                )
+            append_trajectory_jsonl(
+                TrajectoryStep(
+                    decision=valid_frame,
+                    chosen_indices=[1],
+                    reward=1.0,
+                    terminal=False,
+                    logprob=math.log(1.0 / 3.0),
+                    value=0.0,
+                ),
+                on_policy_path,
+            )
+            append_trajectory_jsonl(
+                TrajectoryStep(
+                    decision=unsupported_frame,
+                    chosen_indices=[0],
+                    reward=-1.0,
+                    terminal=False,
+                    logprob=-0.5,
+                    value=0.0,
+                ),
+                on_policy_path,
+            )
+            append_trajectory_jsonl(
+                TrajectoryStep(
+                    decision=off_policy_frame,
+                    chosen_indices=[2],
+                    reward=-1.0,
+                    terminal=False,
+                    logprob=0.0,
+                    value=0.0,
+                ),
+                on_policy_path,
+            )
+
+            summary = train_phase5_bc_ppo_policy_from_trajectories(
+                rule_trajectory_dataset_paths=[rule_path],
+                on_policy_trajectory_dataset_paths=[on_policy_path],
+                checkpoint_path=checkpoint_path,
+                output_checkpoint_path=output_checkpoint_path,
+                report_path=report_path,
+                epochs=1,
+                batch_size=2,
+                deck_index_filter=3,
+            )
+
+            self.assertEqual(summary.rule_examples_available, 2)
+            self.assertEqual(summary.on_policy_examples_available, 1)
+            self.assertEqual(summary.on_policy_skipped_policy_mode, 1)
+            self.assertEqual(summary.on_policy_skipped_off_policy, 1)
+            self.assertEqual(summary.balanced_examples_per_source_per_epoch, 2)
+            self.assertEqual(summary.rule_examples_used, 2)
+            self.assertEqual(summary.on_policy_examples_used, 2)
+            self.assertEqual(summary.on_policy_reuse_factor, 2.0)
+            self.assertEqual(summary.optimizer_steps, 1)
+            self.assertTrue(output_checkpoint_path.exists())
             self.assertTrue(report_path.exists())
 
 

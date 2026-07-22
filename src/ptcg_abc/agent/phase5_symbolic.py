@@ -352,6 +352,168 @@ class Phase5SamplingPolicyAgent(Phase5SymbolicPolicyAgent):
         return selected
 
 
+class Phase5EpsilonMixturePolicyAgent(Phase5SymbolicPolicyAgent):
+    """Differentiable softmax-plus-uniform exploration policy for PPO."""
+
+    def __init__(
+        self,
+        deck_ids: Sequence[int],
+        *,
+        card_data: Sequence[Any] = (),
+        attack_data: Sequence[Any] = (),
+        checkpoint_path: Path | str | None = None,
+        device: str | None = None,
+        epsilon: float = 0.1,
+        temperature: float = 1.0,
+        seed: int | None = None,
+    ) -> None:
+        if epsilon < 0.0 or epsilon > 1.0:
+            raise ValueError("Phase5EpsilonMixturePolicyAgent epsilon must be in [0, 1].")
+        if temperature <= 0.0:
+            raise ValueError("Phase5EpsilonMixturePolicyAgent temperature must be positive.")
+        self.epsilon = float(epsilon)
+        self.temperature = float(temperature)
+        self.rng = random.Random(seed)
+        super().__init__(
+            deck_ids,
+            card_data=card_data,
+            attack_data=attack_data,
+            checkpoint_path=checkpoint_path,
+            device=device,
+            use_rule_tiebreak=False,
+        )
+
+    def act(self, observation: Any) -> list[int]:
+        metadata = {
+            "epsilon": self.epsilon,
+            "temperature": self.temperature,
+        }
+        self._set_policy_metadata(
+            logprob=0.0,
+            value=0.0,
+            on_policy=False,
+            mode="unobserved",
+            extra=metadata,
+        )
+        select = _get(observation, "select")
+        if select is None:
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=False,
+                mode="decklist",
+                extra=metadata,
+            )
+            return list(self.deck_ids)
+
+        state = self.state_adapter.parse(observation)
+        legal_actions = self.legal_adapter.parse(observation)
+        if not legal_actions:
+            selected = self.fallback_agent.act(observation)
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=False,
+                mode="fallback_no_legal_actions",
+                extra=metadata,
+            )
+            return selected
+
+        self._reset_turn_context_if_needed(state)
+        self.memory.observe(state)
+        belief = self.memory.belief_state(state, own_deck_ids=self.deck_ids)
+        encoded = self.encoder.encode(state, legal_actions, belief)
+        target_count = _target_count(encoded.legal_action_mask, legal_actions)
+        if target_count <= 0:
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=0.0,
+                on_policy=True,
+                mode="empty_selection",
+                extra=metadata,
+            )
+            return []
+
+        outputs = self._score_model_outputs(encoded)
+        state_value = float(outputs["state_value"])
+        remaining = [
+            position
+            for position, index in enumerate(encoded.legal_action_indices)
+            if index >= 0 and encoded.legal_action_mask[position] > 0
+        ]
+        selected_positions: list[int] = []
+        logprob = 0.0
+        uniform_steps = 0
+        policy_steps = 0
+        for _ in range(target_count):
+            if not remaining:
+                break
+            scaled_logits = [
+                outputs["action_logits"][position] / self.temperature
+                for position in remaining
+            ]
+            maximum = max(scaled_logits)
+            weights = [math.exp(value - maximum) for value in scaled_logits]
+            weight_sum = sum(weights)
+            policy_probabilities = [
+                weight / weight_sum if weight_sum > 0.0 else 1.0 / len(remaining)
+                for weight in weights
+            ]
+            explore = self.rng.random() < self.epsilon
+            if explore:
+                choice_offset = self.rng.randrange(len(remaining))
+                uniform_steps += 1
+            else:
+                threshold = self.rng.random()
+                cumulative = 0.0
+                choice_offset = len(remaining) - 1
+                for offset, probability in enumerate(policy_probabilities):
+                    cumulative += probability
+                    if threshold <= cumulative:
+                        choice_offset = offset
+                        break
+                policy_steps += 1
+            selected_probability = (
+                (1.0 - self.epsilon) * policy_probabilities[choice_offset]
+                + self.epsilon / len(remaining)
+            )
+            logprob += math.log(max(selected_probability, 1.0e-12))
+            selected_positions.append(remaining.pop(choice_offset))
+
+        selected = [
+            encoded.legal_action_indices[position]
+            for position in selected_positions
+            if encoded.legal_action_indices[position] >= 0
+        ]
+        min_count = max(0, int(getattr(legal_actions[0], "min_count", 0) or 0))
+        if len(selected) < min_count:
+            selected = self.fallback_agent.act(observation)
+            self._set_policy_metadata(
+                logprob=0.0,
+                value=state_value,
+                on_policy=False,
+                mode="fallback_min_count",
+                extra=metadata,
+            )
+            return _valid_indices(selected, len(legal_actions))
+
+        selected = _valid_indices(selected, len(legal_actions))
+        self._observe_selected_actions(encoded.legal_action_features, selected_positions)
+        self._set_policy_metadata(
+            logprob=logprob,
+            value=state_value,
+            on_policy=True,
+            mode="epsilon_mixture",
+            extra=metadata
+            | {
+                "target_count": target_count,
+                "epsilon_random_steps": uniform_steps,
+                "epsilon_policy_steps": policy_steps,
+            },
+        )
+        return selected
+
+
 class Phase5EpsilonGreedyPolicyAgent(Phase5SymbolicPolicyAgent):
     """Epsilon-greedy Phase 5 policy for high-exploration curriculum collection."""
 

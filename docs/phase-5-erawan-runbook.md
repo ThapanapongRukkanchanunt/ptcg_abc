@@ -2967,6 +2967,216 @@ Key artifacts:
   `reports/phase5_dragapult_lucario_rule_teacher_dagger_iter-*_dragapult_vs_lucario_100g.json`;
   `reports/phase5_dragapult_lucario_rule_teacher_dagger_iter-*_lucario_vs_dragapult_100g.json`.
 
+### Corrected One-Deck BC + On-Policy PPO Curriculum
+
+Use this workflow after the July 22 terminal-reward A/B. The older
+`phase5_one_deck_public_mixed_curriculum.sbatch` remains available for result
+reproduction, but it sends off-policy rule demonstrations through PPO and must
+not be used for new training.
+
+The corrected workflow uses:
+
+- supervised behavior-cloning loss for retained rule demonstrations;
+- PPO policy/value loss only for model records with `policy_on_policy=true`
+  and differentiable behavior mode `sample` or `epsilon_mixture`;
+- an equal number of rule and PPO examples in every optimizer step, cycling
+  the smaller source when game lengths produce unequal row counts;
+- softmax-plus-uniform exploration
+  `pi_behavior = (1 - epsilon) * pi_neural + epsilon * Uniform`, whose exact
+  selected-action log probability can be recomputed during PPO;
+- deterministic scratch initialization and per-game exploration seeds for a
+  controlled reward A/B;
+- deletion of each generation's model trajectory JSONL only after its update
+  succeeds, while the shared rule bootstrap is retained.
+
+Run a small SLURM smoke first:
+
+```bash
+git pull --ff-only origin main
+
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+export RULE_BOOTSTRAP_DATASET="$GAME_DATA_ROOT/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_corrected_bcppo_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=4 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  EPSILON_START=0.5 \
+  EPSILON_END=0.5 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=basic-fractional-prize \
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25 \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_corrected_bcppo_smoke_job.txt
+```
+
+After the smoke report confirms valid PPO examples, an average initial PPO
+ratio near `1.0`, zero accepted off-policy/mode-invalid rows, and a written
+generation-1 checkpoint, submit the corrected three-generation A/B in
+parallel. Both arms must use the same retained rule JSONL, `INIT_SEED`, and
+`POLICY_SEED`.
+
+```bash
+JOB_FRACTIONAL=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_corrected_bcppo_frac025_diag \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=basic-fractional-prize \
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25 \
+  TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0 \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch
+)
+
+JOB_OUTCOME=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_corrected_bcppo_outcome_only_diag \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=none \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch
+)
+
+printf "fractional=%s\noutcome=%s\n" "$JOB_FRACTIONAL" "$JOB_OUTCOME" | \
+  tee experiments/rl/phase5_one_deck_corrected_bcppo_ab_jobs.txt
+```
+
+Primary artifacts for each run are the generation reports under
+`experiments/rl/phase5_one_deck_public_bc_ppo/<run>/gen-*/`, deterministic eval
+reports under `reports/<run>_gen-*_eval_200g.*`, and checkpoints under
+`models/rl/phase5_one_deck_public_bc_ppo/<run>/gen-*/specialists/`. Raw
+model-policy JSONL files are disposable and are removed after each successful
+update; the shared rule bootstrap is not removed.
+
+### Corrected One-Deck BC + On-Policy PPO Curriculum
+
+Use this workflow after the July 22 terminal-reward A/B. The older
+`phase5_one_deck_public_mixed_curriculum.sbatch` remains available for result
+reproduction, but it sends off-policy rule demonstrations through PPO and must
+not be used for new training.
+
+The corrected workflow uses:
+
+- supervised behavior-cloning loss for retained rule demonstrations;
+- PPO policy/value loss only for model records with `policy_on_policy=true`
+  and differentiable behavior mode `sample` or `epsilon_mixture`;
+- an equal number of rule and PPO examples in every optimizer step, cycling
+  the smaller source when game lengths produce unequal row counts;
+- softmax-plus-uniform exploration
+  `pi_behavior = (1 - epsilon) * pi_neural + epsilon * Uniform`, whose exact
+  selected-action log probability can be recomputed during PPO;
+- deterministic scratch initialization and per-game exploration seeds for a
+  controlled reward A/B;
+- deletion of each generation's model trajectory JSONL only after its update
+  succeeds, while the shared rule bootstrap is retained.
+
+Run a small SLURM smoke first:
+
+```bash
+git pull --ff-only origin main
+
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+export RULE_BOOTSTRAP_DATASET="$GAME_DATA_ROOT/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl"
+
+JOB=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_corrected_bcppo_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=4 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  EPSILON_START=0.5 \
+  EPSILON_END=0.5 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=basic-fractional-prize \
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25 \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch
+)
+echo "$JOB" | tee experiments/rl/phase5_one_deck_corrected_bcppo_smoke_job.txt
+```
+
+After the smoke report confirms valid PPO examples, an average initial PPO
+ratio near `1.0`, zero accepted off-policy/mode-invalid rows, and a written
+generation-1 checkpoint, submit the corrected three-generation A/B in
+parallel. Both arms must use the same retained rule JSONL, `INIT_SEED`, and
+`POLICY_SEED`.
+
+```bash
+JOB_FRACTIONAL=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_corrected_bcppo_frac025_diag \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=basic-fractional-prize \
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25 \
+  TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0 \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch
+)
+
+JOB_OUTCOME=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_corrected_bcppo_outcome_only_diag \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=none \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch
+)
+
+printf "fractional=%s\noutcome=%s\n" "$JOB_FRACTIONAL" "$JOB_OUTCOME" | \
+  tee experiments/rl/phase5_one_deck_corrected_bcppo_ab_jobs.txt
+```
+
+Primary artifacts for each run are the generation reports under
+`experiments/rl/phase5_one_deck_public_bc_ppo/<run>/gen-*/`, deterministic eval
+reports under `reports/<run>_gen-*_eval_200g.*`, and checkpoints under
+`models/rl/phase5_one_deck_public_bc_ppo/<run>/gen-*/specialists/`. Raw
+model-policy JSONL files are disposable and are removed after each successful
+update; the shared rule bootstrap is not removed.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

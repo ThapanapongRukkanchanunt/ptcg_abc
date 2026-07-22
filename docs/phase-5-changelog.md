@@ -6120,3 +6120,51 @@ Pipeline conclusion:
 - Keep terminal outcome reward and retain post-action fractional shaping as an
   auxiliary PPO reward for the first corrected experiment, with an outcome-only
   corrected control before selecting the reward weight.
+
+## 2026-07-22 - Corrected Balanced BC + On-Policy PPO Pipeline
+
+Implementation:
+
+- Added `Phase5EpsilonMixturePolicyAgent`. Its behavior distribution is
+  `(1 - epsilon) * softmax(neural_logits / temperature) + epsilon * Uniform`,
+  sampled without replacement for multi-action selections. It records the
+  exact mixture log probability, epsilon, and temperature needed to recompute
+  PPO ratios.
+- Kept the existing hard `phase5-epsilon` agent for reproducibility. Hard
+  epsilon-greedy is intentionally not accepted by the corrected PPO trainer
+  because its selected-action probability is not a differentiable function of
+  the neural logits.
+- Added `rl-train-phase5-bc-ppo`. It applies supervised behavior cloning to
+  rule demonstrations and clipped PPO policy/value loss only to records with
+  `policy_on_policy=true` and mode `sample` or `epsilon_mixture`.
+- Every optimizer step contains equal rule and on-policy example counts. The
+  shorter input is cycled, and the report records available/used counts, reuse
+  factors, rejected off-policy/mode-invalid/nonfinite rows, component losses,
+  PPO ratio, and clip fraction.
+- Added deterministic scratch-checkpoint seeding plus per-game exploration
+  seeds. A base policy seed is offset by absolute game index so A/B arms can
+  share random streams without repeating one action sequence in every game.
+- Added
+  `scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch` as a new,
+  non-destructive workflow. It retains the shared rule bootstrap, deletes only
+  a generation's model-policy JSONL after a successful update, evaluates with
+  zero exploration, and saves at most one win and one loss replay.
+
+Validation:
+
+- `py_compile` passed for the modified agent, workflow, public-opponent,
+  trainer, CLI, and test modules.
+- `tests.test_rl_phase5_symbolic_training` passed 9 tests with 3 Torch-only
+  tests skipped locally; `tests.test_public_agents` and
+  `tests.test_phase5_full_agent_scaffolds` each passed 9 tests.
+- Local PyTorch is unavailable and Windows has no Bash runtime. The exact
+  trainer and SBATCH path therefore require a small ERAWAN SLURM smoke before
+  the two full corrected A/B jobs are submitted.
+
+Next step:
+
+- Run the documented one-generation, four-train-game/four-eval-game ERAWAN
+  smoke against the retained job-74766 rule bootstrap.
+- If it writes a checkpoint and reports valid PPO rows with an initial ratio
+  near `1.0`, submit matched three-generation corrected arms: terminal outcome
+  plus post-action fractional weight `0.25`, and terminal outcome only.

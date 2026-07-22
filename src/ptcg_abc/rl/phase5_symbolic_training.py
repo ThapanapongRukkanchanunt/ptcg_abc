@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
+from itertools import islice
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -21,6 +23,7 @@ from ptcg_abc.rl.rewards import reward_from_result_metadata
 
 PHASE5_SYMBOLIC_DATASET_FORMAT = "ptcg_abc_phase5_symbolic_decision_v1"
 PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES = ("all", "baseline")
+PHASE5_DIFFERENTIABLE_POLICY_MODES = ("epsilon_mixture", "sample")
 
 
 @dataclass(frozen=True)
@@ -220,6 +223,77 @@ class Phase5PPOTrainingSummary:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class Phase5BCPPOTrainingSummary:
+    rule_trajectory_dataset_paths: list[str]
+    on_policy_trajectory_dataset_paths: list[str]
+    rule_steps_seen: int
+    rule_examples_available: int
+    rule_skipped_no_target: int
+    on_policy_steps_seen: int
+    on_policy_examples_available: int
+    on_policy_skipped_no_target: int
+    on_policy_skipped_off_policy: int
+    on_policy_skipped_policy_mode: int
+    on_policy_skipped_nonfinite: int
+    accepted_policy_modes: list[str]
+    balanced_examples_per_source_per_epoch: int
+    rule_examples_used: int
+    on_policy_examples_used: int
+    rule_reuse_factor: float
+    on_policy_reuse_factor: float
+    optimizer_steps: int
+    epochs: int
+    checkpoint_path: str
+    output_checkpoint_path: str
+    final_loss: float
+    average_bc_loss: float
+    average_bc_accuracy: float
+    average_ppo_policy_loss: float
+    average_ppo_value_loss: float
+    average_entropy: float
+    average_ratio: float
+    average_clip_fraction: float
+    mean_advantage: float
+    device: str
+    deck_index_filter: int | None
+    bc_loss_weight: float
+    ppo_policy_loss_weight: float
+    ppo_value_loss_weight: float
+    entropy_weight: float
+    clip_epsilon: float
+    max_entities: int
+    max_actions: int
+    max_previous_actions: int
+    config: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class _TrajectorySourceStats:
+    steps_seen: int = 0
+    examples: int = 0
+    skipped_no_target: int = 0
+    skipped_off_policy: int = 0
+    skipped_policy_mode: int = 0
+    skipped_nonfinite: int = 0
+    advantage_sum: float = 0.0
+
+
+@dataclass(frozen=True)
+class _BCPPOBatchMetrics:
+    loss: float
+    bc_loss: float
+    bc_accuracy: float
+    ppo_policy_loss: float
+    ppo_value_loss: float
+    entropy: float
+    ratio: float
+    clip_fraction: float
 
 
 @dataclass(frozen=True)
@@ -1253,6 +1327,339 @@ def train_phase5_ppo_policy_from_trajectories(
     return summary
 
 
+def train_phase5_bc_ppo_policy_from_trajectories(
+    *,
+    rule_trajectory_dataset_paths: Sequence[Path],
+    on_policy_trajectory_dataset_paths: Sequence[Path],
+    checkpoint_path: Path,
+    output_checkpoint_path: Path,
+    report_path: Path | None = None,
+    epochs: int = 1,
+    batch_size: int = 64,
+    learning_rate: float = 5.0e-5,
+    clip_epsilon: float = 0.2,
+    bc_loss_weight: float = 1.0,
+    ppo_policy_loss_weight: float = 1.0,
+    ppo_value_loss_weight: float = 0.5,
+    entropy_weight: float = 0.01,
+    rule_step_limit: int | None = None,
+    on_policy_step_limit: int | None = None,
+    deck_index_filter: int | None = None,
+    accepted_policy_modes: Sequence[str] = PHASE5_DIFFERENTIABLE_POLICY_MODES,
+) -> Phase5BCPPOTrainingSummary:
+    if not rule_trajectory_dataset_paths:
+        raise ValueError("Provide at least one rule trajectory dataset.")
+    if not on_policy_trajectory_dataset_paths:
+        raise ValueError("Provide at least one on-policy trajectory dataset.")
+    for path in [*rule_trajectory_dataset_paths, *on_policy_trajectory_dataset_paths]:
+        if not path.exists():
+            raise ValueError(f"Phase 5 trajectory dataset not found at {path}.")
+    if batch_size <= 0:
+        raise ValueError("Phase 5 BC+PPO batch_size must be positive.")
+    for name, value in (
+        ("bc_loss_weight", bc_loss_weight),
+        ("ppo_policy_loss_weight", ppo_policy_loss_weight),
+        ("ppo_value_loss_weight", ppo_value_loss_weight),
+        ("entropy_weight", entropy_weight),
+    ):
+        if value < 0.0:
+            raise ValueError(f"Phase 5 BC+PPO {name} must be non-negative.")
+    normalized_policy_modes = tuple(dict.fromkeys(str(mode) for mode in accepted_policy_modes))
+    unsupported_modes = [
+        mode for mode in normalized_policy_modes if mode not in PHASE5_DIFFERENTIABLE_POLICY_MODES
+    ]
+    if unsupported_modes:
+        raise ValueError(
+            "Unsupported differentiable policy mode(s): " + ", ".join(unsupported_modes)
+        )
+
+    torch, nn = _require_torch()
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    if checkpoint.get("format") != PHASE5_POLICY_CHECKPOINT_FORMAT:
+        raise ValueError(
+            f"Unsupported Phase 5 checkpoint format: {checkpoint.get('format')}"
+        )
+    config = Phase5PolicyConfig(**checkpoint["config"])
+    encoder_config = checkpoint.get("encoder", {})
+    max_entities = int(encoder_config.get("max_entities", 96))
+    max_actions = int(encoder_config.get("max_actions", 128))
+    max_previous_actions = int(encoder_config.get("max_previous_actions", 16))
+    encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AlphaStarTurnPolicy(config).to(device)
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    rule_stats = _TrajectorySourceStats()
+    for _record, _step in _iter_phase5_hybrid_source(
+        rule_trajectory_dataset_paths,
+        encoder=encoder,
+        max_previous_actions=max_previous_actions,
+        deck_index_filter=deck_index_filter,
+        step_limit=rule_step_limit,
+        require_on_policy=False,
+        accepted_policy_modes=(),
+        stats=rule_stats,
+    ):
+        pass
+    on_policy_stats = _TrajectorySourceStats()
+    for _record, _step in _iter_phase5_hybrid_source(
+        on_policy_trajectory_dataset_paths,
+        encoder=encoder,
+        max_previous_actions=max_previous_actions,
+        deck_index_filter=deck_index_filter,
+        step_limit=on_policy_step_limit,
+        require_on_policy=True,
+        accepted_policy_modes=normalized_policy_modes,
+        stats=on_policy_stats,
+    ):
+        pass
+    if rule_stats.examples <= 0:
+        raise ValueError("Rule trajectory datasets produced zero BC examples.")
+    if on_policy_stats.examples <= 0:
+        raise ValueError(
+            "On-policy trajectory datasets produced zero valid PPO examples. "
+            "Use policy_mode=sample or epsilon_mixture with policy_on_policy=true."
+        )
+
+    balanced_examples = max(rule_stats.examples, on_policy_stats.examples)
+
+    def rule_factory() -> Iterable[Phase5SymbolicDecisionRecord]:
+        for record, _step in _iter_phase5_hybrid_source(
+            rule_trajectory_dataset_paths,
+            encoder=encoder,
+            max_previous_actions=max_previous_actions,
+            deck_index_filter=deck_index_filter,
+            step_limit=rule_step_limit,
+            require_on_policy=False,
+            accepted_policy_modes=(),
+        ):
+            yield record
+
+    def on_policy_factory() -> Iterable[
+        tuple[Phase5SymbolicDecisionRecord, float, float]
+    ]:
+        for record, step in _iter_phase5_hybrid_source(
+            on_policy_trajectory_dataset_paths,
+            encoder=encoder,
+            max_previous_actions=max_previous_actions,
+            deck_index_filter=deck_index_filter,
+            step_limit=on_policy_step_limit,
+            require_on_policy=True,
+            accepted_policy_modes=normalized_policy_modes,
+        ):
+            yield record, float(step.logprob), float(step.reward) - float(step.value)
+
+    metric_sums = {
+        "loss": 0.0,
+        "bc_loss": 0.0,
+        "bc_accuracy": 0.0,
+        "ppo_policy_loss": 0.0,
+        "ppo_value_loss": 0.0,
+        "entropy": 0.0,
+        "ratio": 0.0,
+        "clip_fraction": 0.0,
+    }
+    optimizer_steps = 0
+    final_loss = 0.0
+    for _epoch in range(max(1, epochs)):
+        rule_records = _cycle_phase5_records(rule_factory)
+        on_policy_examples = _cycle_phase5_records(on_policy_factory)
+        examples_remaining = balanced_examples
+        while examples_remaining > 0:
+            current_batch_size = min(batch_size, examples_remaining)
+            rule_batch = list(islice(rule_records, current_batch_size))
+            on_policy_batch = list(islice(on_policy_examples, current_batch_size))
+            if len(rule_batch) != current_batch_size or len(on_policy_batch) != current_batch_size:
+                raise ValueError("Balanced BC+PPO source unexpectedly produced too few examples.")
+            metrics = _train_bc_ppo_batch(
+                rule_batch,
+                on_policy_batch,
+                model=model,
+                optimizer=optimizer,
+                torch=torch,
+                nn=nn,
+                device=device,
+                clip_epsilon=clip_epsilon,
+                bc_loss_weight=bc_loss_weight,
+                ppo_policy_loss_weight=ppo_policy_loss_weight,
+                ppo_value_loss_weight=ppo_value_loss_weight,
+                entropy_weight=entropy_weight,
+            )
+            final_loss = metrics.loss
+            for field in metric_sums:
+                metric_sums[field] += float(getattr(metrics, field))
+            optimizer_steps += 1
+            examples_remaining -= current_batch_size
+
+    output_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    output = model.checkpoint_payload()
+    output["format"] = PHASE5_POLICY_CHECKPOINT_FORMAT
+    output["encoder"] = {
+        "max_entities": max_entities,
+        "max_actions": max_actions,
+        "max_previous_actions": max_previous_actions,
+    }
+    output["metadata"] = checkpoint.get("metadata", {}) | {
+        "training": "phase5_balanced_bc_ppo_trajectory_update",
+        "source_checkpoint": checkpoint_path.as_posix(),
+        "rule_trajectory_dataset_paths": [
+            path.as_posix() for path in rule_trajectory_dataset_paths
+        ],
+        "on_policy_trajectory_dataset_paths": [
+            path.as_posix() for path in on_policy_trajectory_dataset_paths
+        ],
+        "accepted_policy_modes": list(normalized_policy_modes),
+        "balanced_examples_per_source_per_epoch": balanced_examples,
+        "epochs": max(1, epochs),
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "clip_epsilon": clip_epsilon,
+        "bc_loss_weight": bc_loss_weight,
+        "ppo_policy_loss_weight": ppo_policy_loss_weight,
+        "ppo_value_loss_weight": ppo_value_loss_weight,
+        "entropy_weight": entropy_weight,
+        "deck_index_filter": deck_index_filter,
+    }
+    torch.save(output, output_checkpoint_path)
+
+    divisor = max(1, optimizer_steps)
+    epochs_value = max(1, epochs)
+    summary = Phase5BCPPOTrainingSummary(
+        rule_trajectory_dataset_paths=[
+            path.as_posix() for path in rule_trajectory_dataset_paths
+        ],
+        on_policy_trajectory_dataset_paths=[
+            path.as_posix() for path in on_policy_trajectory_dataset_paths
+        ],
+        rule_steps_seen=rule_stats.steps_seen,
+        rule_examples_available=rule_stats.examples,
+        rule_skipped_no_target=rule_stats.skipped_no_target,
+        on_policy_steps_seen=on_policy_stats.steps_seen,
+        on_policy_examples_available=on_policy_stats.examples,
+        on_policy_skipped_no_target=on_policy_stats.skipped_no_target,
+        on_policy_skipped_off_policy=on_policy_stats.skipped_off_policy,
+        on_policy_skipped_policy_mode=on_policy_stats.skipped_policy_mode,
+        on_policy_skipped_nonfinite=on_policy_stats.skipped_nonfinite,
+        accepted_policy_modes=list(normalized_policy_modes),
+        balanced_examples_per_source_per_epoch=balanced_examples,
+        rule_examples_used=balanced_examples * epochs_value,
+        on_policy_examples_used=balanced_examples * epochs_value,
+        rule_reuse_factor=balanced_examples / rule_stats.examples,
+        on_policy_reuse_factor=balanced_examples / on_policy_stats.examples,
+        optimizer_steps=optimizer_steps,
+        epochs=epochs_value,
+        checkpoint_path=checkpoint_path.as_posix(),
+        output_checkpoint_path=output_checkpoint_path.as_posix(),
+        final_loss=final_loss,
+        average_bc_loss=metric_sums["bc_loss"] / divisor,
+        average_bc_accuracy=metric_sums["bc_accuracy"] / divisor,
+        average_ppo_policy_loss=metric_sums["ppo_policy_loss"] / divisor,
+        average_ppo_value_loss=metric_sums["ppo_value_loss"] / divisor,
+        average_entropy=metric_sums["entropy"] / divisor,
+        average_ratio=metric_sums["ratio"] / divisor,
+        average_clip_fraction=metric_sums["clip_fraction"] / divisor,
+        mean_advantage=(
+            on_policy_stats.advantage_sum / on_policy_stats.examples
+            if on_policy_stats.examples
+            else 0.0
+        ),
+        device=str(device),
+        deck_index_filter=deck_index_filter,
+        bc_loss_weight=bc_loss_weight,
+        ppo_policy_loss_weight=ppo_policy_loss_weight,
+        ppo_value_loss_weight=ppo_value_loss_weight,
+        entropy_weight=entropy_weight,
+        clip_epsilon=clip_epsilon,
+        max_entities=max_entities,
+        max_actions=max_actions,
+        max_previous_actions=max_previous_actions,
+        config=config.to_dict(),
+    )
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    return summary
+
+
+def _iter_phase5_hybrid_source(
+    trajectory_dataset_paths: Sequence[Path],
+    *,
+    encoder: Phase5SymbolicEncoder,
+    max_previous_actions: int,
+    deck_index_filter: int | None,
+    step_limit: int | None,
+    require_on_policy: bool,
+    accepted_policy_modes: Sequence[str],
+    stats: _TrajectorySourceStats | None = None,
+) -> Iterable[tuple[Phase5SymbolicDecisionRecord, TrajectoryStep]]:
+    steps_seen = 0
+    accepted_modes = set(accepted_policy_modes)
+    for trajectory_path in trajectory_dataset_paths:
+        context = Phase5TurnContext(max_previous_actions=max_previous_actions)
+        for step in iter_trajectory_jsonl(trajectory_path):
+            if step_limit is not None and steps_seen >= step_limit:
+                return
+            steps_seen += 1
+            if stats is not None:
+                stats.steps_seen += 1
+            if not _matches_deck_index_filter(
+                step.decision.reward_metadata,
+                deck_index_filter,
+            ):
+                continue
+            previous_rows = context.previous_rows(step.decision)
+            record = phase5_symbolic_record_from_trajectory(
+                step,
+                encoder=encoder,
+                previous_action_features=previous_rows,
+                max_previous_actions=max_previous_actions,
+                weight=1.0,
+            )
+            if record is None:
+                if stats is not None:
+                    stats.skipped_no_target += 1
+                continue
+            behavior_indices = _trajectory_behavior_indices(step)
+            if behavior_indices is None:
+                context.observe(record)
+            else:
+                context.observe_indices(record, behavior_indices)
+            if require_on_policy:
+                metadata = step.decision.reward_metadata
+                if not bool(metadata.get("policy_on_policy", False)):
+                    if stats is not None:
+                        stats.skipped_off_policy += 1
+                    continue
+                policy_mode = str(metadata.get("policy_mode", ""))
+                if policy_mode not in accepted_modes:
+                    if stats is not None:
+                        stats.skipped_policy_mode += 1
+                    continue
+                if not math.isfinite(float(step.logprob)) or not math.isfinite(float(step.value)):
+                    if stats is not None:
+                        stats.skipped_nonfinite += 1
+                    continue
+            if stats is not None:
+                stats.examples += 1
+                stats.advantage_sum += float(step.reward) - float(step.value)
+            yield record, step
+
+
+def _cycle_phase5_records(factory: Any) -> Iterable[Any]:
+    while True:
+        yielded = False
+        for value in factory():
+            yielded = True
+            yield value
+        if not yielded:
+            return
+
+
 def initialize_phase5_policy_checkpoint(
     *,
     checkpoint_path: Path,
@@ -1261,12 +1668,15 @@ def initialize_phase5_policy_checkpoint(
     max_actions: int = 128,
     max_previous_actions: int = 16,
     d_model: int = 128,
+    seed: int | None = None,
     metadata: dict[str, Any] | None = None,
     overwrite: bool = False,
 ) -> Phase5PolicyInitSummary:
     if checkpoint_path.exists() and not overwrite:
         raise ValueError(f"Scratch checkpoint already exists at {checkpoint_path}.")
     torch, _ = _require_torch()
+    if seed is not None:
+        torch.manual_seed(int(seed))
     encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
     empty_encoded = encoder.encode(decision_frame_to_state(_empty_frame()), [])
     config = make_phase5_policy_config(
@@ -1287,6 +1697,7 @@ def initialize_phase5_policy_checkpoint(
     payload["metadata"] = {
         "training": "phase5_scratch_init",
         "checkpoint_path": checkpoint_path.as_posix(),
+        "seed": seed,
     } | dict(metadata or {})
     torch.save(payload, checkpoint_path)
     summary = Phase5PolicyInitSummary(
@@ -1644,6 +2055,262 @@ def _train_ppo_batch(
     loss.backward()
     optimizer.step()
     return float(loss.detach().item())
+
+
+def _train_bc_ppo_batch(
+    rule_records: Sequence[Phase5SymbolicDecisionRecord],
+    on_policy_examples: Sequence[tuple[Phase5SymbolicDecisionRecord, float, float]],
+    *,
+    model: Any,
+    optimizer: Any,
+    torch: Any,
+    nn: Any,
+    device: Any,
+    clip_epsilon: float,
+    bc_loss_weight: float,
+    ppo_policy_loss_weight: float,
+    ppo_value_loss_weight: float,
+    entropy_weight: float,
+) -> _BCPPOBatchMetrics:
+    on_policy_records = [example[0] for example in on_policy_examples]
+    rule_output, rule_action_mask = _forward_phase5_records(
+        rule_records,
+        model=model,
+        torch=torch,
+        device=device,
+    )
+    on_policy_output, on_policy_action_mask = _forward_phase5_records(
+        on_policy_records,
+        model=model,
+        torch=torch,
+        device=device,
+    )
+
+    rule_logprobs = _sequential_selected_logprobs(
+        rule_records,
+        logits=rule_output["action_logits"],
+        action_mask=rule_action_mask,
+        torch=torch,
+        nn=nn,
+        use_record_policy=False,
+    )
+    rule_weights = torch.tensor(
+        [record.weight for record in rule_records],
+        dtype=torch.float32,
+        device=device,
+    )
+    bc_loss = -(rule_logprobs * rule_weights).sum() / rule_weights.sum().clamp(
+        min=1.0e-6
+    )
+    masked_rule_logits = rule_output["action_logits"].masked_fill(
+        rule_action_mask <= 0,
+        -1.0e9,
+    )
+    rule_predictions = masked_rule_logits.detach().argmax(dim=1).tolist()
+    bc_correct = sum(
+        int(int(prediction) in set(record.target_positions))
+        for prediction, record in zip(rule_predictions, rule_records, strict=True)
+    )
+    bc_accuracy = bc_correct / max(1, len(rule_records))
+
+    selected_logprobs = _sequential_selected_logprobs(
+        on_policy_records,
+        logits=on_policy_output["action_logits"],
+        action_mask=on_policy_action_mask,
+        torch=torch,
+        nn=nn,
+        use_record_policy=True,
+    )
+    old_logprobs = torch.tensor(
+        [example[1] for example in on_policy_examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    advantages = torch.tensor(
+        [example[2] for example in on_policy_examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    if advantages.numel() > 1:
+        advantages = (advantages - advantages.mean()) / advantages.std().clamp(
+            min=1.0e-6
+        )
+    ratios = torch.exp(selected_logprobs - old_logprobs)
+    clipped_ratios = torch.clamp(ratios, 1.0 - clip_epsilon, 1.0 + clip_epsilon)
+    ppo_policy_loss = -torch.minimum(
+        ratios * advantages,
+        clipped_ratios * advantages,
+    ).mean()
+    value_targets = torch.tensor(
+        [
+            float(target) if (target := _record_value_target(record)) is not None else advantage
+            for record, advantage in zip(on_policy_records, advantages.tolist(), strict=True)
+        ],
+        dtype=torch.float32,
+        device=device,
+    )
+    ppo_value_loss = nn.functional.mse_loss(
+        on_policy_output["state_value"],
+        value_targets,
+    )
+    entropy = _first_action_policy_entropy(
+        on_policy_records,
+        logits=on_policy_output["action_logits"],
+        action_mask=on_policy_action_mask,
+        torch=torch,
+        nn=nn,
+    )
+    loss = (
+        float(bc_loss_weight) * bc_loss
+        + float(ppo_policy_loss_weight) * ppo_policy_loss
+        + float(ppo_value_loss_weight) * ppo_value_loss
+        - float(entropy_weight) * entropy
+    )
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    clip_fraction = ((ratios - 1.0).abs() > clip_epsilon).float().mean()
+    return _BCPPOBatchMetrics(
+        loss=float(loss.detach().item()),
+        bc_loss=float(bc_loss.detach().item()),
+        bc_accuracy=float(bc_accuracy),
+        ppo_policy_loss=float(ppo_policy_loss.detach().item()),
+        ppo_value_loss=float(ppo_value_loss.detach().item()),
+        entropy=float(entropy.detach().item()),
+        ratio=float(ratios.detach().mean().item()),
+        clip_fraction=float(clip_fraction.detach().item()),
+    )
+
+
+def _forward_phase5_records(
+    records: Sequence[Phase5SymbolicDecisionRecord],
+    *,
+    model: Any,
+    torch: Any,
+    device: Any,
+) -> tuple[dict[str, Any], Any]:
+    global_x = torch.tensor(
+        [record.encoded.global_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    entity_x = torch.tensor(
+        [record.encoded.entity_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    entity_mask = torch.tensor(
+        [record.encoded.entity_mask for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    action_x = torch.tensor(
+        [record.encoded.legal_action_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    action_mask = torch.tensor(
+        [record.encoded.legal_action_mask for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    previous_action_x = torch.tensor(
+        [record.previous_action_features for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    previous_action_mask = torch.tensor(
+        [record.previous_action_mask for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    return (
+        model(
+            global_x,
+            entity_x,
+            entity_mask,
+            action_x,
+            action_mask,
+            previous_action_x,
+            previous_action_mask,
+        ),
+        action_mask,
+    )
+
+
+def _sequential_selected_logprobs(
+    records: Sequence[Phase5SymbolicDecisionRecord],
+    *,
+    logits: Any,
+    action_mask: Any,
+    torch: Any,
+    nn: Any,
+    use_record_policy: bool,
+) -> Any:
+    selected_logprobs: list[Any] = []
+    for row_index, record in enumerate(records):
+        epsilon, temperature = (
+            _record_policy_parameters(record) if use_record_policy else (0.0, 1.0)
+        )
+        remaining = action_mask[row_index] > 0
+        total = torch.zeros((), dtype=torch.float32, device=logits.device)
+        for position in record.target_positions:
+            if position < 0 or position >= remaining.numel() or not bool(remaining[position]):
+                raise ValueError("Phase 5 target position is not available in policy mask.")
+            remaining_count = remaining.float().sum().clamp(min=1.0)
+            masked_logits = (logits[row_index] / temperature).masked_fill(
+                ~remaining,
+                -1.0e9,
+            )
+            policy_probabilities = nn.functional.softmax(masked_logits, dim=0)
+            selected_probability = (
+                (1.0 - epsilon) * policy_probabilities[position]
+                + epsilon / remaining_count
+            )
+            total = total + torch.log(selected_probability.clamp(min=1.0e-12))
+            remaining = remaining.clone()
+            remaining[position] = False
+        selected_logprobs.append(total)
+    return torch.stack(selected_logprobs)
+
+
+def _first_action_policy_entropy(
+    records: Sequence[Phase5SymbolicDecisionRecord],
+    *,
+    logits: Any,
+    action_mask: Any,
+    torch: Any,
+    nn: Any,
+) -> Any:
+    entropies: list[Any] = []
+    for row_index, record in enumerate(records):
+        epsilon, temperature = _record_policy_parameters(record)
+        legal = action_mask[row_index] > 0
+        legal_count = legal.float().sum().clamp(min=1.0)
+        masked_logits = (logits[row_index] / temperature).masked_fill(legal <= 0, -1.0e9)
+        policy_probabilities = nn.functional.softmax(masked_logits, dim=0)
+        probabilities = (
+            (1.0 - epsilon) * policy_probabilities
+            + epsilon * legal.float() / legal_count
+        )
+        log_probabilities = torch.log(probabilities.clamp(min=1.0e-12))
+        entropies.append(-(probabilities * log_probabilities * legal.float()).sum())
+    return torch.stack(entropies).mean()
+
+
+def _record_policy_parameters(
+    record: Phase5SymbolicDecisionRecord,
+) -> tuple[float, float]:
+    metadata = record.metadata
+    mode = str(metadata.get("policy_mode", ""))
+    epsilon = (
+        max(0.0, min(1.0, float(metadata.get("policy_epsilon", 0.0))))
+        if mode == "epsilon_mixture"
+        else 0.0
+    )
+    temperature = max(1.0e-6, float(metadata.get("policy_temperature", 1.0)))
+    return epsilon, temperature
 
 
 def _changed_pairwise_loss(

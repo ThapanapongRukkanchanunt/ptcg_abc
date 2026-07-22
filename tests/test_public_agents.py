@@ -108,9 +108,11 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "--public-agent-key",
                 "sample_lucario",
                 "--agent",
-                "phase5-epsilon",
+                "phase5-epsilon-mixture",
                 "--policy-epsilon",
                 "0.75",
+                "--policy-seed",
+                "1234",
                 "--outcome-reward-scale",
                 "0.25",
                 "--tactical-reward-mode",
@@ -130,8 +132,9 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(traj_args.controlled_public_agent_key, "sample_dragapult")
         self.assertEqual(traj_args.controlled_deck_index, 101)
         self.assertEqual(traj_args.public_agent_key, ["sample_lucario"])
-        self.assertEqual(traj_args.agent, "phase5-epsilon")
+        self.assertEqual(traj_args.agent, "phase5-epsilon-mixture")
         self.assertEqual(traj_args.policy_epsilon, 0.75)
+        self.assertEqual(traj_args.policy_seed, 1234)
         self.assertEqual(traj_args.outcome_reward_scale, 0.25)
         self.assertEqual(traj_args.tactical_reward_mode, "basic-fractional-prize")
         self.assertEqual(traj_args.tactical_fractional_prize_weight, 0.25)

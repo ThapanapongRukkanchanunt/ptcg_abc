@@ -105,6 +105,7 @@ from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_pol
 from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
     initialize_phase5_policy_checkpoint,
+    train_phase5_bc_ppo_policy_from_trajectories,
     train_phase5_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
@@ -1087,6 +1088,46 @@ def command_rl_train_phase5_ppo(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_rl_train_phase5_bc_ppo(args: argparse.Namespace) -> int:
+    if not args.checkpoint.exists():
+        print(f"Phase 5 checkpoint not found at {args.checkpoint}.", file=sys.stderr)
+        return 2
+    rule_datasets = list(args.rule_trajectory_dataset or [])
+    on_policy_datasets = list(args.on_policy_trajectory_dataset or [])
+    for path in [*rule_datasets, *on_policy_datasets]:
+        if not path.exists():
+            print(f"Phase 5 trajectory dataset not found at {path}.", file=sys.stderr)
+            return 2
+    rule_limit = None if args.rule_step_limit == 0 else args.rule_step_limit
+    on_policy_limit = (
+        None if args.on_policy_step_limit == 0 else args.on_policy_step_limit
+    )
+    try:
+        summary = train_phase5_bc_ppo_policy_from_trajectories(
+            rule_trajectory_dataset_paths=rule_datasets,
+            on_policy_trajectory_dataset_paths=on_policy_datasets,
+            checkpoint_path=args.checkpoint,
+            output_checkpoint_path=args.output_checkpoint,
+            report_path=args.report_json,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            clip_epsilon=args.clip_epsilon,
+            bc_loss_weight=args.bc_loss_weight,
+            ppo_policy_loss_weight=args.ppo_policy_loss_weight,
+            ppo_value_loss_weight=args.ppo_value_loss_weight,
+            entropy_weight=args.entropy_weight,
+            rule_step_limit=rule_limit,
+            on_policy_step_limit=on_policy_limit,
+            deck_index_filter=args.deck_index_filter,
+        )
+    except (Phase5PolicyUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
 def command_rl_train_phase5_alpha_ppo_specialists(args: argparse.Namespace) -> int:
     trajectory_datasets = list(args.trajectory_dataset or [])
     for path in trajectory_datasets:
@@ -1130,6 +1171,7 @@ def command_rl_init_phase5_policy_checkpoint(args: argparse.Namespace) -> int:
             max_actions=args.max_actions,
             max_previous_actions=args.max_previous_actions,
             d_model=args.d_model,
+            seed=args.seed,
             metadata={
                 "deck_index": args.deck_index,
                 "controlled_public_agent_key": args.controlled_public_agent_key,
@@ -1296,7 +1338,14 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             return 2
     if (
         args.agent
-        in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"}
+        in {
+            "phase5-symbolic",
+            "phase5-search",
+            "phase5-full",
+            "phase5-rl",
+            "phase5-epsilon",
+            "phase5-epsilon-mixture",
+        }
         and model_path is None
         and specialist_model_dir is None
     ):
@@ -1387,7 +1436,14 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             return 2
     if (
         args.agent
-        in {"phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"}
+        in {
+            "phase5-symbolic",
+            "phase5-search",
+            "phase5-full",
+            "phase5-rl",
+            "phase5-epsilon",
+            "phase5-epsilon-mixture",
+        }
         and model_path is None
         and args.specialist_model_dir is None
     ):
@@ -1426,6 +1482,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
                 fractional_opponent_weight=args.tactical_fractional_opponent_weight,
             ),
             policy_epsilon=args.policy_epsilon,
+            policy_seed=args.policy_seed,
             teacher_agent_kind=args.teacher_agent,
         )
     except ValueError as exc:
@@ -2651,6 +2708,7 @@ def build_parser() -> argparse.ArgumentParser:
             "phase5-full",
             "phase5-rl",
             "phase5-epsilon",
+            "phase5-epsilon-mixture",
         ],
         default="phase5-rl",
     )
@@ -2667,7 +2725,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--policy-epsilon",
         type=float,
         default=0.0,
-        help="Epsilon-greedy random legal-action probability for phase5-epsilon.",
+        help=(
+            "Exploration probability for phase5-epsilon or the differentiable "
+            "phase5-epsilon-mixture policy."
+        ),
+    )
+    rl_public_trajectories.add_argument(
+        "--policy-seed",
+        type=int,
+        default=None,
+        help="Base exploration seed; each game uses base seed plus game index.",
     )
     rl_public_trajectories.add_argument(
         "--model",
@@ -2934,6 +3001,7 @@ def build_parser() -> argparse.ArgumentParser:
     rl_init_phase5_policy.add_argument("--max-actions", type=int, default=128)
     rl_init_phase5_policy.add_argument("--max-previous-actions", type=int, default=16)
     rl_init_phase5_policy.add_argument("--d-model", type=int, default=128)
+    rl_init_phase5_policy.add_argument("--seed", type=int, default=None)
     rl_init_phase5_policy.add_argument("--overwrite", action="store_true")
     rl_init_phase5_policy.set_defaults(func=command_rl_init_phase5_policy_checkpoint)
 
@@ -3244,6 +3312,81 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum trajectory steps per epoch. Use 0 for all input.",
     )
     rl_train_phase5_ppo.set_defaults(func=command_rl_train_phase5_ppo)
+
+    rl_train_phase5_bc_ppo = subparsers.add_parser(
+        "rl-train-phase5-bc-ppo",
+        help=(
+            "Apply balanced rule behavior cloning and on-policy Phase 5 PPO "
+            "in interleaved optimizer steps."
+        ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--rule-trajectory-dataset",
+        type=_path,
+        action="append",
+        default=[],
+        help="Rule-demonstration trajectory JSONL. Repeat for multiple datasets.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--on-policy-trajectory-dataset",
+        type=_path,
+        action="append",
+        default=[],
+        help=(
+            "Trajectory JSONL from policy_mode=sample or epsilon_mixture with "
+            "policy_on_policy=true. Repeat for multiple datasets."
+        ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_13deck_10k.pt",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--output-checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_generalist_policy_bc_ppo.pt",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_bc_ppo_train_report.json",
+    )
+    rl_train_phase5_bc_ppo.add_argument("--epochs", type=int, default=1)
+    rl_train_phase5_bc_ppo.add_argument("--batch-size", type=int, default=64)
+    rl_train_phase5_bc_ppo.add_argument("--learning-rate", type=float, default=5.0e-5)
+    rl_train_phase5_bc_ppo.add_argument("--clip-epsilon", type=float, default=0.2)
+    rl_train_phase5_bc_ppo.add_argument("--bc-loss-weight", type=float, default=1.0)
+    rl_train_phase5_bc_ppo.add_argument(
+        "--ppo-policy-loss-weight",
+        type=float,
+        default=1.0,
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--ppo-value-loss-weight",
+        type=float,
+        default=0.5,
+    )
+    rl_train_phase5_bc_ppo.add_argument("--entropy-weight", type=float, default=0.01)
+    rl_train_phase5_bc_ppo.add_argument(
+        "--deck-index-filter",
+        type=int,
+        default=None,
+        help="Only train from trajectories whose reward metadata deck_index matches.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--rule-step-limit",
+        type=int,
+        default=0,
+        help="Maximum raw rule trajectory steps to scan. Use 0 for all input.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--on-policy-step-limit",
+        type=int,
+        default=0,
+        help="Maximum raw on-policy trajectory steps to scan. Use 0 for all input.",
+    )
+    rl_train_phase5_bc_ppo.set_defaults(func=command_rl_train_phase5_bc_ppo)
 
     rl_evaluate = subparsers.add_parser(
         "rl-evaluate",

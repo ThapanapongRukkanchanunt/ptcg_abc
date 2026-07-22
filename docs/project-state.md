@@ -1520,6 +1520,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
 - The concrete 13x13 league evaluation is agent-vs-rule: each of the 13 league
   decks controlled by the selected agent against each 13-deck rule-agent
   opponent, with player-order balance across games per matchup.
+- Corrected one-deck training pipeline implemented on July 22, 2026:
+  `phase5-epsilon-mixture` now collects differentiable softmax-plus-uniform
+  exploration with exact behavior log probabilities, and
+  `rl-train-phase5-bc-ppo` interleaves equal rule-BC and valid on-policy PPO
+  examples in every optimizer step. Hard epsilon-greedy and off-policy rule
+  records are rejected from the PPO half. The new isolated SLURM workflow is
+  `scripts/slurm/phase5_one_deck_public_bc_ppo_curriculum.sbatch`; it retains
+  one shared rule bootstrap and deletes only consumed per-generation policy
+  JSONL files. Local Python validation passed; run its small ERAWAN smoke, then
+  compare matched three-generation outcome-plus-fractional and outcome-only
+  arms from identical initialization and exploration seeds.
 
 Operational rule:
 

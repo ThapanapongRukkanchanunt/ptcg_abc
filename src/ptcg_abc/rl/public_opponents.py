@@ -73,6 +73,7 @@ class PublicAgentTrajectorySummary:
     controlled_public_agent_key: str | None = None
     controlled_deck_index: int | None = None
     policy_epsilon: float | None = None
+    policy_seed: int | None = None
     teacher_agent: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -493,6 +494,7 @@ def generate_phase5_public_agent_trajectories(
     outcome_reward_scale: float = 1.0,
     tactical_reward_config: PublicAgentTacticalRewardConfig | None = None,
     policy_epsilon: float = 0.0,
+    policy_seed: int | None = None,
     teacher_agent_kind: str | None = None,
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
@@ -584,6 +586,11 @@ def generate_phase5_public_agent_trajectories(
                     "teacher_agent": teacher_agent_kind,
                     "controlled_public_agent_key": controlled_public_agent_key,
                     "policy_epsilon": float(policy_epsilon),
+                    "policy_seed": (
+                        int(policy_seed) + absolute_game_index
+                        if policy_seed is not None
+                        else None
+                    ),
                     "specialist_model_dir": (
                         specialist_model_dir.as_posix() if specialist_model_dir else None
                     ),
@@ -602,6 +609,11 @@ def generate_phase5_public_agent_trajectories(
                         sample_dir=sample_dir,
                         search_config=search_config,
                         policy_epsilon=policy_epsilon,
+                        policy_seed=(
+                            int(policy_seed) + absolute_game_index
+                            if policy_seed is not None
+                            else None
+                        ),
                     ),
                     our_card_ids,
                     card_data=card_data,
@@ -760,7 +772,12 @@ def generate_phase5_public_agent_trajectories(
         specialist_model_dir=specialist_model_dir.as_posix() if specialist_model_dir else None,
         controlled_public_agent_key=controlled_public_agent_key,
         controlled_deck_index=controlled_deck_index if controlled_public_agent_key else None,
-        policy_epsilon=float(policy_epsilon) if agent_kind == "phase5-epsilon" else None,
+        policy_epsilon=(
+            float(policy_epsilon)
+            if agent_kind in {"phase5-epsilon", "phase5-epsilon-mixture"}
+            else None
+        ),
+        policy_seed=policy_seed,
         teacher_agent=teacher_agent_kind,
     )
 
