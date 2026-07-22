@@ -5987,3 +5987,73 @@ Next ERAWAN diagnostics:
 - Both jobs use three generations, 1000 rule-bootstrap games, 1000
   epsilon-vs-rule games per generation, and 200 zero-exploration eval games per
   generation.
+
+## 2026-07-22 - Outcome Plus Post-Action Fractional Diagnostic Result
+
+ERAWAN result:
+
+- SLURM job `74766` completed successfully in `01:27:34` with exit code `0`.
+- Run name:
+  `phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag`.
+- Configuration: terminal outcome reward scale `1.0`,
+  `basic-fractional-prize` tactical reward, fractional-prize weight `0.25`,
+  three generations, 1000 rule-bootstrap games, 1000 epsilon-vs-rule games per
+  generation, and 200 zero-exploration eval games per generation.
+- Stderr contained only the known PyTorch nested-tensor warning. There were no
+  trajectory or evaluation errors or timeouts.
+- The outcome-only A/B control, SLURM job `74767`, was still running when this
+  arm was inspected.
+
+Eval results:
+
+| Generation | Epsilon used for training window | Eval wins / games | Win rate |
+| ---: | ---: | ---: | ---: |
+| 1 | 1.00 | 51 / 200 | 0.255 |
+| 2 | 0.55 | 44 / 200 | 0.220 |
+| 3 | 0.10 | 45 / 200 | 0.225 |
+
+Training-data and reward diagnostics:
+
+- The fresh rule-vs-rule bootstrap reached 446 / 1000 wins, 550 losses, and
+  4 draws, for a `0.446` baseline win rate.
+- Epsilon-vs-rule windows reached 53 / 1000, 78 / 1000, and 221 / 1000 wins at
+  epsilon `1.00`, `0.55`, and `0.10`, respectively. The generation-3 training
+  window at 221 / 1000 is essentially identical to the generation-2
+  zero-exploration checkpoint at 44 / 200, so the apparent trajectory gain is
+  explained by lower exploration rather than by a successful PPO update.
+- Every fractional reward used the immediate `post-action` board: 39,457,
+  43,869, and 59,655 shaped steps across generations 1-3.
+- Average fractional-prize reward improved as exploration decayed:
+  `-0.01341`, `-0.00794`, then `+0.00079`; the rule bootstrap average was
+  `+0.00556`.
+- Average total tactical reward similarly moved from `-0.01069` to `+0.00109`
+  to `+0.01351`, close to the rule-bootstrap value of `+0.01626` by
+  generation 3.
+- Generation-3 epsilon behavior still over-selected tactical actions relative
+  to the rule bootstrap: attack-taken rate `0.6330` versus `0.2607`, and
+  attach-taken rate `0.7579` versus `0.4131`.
+- PPO consumed 121,781, 126,193, and 141,979 examples. Mean advantage remained
+  negative in all three updates: `-0.2575`, `-0.0727`, and `-0.0767`.
+
+Training-pipeline diagnostic:
+
+- The mixed curriculum sets `REQUIRE_ON_POLICY=0` and sends both retained rule
+  demonstrations and epsilon trajectories through the PPO loss.
+- Rule-agent records have `policy_on_policy=false` and default
+  `policy_logprob=0.0`, but `_train_ppo_batch(...)` still computes the PPO ratio
+  `exp(current_logprob - old_logprob)` for them. This is not a valid PPO update
+  for the rule half of the data, and it is not behavior cloning either.
+- This provides a strong explanation for why the checkpoint does not preserve
+  the 0.446 rule policy despite seeing the rule bootstrap every generation.
+  The rule demonstrations should use a supervised policy loss, while PPO
+  should use only valid model-generated on-policy records.
+
+Conclusion and next step:
+
+- Terminal outcome reward materially improves over the dense-only post-action
+  fractional run (`51 / 200` versus `13 / 200` at generation 1), but this arm
+  remains far below the rule-vs-rule baseline and shows no improvement after
+  generation 1. It is not promotable.
+- Wait for outcome-only job `74767` before attributing any benefit to
+  fractional shaping. After that A/B result, fix the mixed BC/PPO objective
+  separation before scaling another curriculum.

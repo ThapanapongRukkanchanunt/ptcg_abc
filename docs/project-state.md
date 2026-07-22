@@ -1472,6 +1472,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   objective. The next queued diagnostics restore terminal reward:
   `74766` (`phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag`) and
   `74767` (`phase5_dragapult_vs_lucario_outcome1_none_diag`).
+- Outcome-plus-post-action-fractional job `74766` completed on July 22, 2026.
+  Zero-exploration evals were 51 / 200, 44 / 200, and 45 / 200 across
+  generations 1-3, versus a fresh rule-vs-rule baseline of 446 / 1000. The
+  post-action source check passed for every shaped step and the average
+  fractional component became positive by generation 3, but evaluation did
+  not improve. The generation-3 epsilon window at 221 / 1000 was essentially
+  equal to the generation-2 zero-exploration checkpoint, indicating that its
+  apparent gain came from epsilon decay rather than the update. A training
+  pipeline defect was also confirmed: `REQUIRE_ON_POLICY=0` sends retained
+  rule records with `policy_on_policy=false` and `policy_logprob=0.0` through
+  the PPO ratio loss, so the rule half is neither valid PPO nor behavior
+  cloning. Wait for outcome-only control job `74767`, then separate supervised
+  rule imitation from on-policy PPO before another scaled curriculum.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a
