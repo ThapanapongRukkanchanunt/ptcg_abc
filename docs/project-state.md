@@ -1456,7 +1456,9 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   in parallel: post-action `basic-fractional-prize` with fractional weight
   `0.25`, and `basic` only as the A/B baseline. Confirm
   `fractional_after_board_sources.post-action` in the trajectory reports before
-  scaling again.
+  scaling again. These diagnostics were submitted as SLURM jobs `74745`
+  (`phase5_dragapult_vs_lucario_postaction_frac025_diag`) and `74746`
+  (`phase5_dragapult_vs_lucario_basic_only_diag`).
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

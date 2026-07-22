@@ -5916,3 +5916,14 @@ Next ERAWAN diagnostics:
   per generation, 200 zero-exploration eval games per generation, and
   `OUTCOME_REWARD_SCALE=0.0`.
 - Compare the two runs before launching any new 10-generation curriculum.
+
+ERAWAN submission:
+
+- Pushed implementation commit `e672f8d`.
+- Submitted post-action fractional diagnostic as SLURM job `74745`, run name
+  `phase5_dragapult_vs_lucario_postaction_frac025_diag`.
+- Submitted basic-only A/B diagnostic as SLURM job `74746`, run name
+  `phase5_dragapult_vs_lucario_basic_only_diag`.
+- Job IDs were written on ERAWAN to:
+  - `experiments/rl/phase5_one_deck_postaction_frac025_diag_job.txt`;
+  - `experiments/rl/phase5_one_deck_basic_only_diag_job.txt`.
