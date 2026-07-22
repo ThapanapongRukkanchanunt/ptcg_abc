@@ -3230,7 +3230,121 @@ Retry `74838` completed in `00:01:31`: rule Dragapult scored 87 / 200
 checkpoints, 90 / 200 fractional generation 3 and 88 / 200 outcome-only
 generation 2, do not significantly exceed this matched teacher baseline.
 
-## 19. Ready-To-Train Checklist
+## 19. PPO-Dominant One-Deck Follow-Up
+
+This workflow leaves the completed balanced BC+PPO runs untouched. It trains a
+generation-0 checkpoint from the retained rule trajectory once, then updates
+from each generation's valid online records exactly once. The no-anchor arm has
+no BC objective after generation 0. The 10% arm samples approximately 10% rule
+rows and uses a `0.10` BC coefficient; gradient reports measure the effective
+influence of every objective.
+
+After pulling the implementation commit, run both bounded smokes:
+
+```bash
+git pull --ff-only origin main
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export RULE_BOOTSTRAP_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl
+
+JOB_SMOKE_NO_ANCHOR=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_ppo_dominant_no_anchor_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=4 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  BC_RULE_STEP_LIMIT=512 \
+  ON_POLICY_STEP_LIMIT=512 \
+  RULE_ANCHOR_FRACTION=0.0 \
+  BC_LOSS_WEIGHT=0.0 \
+  GRADIENT_DIAGNOSTIC_BATCHES=2 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+JOB_SMOKE_ANCHOR10=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_ppo_dominant_anchor10_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=4 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  BC_RULE_STEP_LIMIT=512 \
+  ONLINE_RULE_STEP_LIMIT=512 \
+  ON_POLICY_STEP_LIMIT=512 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  GRADIENT_DIAGNOSTIC_BATCHES=2 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+printf "no_anchor_smoke=%s\nanchor10_smoke=%s\n" \
+  "$JOB_SMOKE_NO_ANCHOR" "$JOB_SMOKE_ANCHOR10" | \
+  tee experiments/rl/phase5_one_deck_ppo_dominant_smoke_jobs.txt
+```
+
+Smoke gates:
+
+- `gen-0000/trajectory_bc_report.json` has nonzero BC examples and writes the
+  generation-0 specialist checkpoint;
+- `gen-0001/ppo_dominant_report.json` reports `update_schedule=ppo-epoch`, all
+  valid online examples used exactly once, zero invalid PPO rows, and finite
+  objective-gradient diagnostics;
+- no-anchor reports zero rule rows/BC gradient after bootstrap; the 10% report
+  has the requested bounded anchor and nonzero BC gradient;
+- both evals finish and each consumed generation-1 JSONL is deleted.
+
+After both smokes pass, submit the full matched comparison:
+
+```bash
+JOB_NO_ANCHOR=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_ppo_dominant_no_anchor \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=0.90 \
+  EPSILON_END=0.10 \
+  RULE_ANCHOR_FRACTION=0.0 \
+  BC_LOSS_WEIGHT=0.0 \
+  GRADIENT_DIAGNOSTIC_BATCHES=16 \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+JOB_ANCHOR10=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_ppo_dominant_anchor10 \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=0.90 \
+  EPSILON_END=0.10 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  GRADIENT_DIAGNOSTIC_BATCHES=16 \
+  INIT_SEED=20260722 \
+  POLICY_SEED=20260722 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+printf "no_anchor=%s\nanchor10=%s\n" "$JOB_NO_ANCHOR" "$JOB_ANCHOR10" | \
+  tee experiments/rl/phase5_one_deck_ppo_dominant_jobs.txt
+```
+
+Compare generation 0-3 evals with the matched rule baseline `87 / 200`, then
+inspect update reports for policy-gradient magnitude, objective conflict, PPO
+ratio/clip fraction, action behavior, and whether the no-anchor policy forgets
+teacher fundamentals. Do not promote an arm from training-window wins alone.
+
+## 20. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

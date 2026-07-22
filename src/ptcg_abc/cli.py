@@ -105,6 +105,7 @@ from ptcg_abc.rl.phase5_symbolic_diagnostics import diagnose_phase5_symbolic_pol
 from ptcg_abc.rl.phase5_symbolic_training import (
     build_phase5_symbolic_dataset,
     initialize_phase5_policy_checkpoint,
+    train_phase5_bc_policy_from_trajectories,
     train_phase5_bc_ppo_policy_from_trajectories,
     train_phase5_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
@@ -1119,6 +1120,38 @@ def command_rl_train_phase5_bc_ppo(args: argparse.Namespace) -> int:
             entropy_weight=args.entropy_weight,
             rule_step_limit=rule_limit,
             on_policy_step_limit=on_policy_limit,
+            deck_index_filter=args.deck_index_filter,
+            update_schedule=args.update_schedule,
+            rule_anchor_fraction=args.rule_anchor_fraction,
+            gradient_diagnostic_batches=args.gradient_diagnostic_batches,
+        )
+    except (Phase5PolicyUnavailable, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(json.dumps(summary.to_dict(), indent=2))
+    return 0
+
+
+def command_rl_train_phase5_trajectory_bc(args: argparse.Namespace) -> int:
+    if not args.checkpoint.exists():
+        print(f"Phase 5 checkpoint not found at {args.checkpoint}.", file=sys.stderr)
+        return 2
+    rule_datasets = list(args.rule_trajectory_dataset or [])
+    for path in rule_datasets:
+        if not path.exists():
+            print(f"Phase 5 trajectory dataset not found at {path}.", file=sys.stderr)
+            return 2
+    rule_limit = None if args.rule_step_limit == 0 else args.rule_step_limit
+    try:
+        summary = train_phase5_bc_policy_from_trajectories(
+            rule_trajectory_dataset_paths=rule_datasets,
+            checkpoint_path=args.checkpoint,
+            output_checkpoint_path=args.output_checkpoint,
+            report_path=args.report_json,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            rule_step_limit=rule_limit,
             deck_index_filter=args.deck_index_filter,
         )
     except (Phase5PolicyUnavailable, ValueError) as exc:
@@ -3313,11 +3346,60 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_train_phase5_ppo.set_defaults(func=command_rl_train_phase5_ppo)
 
+    rl_train_phase5_trajectory_bc = subparsers.add_parser(
+        "rl-train-phase5-trajectory-bc",
+        help="Behavior-clone a Phase 5 policy once from rule trajectories.",
+    )
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--rule-trajectory-dataset",
+        type=_path,
+        action="append",
+        default=[],
+        help="Rule-demonstration trajectory JSONL. Repeat for multiple datasets.",
+    )
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_policy_scratch.pt",
+    )
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--output-checkpoint",
+        type=_path,
+        default=Path("models") / "rl" / "phase5_policy_rule_bc.pt",
+    )
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_trajectory_bc_report.json",
+    )
+    rl_train_phase5_trajectory_bc.add_argument("--epochs", type=int, default=1)
+    rl_train_phase5_trajectory_bc.add_argument("--batch-size", type=int, default=64)
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--learning-rate",
+        type=float,
+        default=5.0e-5,
+    )
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--deck-index-filter",
+        type=int,
+        default=None,
+        help="Only train from trajectories whose reward metadata deck_index matches.",
+    )
+    rl_train_phase5_trajectory_bc.add_argument(
+        "--rule-step-limit",
+        type=int,
+        default=0,
+        help="Maximum raw rule trajectory steps to scan. Use 0 for all input.",
+    )
+    rl_train_phase5_trajectory_bc.set_defaults(
+        func=command_rl_train_phase5_trajectory_bc
+    )
+
     rl_train_phase5_bc_ppo = subparsers.add_parser(
         "rl-train-phase5-bc-ppo",
         help=(
-            "Apply balanced rule behavior cloning and on-policy Phase 5 PPO "
-            "in interleaved optimizer steps."
+            "Apply rule behavior cloning and valid on-policy Phase 5 PPO "
+            "with a balanced or PPO-led update schedule."
         ),
     )
     rl_train_phase5_bc_ppo.add_argument(
@@ -3368,6 +3450,30 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.5,
     )
     rl_train_phase5_bc_ppo.add_argument("--entropy-weight", type=float, default=0.01)
+    rl_train_phase5_bc_ppo.add_argument(
+        "--update-schedule",
+        choices=["balanced-max", "ppo-epoch"],
+        default="balanced-max",
+        help=(
+            "balanced-max preserves the original equal-source schedule; ppo-epoch "
+            "uses every PPO example once and only a bounded rule anchor."
+        ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--rule-anchor-fraction",
+        type=float,
+        default=0.5,
+        help=(
+            "Rule-row fraction for ppo-epoch batches (0 to 0.5). This controls "
+            "sampling; --bc-loss-weight controls objective strength."
+        ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--gradient-diagnostic-batches",
+        type=int,
+        default=0,
+        help="Log weighted BC, PPO policy/value, and entropy gradients for the first N batches.",
+    )
     rl_train_phase5_bc_ppo.add_argument(
         "--deck-index-filter",
         type=int,

@@ -1563,6 +1563,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   wins above the teacher, respectively, and not statistically distinguishable.
   Final conclusion: corrected BC/PPO reaches teacher level but has not shown
   improvement from online PPO.
+- A PPO-dominant successor was implemented on July 22, 2026 without replacing
+  the completed balanced workflow. It adds one-time rule-trajectory BC,
+  a `ppo-epoch` schedule that uses each online row once, optional 0-10% teacher
+  anchoring with an explicit BC coefficient, and weighted gradient-norm/cosine
+  diagnostics. The new isolated SLURM entry point is
+  `scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch`.
+  The next gate is a matched no-anchor versus 10%-anchor ERAWAN smoke, followed
+  by three generations at epsilon `0.90 -> 0.50 -> 0.10` only if both smokes
+  validate checkpointing, gradients, evaluation, and online-data cleanup.
 
 Operational rule:
 

@@ -17,6 +17,7 @@ from ptcg_abc.rl.phase5_symbolic_training import (
     phase5_symbolic_record_from_decision,
     phase5_symbolic_record_from_trajectory,
     read_phase5_symbolic_jsonl,
+    train_phase5_bc_policy_from_trajectories,
     train_phase5_bc_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
     train_phase5_symbolic_policy_from_decisions,
@@ -311,6 +312,21 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "on-policy.jsonl",
                 "--checkpoint",
                 "previous.pt",
+                "--update-schedule",
+                "ppo-epoch",
+                "--rule-anchor-fraction",
+                "0.1",
+                "--gradient-diagnostic-batches",
+                "4",
+            ]
+        )
+        trajectory_bc_args = parser.parse_args(
+            [
+                "rl-train-phase5-trajectory-bc",
+                "--rule-trajectory-dataset",
+                "rule.jsonl",
+                "--checkpoint",
+                "scratch.pt",
             ]
         )
 
@@ -330,6 +346,13 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         )
         self.assertEqual(bc_ppo_args.bc_loss_weight, 1.0)
         self.assertEqual(bc_ppo_args.ppo_policy_loss_weight, 1.0)
+        self.assertEqual(bc_ppo_args.update_schedule, "ppo-epoch")
+        self.assertEqual(bc_ppo_args.rule_anchor_fraction, 0.1)
+        self.assertEqual(bc_ppo_args.gradient_diagnostic_batches, 4)
+        self.assertEqual(
+            trajectory_bc_args.func.__name__,
+            "command_rl_train_phase5_trajectory_bc",
+        )
 
     @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
     def test_symbolic_trainer_writes_checkpoint(self):
@@ -519,6 +542,95 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             self.assertEqual(summary.optimizer_steps, 1)
             self.assertTrue(output_checkpoint_path.exists())
             self.assertTrue(report_path.exists())
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+    def test_trajectory_bc_then_ppo_epoch_without_rule_anchor(self):
+        rule_frames = [
+            _phase5_frame(step_index=1, selected=[0]),
+            _phase5_frame(step_index=2, selected=[1]),
+        ]
+        on_policy_frames = []
+        for step_index, selected in enumerate(([0], [1], [2]), start=1):
+            frame = _phase5_frame(step_index=step_index, selected=selected)
+            frame.reward_metadata.update(
+                {
+                    "policy_on_policy": True,
+                    "policy_mode": "epsilon_mixture",
+                    "policy_epsilon": 0.5,
+                    "policy_temperature": 1.0,
+                }
+            )
+            on_policy_frames.append(frame)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            scratch_path = root / "scratch.pt"
+            bootstrap_path = root / "bootstrap.pt"
+            updated_path = root / "updated.pt"
+            rule_path = root / "rule.jsonl"
+            on_policy_path = root / "on_policy.jsonl"
+            initialize_phase5_policy_checkpoint(
+                checkpoint_path=scratch_path,
+                d_model=32,
+                max_entities=8,
+                max_actions=4,
+                max_previous_actions=3,
+            )
+            for frame in rule_frames:
+                append_trajectory_jsonl(
+                    TrajectoryStep(
+                        decision=frame,
+                        chosen_indices=list(frame.rule_selected_indices),
+                        reward=1.0,
+                        terminal=False,
+                    ),
+                    rule_path,
+                )
+            for frame in on_policy_frames:
+                append_trajectory_jsonl(
+                    TrajectoryStep(
+                        decision=frame,
+                        chosen_indices=list(frame.rule_selected_indices),
+                        reward=1.0,
+                        terminal=False,
+                        logprob=math.log(1.0 / 3.0),
+                        value=0.0,
+                    ),
+                    on_policy_path,
+                )
+
+            bc_summary = train_phase5_bc_policy_from_trajectories(
+                rule_trajectory_dataset_paths=[rule_path],
+                checkpoint_path=scratch_path,
+                output_checkpoint_path=bootstrap_path,
+                epochs=1,
+                batch_size=2,
+                deck_index_filter=3,
+            )
+            ppo_summary = train_phase5_bc_ppo_policy_from_trajectories(
+                rule_trajectory_dataset_paths=[],
+                on_policy_trajectory_dataset_paths=[on_policy_path],
+                checkpoint_path=bootstrap_path,
+                output_checkpoint_path=updated_path,
+                epochs=1,
+                batch_size=2,
+                deck_index_filter=3,
+                update_schedule="ppo-epoch",
+                rule_anchor_fraction=0.0,
+                bc_loss_weight=0.0,
+                gradient_diagnostic_batches=2,
+            )
+
+            self.assertEqual(bc_summary.examples_available, 2)
+            self.assertEqual(bc_summary.examples_used, 2)
+            self.assertTrue(bootstrap_path.exists())
+            self.assertEqual(ppo_summary.update_schedule, "ppo-epoch")
+            self.assertEqual(ppo_summary.rule_examples_used, 0)
+            self.assertEqual(ppo_summary.on_policy_examples_used, 3)
+            self.assertEqual(ppo_summary.on_policy_reuse_factor, 1.0)
+            self.assertEqual(ppo_summary.optimizer_steps, 2)
+            self.assertEqual(ppo_summary.gradient_diagnostic_batches_recorded, 2)
+            self.assertTrue(updated_path.exists())
 
 
 if __name__ == "__main__":

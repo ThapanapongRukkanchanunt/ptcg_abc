@@ -6310,3 +6310,44 @@ Conclusion:
 - Downloaded the baseline JSON, Markdown, status, and SLURM logs into the
   untracked corrected-A/B analysis bundle. Keep canonical reports on ERAWAN;
   do not add downloaded copies under tracked `reports/` paths.
+
+## 2026-07-22 - One-Time BC And PPO-Dominant Curriculum
+
+Implementation:
+
+- Added `rl-train-phase5-trajectory-bc`, a dedicated sequential-action
+  behavior-cloning update for rule trajectories. This creates the generation-0
+  checkpoint once without mixing rule records into PPO or training unrelated
+  value/tactical objectives.
+- Extended `rl-train-phase5-bc-ppo` with a backward-compatible update schedule.
+  Its default `balanced-max` mode preserves the completed corrected A/B path.
+  The new `ppo-epoch` mode consumes every valid online PPO record once per
+  epoch and uses only a bounded, evenly distributed sample of retained rule
+  records.
+- Added `--rule-anchor-fraction`. A zero fraction performs a true online-only
+  update; a small nonzero fraction controls rule-row sampling. Because BC and
+  PPO losses are independently averaged, objective strength remains explicit
+  in `--bc-loss-weight`; the planned 10% arm uses both a 10% row fraction and a
+  `0.10` BC coefficient.
+- Added weighted objective-gradient diagnostics for BC, PPO policy, PPO value,
+  and entropy, plus BC-vs-PPO-policy and PPO-policy-vs-value cosine similarity.
+  Diagnostics are bounded to the first configurable number of optimizer
+  batches so the full run does not pay the cost on every update.
+- Added the isolated
+  `scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch`
+  workflow. It performs one rule-BC bootstrap, evaluates generation 0, then
+  runs epsilon-mixture collection and PPO-led updates at epsilon
+  `0.90 -> 0.50 -> 0.10`. It retains the shared rule dataset, removes each
+  consumed online JSONL after a successful update, and saves only one win and
+  one loss replay per evaluation generation.
+
+Validation and next step:
+
+- Python compilation passed for the trainer, CLI, and focused tests.
+- The focused local suite passed 29 tests with four Torch-only tests skipped
+  because local PyTorch is unavailable. CLI help exposes the new schedule,
+  anchor, gradient, and trajectory-BC controls.
+- Run matched ERAWAN smokes for no anchor and 10% anchor. If both report valid
+  on-policy rows, one-time BC output, correct source counts, finite gradients,
+  successful eval, and raw-data cleanup, submit the matched three-generation
+  1,000-train-game / 200-eval-game comparison.

@@ -24,6 +24,7 @@ from ptcg_abc.rl.rewards import reward_from_result_metadata
 PHASE5_SYMBOLIC_DATASET_FORMAT = "ptcg_abc_phase5_symbolic_decision_v1"
 PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES = ("all", "baseline")
 PHASE5_DIFFERENTIABLE_POLICY_MODES = ("epsilon_mixture", "sample")
+PHASE5_BC_PPO_UPDATE_SCHEDULES = ("balanced-max", "ppo-epoch")
 
 
 @dataclass(frozen=True)
@@ -239,7 +240,11 @@ class Phase5BCPPOTrainingSummary:
     on_policy_skipped_policy_mode: int
     on_policy_skipped_nonfinite: int
     accepted_policy_modes: list[str]
+    update_schedule: str
+    rule_anchor_fraction: float
     balanced_examples_per_source_per_epoch: int
+    rule_anchor_examples_per_epoch: int
+    on_policy_examples_per_epoch: int
     rule_examples_used: int
     on_policy_examples_used: int
     rule_reuse_factor: float
@@ -256,6 +261,14 @@ class Phase5BCPPOTrainingSummary:
     average_entropy: float
     average_ratio: float
     average_clip_fraction: float
+    gradient_diagnostic_batches_requested: int
+    gradient_diagnostic_batches_recorded: int
+    average_bc_gradient_norm: float
+    average_ppo_policy_gradient_norm: float
+    average_ppo_value_gradient_norm: float
+    average_entropy_gradient_norm: float
+    average_bc_ppo_policy_gradient_cosine: float
+    average_ppo_policy_value_gradient_cosine: float
     mean_advantage: float
     device: str
     deck_index_filter: int | None
@@ -294,6 +307,37 @@ class _BCPPOBatchMetrics:
     entropy: float
     ratio: float
     clip_fraction: float
+    bc_gradient_norm: float = 0.0
+    ppo_policy_gradient_norm: float = 0.0
+    ppo_value_gradient_norm: float = 0.0
+    entropy_gradient_norm: float = 0.0
+    bc_ppo_policy_gradient_cosine: float = 0.0
+    ppo_policy_value_gradient_cosine: float = 0.0
+
+
+@dataclass(frozen=True)
+class Phase5TrajectoryBCTrainingSummary:
+    rule_trajectory_dataset_paths: list[str]
+    steps_seen: int
+    examples_available: int
+    skipped_no_target: int
+    examples_used: int
+    optimizer_steps: int
+    epochs: int
+    checkpoint_path: str
+    output_checkpoint_path: str
+    final_loss: float
+    average_bc_loss: float
+    average_bc_accuracy: float
+    device: str
+    deck_index_filter: int | None
+    max_entities: int
+    max_actions: int
+    max_previous_actions: int
+    config: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -1327,6 +1371,150 @@ def train_phase5_ppo_policy_from_trajectories(
     return summary
 
 
+def train_phase5_bc_policy_from_trajectories(
+    *,
+    rule_trajectory_dataset_paths: Sequence[Path],
+    checkpoint_path: Path,
+    output_checkpoint_path: Path,
+    report_path: Path | None = None,
+    epochs: int = 1,
+    batch_size: int = 64,
+    learning_rate: float = 5.0e-5,
+    rule_step_limit: int | None = None,
+    deck_index_filter: int | None = None,
+) -> Phase5TrajectoryBCTrainingSummary:
+    if not rule_trajectory_dataset_paths:
+        raise ValueError("Provide at least one rule trajectory dataset.")
+    for path in rule_trajectory_dataset_paths:
+        if not path.exists():
+            raise ValueError(f"Phase 5 trajectory dataset not found at {path}.")
+    if batch_size <= 0:
+        raise ValueError("Phase 5 trajectory BC batch_size must be positive.")
+
+    torch, nn = _require_torch()
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    if checkpoint.get("format") != PHASE5_POLICY_CHECKPOINT_FORMAT:
+        raise ValueError(
+            f"Unsupported Phase 5 checkpoint format: {checkpoint.get('format')}"
+        )
+    config = Phase5PolicyConfig(**checkpoint["config"])
+    encoder_config = checkpoint.get("encoder", {})
+    max_entities = int(encoder_config.get("max_entities", 96))
+    max_actions = int(encoder_config.get("max_actions", 128))
+    max_previous_actions = int(encoder_config.get("max_previous_actions", 16))
+    encoder = Phase5SymbolicEncoder(max_entities=max_entities, max_actions=max_actions)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AlphaStarTurnPolicy(config).to(device)
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    stats = _TrajectorySourceStats()
+    for _record, _step in _iter_phase5_hybrid_source(
+        rule_trajectory_dataset_paths,
+        encoder=encoder,
+        max_previous_actions=max_previous_actions,
+        deck_index_filter=deck_index_filter,
+        step_limit=rule_step_limit,
+        require_on_policy=False,
+        accepted_policy_modes=(),
+        stats=stats,
+    ):
+        pass
+    if stats.examples <= 0:
+        raise ValueError("Rule trajectory datasets produced zero BC examples.")
+
+    def rule_factory() -> Iterable[Phase5SymbolicDecisionRecord]:
+        for record, _step in _iter_phase5_hybrid_source(
+            rule_trajectory_dataset_paths,
+            encoder=encoder,
+            max_previous_actions=max_previous_actions,
+            deck_index_filter=deck_index_filter,
+            step_limit=rule_step_limit,
+            require_on_policy=False,
+            accepted_policy_modes=(),
+        ):
+            yield record
+
+    epochs_value = max(1, epochs)
+    optimizer_steps = 0
+    examples_used = 0
+    final_loss = 0.0
+    loss_sum = 0.0
+    accuracy_sum = 0.0
+    for _epoch in range(epochs_value):
+        records = iter(rule_factory())
+        while True:
+            batch = list(islice(records, batch_size))
+            if not batch:
+                break
+            loss, accuracy = _train_bc_only_batch(
+                batch,
+                model=model,
+                optimizer=optimizer,
+                torch=torch,
+                nn=nn,
+                device=device,
+            )
+            final_loss = loss
+            loss_sum += loss
+            accuracy_sum += accuracy
+            optimizer_steps += 1
+            examples_used += len(batch)
+
+    output_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    output = model.checkpoint_payload()
+    output["format"] = PHASE5_POLICY_CHECKPOINT_FORMAT
+    output["encoder"] = {
+        "max_entities": max_entities,
+        "max_actions": max_actions,
+        "max_previous_actions": max_previous_actions,
+    }
+    output["metadata"] = checkpoint.get("metadata", {}) | {
+        "training": "phase5_rule_trajectory_behavior_cloning",
+        "source_checkpoint": checkpoint_path.as_posix(),
+        "rule_trajectory_dataset_paths": [
+            path.as_posix() for path in rule_trajectory_dataset_paths
+        ],
+        "epochs": epochs_value,
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "deck_index_filter": deck_index_filter,
+    }
+    torch.save(output, output_checkpoint_path)
+
+    divisor = max(1, optimizer_steps)
+    summary = Phase5TrajectoryBCTrainingSummary(
+        rule_trajectory_dataset_paths=[
+            path.as_posix() for path in rule_trajectory_dataset_paths
+        ],
+        steps_seen=stats.steps_seen,
+        examples_available=stats.examples,
+        skipped_no_target=stats.skipped_no_target,
+        examples_used=examples_used,
+        optimizer_steps=optimizer_steps,
+        epochs=epochs_value,
+        checkpoint_path=checkpoint_path.as_posix(),
+        output_checkpoint_path=output_checkpoint_path.as_posix(),
+        final_loss=final_loss,
+        average_bc_loss=loss_sum / divisor,
+        average_bc_accuracy=accuracy_sum / divisor,
+        device=str(device),
+        deck_index_filter=deck_index_filter,
+        max_entities=max_entities,
+        max_actions=max_actions,
+        max_previous_actions=max_previous_actions,
+        config=config.to_dict(),
+    )
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(
+            json.dumps(summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+    return summary
+
+
 def train_phase5_bc_ppo_policy_from_trajectories(
     *,
     rule_trajectory_dataset_paths: Sequence[Path],
@@ -1346,9 +1534,10 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     on_policy_step_limit: int | None = None,
     deck_index_filter: int | None = None,
     accepted_policy_modes: Sequence[str] = PHASE5_DIFFERENTIABLE_POLICY_MODES,
+    update_schedule: str = "balanced-max",
+    rule_anchor_fraction: float = 0.5,
+    gradient_diagnostic_batches: int = 0,
 ) -> Phase5BCPPOTrainingSummary:
-    if not rule_trajectory_dataset_paths:
-        raise ValueError("Provide at least one rule trajectory dataset.")
     if not on_policy_trajectory_dataset_paths:
         raise ValueError("Provide at least one on-policy trajectory dataset.")
     for path in [*rule_trajectory_dataset_paths, *on_policy_trajectory_dataset_paths]:
@@ -1356,6 +1545,23 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             raise ValueError(f"Phase 5 trajectory dataset not found at {path}.")
     if batch_size <= 0:
         raise ValueError("Phase 5 BC+PPO batch_size must be positive.")
+    if update_schedule not in PHASE5_BC_PPO_UPDATE_SCHEDULES:
+        raise ValueError(
+            "Phase 5 BC+PPO update_schedule must be one of "
+            + ", ".join(PHASE5_BC_PPO_UPDATE_SCHEDULES)
+            + "."
+        )
+    if not 0.0 <= rule_anchor_fraction <= 0.5:
+        raise ValueError("Phase 5 BC+PPO rule_anchor_fraction must be between 0 and 0.5.")
+    if update_schedule == "balanced-max" and rule_anchor_fraction != 0.5:
+        raise ValueError(
+            "balanced-max requires rule_anchor_fraction=0.5; use ppo-epoch for a small anchor."
+        )
+    if gradient_diagnostic_batches < 0:
+        raise ValueError("gradient_diagnostic_batches must be non-negative.")
+    needs_rule_examples = update_schedule == "balanced-max" or rule_anchor_fraction > 0.0
+    if needs_rule_examples and not rule_trajectory_dataset_paths:
+        raise ValueError("Provide a rule trajectory dataset for the requested BC anchor.")
     for name, value in (
         ("bc_loss_weight", bc_loss_weight),
         ("ppo_policy_loss_weight", ppo_policy_loss_weight),
@@ -1392,17 +1598,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     rule_stats = _TrajectorySourceStats()
-    for _record, _step in _iter_phase5_hybrid_source(
-        rule_trajectory_dataset_paths,
-        encoder=encoder,
-        max_previous_actions=max_previous_actions,
-        deck_index_filter=deck_index_filter,
-        step_limit=rule_step_limit,
-        require_on_policy=False,
-        accepted_policy_modes=(),
-        stats=rule_stats,
-    ):
-        pass
+    if needs_rule_examples:
+        for _record, _step in _iter_phase5_hybrid_source(
+            rule_trajectory_dataset_paths,
+            encoder=encoder,
+            max_previous_actions=max_previous_actions,
+            deck_index_filter=deck_index_filter,
+            step_limit=rule_step_limit,
+            require_on_policy=False,
+            accepted_policy_modes=(),
+            stats=rule_stats,
+        ):
+            pass
     on_policy_stats = _TrajectorySourceStats()
     for _record, _step in _iter_phase5_hybrid_source(
         on_policy_trajectory_dataset_paths,
@@ -1415,7 +1622,7 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         stats=on_policy_stats,
     ):
         pass
-    if rule_stats.examples <= 0:
+    if needs_rule_examples and rule_stats.examples <= 0:
         raise ValueError("Rule trajectory datasets produced zero BC examples.")
     if on_policy_stats.examples <= 0:
         raise ValueError(
@@ -1423,7 +1630,25 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             "Use policy_mode=sample or epsilon_mixture with policy_on_policy=true."
         )
 
-    balanced_examples = max(rule_stats.examples, on_policy_stats.examples)
+    balanced_examples = (
+        max(rule_stats.examples, on_policy_stats.examples)
+        if update_schedule == "balanced-max"
+        else 0
+    )
+    on_policy_examples_per_epoch = (
+        balanced_examples
+        if update_schedule == "balanced-max"
+        else on_policy_stats.examples
+    )
+    rule_anchor_examples_per_epoch = (
+        balanced_examples
+        if update_schedule == "balanced-max"
+        else round(
+            on_policy_stats.examples
+            * rule_anchor_fraction
+            / max(1.0e-12, 1.0 - rule_anchor_fraction)
+        )
+    )
 
     def rule_factory() -> Iterable[Phase5SymbolicDecisionRecord]:
         for record, _step in _iter_phase5_hybrid_source(
@@ -1461,18 +1686,53 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         "ratio": 0.0,
         "clip_fraction": 0.0,
     }
+    gradient_metric_sums = {
+        "bc_gradient_norm": 0.0,
+        "ppo_policy_gradient_norm": 0.0,
+        "ppo_value_gradient_norm": 0.0,
+        "entropy_gradient_norm": 0.0,
+        "bc_ppo_policy_gradient_cosine": 0.0,
+        "ppo_policy_value_gradient_cosine": 0.0,
+    }
     optimizer_steps = 0
+    gradient_diagnostic_batches_recorded = 0
+    rule_examples_used = 0
+    on_policy_examples_used = 0
     final_loss = 0.0
-    for _epoch in range(max(1, epochs)):
-        rule_records = _cycle_phase5_records(rule_factory)
-        on_policy_examples = _cycle_phase5_records(on_policy_factory)
-        examples_remaining = balanced_examples
-        while examples_remaining > 0:
-            current_batch_size = min(batch_size, examples_remaining)
-            rule_batch = list(islice(rule_records, current_batch_size))
-            on_policy_batch = list(islice(on_policy_examples, current_batch_size))
-            if len(rule_batch) != current_batch_size or len(on_policy_batch) != current_batch_size:
+    epochs_value = max(1, epochs)
+    for _epoch in range(epochs_value):
+        if update_schedule == "balanced-max":
+            rule_records = _cycle_phase5_records(rule_factory)
+            on_policy_examples = _cycle_phase5_records(on_policy_factory)
+            batches: Iterable[tuple[list[Any], list[Any]]] = (
+                (
+                    list(islice(rule_records, current_batch_size)),
+                    list(islice(on_policy_examples, current_batch_size)),
+                )
+                for current_batch_size in _phase5_batch_sizes(
+                    balanced_examples,
+                    batch_size,
+                )
+            )
+        else:
+            batches = _iter_phase5_ppo_epoch_batches(
+                rule_factory=rule_factory,
+                on_policy_factory=on_policy_factory,
+                rule_examples_available=rule_stats.examples,
+                on_policy_examples_available=on_policy_stats.examples,
+                rule_examples_target=rule_anchor_examples_per_epoch,
+                batch_size=batch_size,
+            )
+        for rule_batch, on_policy_batch in batches:
+            if not on_policy_batch:
+                raise ValueError("BC+PPO update unexpectedly produced an empty PPO batch.")
+            if update_schedule == "balanced-max" and (
+                len(rule_batch) != len(on_policy_batch)
+            ):
                 raise ValueError("Balanced BC+PPO source unexpectedly produced too few examples.")
+            collect_gradient_diagnostics = (
+                gradient_diagnostic_batches_recorded < gradient_diagnostic_batches
+            )
             metrics = _train_bc_ppo_batch(
                 rule_batch,
                 on_policy_batch,
@@ -1486,12 +1746,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
                 ppo_policy_loss_weight=ppo_policy_loss_weight,
                 ppo_value_loss_weight=ppo_value_loss_weight,
                 entropy_weight=entropy_weight,
+                collect_gradient_diagnostics=collect_gradient_diagnostics,
             )
             final_loss = metrics.loss
             for field in metric_sums:
                 metric_sums[field] += float(getattr(metrics, field))
+            if collect_gradient_diagnostics:
+                for field in gradient_metric_sums:
+                    gradient_metric_sums[field] += float(getattr(metrics, field))
+                gradient_diagnostic_batches_recorded += 1
             optimizer_steps += 1
-            examples_remaining -= current_batch_size
+            rule_examples_used += len(rule_batch)
+            on_policy_examples_used += len(on_policy_batch)
 
     output_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     output = model.checkpoint_payload()
@@ -1502,7 +1768,11 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         "max_previous_actions": max_previous_actions,
     }
     output["metadata"] = checkpoint.get("metadata", {}) | {
-        "training": "phase5_balanced_bc_ppo_trajectory_update",
+        "training": (
+            "phase5_balanced_bc_ppo_trajectory_update"
+            if update_schedule == "balanced-max"
+            else "phase5_ppo_epoch_bc_anchor_trajectory_update"
+        ),
         "source_checkpoint": checkpoint_path.as_posix(),
         "rule_trajectory_dataset_paths": [
             path.as_posix() for path in rule_trajectory_dataset_paths
@@ -1511,7 +1781,11 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             path.as_posix() for path in on_policy_trajectory_dataset_paths
         ],
         "accepted_policy_modes": list(normalized_policy_modes),
+        "update_schedule": update_schedule,
+        "rule_anchor_fraction": rule_anchor_fraction,
         "balanced_examples_per_source_per_epoch": balanced_examples,
+        "rule_anchor_examples_per_epoch": rule_anchor_examples_per_epoch,
+        "on_policy_examples_per_epoch": on_policy_examples_per_epoch,
         "epochs": max(1, epochs),
         "batch_size": batch_size,
         "learning_rate": learning_rate,
@@ -1520,12 +1794,13 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         "ppo_policy_loss_weight": ppo_policy_loss_weight,
         "ppo_value_loss_weight": ppo_value_loss_weight,
         "entropy_weight": entropy_weight,
+        "gradient_diagnostic_batches": gradient_diagnostic_batches,
         "deck_index_filter": deck_index_filter,
     }
     torch.save(output, output_checkpoint_path)
 
     divisor = max(1, optimizer_steps)
-    epochs_value = max(1, epochs)
+    gradient_divisor = max(1, gradient_diagnostic_batches_recorded)
     summary = Phase5BCPPOTrainingSummary(
         rule_trajectory_dataset_paths=[
             path.as_posix() for path in rule_trajectory_dataset_paths
@@ -1543,11 +1818,21 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         on_policy_skipped_policy_mode=on_policy_stats.skipped_policy_mode,
         on_policy_skipped_nonfinite=on_policy_stats.skipped_nonfinite,
         accepted_policy_modes=list(normalized_policy_modes),
+        update_schedule=update_schedule,
+        rule_anchor_fraction=rule_anchor_fraction,
         balanced_examples_per_source_per_epoch=balanced_examples,
-        rule_examples_used=balanced_examples * epochs_value,
-        on_policy_examples_used=balanced_examples * epochs_value,
-        rule_reuse_factor=balanced_examples / rule_stats.examples,
-        on_policy_reuse_factor=balanced_examples / on_policy_stats.examples,
+        rule_anchor_examples_per_epoch=rule_anchor_examples_per_epoch,
+        on_policy_examples_per_epoch=on_policy_examples_per_epoch,
+        rule_examples_used=rule_examples_used,
+        on_policy_examples_used=on_policy_examples_used,
+        rule_reuse_factor=(
+            rule_anchor_examples_per_epoch / rule_stats.examples
+            if rule_stats.examples
+            else 0.0
+        ),
+        on_policy_reuse_factor=(
+            on_policy_examples_per_epoch / on_policy_stats.examples
+        ),
         optimizer_steps=optimizer_steps,
         epochs=epochs_value,
         checkpoint_path=checkpoint_path.as_posix(),
@@ -1560,6 +1845,26 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         average_entropy=metric_sums["entropy"] / divisor,
         average_ratio=metric_sums["ratio"] / divisor,
         average_clip_fraction=metric_sums["clip_fraction"] / divisor,
+        gradient_diagnostic_batches_requested=gradient_diagnostic_batches,
+        gradient_diagnostic_batches_recorded=gradient_diagnostic_batches_recorded,
+        average_bc_gradient_norm=(
+            gradient_metric_sums["bc_gradient_norm"] / gradient_divisor
+        ),
+        average_ppo_policy_gradient_norm=(
+            gradient_metric_sums["ppo_policy_gradient_norm"] / gradient_divisor
+        ),
+        average_ppo_value_gradient_norm=(
+            gradient_metric_sums["ppo_value_gradient_norm"] / gradient_divisor
+        ),
+        average_entropy_gradient_norm=(
+            gradient_metric_sums["entropy_gradient_norm"] / gradient_divisor
+        ),
+        average_bc_ppo_policy_gradient_cosine=(
+            gradient_metric_sums["bc_ppo_policy_gradient_cosine"] / gradient_divisor
+        ),
+        average_ppo_policy_value_gradient_cosine=(
+            gradient_metric_sums["ppo_policy_value_gradient_cosine"] / gradient_divisor
+        ),
         mean_advantage=(
             on_policy_stats.advantage_sum / on_policy_stats.examples
             if on_policy_stats.examples
@@ -1658,6 +1963,74 @@ def _cycle_phase5_records(factory: Any) -> Iterable[Any]:
             yield value
         if not yielded:
             return
+
+
+def _phase5_batch_sizes(example_count: int, batch_size: int) -> Iterable[int]:
+    remaining = example_count
+    while remaining > 0:
+        current = min(batch_size, remaining)
+        yield current
+        remaining -= current
+
+
+def _sample_phase5_records_evenly(
+    factory: Any,
+    *,
+    examples_available: int,
+    examples_target: int,
+) -> Iterable[Any]:
+    if examples_target <= 0:
+        return
+    if examples_target > examples_available:
+        yield from islice(_cycle_phase5_records(factory), examples_target)
+        return
+    selected = 0
+    for index, value in enumerate(factory(), start=1):
+        expected_selected = index * examples_target // examples_available
+        if expected_selected > selected:
+            yield value
+            selected += 1
+        if selected >= examples_target:
+            return
+
+
+def _iter_phase5_ppo_epoch_batches(
+    *,
+    rule_factory: Any,
+    on_policy_factory: Any,
+    rule_examples_available: int,
+    on_policy_examples_available: int,
+    rule_examples_target: int,
+    batch_size: int,
+) -> Iterable[tuple[list[Any], list[Any]]]:
+    on_policy_records = iter(on_policy_factory())
+    rule_records = iter(
+        _sample_phase5_records_evenly(
+            rule_factory,
+            examples_available=rule_examples_available,
+            examples_target=rule_examples_target,
+        )
+    )
+    batches_remaining = math.ceil(on_policy_examples_available / batch_size)
+    rule_examples_remaining = rule_examples_target
+    for current_batch_size in _phase5_batch_sizes(
+        on_policy_examples_available,
+        batch_size,
+    ):
+        on_policy_batch = list(islice(on_policy_records, current_batch_size))
+        if len(on_policy_batch) != current_batch_size:
+            raise ValueError("PPO epoch source unexpectedly produced too few examples.")
+        current_rule_count = (
+            round(rule_examples_remaining / batches_remaining)
+            if batches_remaining > 0
+            else 0
+        )
+        rule_batch = list(islice(rule_records, current_rule_count))
+        if len(rule_batch) != current_rule_count:
+            raise ValueError("Rule anchor source unexpectedly produced too few examples.")
+        yield rule_batch, on_policy_batch
+        rule_examples_remaining -= current_rule_count
+        batches_remaining -= 1
 
 
 def initialize_phase5_policy_checkpoint(
@@ -2057,6 +2430,48 @@ def _train_ppo_batch(
     return float(loss.detach().item())
 
 
+def _train_bc_only_batch(
+    records: Sequence[Phase5SymbolicDecisionRecord],
+    *,
+    model: Any,
+    optimizer: Any,
+    torch: Any,
+    nn: Any,
+    device: Any,
+) -> tuple[float, float]:
+    output, action_mask = _forward_phase5_records(
+        records,
+        model=model,
+        torch=torch,
+        device=device,
+    )
+    selected_logprobs = _sequential_selected_logprobs(
+        records,
+        logits=output["action_logits"],
+        action_mask=action_mask,
+        torch=torch,
+        nn=nn,
+        use_record_policy=False,
+    )
+    weights = torch.tensor(
+        [record.weight for record in records],
+        dtype=torch.float32,
+        device=device,
+    )
+    loss = -(selected_logprobs * weights).sum() / weights.sum().clamp(min=1.0e-6)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    masked_logits = output["action_logits"].masked_fill(action_mask <= 0, -1.0e9)
+    predictions = masked_logits.detach().argmax(dim=1).tolist()
+    correct = sum(
+        int(int(prediction) in set(record.target_positions))
+        for prediction, record in zip(predictions, records, strict=True)
+    )
+    return float(loss.detach().item()), correct / max(1, len(records))
+
+
 def _train_bc_ppo_batch(
     rule_records: Sequence[Phase5SymbolicDecisionRecord],
     on_policy_examples: Sequence[tuple[Phase5SymbolicDecisionRecord, float, float]],
@@ -2071,14 +2486,9 @@ def _train_bc_ppo_batch(
     ppo_policy_loss_weight: float,
     ppo_value_loss_weight: float,
     entropy_weight: float,
+    collect_gradient_diagnostics: bool = False,
 ) -> _BCPPOBatchMetrics:
     on_policy_records = [example[0] for example in on_policy_examples]
-    rule_output, rule_action_mask = _forward_phase5_records(
-        rule_records,
-        model=model,
-        torch=torch,
-        device=device,
-    )
     on_policy_output, on_policy_action_mask = _forward_phase5_records(
         on_policy_records,
         model=model,
@@ -2086,32 +2496,42 @@ def _train_bc_ppo_batch(
         device=device,
     )
 
-    rule_logprobs = _sequential_selected_logprobs(
-        rule_records,
-        logits=rule_output["action_logits"],
-        action_mask=rule_action_mask,
-        torch=torch,
-        nn=nn,
-        use_record_policy=False,
-    )
-    rule_weights = torch.tensor(
-        [record.weight for record in rule_records],
-        dtype=torch.float32,
-        device=device,
-    )
-    bc_loss = -(rule_logprobs * rule_weights).sum() / rule_weights.sum().clamp(
-        min=1.0e-6
-    )
-    masked_rule_logits = rule_output["action_logits"].masked_fill(
-        rule_action_mask <= 0,
-        -1.0e9,
-    )
-    rule_predictions = masked_rule_logits.detach().argmax(dim=1).tolist()
-    bc_correct = sum(
-        int(int(prediction) in set(record.target_positions))
-        for prediction, record in zip(rule_predictions, rule_records, strict=True)
-    )
-    bc_accuracy = bc_correct / max(1, len(rule_records))
+    if rule_records:
+        rule_output, rule_action_mask = _forward_phase5_records(
+            rule_records,
+            model=model,
+            torch=torch,
+            device=device,
+        )
+        rule_logprobs = _sequential_selected_logprobs(
+            rule_records,
+            logits=rule_output["action_logits"],
+            action_mask=rule_action_mask,
+            torch=torch,
+            nn=nn,
+            use_record_policy=False,
+        )
+        rule_weights = torch.tensor(
+            [record.weight for record in rule_records],
+            dtype=torch.float32,
+            device=device,
+        )
+        bc_loss = -(rule_logprobs * rule_weights).sum() / rule_weights.sum().clamp(
+            min=1.0e-6
+        )
+        masked_rule_logits = rule_output["action_logits"].masked_fill(
+            rule_action_mask <= 0,
+            -1.0e9,
+        )
+        rule_predictions = masked_rule_logits.detach().argmax(dim=1).tolist()
+        bc_correct = sum(
+            int(int(prediction) in set(record.target_positions))
+            for prediction, record in zip(rule_predictions, rule_records, strict=True)
+        )
+        bc_accuracy = bc_correct / len(rule_records)
+    else:
+        bc_loss = on_policy_output["action_logits"].sum() * 0.0
+        bc_accuracy = 0.0
 
     selected_logprobs = _sequential_selected_logprobs(
         on_policy_records,
@@ -2166,6 +2586,56 @@ def _train_bc_ppo_batch(
         + float(ppo_value_loss_weight) * ppo_value_loss
         - float(entropy_weight) * entropy
     )
+    gradient_metrics = {
+        "bc_gradient_norm": 0.0,
+        "ppo_policy_gradient_norm": 0.0,
+        "ppo_value_gradient_norm": 0.0,
+        "entropy_gradient_norm": 0.0,
+        "bc_ppo_policy_gradient_cosine": 0.0,
+        "ppo_policy_value_gradient_cosine": 0.0,
+    }
+    if collect_gradient_diagnostics:
+        parameters = tuple(
+            parameter for parameter in model.parameters() if parameter.requires_grad
+        )
+        bc_gradients, bc_gradient_norm = _phase5_objective_gradients(
+            float(bc_loss_weight) * bc_loss,
+            parameters=parameters,
+            torch=torch,
+        )
+        policy_gradients, ppo_policy_gradient_norm = _phase5_objective_gradients(
+            float(ppo_policy_loss_weight) * ppo_policy_loss,
+            parameters=parameters,
+            torch=torch,
+        )
+        value_gradients, ppo_value_gradient_norm = _phase5_objective_gradients(
+            float(ppo_value_loss_weight) * ppo_value_loss,
+            parameters=parameters,
+            torch=torch,
+        )
+        entropy_gradients, entropy_gradient_norm = _phase5_objective_gradients(
+            -float(entropy_weight) * entropy,
+            parameters=parameters,
+            torch=torch,
+        )
+        gradient_metrics = {
+            "bc_gradient_norm": bc_gradient_norm,
+            "ppo_policy_gradient_norm": ppo_policy_gradient_norm,
+            "ppo_value_gradient_norm": ppo_value_gradient_norm,
+            "entropy_gradient_norm": entropy_gradient_norm,
+            "bc_ppo_policy_gradient_cosine": _phase5_gradient_cosine(
+                bc_gradients,
+                policy_gradients,
+                first_norm=bc_gradient_norm,
+                second_norm=ppo_policy_gradient_norm,
+            ),
+            "ppo_policy_value_gradient_cosine": _phase5_gradient_cosine(
+                policy_gradients,
+                value_gradients,
+                first_norm=ppo_policy_gradient_norm,
+                second_norm=ppo_value_gradient_norm,
+            ),
+        }
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -2180,7 +2650,47 @@ def _train_bc_ppo_batch(
         entropy=float(entropy.detach().item()),
         ratio=float(ratios.detach().mean().item()),
         clip_fraction=float(clip_fraction.detach().item()),
+        **gradient_metrics,
     )
+
+
+def _phase5_objective_gradients(
+    objective: Any,
+    *,
+    parameters: Sequence[Any],
+    torch: Any,
+) -> tuple[tuple[Any | None, ...], float]:
+    gradients = torch.autograd.grad(
+        objective,
+        parameters,
+        retain_graph=True,
+        allow_unused=True,
+    )
+    squared_norm = torch.zeros((), dtype=torch.float32, device=objective.device)
+    for gradient in gradients:
+        if gradient is not None:
+            squared_norm = squared_norm + gradient.detach().float().pow(2).sum()
+    return gradients, float(torch.sqrt(squared_norm).item())
+
+
+def _phase5_gradient_cosine(
+    first: Sequence[Any | None],
+    second: Sequence[Any | None],
+    *,
+    first_norm: float,
+    second_norm: float,
+) -> float:
+    if first_norm <= 0.0 or second_norm <= 0.0:
+        return 0.0
+    dot = 0.0
+    for first_gradient, second_gradient in zip(first, second, strict=True):
+        if first_gradient is not None and second_gradient is not None:
+            dot += float(
+                (first_gradient.detach().float() * second_gradient.detach().float())
+                .sum()
+                .item()
+            )
+    return dot / (first_norm * second_norm)
 
 
 def _forward_phase5_records(
