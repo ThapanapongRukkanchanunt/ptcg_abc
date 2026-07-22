@@ -6057,3 +6057,66 @@ Conclusion and next step:
 - Wait for outcome-only job `74767` before attributing any benefit to
   fractional shaping. After that A/B result, fix the mixed BC/PPO objective
   separation before scaling another curriculum.
+
+## 2026-07-22 - Terminal-Outcome Reward A/B Completed
+
+ERAWAN result:
+
+- Outcome-only control job `74767`, run name
+  `phase5_dragapult_vs_lucario_outcome1_none_diag`, completed successfully in
+  `01:43:10` with exit code `0`.
+- Its configuration matched job `74766` except that tactical reward mode was
+  `none`; terminal outcome reward scale remained `1.0`.
+- Stderr contained only the known PyTorch nested-tensor warning. No trajectory
+  or evaluation errors or timeouts occurred.
+
+Eval A/B:
+
+| Generation | Outcome + post-action fractional | Outcome only | Fractional delta |
+| ---: | ---: | ---: | ---: |
+| 1 | 51 / 200 (`0.255`) | 12 / 200 (`0.060`) | +39 wins |
+| 2 | 44 / 200 (`0.220`) | 47 / 200 (`0.235`) | -3 wins |
+| 3 | 45 / 200 (`0.225`) | 19 / 200 (`0.095`) | +26 wins |
+| Total | 140 / 600 (`0.233`) | 78 / 600 (`0.130`) | +62 wins |
+
+- Fresh rule-vs-rule baselines were comparable: 446 / 1000 in the fractional
+  arm and 431 / 1000 in the outcome-only arm. Neither learned policy approached
+  rule strength; the best checkpoint in this A/B was fractional generation 1
+  at only `0.255`.
+- Fractional shaping was beneficial inside this flawed training recipe: it
+  improved the three-generation aggregate by 10.3 percentage points and
+  stabilized generations 2-3 around `0.22` instead of the control's
+  generation-3 collapse.
+- The result does not establish a promotable reward weight because each arm is
+  a single stochastic training run and all six checkpoints remain far below
+  baseline.
+
+Behavior diagnostic:
+
+- At epsilon `1.0`, both arms began with nearly identical action behavior:
+  attack-taken rates around `0.178-0.179` and attach-taken rates around
+  `0.403-0.410`.
+- By generation 3, the outcome-only arm's attack-taken rate collapsed to
+  `0.0757` while its attach-taken rate rose to `0.7158`. It generated 80,048
+  controlled-decision steps over 1000 games and evaluated at 19 / 200.
+- The fractional arm instead reached attack-taken rate `0.6330`, attach-taken
+  rate `0.7579`, 59,655 controlled-decision steps, and 45 / 200 eval wins.
+- Fractional prize progress therefore supplies a useful anti-stalling signal:
+  terminal outcome alone does not give the current trainer enough credit to
+  preserve attacks. However, the fractional arm can still over-favor attacks
+  and remains much weaker than the rule policy.
+
+Pipeline conclusion:
+
+- Do not queue another long curriculum with the current trainer. Reward tuning
+  is no longer the primary blocker.
+- Separate the mixed update into two mathematically valid objectives:
+  - supervised behavior-cloning cross-entropy for retained rule demonstrations;
+  - PPO only for records with valid model-policy log probabilities and
+    `policy_on_policy=true`.
+- Mix or interleave the two losses by examples rather than streaming the full
+  rule dataset followed by the full epsilon dataset. The present order makes
+  the final optimizer updates disproportionately reflect the epsilon window.
+- Keep terminal outcome reward and retain post-action fractional shaping as an
+  auxiliary PPO reward for the first corrected experiment, with an outcome-only
+  corrected control before selecting the reward weight.

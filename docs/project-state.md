@@ -1485,6 +1485,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   the PPO ratio loss, so the rule half is neither valid PPO nor behavior
   cloning. Wait for outcome-only control job `74767`, then separate supervised
   rule imitation from on-policy PPO before another scaled curriculum.
+- Outcome-only control job `74767` completed on July 22, 2026. Its
+  zero-exploration evals were 12 / 200, 47 / 200, and 19 / 200 across
+  generations 1-3, compared with 51 / 200, 44 / 200, and 45 / 200 for terminal
+  outcome plus post-action fractional shaping. Fractional shaping won the
+  three-generation aggregate 140 / 600 to 78 / 600 and prevented the control's
+  generation-3 attack collapse: outcome-only attack-taken rate fell to
+  `0.0757`, versus `0.6330` with shaping. Neither arm approached the comparable
+  rule-vs-rule baselines of 431-446 / 1000, so reward tuning is not the main
+  blocker. Do not scale this trainer again. The next implementation should use
+  supervised cross-entropy for retained rule demonstrations, PPO only for
+  valid on-policy model records, and interleaved/mixed batches rather than
+  streaming all rule data before all epsilon data. Retain terminal outcome plus
+  post-action fractional reward as one corrected A/B arm.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a
