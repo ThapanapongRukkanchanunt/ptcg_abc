@@ -6214,3 +6214,82 @@ Next step:
   statuses, and stdout/stderr files. Compare eval win rate and attack/attach/END
   behavior against the flawed 74766/74767 A/B and the 0.431-0.446 rule
   baseline before deciding whether to extend generations.
+
+## 2026-07-22 - Corrected BC + PPO A/B Completed
+
+ERAWAN completion:
+
+- Fractional job `74791` completed in `02:27:42`; outcome-only job `74792`
+  completed in `02:24:15`. Both exited `0` with no gameplay errors or timeouts.
+- Stderr for both jobs contained only the known PyTorch nested-tensor warning.
+- Downloaded report-only archive
+  `phase5_corrected_bcppo_74791_74792_reports.tar.gz` contains all six update
+  reports, six trajectory reports, six eval JSON/Markdown/status groups, saved
+  win/loss replays, and both SLURM logs. Checkpoints remain on ERAWAN and each
+  consumed model-policy JSONL was deleted after its successful update.
+
+Deterministic eval against rule Mega Lucario ex:
+
+| Generation | Corrected outcome + fractional | Corrected outcome only | Old fractional 74766 | Old outcome 74767 |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 83 / 200 (`0.415`) | 84 / 200 (`0.420`) | 51 / 200 (`0.255`) | 12 / 200 (`0.060`) |
+| 2 | 75 / 200 (`0.375`) | 88 / 200 (`0.440`) | 44 / 200 (`0.220`) | 47 / 200 (`0.235`) |
+| 3 | 90 / 200 (`0.450`) | 82 / 200 (`0.410`) | 45 / 200 (`0.225`) | 19 / 200 (`0.095`) |
+| Total | 248 / 600 (`0.413`) | 254 / 600 (`0.423`) | 140 / 600 (`0.233`) | 78 / 600 (`0.130`) |
+
+- Correct objective separation removed the old collapse. Relative to the old
+  trainer, the aggregate improved by 18.0 percentage points for fractional
+  shaping and 29.3 points for outcome-only.
+- Neither corrected arm passed the 0.50 gate and neither improved monotonically
+  across generations. The best checkpoint was fractional generation 3 at
+  `0.450`, statistically indistinguishable from the historical 0.431-0.446
+  rule baselines.
+- Fractional versus outcome-only is also inconclusive: aggregate 0.413 versus
+  0.423 has an approximate unpaired two-sided `p=0.73`; the generation-3
+  0.450 versus 0.410 difference has `p=0.42`. Do not select a shaping arm from
+  these differences.
+
+Training diagnostics:
+
+- Every generation used the same 82,324 valid rule-BC examples. PPO examples
+  were 41,016 / 58,289 / 80,219 for fractional and
+  39,189 / 59,543 / 80,275 for outcome-only. Every PPO row was accepted with
+  zero no-target, off-policy, unsupported-mode, or nonfinite skips.
+- Rule BC reached approximately 0.997 accuracy in generation 1 and 1.000 in
+  generations 2-3. Average BC loss fell from about `0.149` to below `0.0005`
+  in generation 2 and below `0.000013` in generation 3.
+- Average PPO ratios stayed essentially `1.0`; clip fraction was zero except
+  for roughly `0.0003-0.0004` in generation 2. PPO policy-loss scalars were
+  near zero. This is consistent with small policy movement under a full 50/50
+  rule anchor, not evidence of a broken likelihood ratio.
+- The arms had nearly identical action behavior. By generation 3, attack-taken
+  rates were `0.2340` fractional and `0.2357` outcome-only; attach-taken rates
+  were `0.4193` and `0.4115`; END rates were `0.0301` and `0.0306`.
+- Fractional training-window wins rose from 75 to 339 / 1000 as epsilon decayed;
+  outcome-only rose from 61 to 304 / 1000. Because zero-exploration eval did
+  not improve monotonically, most of this rise is exploration decay rather
+  than learned strength.
+
+Conclusion:
+
+- The corrected pipeline successfully preserves/clones rule behavior, but the
+  repeated 50/50 full rule bootstrap pins the policy near the teacher. This
+  experiment does not show useful online PPO improvement beyond behavior
+  cloning.
+- At generation-1 epsilon `1.0`, the behavior policy is exactly uniform:
+  `pi_mix = Uniform`. Its derivative with respect to neural logits is zero, so
+  generation 1 cannot produce a PPO policy-gradient update; it trains only BC
+  and value/shared features. Future differentiable exploration must start
+  below 1.0 or use a high-temperature neural policy.
+- Before the next long run, change the schedule to BC pretraining once at
+  generation 0, then PPO-dominant online updates with either no retained BC or
+  a small anti-forgetting anchor. Add per-objective gradient norms/cosine
+  diagnostics so BC, PPO policy, value, and entropy influence are measurable.
+- Submitted matched 200-game rule-vs-rule baseline SLURM job `74836` using
+  sample Dragapult against sample Lucario. Use it to finalize whether the 0.450
+  checkpoint exceeds the teacher on the exact eval budget; do not infer that
+  from the historical 1,000-game baselines alone.
+- Baseline job `74836` failed before gameplay in three seconds because
+  `rl-evaluate-phase5-public-agents` supported the rule agent internally but
+  omitted `rule` from its CLI `--agent` choices. Added that missing choice and
+  a parser regression test; no completed training/eval artifacts were affected.

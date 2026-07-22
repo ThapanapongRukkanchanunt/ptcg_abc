@@ -1539,6 +1539,22 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   job `74792` is outcome only. Both use 1,000 train and 200 eval games for
   three generations, epsilon `1.0 -> 0.55 -> 0.10`, and identical retained
   rule data, initialization seed, and exploration seed.
+- Corrected A/B jobs `74791` and `74792` completed successfully on July 22,
+  2026. Fractional evals were 83/200, 75/200, and 90/200; outcome-only evals
+  were 84/200, 88/200, and 82/200. Their aggregates, 0.413 and 0.423, are much
+  better than the flawed pipeline's 0.233 and 0.130 but statistically
+  indistinguishable from one another and near the historical 0.431-0.446 rule
+  baseline. BC reached 100% training accuracy, both arms had nearly identical
+  attack/attach/END behavior, and eval did not improve monotonically. The
+  corrected trainer therefore preserves rule behavior but has not shown
+  online PPO improvement. A 50/50 full rule anchor is too strong for the next
+  true-RL phase, and epsilon 1.0 gives zero policy gradient for the
+  differentiable uniform mixture. Next use one-time generation-0 BC, then
+  PPO-dominant updates with epsilon below 1.0 or high-temperature policy
+  sampling, plus objective-gradient diagnostics. Matched 200-game
+  rule-vs-rule baseline job `74836` failed before gameplay because the public
+  evaluator CLI omitted its already-supported `rule` agent choice. The CLI and
+  parser test are fixed; resubmit the diagnostic after pulling the fix.
 
 Operational rule:
 

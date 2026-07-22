@@ -3189,6 +3189,38 @@ example rule source and therefore had a high average clip fraction. Treat its
 3 / 4 eval only as end-to-end validation; use the 1,000-game A/B jobs for any
 learning conclusion.
 
+Completed A/B result:
+
+- job `74791` evals: 83/200, 75/200, 90/200;
+- job `74792` evals: 84/200, 88/200, 82/200;
+- neither arm passed 0.50 or improved monotonically;
+- both arms converged to 100% rule-BC training accuracy and nearly identical
+  action rates, so do not continue the same 50/50 full-bootstrap schedule;
+- epsilon must be below 1.0 for the softmax-plus-uniform mixture to retain a
+  nonzero neural policy gradient.
+
+Matched rule baseline diagnostic submitted as job `74836`:
+
+```bash
+PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+PUBLIC_AGENT_KEYS=sample_lucario \
+CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+CONTROLLED_DECK_INDEX=101 \
+AGENT=rule \
+SPECIALIST_MODEL_DIR= \
+GAMES_PER_MATCHUP=200 \
+MAX_STEPS=600 \
+REPORT_JSON=reports/phase5_dragapult_vs_lucario_rule_baseline_200g.json \
+REPORT_MD=reports/phase5_dragapult_vs_lucario_rule_baseline_200g.md \
+STATUS_JSON=reports/phase5_dragapult_vs_lucario_rule_baseline_200g_status.json \
+sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+```
+
+Job `74836` failed before gameplay because the public-eval CLI initially
+omitted `rule` from `--agent`. Pull a commit containing the rule-eval parser
+fix, then resubmit the same command. The internal evaluator and SLURM wrapper
+already support rule agents.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

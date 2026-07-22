@@ -3525,7 +3525,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate_public.add_argument(
         "--agent",
-        choices=["phase5-symbolic", "phase5-search", "phase5-full", "phase5-rl", "phase5-epsilon"],
+        choices=[
+            "rule",
+            "phase5-symbolic",
+            "phase5-search",
+            "phase5-full",
+            "phase5-rl",
+            "phase5-epsilon",
+        ],
         default="phase5-full",
     )
     rl_evaluate_public.add_argument(

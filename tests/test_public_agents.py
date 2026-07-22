@@ -166,6 +166,19 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(eval_public_args.saved_win_replays, 1)
         self.assertEqual(eval_public_args.saved_loss_replays, 1)
 
+        rule_eval_args = parser.parse_args(
+            [
+                "rl-evaluate-phase5-public-agents",
+                "--controlled-public-agent-key",
+                "sample_dragapult",
+                "--public-agent-key",
+                "sample_lucario",
+                "--agent",
+                "rule",
+            ]
+        )
+        self.assertEqual(rule_eval_args.agent, "rule")
+
         init_args = parser.parse_args(
             [
                 "rl-init-phase5-policy-checkpoint",
