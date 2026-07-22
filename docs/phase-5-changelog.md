@@ -6293,3 +6293,9 @@ Conclusion:
   `rl-evaluate-phase5-public-agents` supported the rule agent internally but
   omitted `rule` from its CLI `--agent` choices. Added that missing choice and
   a parser regression test; no completed training/eval artifacts were affected.
+- Retry job `74837` also failed before gameplay in three seconds: the public
+  evaluator still validated the SLURM wrapper's default specialist directory
+  even when `--agent rule` did not need a checkpoint. Rule evaluation now
+  ignores model/specialist arguments before checkpoint validation, with a
+  regression test that supplies a nonexistent specialist directory and proves
+  dispatch reaches the evaluator.

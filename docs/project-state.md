@@ -1554,7 +1554,10 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   sampling, plus objective-gradient diagnostics. Matched 200-game
   rule-vs-rule baseline job `74836` failed before gameplay because the public
   evaluator CLI omitted its already-supported `rule` agent choice. The CLI and
-  parser test are fixed; resubmit the diagnostic after pulling the fix.
+  parser test were fixed, but retry `74837` exposed a second pregame guard: the
+  wrapper's default specialist path was validated for the rule agent. Rule
+  evaluation now ignores all model/specialist paths before validation; pull
+  that fix and resubmit.
 
 Operational rule:
 

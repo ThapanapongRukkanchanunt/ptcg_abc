@@ -1,8 +1,9 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from ptcg_abc.cli import build_parser
+from ptcg_abc.cli import build_parser, command_rl_evaluate_phase5_public_agents
 from ptcg_abc.public_agents import (
     LoadedPublicAgent,
     PublicAgentStatus,
@@ -21,6 +22,27 @@ from ptcg_abc.rl.public_opponents import (
 
 
 class PublicAgentRosterTests(unittest.TestCase):
+    def test_rule_public_eval_ignores_specialist_checkpoint_directory(self):
+        parser = build_parser()
+        with tempfile.TemporaryDirectory() as tmp:
+            args = parser.parse_args(
+                [
+                    "rl-evaluate-phase5-public-agents",
+                    "--sample-dir",
+                    tmp,
+                    "--agent",
+                    "rule",
+                    "--specialist-model-dir",
+                    str(Path(tmp) / "missing-specialists"),
+                ]
+            )
+            with patch(
+                "ptcg_abc.cli.run_phase5_public_agent_benchmark",
+                side_effect=RuntimeError("reached evaluator"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "reached evaluator"):
+                    command_rl_evaluate_phase5_public_agents(args)
+
     def test_builtin_roster_has_public_20_plus_sample_4(self):
         all_sources = public_agent_sources()
         public_sources = public_agent_sources(include_samples=False)

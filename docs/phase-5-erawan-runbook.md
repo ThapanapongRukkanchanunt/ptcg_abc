@@ -3221,6 +3221,10 @@ omitted `rule` from `--agent`. Pull a commit containing the rule-eval parser
 fix, then resubmit the same command. The internal evaluator and SLURM wrapper
 already support rule agents.
 
+Retry `74837` found a second pregame guard: the wrapper's default specialist
+directory was validated even for `--agent rule`. Pull the follow-up fix that
+clears model/specialist inputs for rule evaluation, then run the same command.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

@@ -1321,7 +1321,7 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
         )
         return 2
     model_path = args.model if args.model and args.model.exists() else None
-    specialist_model_dir = args.specialist_model_dir
+    specialist_model_dir = None if args.agent == "rule" else args.specialist_model_dir
     if specialist_model_dir is not None:
         missing = [
             specialist_model_dir / f"deck-{deck_index:02d}.pt"
