@@ -667,6 +667,7 @@ def generate_phase5_public_agent_trajectories(
                         record.frame,
                         record.chosen_indices,
                         tactical_config,
+                        post_action_board=record.post_action_board,
                         next_frame=next_frame,
                         final_prize_counts=result.prize_counts,
                         player_index=our_player_index,
@@ -1090,6 +1091,7 @@ def _tactical_reward_for_frame(
     chosen_indices: Sequence[int],
     config: PublicAgentTacticalRewardConfig,
     *,
+    post_action_board: dict[str, Any] | None = None,
     next_frame: DecisionFrame | None = None,
     final_prize_counts: Sequence[int] | None = None,
     player_index: int | None = None,
@@ -1124,6 +1126,7 @@ def _tactical_reward_for_frame(
 
     fractional_reward, fractional_metadata = _fractional_prize_reward_for_frame(
         frame,
+        post_action_board=post_action_board,
         next_frame=next_frame,
         final_prize_counts=final_prize_counts,
         player_index=player_index,
@@ -1150,6 +1153,7 @@ def _tactical_reward_for_frame(
 def _fractional_prize_reward_for_frame(
     frame: DecisionFrame,
     *,
+    post_action_board: dict[str, Any] | None,
     next_frame: DecisionFrame | None,
     final_prize_counts: Sequence[int] | None,
     player_index: int | None,
@@ -1166,19 +1170,27 @@ def _fractional_prize_reward_for_frame(
         "tactical_fractional_prize_weight": float(config.fractional_prize_weight),
         "tactical_fractional_opponent_weight": float(config.fractional_opponent_weight),
         "tactical_fractional_prize_has_after_board": False,
+        "tactical_fractional_prize_after_source": "none",
     }
     if config.mode not in {"fractional-prize", "basic-fractional-prize"}:
         return 0.0, metadata
 
     after_board: dict[str, Any] | None = None
-    if next_frame is not None:
+    after_source = "none"
+    if post_action_board is not None:
+        after_board = post_action_board
+        after_source = "post-action"
+    elif next_frame is not None:
         after_board = next_frame.board
+        after_source = "next-frame"
     else:
         after_board = _board_with_final_prizes(
             frame.board,
             final_prize_counts=final_prize_counts,
             player_index=player_index,
         )
+        if after_board is not None:
+            after_source = "final-prizes"
     if after_board is None:
         return 0.0, metadata
 
@@ -1202,6 +1214,7 @@ def _fractional_prize_reward_for_frame(
             "tactical_fractional_opponent_prize_delta": opponent_delta,
             "tactical_fractional_prize_reward": reward,
             "tactical_fractional_prize_has_after_board": True,
+            "tactical_fractional_prize_after_source": after_source,
         }
     )
     return reward, metadata
@@ -1290,6 +1303,7 @@ def _empty_tactical_reward_summary(
         "fractional_prize_delta_sum": 0.0,
         "fractional_opponent_prize_delta_sum": 0.0,
         "fractional_after_board": 0,
+        "fractional_after_board_sources": {},
         "fractional_prize_weight": float(config.fractional_prize_weight),
         "fractional_opponent_weight": float(config.fractional_opponent_weight),
         "attack_available": 0,
@@ -1322,6 +1336,9 @@ def _accumulate_tactical_reward(
     summary["fractional_after_board"] += int(
         bool(metadata.get("tactical_fractional_prize_has_after_board", False))
     )
+    source = str(metadata.get("tactical_fractional_prize_after_source", "none"))
+    source_counts = summary.setdefault("fractional_after_board_sources", {})
+    source_counts[source] = int(source_counts.get(source, 0)) + 1
     for field, key in (
         ("attack_available", "tactical_attack_available"),
         ("attack_taken", "tactical_attack_taken"),

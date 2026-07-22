@@ -5875,3 +5875,44 @@ Conclusion:
   fractional-prize scoring into an attack/turn-end rollout evaluator, then
   retest on a smaller one-generation diagnostic before another 10-generation
   run.
+
+## 2026-07-22 - Post-Action Fractional Prize Credit Assignment
+
+Implementation:
+
+- Added a simulator-to-recorder post-action observation hook. After
+  `battle_select(...)`, `run_battle(...)` now calls
+  `observe_after_action(...)` on the acting agent when that hook exists.
+- `RecordingPolicyAgent` stores a `post_action_board` on the just-recorded
+  `RecordedPolicyFrame`, using the acting player index as the forced board
+  perspective. This prevents the board summary from flipping to the opponent's
+  perspective when the engine advances `yourIndex`.
+- `summarize_board(...)` now accepts `your_index_override` for this same-player
+  post-action perspective.
+- Public-agent fractional reward now prefers the immediate `post_action_board`,
+  then falls back to the next recorded decision frame, then final prize counts.
+- Tactical reward summaries now include `fractional_after_board_sources` so
+  ERAWAN reports can confirm whether rewards came from `post-action`,
+  `next-frame`, or `final-prizes`.
+
+Validation:
+
+- `py_compile` passed for `src/ptcg_abc/rl/featurizer.py`,
+  `src/ptcg_abc/rl/workflow.py`, `src/ptcg_abc/simulator.py`, and
+  `src/ptcg_abc/rl/public_opponents.py`.
+- `PYTHONPATH=src python -m unittest tests.test_public_agents` passed.
+- `git diff --check` passed aside from existing Windows line-ending warnings.
+- A local one-game trajectory smoke could not run because this checkout does
+  not have `data/kaggle/input/sample_submission`; use the ERAWAN diagnostics to
+  confirm `fractional_after_board_sources.post-action` is populated.
+
+Next ERAWAN diagnostics:
+
+- Queue two short three-generation Dragapult-vs-Lucario mixed-curriculum jobs
+  in parallel:
+  - post-action `basic-fractional-prize` with fractional weight `0.25`;
+  - `basic` attack/attach reward only.
+- Use 1000 retained rule-vs-rule bootstrap games, 1000 epsilon-vs-rule games
+  per generation, 200 zero-exploration eval games per generation, and
+  `OUTCOME_REWARD_SCALE=0.0`.
+- Compare the two runs before launching any new 10-generation curriculum.

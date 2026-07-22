@@ -225,10 +225,19 @@ def option_feature_vector(
     return features
 
 
-def summarize_board(current: Any, *, card_by_id: dict[int, Any] | None = None) -> dict[str, Any]:
+def summarize_board(
+    current: Any,
+    *,
+    card_by_id: dict[int, Any] | None = None,
+    your_index_override: int | None = None,
+) -> dict[str, Any]:
     card_by_id = card_by_id or {}
     players = list(_get(current, "players", []) or [])
-    your_index = int(_get(current, "yourIndex", 0) or 0)
+    your_index = (
+        int(your_index_override)
+        if your_index_override is not None
+        else int(_get(current, "yourIndex", 0) or 0)
+    )
     opponent_index = 1 - your_index
     mine = players[your_index] if 0 <= your_index < len(players) else None
     opponent = players[opponent_index] if 0 <= opponent_index < len(players) else None

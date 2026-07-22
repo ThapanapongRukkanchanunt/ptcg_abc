@@ -1447,6 +1447,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   as-is; first record immediate post-action board deltas or move fractional
   prize scoring into an attack/turn-end rollout evaluator, then retest with a
   small one-generation diagnostic.
+- Post-action fractional-prize credit assignment was implemented on
+  July 22, 2026. `run_battle(...)` now gives acting recorders an immediate
+  post-`battle_select(...)` observation; `RecordingPolicyAgent` stores a
+  same-perspective `post_action_board`; and public-agent fractional rewards use
+  that board before falling back to next-frame/final-prize sources. The next
+  ERAWAN diagnostics should run two three-generation Dragapult-vs-Lucario jobs
+  in parallel: post-action `basic-fractional-prize` with fractional weight
+  `0.25`, and `basic` only as the A/B baseline. Confirm
+  `fractional_after_board_sources.post-action` in the trajectory reports before
+  scaling again.
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

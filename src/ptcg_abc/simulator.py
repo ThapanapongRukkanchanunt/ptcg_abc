@@ -137,8 +137,15 @@ def run_battle(
                 )
 
             your_index = int(getattr(current, "yourIndex", 0) or 0)
-            choice = agents[your_index].act(obs)
+            acting_agent = agents[your_index]
+            choice = acting_agent.act(obs)
             obs_dict = battle_select(choice)
+            observe_after_action = getattr(acting_agent, "observe_after_action", None)
+            if obs_dict is not None and callable(observe_after_action):
+                observe_after_action(
+                    to_observation_class(obs_dict),
+                    actor_index=your_index,
+                )
 
         if obs_dict is not None:
             obs = to_observation_class(obs_dict)

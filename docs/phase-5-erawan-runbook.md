@@ -2722,6 +2722,60 @@ JOB=$(
 echo "$JOB" | tee experiments/rl/phase5_one_deck_fractional_prize_job.txt
 ```
 
+After the post-action credit-assignment patch, use both available ERAWAN slots
+for a short A/B diagnostic before any new 10-generation run:
+
+```bash
+git pull --ff-only origin main
+
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB_FRAC=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_postaction_frac025_diag \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=3 \
+  RULE_BOOTSTRAP_GAMES=1000 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=0.0 \
+  TACTICAL_REWARD_MODE=basic-fractional-prize \
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25 \
+  TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0 \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch
+)
+echo "$JOB_FRAC" | tee experiments/rl/phase5_one_deck_postaction_frac025_diag_job.txt
+
+JOB_BASIC=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_basic_only_diag \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=3 \
+  RULE_BOOTSTRAP_GAMES=1000 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=0.0 \
+  TACTICAL_REWARD_MODE=basic \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch
+)
+echo "$JOB_BASIC" | tee experiments/rl/phase5_one_deck_basic_only_diag_job.txt
+```
+
 Key repo artifacts:
 
 - checkpoints:

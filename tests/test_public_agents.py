@@ -311,11 +311,67 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertAlmostEqual(solrock_reward, 3.0 + (60.0 / 110.0))
         self.assertGreater(riolu_reward, solrock_reward)
         self.assertAlmostEqual(riolu_meta["tactical_fractional_prize_delta"], 3.75)
+        self.assertEqual(
+            riolu_meta["tactical_fractional_prize_after_source"],
+            "next-frame",
+        )
         self.assertAlmostEqual(
             solrock_meta["tactical_fractional_prize_delta"],
             3.0 + (60.0 / 110.0),
         )
         self.assertEqual(riolu_meta["tactical_basic_reward"], 0.0)
+
+    def test_fractional_prize_reward_prefers_post_action_board(self):
+        before = _public_tactical_frame(
+            board={
+                "my_prizes": 6,
+                "opponent_prizes": 6,
+                "opponent_active_card": {
+                    "hp": 340,
+                    "max_hp": 340,
+                    "is_ex": True,
+                    "is_mega_ex": True,
+                },
+                "opponent_bench_cards": [
+                    {"hp": 80, "max_hp": 80},
+                    {"hp": 110, "max_hp": 110},
+                ],
+            }
+        )
+        next_frame = _public_tactical_frame(
+            board={
+                "my_prizes": 3,
+                "opponent_prizes": 6,
+                "opponent_active_card": {},
+                "opponent_bench_cards": [
+                    {"hp": 80, "max_hp": 80},
+                    {"hp": 50, "max_hp": 110},
+                ],
+            }
+        )
+        post_action_board = {
+            "my_prizes": 3,
+            "opponent_prizes": 6,
+            "opponent_active_card": {},
+            "opponent_bench_cards": [
+                {"hp": 20, "max_hp": 80},
+                {"hp": 110, "max_hp": 110},
+            ],
+        }
+
+        reward, metadata = _tactical_reward_for_frame(
+            before,
+            [0],
+            PublicAgentTacticalRewardConfig(mode="fractional-prize"),
+            post_action_board=post_action_board,
+            next_frame=next_frame,
+        )
+
+        self.assertAlmostEqual(reward, 3.75)
+        self.assertEqual(
+            metadata["tactical_fractional_prize_after_source"],
+            "post-action",
+        )
 
     def test_public_agent_gate_summarizes_opponents_and_decks(self):
         rows = [

@@ -27,7 +27,12 @@ from ptcg_abc.evaluation import (
     required_phase3_prepared_decks,
 )
 from ptcg_abc.rl.dataset import append_decision_jsonl, append_trajectory_jsonl, read_decision_jsonl
-from ptcg_abc.rl.featurizer import attack_lookup, card_lookup, make_decision_frame
+from ptcg_abc.rl.featurizer import (
+    attack_lookup,
+    card_lookup,
+    make_decision_frame,
+    summarize_board,
+)
 from ptcg_abc.rl.guidance import default_guidance_rules
 from ptcg_abc.rl.model import (
     LinearOptionModel,
@@ -1392,6 +1397,7 @@ class RecordedPolicyFrame:
     logprob: float = 0.0
     value: float = 0.0
     on_policy: bool = False
+    post_action_board: dict[str, Any] | None = None
 
 
 class RecordingPolicyAgent:
@@ -1416,11 +1422,13 @@ class RecordingPolicyAgent:
         self.reward_metadata = dict(reward_metadata)
         self.trace_limit = trace_limit
         self.frames: list[RecordedPolicyFrame] = []
+        self._pending_post_action_index: int | None = None
 
     def act(self, observation: Any) -> list[int]:
         selected = self.agent.act(observation)
         should_record = self.trace_limit <= 0 or len(self.frames) < self.trace_limit
         if not should_record:
+            self._pending_post_action_index = None
             return selected
         policy_metadata = _policy_metadata(self.agent)
         target_selected = (
@@ -1459,7 +1467,35 @@ class RecordingPolicyAgent:
                     on_policy=bool(policy_metadata["policy_on_policy"]),
                 )
             )
+            self._pending_post_action_index = len(self.frames) - 1
+        else:
+            self._pending_post_action_index = None
         return selected
+
+    def observe_after_action(
+        self,
+        observation: Any,
+        *,
+        actor_index: int | None = None,
+    ) -> None:
+        pending_index = self._pending_post_action_index
+        self._pending_post_action_index = None
+        if pending_index is None or pending_index >= len(self.frames):
+            return
+        current = getattr(observation, "current", None)
+        if current is None:
+            return
+        if actor_index is None:
+            actor_index = int(self.frames[pending_index].frame.board.get("your_index", 0) or 0)
+        post_action_board = summarize_board(
+            current,
+            card_by_id=self.card_by_id,
+            your_index_override=int(actor_index),
+        )
+        self.frames[pending_index] = replace(
+            self.frames[pending_index],
+            post_action_board=post_action_board,
+        )
 
 
 def _make_agent(
