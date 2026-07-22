@@ -2776,6 +2776,63 @@ JOB_BASIC=$(
 echo "$JOB_BASIC" | tee experiments/rl/phase5_one_deck_basic_only_diag_job.txt
 ```
 
+Result note: jobs `74745` and `74746` showed the post-action reward hook works,
+but dense tactical reward alone failed badly because
+`OUTCOME_REWARD_SCALE=0.0` removed the game-winning objective. Do not rerun that
+dense-only A/B as the next experiment. Use terminal outcome reward in the
+follow-up comparison:
+
+```bash
+git pull --ff-only origin main
+
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS="$GAME_DATA_ROOT/phase5_public_agents"
+
+JOB_OUTCOME_FRAC=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=3 \
+  RULE_BOOTSTRAP_GAMES=1000 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=basic-fractional-prize \
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25 \
+  TACTICAL_FRACTIONAL_OPPONENT_WEIGHT=1.0 \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch
+)
+echo "$JOB_OUTCOME_FRAC" | tee experiments/rl/phase5_one_deck_outcome1_postaction_frac025_diag_job.txt
+
+JOB_OUTCOME_NONE=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RUN_NAME=phase5_dragapult_vs_lucario_outcome1_none_diag \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  OPPONENT_PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_DECK_INDEX=101 \
+  GENERATIONS=3 \
+  RULE_BOOTSTRAP_GAMES=1000 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=1.0 \
+  EPSILON_END=0.10 \
+  OUTCOME_REWARD_SCALE=1.0 \
+  TACTICAL_REWARD_MODE=none \
+  MAX_STEPS=600 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 \
+    scripts/slurm/phase5_one_deck_public_mixed_curriculum.sbatch
+)
+echo "$JOB_OUTCOME_NONE" | tee experiments/rl/phase5_one_deck_outcome1_none_diag_job.txt
+```
+
 Key repo artifacts:
 
 - checkpoints:

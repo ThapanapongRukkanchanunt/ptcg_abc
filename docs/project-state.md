@@ -1459,6 +1459,19 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   scaling again. These diagnostics were submitted as SLURM jobs `74745`
   (`phase5_dragapult_vs_lucario_postaction_frac025_diag`) and `74746`
   (`phase5_dragapult_vs_lucario_basic_only_diag`).
+- Post-action A/B jobs `74745` and `74746` completed on July 22, 2026. The
+  implementation sanity check passed: the fractional run used
+  `fractional_after_board_sources.post-action` for every shaped step, and the
+  rule-bootstrap fractional component became positive (`+0.00542` average).
+  The training result was still bad because both diagnostics set
+  `OUTCOME_REWARD_SCALE=0.0`; gen-3 evals were only 8 / 200 for
+  post-action fractional and 12 / 200 for basic-only. By gen 3, both dense-only
+  runs over-selected tactical actions, with attack taken rates around 0.89 and
+  attach taken rates around 0.67-0.72. Conclusion: post-action fractional credit
+  assignment is valid, but dense reward alone does not preserve the game
+  objective. The next queued diagnostics restore terminal reward:
+  `74766` (`phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag`) and
+  `74767` (`phase5_dragapult_vs_lucario_outcome1_none_diag`).
 - Official engine source audit on July 9, 2026: Kaggle discussion 717141 and
   the current competition data confirm `ptcg_engine/ptcgProgram 22` is the
   official C++ competition engine source. The repo's Python simulator remains a

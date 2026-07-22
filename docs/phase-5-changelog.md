@@ -5927,3 +5927,63 @@ ERAWAN submission:
 - Job IDs were written on ERAWAN to:
   - `experiments/rl/phase5_one_deck_postaction_frac025_diag_job.txt`;
   - `experiments/rl/phase5_one_deck_basic_only_diag_job.txt`.
+
+## 2026-07-22 - Post-Action Fractional A/B Diagnostic Result
+
+ERAWAN result:
+
+- SLURM jobs:
+  - `74745`: `phase5_dragapult_vs_lucario_postaction_frac025_diag`;
+  - `74746`: `phase5_dragapult_vs_lucario_basic_only_diag`.
+- Both jobs completed three generations with 1000 rule-bootstrap games, 1000
+  epsilon-vs-rule games per generation, and 200 zero-exploration eval games per
+  generation.
+- Both used `OUTCOME_REWARD_SCALE=0.0`; the only learning signal was the dense
+  tactical reward.
+- Stderr contained PyTorch nested-tensor warnings only.
+
+Eval results:
+
+| Run | Gen 1 | Gen 2 | Gen 3 |
+| --- | ---: | ---: | ---: |
+| Post-action `basic-fractional-prize`, weight 0.25 | 13 / 200 | 12 / 200 | 8 / 200 |
+| `basic` attack/attach only | 20 / 200 | 9 / 200 | 12 / 200 |
+
+Reward-source and behavior diagnostics:
+
+- The post-action hook worked: every fractional reward in job `74745` used
+  `fractional_after_board_sources = {'post-action': steps}`.
+- Post-action fractional reward is now sane on rule data: the rule bootstrap
+  average fractional component was `+0.00542` instead of negative, and the
+  total average tactical reward was `+0.01611`.
+- However, dense-only learning is not a viable objective. With
+  `OUTCOME_REWARD_SCALE=0.0`, both diagnostics collapsed far below the
+  rule-vs-rule baseline and below the previous mixed gen7 checkpoint.
+- By generation 3, both dense-only runs over-favored tactical actions:
+  - post-action fractional: attack taken rate `0.8979`, attach taken rate
+    `0.7165`, eval `8 / 200`;
+  - basic-only: attack taken rate `0.8933`, attach taken rate `0.6686`,
+    eval `12 / 200`.
+
+Conclusion:
+
+- The post-action reward implementation is valid, but dense tactical reward
+  alone does not preserve the game objective. The original successful mixed run
+  used terminal outcome reward by default (`OUTCOME_REWARD_SCALE=1.0`), while
+  these diagnostics removed it.
+- Do not run more dense-only PPO curricula. The next diagnostic should keep
+  terminal outcome reward and compare:
+  - `OUTCOME_REWARD_SCALE=1.0`, `TACTICAL_REWARD_MODE=none`;
+  - `OUTCOME_REWARD_SCALE=1.0`, `TACTICAL_REWARD_MODE=basic-fractional-prize`,
+    `TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25`.
+
+Next ERAWAN diagnostics:
+
+- Submitted `74766`, run name
+  `phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag`, for terminal
+  outcome reward plus post-action fractional shaping.
+- Submitted `74767`, run name `phase5_dragapult_vs_lucario_outcome1_none_diag`,
+  for terminal outcome reward with no tactical shaping.
+- Both jobs use three generations, 1000 rule-bootstrap games, 1000
+  epsilon-vs-rule games per generation, and 200 zero-exploration eval games per
+  generation.
