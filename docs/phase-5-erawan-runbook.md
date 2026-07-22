@@ -3225,6 +3225,11 @@ Retry `74837` found a second pregame guard: the wrapper's default specialist
 directory was validated even for `--agent rule`. Pull the follow-up fix that
 clears model/specialist inputs for rule evaluation, then run the same command.
 
+Retry `74838` completed in `00:01:31`: rule Dragapult scored 87 / 200
+(`0.435`) against rule Mega Lucario with no errors/timeouts. The best corrected
+checkpoints, 90 / 200 fractional generation 3 and 88 / 200 outcome-only
+generation 2, do not significantly exceed this matched teacher baseline.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

@@ -1557,7 +1557,12 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   parser test were fixed, but retry `74837` exposed a second pregame guard: the
   wrapper's default specialist path was validated for the rule agent. Rule
   evaluation now ignores all model/specialist paths before validation; pull
-  that fix and resubmit.
+  that fix and resubmit. Retry `74838` then completed successfully: the matched
+  200-game rule baseline was 87 / 200 (`0.435`). Fractional generation 3 at
+  90 / 200 and outcome-only generation 2 at 88 / 200 are only three and one
+  wins above the teacher, respectively, and not statistically distinguishable.
+  Final conclusion: corrected BC/PPO reaches teacher level but has not shown
+  improvement from online PPO.
 
 Operational rule:
 

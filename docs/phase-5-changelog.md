@@ -6299,3 +6299,14 @@ Conclusion:
   ignores model/specialist arguments before checkpoint validation, with a
   regression test that supplies a nonexistent specialist directory and proves
   dispatch reaches the evaluator.
+- Matched baseline retry `74838` completed successfully in `00:01:31` with
+  exit code `0`: rule Dragapult won 87 / 200 (`0.435`) against rule Mega
+  Lucario, with zero draws, timeouts, or errors and empty stderr.
+- Fractional generation 3 was 90 / 200, only three wins (+1.5 points) above
+  the matched teacher. Under an unpaired two-proportion approximation this is
+  not significant (`p` approximately `0.76`). Outcome-only generation 2 was
+  88 / 200, one win above the teacher (`p` approximately `0.92`). No learned
+  checkpoint has demonstrated strength above the behavior-cloning teacher.
+- Downloaded the baseline JSON, Markdown, status, and SLURM logs into the
+  untracked corrected-A/B analysis bundle. Keep canonical reports on ERAWAN;
+  do not add downloaded copies under tracked `reports/` paths.
