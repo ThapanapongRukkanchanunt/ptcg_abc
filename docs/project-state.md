@@ -1531,6 +1531,14 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   JSONL files. Local Python validation passed; run its small ERAWAN smoke, then
   compare matched three-generation outcome-plus-fractional and outcome-only
   arms from identical initialization and exploration seeds.
+- Corrected BC/PPO smoke job `74786` passed on ERAWAN on July 22, 2026 in
+  `00:13:44`: 82,324 rule examples and 224 / 224 valid mixture-policy PPO
+  examples, zero off-policy/mode/nonfinite skips, successful checkpoint and
+  cleanup, and a non-scientific 3 / 4 eval. The full matched A/B is now running:
+  job `74791` is terminal outcome plus post-action fractional weight `0.25`;
+  job `74792` is outcome only. Both use 1,000 train and 200 eval games for
+  three generations, epsilon `1.0 -> 0.55 -> 0.10`, and identical retained
+  rule data, initialization seed, and exploration seed.
 
 Operational rule:
 

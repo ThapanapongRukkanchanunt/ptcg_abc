@@ -6168,3 +6168,49 @@ Next step:
 - If it writes a checkpoint and reports valid PPO rows with an initial ratio
   near `1.0`, submit matched three-generation corrected arms: terminal outcome
   plus post-action fractional weight `0.25`, and terminal outcome only.
+
+## 2026-07-22 - Corrected BC + PPO Smoke Passed And A/B Submitted
+
+ERAWAN smoke:
+
+- SLURM job `74786`, run name
+  `phase5_dragapult_vs_lucario_corrected_bcppo_smoke`, completed in `00:13:44`
+  with exit code `0`.
+- The shared bootstrap scan found 82,419 steps and 82,324 valid rule-BC
+  examples. The four-game mixture-policy window produced 224 / 224 valid PPO
+  examples with zero no-target, off-policy, unsupported-mode, or nonfinite
+  skips.
+- The smoke intentionally balanced against the full retained bootstrap, so its
+  224 PPO examples were reused `367.52x` across 1,287 optimizer steps. Its high
+  average clip fraction (`0.8053`) is a tiny-window stress artifact, not a
+  training result to promote.
+- The generation-1 checkpoint was written successfully. The four-game
+  zero-exploration eval was 3 wins and 1 loss with no errors/timeouts; this is
+  execution validation only.
+- Cleanup behaved as intended: the consumed model-policy JSONL was deleted,
+  while the shared rule bootstrap and the 2,189,354-byte checkpoint remain.
+  Stderr contained only the known PyTorch nested-tensor warning.
+
+Corrected A/B submission:
+
+- Submitted SLURM job `74791`, run name
+  `phase5_dragapult_vs_lucario_corrected_bcppo_frac025_diag`, for terminal
+  outcome plus post-action `basic-fractional-prize` shaping at weight `0.25`.
+- Submitted SLURM job `74792`, run name
+  `phase5_dragapult_vs_lucario_corrected_bcppo_outcome_only_diag`, for terminal
+  outcome only.
+- Both jobs use three generations, 1,000 training games and 200 deterministic
+  eval games per generation, epsilon `1.0 -> 0.55 -> 0.10`, the same retained
+  job-74766 rule bootstrap, `INIT_SEED=20260722`, and
+  `POLICY_SEED=20260722`. Both were confirmed running after submission.
+- The remote shell mangled only the first attempt to print the captured IDs;
+  SLURM accounting and each log header confirmed that exactly two jobs were
+  submitted and mapped as above. No resubmission occurred.
+
+Next step:
+
+- Wait for `74791` and `74792`. Inspect all three `bc_ppo_report.json`,
+  epsilon-mixture trajectory reports, deterministic eval JSON/Markdown,
+  statuses, and stdout/stderr files. Compare eval win rate and attack/attach/END
+  behavior against the flawed 74766/74767 A/B and the 0.431-0.446 rule
+  baseline before deciding whether to extend generations.

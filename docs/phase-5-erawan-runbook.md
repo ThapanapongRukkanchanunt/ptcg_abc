@@ -3177,6 +3177,18 @@ reports under `reports/<run>_gen-*_eval_200g.*`, and checkpoints under
 model-policy JSONL files are disposable and are removed after each successful
 update; the shared rule bootstrap is not removed.
 
+Current run state on July 22, 2026:
+
+- smoke job `74786` passed in `00:13:44` with 224 / 224 valid PPO rows and zero
+  off-policy, mode-invalid, or nonfinite skips;
+- fractional arm: job `74791`;
+- outcome-only arm: job `74792`.
+
+The smoke's 224 PPO examples were deliberately reused against the full 82,324
+example rule source and therefore had a high average clip fraction. Treat its
+3 / 4 eval only as end-to-end validation; use the 1,000-game A/B jobs for any
+learning conclusion.
+
 ## 19. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
