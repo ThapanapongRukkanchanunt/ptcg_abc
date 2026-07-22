@@ -3344,6 +3344,25 @@ inspect update reports for policy-gradient magnitude, objective conflict, PPO
 ratio/clip fraction, action behavior, and whether the no-anchor policy forgets
 teacher fundamentals. Do not promote an arm from training-window wins alone.
 
+Current run state on July 22, 2026:
+
+- smoke `74844` (no anchor) and `74847` (10% anchor) both passed;
+- no-anchor smoke used `133 / 133` PPO rows and zero BC rows;
+- anchor-10 smoke used `202 / 202` PPO rows plus exactly 22 / 511 sampled rule
+  rows, and its weighted BC/PPO-policy gradient norms were comparable;
+- both had zero rejected/clipped rows, finite gradient reports, zero eval
+  errors/timeouts, and zero retained online JSONL files;
+- full jobs are `74848` (no anchor) and `74849` (10% anchor).
+
+Primary artifacts are
+`experiments/rl/phase5_one_deck_public_ppo_dominant/<run>/gen-*/`,
+`reports/<run>_gen-*_eval_200g.*`, and
+`models/rl/phase5_one_deck_public_ppo_dominant/<run>/gen-*/specialists/`.
+After completion, inspect every `trajectory_bc_report.json`,
+`ppo_dominant_report.json`, epsilon-mixture trajectory report, eval JSON/MD and
+status, replay sample, and SLURM stdout/stderr. The online JSONL should no
+longer exist after each successful generation.
+
 ## 20. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

@@ -6351,3 +6351,52 @@ Validation and next step:
   on-policy rows, one-time BC output, correct source counts, finite gradients,
   successful eval, and raw-data cleanup, submit the matched three-generation
   1,000-train-game / 200-eval-game comparison.
+
+## 2026-07-22 - PPO-Dominant Smokes Passed And Full A/B Submitted
+
+ERAWAN smoke validation:
+
+- No-anchor job `74844` completed in `00:01:17`; 10%-anchor job `74847`
+  completed in `00:00:33`. Both exited `0`. Stderr contained only the known
+  PyTorch nested-tensor warning.
+- Both one-time BC bootstraps scanned 512 retained rule steps, accepted 511
+  examples, and produced the same average BC accuracy (`0.806455`) from the
+  same initialization/data. The bounded bootstrap was execution validation,
+  not a checkpoint-strength measurement.
+- No-anchor PPO accepted and used all `133 / 133` online examples exactly once,
+  used zero rule examples, recorded zero BC gradient, and rejected no records.
+  Its first-two-batch weighted gradient norms were BC `0.0000`, PPO policy
+  `0.1810`, PPO value `5.0941`, and entropy `0.000366`.
+- The 10%-anchor PPO accepted and used all `202 / 202` online examples exactly
+  once and used exactly `22` evenly sampled rule examples from 511 available.
+  Its first-two-batch weighted gradient norms were BC `0.1287`, PPO policy
+  `0.1181`, PPO value `5.6822`, and entropy `0.000463`; BC-vs-PPO-policy cosine
+  was `+0.0259`, showing neither strong alignment nor conflict in this tiny
+  sample.
+- Both reports had zero clipped rows and ratios near 1.0, every generated step
+  used the immediate post-action board for fractional shaping, eval had zero
+  errors/timeouts, and cleanup left zero per-generation raw JSONL files. The
+  four-game eval scores are intentionally non-scientific.
+- Because `GENERATIONS=1` resolves the schedule to its endpoint, both smoke
+  trajectory windows used epsilon `0.10`. The full three-generation jobs use
+  epsilon `0.90`, `0.50`, and `0.10` as intended.
+
+Full matched A/B:
+
+- Submitted no-anchor job `74848`, run name
+  `phase5_dragapult_vs_lucario_ppo_dominant_no_anchor`.
+- Submitted 10%-anchor job `74849`, run name
+  `phase5_dragapult_vs_lucario_ppo_dominant_anchor10`.
+- Both use the same retained rule bootstrap, initialization/policy seed
+  `20260722`, three generations, 1,000 online training games and 200
+  deterministic eval games per generation, terminal outcome scale `1.0`, and
+  post-action `basic-fractional-prize` shaping weight `0.25`. Each update logs
+  16 gradient-diagnostic batches and removes its online JSONL only after a
+  successful checkpoint update.
+
+Next step:
+
+- Wait for both jobs. Compare generation 0-3 evals against the matched
+  rule-vs-rule `87 / 200` baseline and each other. Inspect gradient norms,
+  objective cosines, PPO ratios/clipping, action rates, and teacher forgetting
+  before extending either arm.

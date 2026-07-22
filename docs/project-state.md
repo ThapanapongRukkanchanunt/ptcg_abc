@@ -1572,6 +1572,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   The next gate is a matched no-anchor versus 10%-anchor ERAWAN smoke, followed
   by three generations at epsilon `0.90 -> 0.50 -> 0.10` only if both smokes
   validate checkpointing, gradients, evaluation, and online-data cleanup.
+- PPO-dominant smoke jobs `74844` (no anchor) and `74847` (10% anchor) passed
+  on July 22, 2026. Both used every valid online row once, rejected zero rows,
+  recorded finite weighted objective gradients, completed clean evals, and
+  removed all consumed JSONL files. The no-anchor arm had zero BC rows/gradient;
+  the 10% arm used 22 / 511 sampled rule rows and measured BC/PPO-policy
+  gradient norms `0.1287 / 0.1181`. Full matched jobs are now running:
+  `74848` no anchor and `74849` 10% anchor, each with three generations,
+  1,000 online games and 200 eval games per generation, epsilon
+  `0.90 -> 0.50 -> 0.10`, terminal outcome plus post-action fractional shaping,
+  and identical initialization/exploration seeds.
 
 Operational rule:
 
