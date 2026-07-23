@@ -25,6 +25,8 @@ PHASE5_SYMBOLIC_DATASET_FORMAT = "ptcg_abc_phase5_symbolic_decision_v1"
 PHASE5_SYMBOLIC_PAIRWISE_NEGATIVES = ("all", "baseline")
 PHASE5_DIFFERENTIABLE_POLICY_MODES = ("epsilon_mixture", "sample")
 PHASE5_BC_PPO_UPDATE_SCHEDULES = ("balanced-max", "ppo-epoch")
+PHASE5_ADVANTAGE_NORMALIZATION_MODES = ("batch", "global", "none")
+PHASE5_VALUE_BACKPROP_SCOPES = ("shared", "head-only")
 
 
 @dataclass(frozen=True)
@@ -242,6 +244,10 @@ class Phase5BCPPOTrainingSummary:
     accepted_policy_modes: list[str]
     update_schedule: str
     rule_anchor_fraction: float
+    advantage_normalization: str
+    advantage_normalization_mean: float
+    advantage_normalization_std: float
+    value_backprop_scope: str
     balanced_examples_per_source_per_epoch: int
     rule_anchor_examples_per_epoch: int
     on_policy_examples_per_epoch: int
@@ -265,10 +271,13 @@ class Phase5BCPPOTrainingSummary:
     gradient_diagnostic_batches_recorded: int
     average_bc_gradient_norm: float
     average_ppo_policy_gradient_norm: float
+    average_ppo_policy_shared_gradient_norm: float
     average_ppo_value_gradient_norm: float
+    average_ppo_value_shared_gradient_norm: float
     average_entropy_gradient_norm: float
     average_bc_ppo_policy_gradient_cosine: float
     average_ppo_policy_value_gradient_cosine: float
+    average_ppo_policy_value_shared_gradient_cosine: float
     mean_advantage: float
     device: str
     deck_index_filter: int | None
@@ -295,6 +304,7 @@ class _TrajectorySourceStats:
     skipped_policy_mode: int = 0
     skipped_nonfinite: int = 0
     advantage_sum: float = 0.0
+    advantage_square_sum: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -309,10 +319,13 @@ class _BCPPOBatchMetrics:
     clip_fraction: float
     bc_gradient_norm: float = 0.0
     ppo_policy_gradient_norm: float = 0.0
+    ppo_policy_shared_gradient_norm: float = 0.0
     ppo_value_gradient_norm: float = 0.0
+    ppo_value_shared_gradient_norm: float = 0.0
     entropy_gradient_norm: float = 0.0
     bc_ppo_policy_gradient_cosine: float = 0.0
     ppo_policy_value_gradient_cosine: float = 0.0
+    ppo_policy_value_shared_gradient_cosine: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -1537,6 +1550,8 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     update_schedule: str = "balanced-max",
     rule_anchor_fraction: float = 0.5,
     gradient_diagnostic_batches: int = 0,
+    advantage_normalization: str = "batch",
+    value_backprop_scope: str = "shared",
 ) -> Phase5BCPPOTrainingSummary:
     if not on_policy_trajectory_dataset_paths:
         raise ValueError("Provide at least one on-policy trajectory dataset.")
@@ -1559,6 +1574,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         )
     if gradient_diagnostic_batches < 0:
         raise ValueError("gradient_diagnostic_batches must be non-negative.")
+    if advantage_normalization not in PHASE5_ADVANTAGE_NORMALIZATION_MODES:
+        raise ValueError(
+            "Phase 5 BC+PPO advantage_normalization must be one of "
+            + ", ".join(PHASE5_ADVANTAGE_NORMALIZATION_MODES)
+            + "."
+        )
+    if value_backprop_scope not in PHASE5_VALUE_BACKPROP_SCOPES:
+        raise ValueError(
+            "Phase 5 BC+PPO value_backprop_scope must be one of "
+            + ", ".join(PHASE5_VALUE_BACKPROP_SCOPES)
+            + "."
+        )
     needs_rule_examples = update_schedule == "balanced-max" or rule_anchor_fraction > 0.0
     if needs_rule_examples and not rule_trajectory_dataset_paths:
         raise ValueError("Provide a rule trajectory dataset for the requested BC anchor.")
@@ -1629,6 +1656,15 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             "On-policy trajectory datasets produced zero valid PPO examples. "
             "Use policy_mode=sample or epsilon_mixture with policy_on_policy=true."
         )
+    advantage_normalization_mean = (
+        on_policy_stats.advantage_sum / on_policy_stats.examples
+    )
+    advantage_variance = max(
+        0.0,
+        on_policy_stats.advantage_square_sum / on_policy_stats.examples
+        - advantage_normalization_mean**2,
+    )
+    advantage_normalization_std = max(math.sqrt(advantage_variance), 1.0e-6)
 
     balanced_examples = (
         max(rule_stats.examples, on_policy_stats.examples)
@@ -1689,10 +1725,13 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     gradient_metric_sums = {
         "bc_gradient_norm": 0.0,
         "ppo_policy_gradient_norm": 0.0,
+        "ppo_policy_shared_gradient_norm": 0.0,
         "ppo_value_gradient_norm": 0.0,
+        "ppo_value_shared_gradient_norm": 0.0,
         "entropy_gradient_norm": 0.0,
         "bc_ppo_policy_gradient_cosine": 0.0,
         "ppo_policy_value_gradient_cosine": 0.0,
+        "ppo_policy_value_shared_gradient_cosine": 0.0,
     }
     optimizer_steps = 0
     gradient_diagnostic_batches_recorded = 0
@@ -1747,6 +1786,10 @@ def train_phase5_bc_ppo_policy_from_trajectories(
                 ppo_value_loss_weight=ppo_value_loss_weight,
                 entropy_weight=entropy_weight,
                 collect_gradient_diagnostics=collect_gradient_diagnostics,
+                advantage_normalization=advantage_normalization,
+                advantage_normalization_mean=advantage_normalization_mean,
+                advantage_normalization_std=advantage_normalization_std,
+                value_backprop_scope=value_backprop_scope,
             )
             final_loss = metrics.loss
             for field in metric_sums:
@@ -1783,6 +1826,10 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         "accepted_policy_modes": list(normalized_policy_modes),
         "update_schedule": update_schedule,
         "rule_anchor_fraction": rule_anchor_fraction,
+        "advantage_normalization": advantage_normalization,
+        "advantage_normalization_mean": advantage_normalization_mean,
+        "advantage_normalization_std": advantage_normalization_std,
+        "value_backprop_scope": value_backprop_scope,
         "balanced_examples_per_source_per_epoch": balanced_examples,
         "rule_anchor_examples_per_epoch": rule_anchor_examples_per_epoch,
         "on_policy_examples_per_epoch": on_policy_examples_per_epoch,
@@ -1820,6 +1867,10 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         accepted_policy_modes=list(normalized_policy_modes),
         update_schedule=update_schedule,
         rule_anchor_fraction=rule_anchor_fraction,
+        advantage_normalization=advantage_normalization,
+        advantage_normalization_mean=advantage_normalization_mean,
+        advantage_normalization_std=advantage_normalization_std,
+        value_backprop_scope=value_backprop_scope,
         balanced_examples_per_source_per_epoch=balanced_examples,
         rule_anchor_examples_per_epoch=rule_anchor_examples_per_epoch,
         on_policy_examples_per_epoch=on_policy_examples_per_epoch,
@@ -1853,8 +1904,16 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         average_ppo_policy_gradient_norm=(
             gradient_metric_sums["ppo_policy_gradient_norm"] / gradient_divisor
         ),
+        average_ppo_policy_shared_gradient_norm=(
+            gradient_metric_sums["ppo_policy_shared_gradient_norm"]
+            / gradient_divisor
+        ),
         average_ppo_value_gradient_norm=(
             gradient_metric_sums["ppo_value_gradient_norm"] / gradient_divisor
+        ),
+        average_ppo_value_shared_gradient_norm=(
+            gradient_metric_sums["ppo_value_shared_gradient_norm"]
+            / gradient_divisor
         ),
         average_entropy_gradient_norm=(
             gradient_metric_sums["entropy_gradient_norm"] / gradient_divisor
@@ -1864,6 +1923,10 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         ),
         average_ppo_policy_value_gradient_cosine=(
             gradient_metric_sums["ppo_policy_value_gradient_cosine"] / gradient_divisor
+        ),
+        average_ppo_policy_value_shared_gradient_cosine=(
+            gradient_metric_sums["ppo_policy_value_shared_gradient_cosine"]
+            / gradient_divisor
         ),
         mean_advantage=(
             on_policy_stats.advantage_sum / on_policy_stats.examples
@@ -1951,7 +2014,9 @@ def _iter_phase5_hybrid_source(
                     continue
             if stats is not None:
                 stats.examples += 1
-                stats.advantage_sum += float(step.reward) - float(step.value)
+                advantage = float(step.reward) - float(step.value)
+                stats.advantage_sum += advantage
+                stats.advantage_square_sum += advantage * advantage
             yield record, step
 
 
@@ -2487,6 +2552,10 @@ def _train_bc_ppo_batch(
     ppo_value_loss_weight: float,
     entropy_weight: float,
     collect_gradient_diagnostics: bool = False,
+    advantage_normalization: str = "batch",
+    advantage_normalization_mean: float = 0.0,
+    advantage_normalization_std: float = 1.0,
+    value_backprop_scope: str = "shared",
 ) -> _BCPPOBatchMetrics:
     on_policy_records = [example[0] for example in on_policy_examples]
     on_policy_output, on_policy_action_mask = _forward_phase5_records(
@@ -2551,10 +2620,14 @@ def _train_bc_ppo_batch(
         dtype=torch.float32,
         device=device,
     )
-    if advantages.numel() > 1:
+    if advantage_normalization == "batch" and advantages.numel() > 1:
         advantages = (advantages - advantages.mean()) / advantages.std().clamp(
             min=1.0e-6
         )
+    elif advantage_normalization == "global":
+        advantages = (
+            advantages - float(advantage_normalization_mean)
+        ) / max(1.0e-6, float(advantage_normalization_std))
     ratios = torch.exp(selected_logprobs - old_logprobs)
     clipped_ratios = torch.clamp(ratios, 1.0 - clip_epsilon, 1.0 + clip_epsilon)
     ppo_policy_loss = -torch.minimum(
@@ -2569,10 +2642,12 @@ def _train_bc_ppo_batch(
         dtype=torch.float32,
         device=device,
     )
-    ppo_value_loss = nn.functional.mse_loss(
-        on_policy_output["state_value"],
-        value_targets,
+    value_predictions = (
+        model.value_head(on_policy_output["state_embedding"].detach()).squeeze(-1)
+        if value_backprop_scope == "head-only"
+        else on_policy_output["state_value"]
     )
+    ppo_value_loss = nn.functional.mse_loss(value_predictions, value_targets)
     entropy = _first_action_policy_entropy(
         on_policy_records,
         logits=on_policy_output["action_logits"],
@@ -2589,10 +2664,13 @@ def _train_bc_ppo_batch(
     gradient_metrics = {
         "bc_gradient_norm": 0.0,
         "ppo_policy_gradient_norm": 0.0,
+        "ppo_policy_shared_gradient_norm": 0.0,
         "ppo_value_gradient_norm": 0.0,
+        "ppo_value_shared_gradient_norm": 0.0,
         "entropy_gradient_norm": 0.0,
         "bc_ppo_policy_gradient_cosine": 0.0,
         "ppo_policy_value_gradient_cosine": 0.0,
+        "ppo_policy_value_shared_gradient_cosine": 0.0,
     }
     if collect_gradient_diagnostics:
         parameters = tuple(
@@ -2618,10 +2696,23 @@ def _train_bc_ppo_batch(
             parameters=parameters,
             torch=torch,
         )
+        shared_parameter_ids = _phase5_shared_actor_parameter_ids(model)
+        ppo_policy_shared_gradient_norm = _phase5_filtered_gradient_norm(
+            policy_gradients,
+            parameters=parameters,
+            parameter_ids=shared_parameter_ids,
+        )
+        ppo_value_shared_gradient_norm = _phase5_filtered_gradient_norm(
+            value_gradients,
+            parameters=parameters,
+            parameter_ids=shared_parameter_ids,
+        )
         gradient_metrics = {
             "bc_gradient_norm": bc_gradient_norm,
             "ppo_policy_gradient_norm": ppo_policy_gradient_norm,
+            "ppo_policy_shared_gradient_norm": ppo_policy_shared_gradient_norm,
             "ppo_value_gradient_norm": ppo_value_gradient_norm,
+            "ppo_value_shared_gradient_norm": ppo_value_shared_gradient_norm,
             "entropy_gradient_norm": entropy_gradient_norm,
             "bc_ppo_policy_gradient_cosine": _phase5_gradient_cosine(
                 bc_gradients,
@@ -2634,6 +2725,14 @@ def _train_bc_ppo_batch(
                 value_gradients,
                 first_norm=ppo_policy_gradient_norm,
                 second_norm=ppo_value_gradient_norm,
+            ),
+            "ppo_policy_value_shared_gradient_cosine": _phase5_gradient_cosine(
+                policy_gradients,
+                value_gradients,
+                first_norm=ppo_policy_shared_gradient_norm,
+                second_norm=ppo_value_shared_gradient_norm,
+                parameters=parameters,
+                parameter_ids=shared_parameter_ids,
             ),
         }
     optimizer.zero_grad()
@@ -2679,11 +2778,21 @@ def _phase5_gradient_cosine(
     *,
     first_norm: float,
     second_norm: float,
+    parameters: Sequence[Any] | None = None,
+    parameter_ids: set[int] | None = None,
 ) -> float:
     if first_norm <= 0.0 or second_norm <= 0.0:
         return 0.0
     dot = 0.0
-    for first_gradient, second_gradient in zip(first, second, strict=True):
+    for index, (first_gradient, second_gradient) in enumerate(
+        zip(first, second, strict=True)
+    ):
+        if (
+            parameter_ids is not None
+            and parameters is not None
+            and id(parameters[index]) not in parameter_ids
+        ):
+            continue
         if first_gradient is not None and second_gradient is not None:
             dot += float(
                 (first_gradient.detach().float() * second_gradient.detach().float())
@@ -2691,6 +2800,35 @@ def _phase5_gradient_cosine(
                 .item()
             )
     return dot / (first_norm * second_norm)
+
+
+def _phase5_shared_actor_parameter_ids(model: Any) -> set[int]:
+    modules = (
+        model.global_encoder,
+        model.entity_encoder,
+        model.entity_core,
+        model.action_encoder,
+        model.turn_core,
+    )
+    return {
+        id(parameter)
+        for module in modules
+        for parameter in module.parameters()
+        if parameter.requires_grad
+    }
+
+
+def _phase5_filtered_gradient_norm(
+    gradients: Sequence[Any | None],
+    *,
+    parameters: Sequence[Any],
+    parameter_ids: set[int],
+) -> float:
+    squared_norm = 0.0
+    for parameter, gradient in zip(parameters, gradients, strict=True):
+        if id(parameter) in parameter_ids and gradient is not None:
+            squared_norm += float(gradient.detach().float().pow(2).sum().item())
+    return math.sqrt(squared_norm)
 
 
 def _forward_phase5_records(

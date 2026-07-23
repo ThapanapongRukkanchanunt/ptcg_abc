@@ -1124,6 +1124,8 @@ def command_rl_train_phase5_bc_ppo(args: argparse.Namespace) -> int:
             update_schedule=args.update_schedule,
             rule_anchor_fraction=args.rule_anchor_fraction,
             gradient_diagnostic_batches=args.gradient_diagnostic_batches,
+            advantage_normalization=args.advantage_normalization,
+            value_backprop_scope=args.value_backprop_scope,
         )
     except (Phase5PolicyUnavailable, ValueError) as exc:
         print(str(exc), file=sys.stderr)
@@ -3473,6 +3475,24 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=0,
         help="Log weighted BC, PPO policy/value, and entropy gradients for the first N batches.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--advantage-normalization",
+        choices=["batch", "global", "none"],
+        default="batch",
+        help=(
+            "Normalize PPO advantages per minibatch, across the complete input "
+            "dataset, or not at all."
+        ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--value-backprop-scope",
+        choices=["shared", "head-only"],
+        default="shared",
+        help=(
+            "Allow value loss through the shared actor encoder or restrict it "
+            "to the value head."
+        ),
     )
     rl_train_phase5_bc_ppo.add_argument(
         "--deck-index-filter",

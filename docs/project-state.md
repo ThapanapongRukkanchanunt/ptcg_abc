@@ -1582,6 +1582,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   1,000 online games and 200 eval games per generation, epsilon
   `0.90 -> 0.50 -> 0.10`, terminal outcome plus post-action fractional shaping,
   and identical initialization/exploration seeds.
+- PPO-dominant full jobs `74848` and `74849` completed on July 23, 2026. The
+  no-anchor arm collapsed from 96 / 200 at BC to 50, 43, and 26 / 200. The 10%
+  anchor preserved teacher-level strength at 87, 88, 95, and 88 / 200 but did
+  not significantly improve it. Diagnosis found that game-sequential minibatch
+  normalization cancels the win/loss component broadcast across each game's
+  actions, while generation-1 value gradients exceed policy gradients by
+  thousands of times on the shared encoder path. The next implementation adds
+  opt-in dataset-global advantage normalization, head-only critic backprop, and
+  shared-trunk gradient diagnostics. Next run a 10%-anchor A/B with global
+  normalization in both arms and only critic scope (`shared` vs `head-only`)
+  changed.
 
 Operational rule:
 

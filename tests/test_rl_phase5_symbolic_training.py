@@ -318,6 +318,10 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "0.1",
                 "--gradient-diagnostic-batches",
                 "4",
+                "--advantage-normalization",
+                "global",
+                "--value-backprop-scope",
+                "head-only",
             ]
         )
         trajectory_bc_args = parser.parse_args(
@@ -349,6 +353,8 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertEqual(bc_ppo_args.update_schedule, "ppo-epoch")
         self.assertEqual(bc_ppo_args.rule_anchor_fraction, 0.1)
         self.assertEqual(bc_ppo_args.gradient_diagnostic_batches, 4)
+        self.assertEqual(bc_ppo_args.advantage_normalization, "global")
+        self.assertEqual(bc_ppo_args.value_backprop_scope, "head-only")
         self.assertEqual(
             trajectory_bc_args.func.__name__,
             "command_rl_train_phase5_trajectory_bc",
@@ -619,6 +625,8 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 rule_anchor_fraction=0.0,
                 bc_loss_weight=0.0,
                 gradient_diagnostic_batches=2,
+                advantage_normalization="global",
+                value_backprop_scope="head-only",
             )
 
             self.assertEqual(bc_summary.examples_available, 2)
@@ -630,6 +638,9 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             self.assertEqual(ppo_summary.on_policy_reuse_factor, 1.0)
             self.assertEqual(ppo_summary.optimizer_steps, 2)
             self.assertEqual(ppo_summary.gradient_diagnostic_batches_recorded, 2)
+            self.assertEqual(ppo_summary.advantage_normalization, "global")
+            self.assertEqual(ppo_summary.value_backprop_scope, "head-only")
+            self.assertEqual(ppo_summary.average_ppo_value_shared_gradient_norm, 0.0)
             self.assertTrue(updated_path.exists())
 
 

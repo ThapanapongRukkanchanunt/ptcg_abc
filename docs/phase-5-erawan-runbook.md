@@ -3363,7 +3363,120 @@ After completion, inspect every `trajectory_bc_report.json`,
 status, replay sample, and SLURM stdout/stderr. The online JSONL should no
 longer exist after each successful generation.
 
-## 20. Ready-To-Train Checklist
+## 20. Global-Advantage And Critic-Scope Follow-Up
+
+Jobs `74848` and `74849` showed that 10% BC prevents PPO collapse but does not
+create improvement. The next correction preserves game outcome under
+sequential minibatching by using dataset-global advantage statistics. Both
+arms use the same 10% anchor; only value backpropagation scope differs.
+
+After pulling the implementation commit, submit the bounded smokes:
+
+```bash
+git pull --ff-only origin main
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export RULE_BOOTSTRAP_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl
+
+JOB_GLOBAL_SHARED_SMOKE=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_global_adv_shared_value_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=20 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  EPSILON_END=0.50 \
+  BC_RULE_STEP_LIMIT=512 \
+  ONLINE_RULE_STEP_LIMIT=512 \
+  ON_POLICY_STEP_LIMIT=2048 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  ADVANTAGE_NORMALIZATION=global \
+  VALUE_BACKPROP_SCOPE=shared \
+  GRADIENT_DIAGNOSTIC_BATCHES=4 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+JOB_GLOBAL_HEAD_SMOKE=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_global_adv_head_value_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=20 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  EPSILON_END=0.50 \
+  BC_RULE_STEP_LIMIT=512 \
+  ONLINE_RULE_STEP_LIMIT=512 \
+  ON_POLICY_STEP_LIMIT=2048 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  ADVANTAGE_NORMALIZATION=global \
+  VALUE_BACKPROP_SCOPE=head-only \
+  GRADIENT_DIAGNOSTIC_BATCHES=4 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+```
+
+Smoke gates:
+
+- both reports use `advantage_normalization=global`, record finite nontrivial
+  global mean/std, accept every differentiable online row, and clean raw JSONL;
+- shared-value reports a nonzero shared value-gradient norm;
+- head-only reports exactly zero shared value-gradient norm while retaining a
+  nonzero total value-head gradient;
+- both write checkpoints and complete eval with zero errors/timeouts.
+
+After both pass, submit the matched full A/B:
+
+```bash
+JOB_GLOBAL_SHARED=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_global_adv_shared_value \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=0.90 \
+  EPSILON_END=0.10 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  ADVANTAGE_NORMALIZATION=global \
+  VALUE_BACKPROP_SCOPE=shared \
+  GRADIENT_DIAGNOSTIC_BATCHES=16 \
+  INIT_SEED=20260723 \
+  POLICY_SEED=20260723 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+JOB_GLOBAL_HEAD=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_global_adv_head_value \
+  GENERATIONS=3 \
+  TRAIN_GAMES_PER_GENERATION=1000 \
+  EVAL_GAMES_PER_GENERATION=200 \
+  EPSILON_START=0.90 \
+  EPSILON_END=0.10 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  ADVANTAGE_NORMALIZATION=global \
+  VALUE_BACKPROP_SCOPE=head-only \
+  GRADIENT_DIAGNOSTIC_BATCHES=16 \
+  INIT_SEED=20260723 \
+  POLICY_SEED=20260723 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+```
+
+Promotion requires a deterministic generation to exceed both its own BC
+checkpoint and the matched rule baseline with no action-rate collapse. Treat
+training-window wins and dense reward as diagnostics only.
+
+## 21. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

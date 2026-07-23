@@ -6400,3 +6400,88 @@ Next step:
   rule-vs-rule `87 / 200` baseline and each other. Inspect gradient norms,
   objective cosines, PPO ratios/clipping, action rates, and teacher forgetting
   before extending either arm.
+
+## 2026-07-23 - PPO-Dominant A/B Completed; Outcome Cancellation Diagnosed
+
+ERAWAN completion and retention:
+
+- No-anchor job `74848` completed in `01:19:20`; 10%-anchor job `74849`
+  completed in `01:54:43`. Both exited `0`, had zero evaluation errors or
+  timeouts, and stderr contained only the known PyTorch nested-tensor warning.
+- Every online record was accepted and used exactly once. The no-anchor arm
+  used 43,740 / 48,201 / 51,582 PPO rows; anchor-10 used
+  42,624 / 60,935 / 77,308 PPO rows plus 4,736 / 6,771 / 8,590 evenly sampled
+  rule rows. All consumed online JSONLs were deleted; checkpoints and compact
+  reports/replays remain.
+- Downloaded the 76-file, 21,017,719-byte report/replay bundle to the protected
+  local ERAWAN pull area. It is analysis input only and is not staged in the
+  repository.
+
+Deterministic eval against rule Mega Lucario ex:
+
+| Generation | No anchor | 10% anchor |
+| ---: | ---: | ---: |
+| 0 (one-time BC) | 96 / 200 (`0.480`) | 87 / 200 (`0.435`) |
+| 1 | 50 / 200 (`0.250`) | 88 / 200 (`0.440`) |
+| 2 | 43 / 200 (`0.215`) | 95 / 200 (`0.475`) |
+| 3 | 26 / 200 (`0.130`) | 88 / 200 (`0.440`) |
+
+- No-anchor PPO collapsed immediately and monotonically. Generation 1 was
+  23 points below its own BC checkpoint (`p ~= 1.8e-6`), and generation 3 was
+  35 points below it (`p ~= 2.9e-14`).
+- The 10% anchor decisively prevented collapse: its post-update aggregate was
+  271 / 600 versus 119 / 600 without anchoring (`p ~= 7.4e-21`). It did not,
+  however, demonstrate improvement: 271 / 600 (`0.452`) versus its generation-0
+  87 / 200 (`0.435`) has `p ~= 0.68`; its best generation, 95 / 200, is also
+  not distinguishable from 87 / 200 (`p ~= 0.42`).
+- The two generation-0 checkpoints had nearly identical full-data BC metrics
+  (82,324 examples, about `0.998` average accuracy, about `0.1456` average
+  loss). Their 96-vs-87 eval difference is sampling/training nondeterminism,
+  not evidence that the arm configuration affected BC before PPO.
+
+Behavior and gradient diagnosis:
+
+- No-anchor attack/attach rates grew from `0.184 / 0.406` at generation 1 to
+  `0.612 / 0.821` at generation 3 while deterministic win rate fell to `0.130`.
+  Anchor-10 stayed much closer to teacher behavior, ending at
+  `0.251 / 0.415`, and retained `0.440` eval strength.
+- At epsilon `0.90`, weighted PPO-policy gradients were only `0.00134`
+  (no anchor) and `0.00230` (anchor), while weighted value gradients were
+  `5.35` and `5.01`. The critic therefore dominated shared-encoder movement by
+  thousands of times at the first online update. Existing whole-model cosine
+  values near zero hide this because actor and value heads occupy disjoint
+  parameter blocks.
+- More importantly, public trajectories are appended game-by-game and the
+  final win/loss reward is intentionally broadcast to every controlled action
+  in that game. The trainer then normalizes advantages independently inside
+  each sequential 64-row minibatch. A batch commonly contains actions from one
+  game, so subtracting its batch mean cancels the common terminal outcome and
+  leaves mostly within-game tactical shaping. The no-anchor action drift is
+  direct behavioral evidence of this cancellation.
+
+Corrective implementation:
+
+- Added opt-in dataset-global advantage normalization. It computes mean and
+  standard deviation over all valid online records before training, then uses
+  those fixed statistics in every minibatch. Existing `batch` normalization
+  remains the default for exact reproduction; `none` is also available.
+- Added opt-in `head-only` value backpropagation. The critic still learns from
+  full outcome targets, but its state embedding is detached so value loss
+  cannot rewrite the shared actor encoder. Existing `shared` behavior remains
+  the default.
+- Extended gradient reports with actor-shared policy/value norms and their
+  shared-only cosine, avoiding dilution from disjoint policy/value head
+  parameters.
+- The PPO-dominant SLURM workflow now accepts `ADVANTAGE_NORMALIZATION` and
+  `VALUE_BACKPROP_SCOPE` without changing prior defaults. Local compilation,
+  CLI checks, and the focused 29-test suite passed; four Torch-only tests remain
+  skipped locally.
+
+Next controlled experiment:
+
+- Keep the successful 10% sampled rule anchor and `0.10` BC coefficient in
+  both arms. Use dataset-global advantage normalization in both. Compare only
+  value backpropagation scope: `shared` versus `head-only`.
+- Run bounded 20-game smokes first. If both report valid global statistics and
+  the head-only arm reports exactly zero shared value-gradient norm, submit
+  matched three-generation 1,000-train-game / 200-eval-game jobs.
