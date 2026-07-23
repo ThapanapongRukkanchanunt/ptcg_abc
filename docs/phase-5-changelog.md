@@ -6589,3 +6589,48 @@ Corrective follow-up:
   finite losses, nontrivial ratio movement or clipping, zero shared critic
   gradient, clean eval, and raw-data cleanup. If both pass, run matched
   three-generation 1,000-train-game / 200-eval-game jobs.
+
+## 2026-07-23 - Multi-Epoch PPO Smokes Passed; Full A/B Submitted
+
+Smoke results:
+
+- ERAWAN jobs `74882` (4 PPO epochs) and `74883` (8 PPO epochs) completed in
+  `00:01:55` and `00:02:25`, respectively, with exit code `0` and zero gameplay
+  errors/timeouts.
+- Corrected accounting reported exact on-policy reuse factors `4.0` and `8.0`:
+  3,224 uses of 806 rows and 7,872 uses of 984 rows. Rule-anchor reuse was
+  `0.705` and `1.706` because the 10% anchor is sampled once per PPO epoch.
+- Multi-epoch PPO produced the intended actor movement. Mean clip fraction was
+  `0.0598` at four epochs and `0.1660` at eight epochs, versus effectively zero
+  in the one-pass full jobs. Weighted PPO policy-gradient norms rose to
+  `0.0978` and `0.1157`, roughly two orders of magnitude above the one-pass
+  `0.0004-0.0011` range.
+- Both arms retained finite global advantage statistics and exactly `0.0`
+  shared-trunk critic gradient. Four-game evals were clean but are not used as
+  performance evidence. Both smoke generated-data directories contain zero
+  JSONL files after successful updates.
+
+Full matched A/B:
+
+- Submitted job `74885`, run
+  `phase5_dragapult_vs_lucario_global_head_ppo4`, and job `74886`, run
+  `phase5_dragapult_vs_lucario_global_head_ppo8`.
+- Both use head-only critic backpropagation, global advantage normalization,
+  10% rule anchoring with BC coefficient `0.10`, identical initialization and
+  policy seed `20260723`, three generations, 1,000 training games and 200
+  deterministic eval games per generation, epsilon
+  `0.90 -> 0.50 -> 0.10`, terminal outcome scale `1.0`, and post-action
+  fractional-prize shaping weight `0.25`. PPO epochs (`4` versus `8`) are the
+  only experimental difference.
+
+Goal distance and next decision:
+
+- Smoke eval sample size is intentionally insufficient to update the goal
+  estimate. The best credible checkpoint remains generation-0 BC at 95 / 200
+  (`0.475`), five wins short of tying the immediate 50% gate; the best
+  online-trained checkpoint remains 93 / 200 (`0.465`). No broader
+  all-specialist matchup has passed yet.
+- After jobs `74885` and `74886` finish, require improvement over each arm's BC
+  checkpoint, the 87 / 200 rule baseline, and the prior best trained checkpoint
+  93 / 200. Inspect clipping by generation for over-update at eight epochs,
+  teacher retention, deterministic action behavior, and raw-data cleanup.

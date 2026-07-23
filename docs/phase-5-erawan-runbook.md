@@ -3554,6 +3554,16 @@ JSONLs. If both pass, submit matched full jobs with the same settings except
 `EVAL_GAMES_PER_GENERATION=200`, `EPSILON_START=0.90`, and
 `EPSILON_END=0.10`.
 
+Execution status (July 23, 2026):
+
+- smoke jobs `74882` (4 epochs) and `74883` (8 epochs) passed. Corrected reuse
+  factors were exactly 4/8, clip fractions were `0.0598`/`0.1660`, both
+  head-only shared critic gradients were exactly zero, and raw JSONLs were
+  cleaned;
+- full jobs are `74885` (4 epochs, run
+  `phase5_dragapult_vs_lucario_global_head_ppo4`) and `74886` (8 epochs, run
+  `phase5_dragapult_vs_lucario_global_head_ppo8`).
+
 ## 22. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

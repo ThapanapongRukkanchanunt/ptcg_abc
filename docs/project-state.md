@@ -1615,6 +1615,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   controlled test keeps global advantages and head-only critic fixed and
   compares four versus eight PPO epochs. BC+PPO reuse-factor reporting now uses
   actual examples consumed across all epochs.
+- Multi-epoch PPO smoke jobs `74882` (4 epochs) and `74883` (8 epochs) passed
+  on July 23, 2026. Actual online reuse was exactly `4.0` and `8.0`; mean clip
+  fraction increased from effectively zero in one-pass PPO to `0.0598` and
+  `0.1660`, while weighted policy-gradient norms increased to `0.0978` and
+  `0.1157`. Both retained exactly zero shared critic gradient, clean evals, and
+  zero raw JSONLs after update. Full matched jobs are now queued as `74885`
+  (4 epochs) and `74886` (8 epochs), each with three generations, 1,000 online
+  games and 200 deterministic eval games per generation. Current goal status is
+  unchanged pending those full evals: best checkpoint 95 / 200 (`0.475`), no
+  one-matchup 50% pass, and no validated broader all-specialist pass.
 
 Operational rule:
 
