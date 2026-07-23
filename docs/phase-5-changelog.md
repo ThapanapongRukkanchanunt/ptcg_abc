@@ -6485,3 +6485,49 @@ Next controlled experiment:
 - Run bounded 20-game smokes first. If both report valid global statistics and
   the head-only arm reports exactly zero shared value-gradient norm, submit
   matched three-generation 1,000-train-game / 200-eval-game jobs.
+
+## 2026-07-23 - Global-Advantage Smokes Passed; Full Critic-Scope A/B Submitted
+
+Smoke results:
+
+- ERAWAN jobs `74862` (`shared`) and `74863` (`head-only`) completed in
+  `00:01:02` and `00:00:58`, respectively, with exit code `0`, clean evals,
+  and only the known PyTorch nested-tensor warning on stderr.
+- Both used dataset-global advantage normalization and accepted every valid
+  online row exactly once. The shared arm used `915 / 915` PPO rows and 102
+  rule-anchor rows; the head-only arm used `814 / 814` PPO rows and 90
+  rule-anchor rows. No rows were rejected.
+- The shared arm recorded global advantage mean/std `-0.838104 / 0.485785`,
+  total value-gradient norm `5.587216`, and shared-trunk value-gradient norm
+  `2.707040`. The head-only arm recorded mean/std
+  `-0.955111 / 0.203997`, total value-gradient norm `5.357164`, and exactly
+  `0.0` shared-trunk value-gradient norm. This validates both the global
+  normalization pass and the critic-detachment boundary.
+- Policy shared-trunk gradient norms were nonzero in both arms (`0.016356`
+  shared, `0.033570` head-only). PPO ratios remained near `1.0`, clipping was
+  zero, and the four-game evals were 2 / 4 and 3 / 4; those eval scores are
+  smoke checks only.
+- Cleanup was verified directly on ERAWAN: both smoke run directories contain
+  zero raw JSONL files. Compact reports were downloaded to the protected local
+  ERAWAN pull area and are not repository artifacts.
+
+Full controlled A/B:
+
+- Submitted ERAWAN job `74864` for run
+  `phase5_dragapult_vs_lucario_global_adv_shared_value` and job `74865` for
+  `phase5_dragapult_vs_lucario_global_adv_head_value`.
+- Both use the same retained rule bootstrap, initialization/policy seed
+  `20260723`, 10% rule anchoring with BC coefficient `0.10`, dataset-global
+  advantage normalization, three generations, 1,000 online games and 200
+  deterministic eval games per generation, epsilon `0.90 -> 0.50 -> 0.10`,
+  terminal outcome scale `1.0`, and post-action fractional-prize shaping
+  weight `0.25`. The only experimental variable is critic backpropagation
+  scope (`shared` versus `head-only`).
+
+Next step:
+
+- After both jobs complete, compare generations 0-3 with each arm's BC
+  checkpoint, the 87 / 200 rule baseline, and prior anchor job `74849`.
+  Promotion requires a statistically credible deterministic win-rate gain
+  without attack/attach/END drift. Also verify objective gradients, global
+  advantage statistics, row accounting, and zero retained online JSONLs.

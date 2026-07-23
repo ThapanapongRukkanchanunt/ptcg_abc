@@ -3472,6 +3472,13 @@ JOB_GLOBAL_HEAD=$(
 )
 ```
 
+Execution status (July 23, 2026):
+
+- smoke jobs `74862` (`shared`) and `74863` (`head-only`) passed all gates;
+  both cleaned their raw JSONLs, and the head-only smoke reported exactly zero
+  shared-trunk value-gradient norm with a nonzero total critic gradient;
+- full jobs are `74864` (`shared`) and `74865` (`head-only`).
+
 Promotion requires a deterministic generation to exceed both its own BC
 checkpoint and the matched rule baseline with no action-rate collapse. Treat
 training-window wins and dense reward as diagnostics only.

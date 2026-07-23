@@ -1593,6 +1593,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   shared-trunk gradient diagnostics. Next run a 10%-anchor A/B with global
   normalization in both arms and only critic scope (`shared` vs `head-only`)
   changed.
+- Global-advantage smoke jobs `74862` (`shared`) and `74863` (`head-only`)
+  passed on July 23, 2026. Both used every valid PPO row exactly once, recorded
+  finite nontrivial dataset-global advantage statistics, completed clean evals,
+  and removed all raw JSONLs. The shared critic produced shared-trunk value
+  gradient norm `2.707040`; head-only produced exactly `0.0` while retaining a
+  nonzero total critic gradient (`5.357164`), validating the detach boundary.
+  Full matched jobs are now queued: `74864` shared critic and `74865` head-only
+  critic. Both use a 10% rule anchor, global advantages, identical seed
+  `20260723`, three generations, 1,000 online games and 200 deterministic eval
+  games per generation, and epsilon `0.90 -> 0.50 -> 0.10`.
 
 Operational rule:
 
