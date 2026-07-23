@@ -1599,10 +1599,22 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   and removed all raw JSONLs. The shared critic produced shared-trunk value
   gradient norm `2.707040`; head-only produced exactly `0.0` while retaining a
   nonzero total critic gradient (`5.357164`), validating the detach boundary.
-  Full matched jobs are now queued: `74864` shared critic and `74865` head-only
-  critic. Both use a 10% rule anchor, global advantages, identical seed
+  Full matched jobs were then queued as `74864` shared critic and `74865`
+  head-only critic. Both use a 10% rule anchor, global advantages, identical seed
   `20260723`, three generations, 1,000 online games and 200 deterministic eval
   games per generation, and epsilon `0.90 -> 0.50 -> 0.10`.
+- Full global-advantage jobs `74864` and `74865` completed on July 23, 2026.
+  Shared and head-only critic arms produced the same post-update aggregate,
+  263 / 600 (`0.438`), statistically indistinguishable from the 87 / 200
+  (`0.435`) rule baseline. Their generation 1-3 scores were 88/91/84 and
+  91/93/79. The best trained checkpoint, head-only generation 2 at 93 / 200,
+  remains seven wins short of tying the raw 50% one-matchup gate; no broader
+  all-specialist gate is yet validated. Critic detachment works as designed but
+  is not sufficient. PPO ratios remained essentially `1.0` and clipping was
+  almost exactly zero because every online row was used only once. The next
+  controlled test keeps global advantages and head-only critic fixed and
+  compares four versus eight PPO epochs. BC+PPO reuse-factor reporting now uses
+  actual examples consumed across all epochs.
 
 Operational rule:
 

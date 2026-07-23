@@ -618,7 +618,7 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 on_policy_trajectory_dataset_paths=[on_policy_path],
                 checkpoint_path=bootstrap_path,
                 output_checkpoint_path=updated_path,
-                epochs=1,
+                epochs=2,
                 batch_size=2,
                 deck_index_filter=3,
                 update_schedule="ppo-epoch",
@@ -634,9 +634,9 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             self.assertTrue(bootstrap_path.exists())
             self.assertEqual(ppo_summary.update_schedule, "ppo-epoch")
             self.assertEqual(ppo_summary.rule_examples_used, 0)
-            self.assertEqual(ppo_summary.on_policy_examples_used, 3)
-            self.assertEqual(ppo_summary.on_policy_reuse_factor, 1.0)
-            self.assertEqual(ppo_summary.optimizer_steps, 2)
+            self.assertEqual(ppo_summary.on_policy_examples_used, 6)
+            self.assertEqual(ppo_summary.on_policy_reuse_factor, 2.0)
+            self.assertEqual(ppo_summary.optimizer_steps, 4)
             self.assertEqual(ppo_summary.gradient_diagnostic_batches_recorded, 2)
             self.assertEqual(ppo_summary.advantage_normalization, "global")
             self.assertEqual(ppo_summary.value_backprop_scope, "head-only")

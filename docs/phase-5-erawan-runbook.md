@@ -3477,13 +3477,84 @@ Execution status (July 23, 2026):
 - smoke jobs `74862` (`shared`) and `74863` (`head-only`) passed all gates;
   both cleaned their raw JSONLs, and the head-only smoke reported exactly zero
   shared-trunk value-gradient norm with a nonzero total critic gradient;
-- full jobs are `74864` (`shared`) and `74865` (`head-only`).
+- full jobs `74864` (`shared`) and `74865` (`head-only`) completed. Their
+  post-update deterministic aggregates were both 263 / 600 (`0.438`), with no
+  significant improvement over the matched rule baseline. Neither scope is
+  promoted.
 
 Promotion requires a deterministic generation to exceed both its own BC
 checkpoint and the matched rule baseline with no action-rate collapse. Treat
 training-window wins and dense reward as diagnostics only.
 
-## 21. Ready-To-Train Checklist
+## 21. Multi-Epoch PPO Follow-Up
+
+The critic-scope A/B isolated an under-updated actor: one-pass probability
+ratios stayed essentially `1.0` and clipping stayed zero. Test standard clipped
+PPO reuse with the head-only critic in both arms. After pulling the reporting
+fix, submit bounded smokes:
+
+```bash
+git pull --ff-only origin main
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export RULE_BOOTSTRAP_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl
+
+JOB_PPO4_SMOKE=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_global_head_ppo4_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=20 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  EPSILON_END=0.50 \
+  BC_RULE_STEP_LIMIT=512 \
+  ONLINE_RULE_STEP_LIMIT=512 \
+  ON_POLICY_STEP_LIMIT=2048 \
+  PPO_EPOCHS=4 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  ADVANTAGE_NORMALIZATION=global \
+  VALUE_BACKPROP_SCOPE=head-only \
+  GRADIENT_DIAGNOSTIC_BATCHES=16 \
+  INIT_SEED=20260723 \
+  POLICY_SEED=20260723 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+JOB_PPO8_SMOKE=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET" \
+  RUN_NAME=phase5_dragapult_vs_lucario_global_head_ppo8_smoke \
+  GENERATIONS=1 \
+  TRAIN_GAMES_PER_GENERATION=20 \
+  EVAL_GAMES_PER_GENERATION=4 \
+  EPSILON_END=0.50 \
+  BC_RULE_STEP_LIMIT=512 \
+  ONLINE_RULE_STEP_LIMIT=512 \
+  ON_POLICY_STEP_LIMIT=2048 \
+  PPO_EPOCHS=8 \
+  RULE_ANCHOR_FRACTION=0.10 \
+  BC_LOSS_WEIGHT=0.10 \
+  ADVANTAGE_NORMALIZATION=global \
+  VALUE_BACKPROP_SCOPE=head-only \
+  GRADIENT_DIAGNOSTIC_BATCHES=16 \
+  INIT_SEED=20260723 \
+  POLICY_SEED=20260723 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+```
+
+Smoke gates: actual on-policy reuse factors exactly 4/8, finite losses and
+ratios, visible ratio movement or clipping relative to one-pass runs, zero
+shared-trunk value gradient, clean checkpoint/eval, and zero retained raw
+JSONLs. If both pass, submit matched full jobs with the same settings except
+`GENERATIONS=3`, `TRAIN_GAMES_PER_GENERATION=1000`,
+`EVAL_GAMES_PER_GENERATION=200`, `EPSILON_START=0.90`, and
+`EPSILON_END=0.10`.
+
+## 22. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

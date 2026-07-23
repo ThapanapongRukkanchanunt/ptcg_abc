@@ -6531,3 +6531,61 @@ Next step:
   Promotion requires a statistically credible deterministic win-rate gain
   without attack/attach/END drift. Also verify objective gradients, global
   advantage statistics, row accounting, and zero retained online JSONLs.
+
+## 2026-07-23 - Global-Advantage Critic-Scope A/B Completed
+
+ERAWAN completion and retention:
+
+- Shared-critic job `74864` completed in `01:52:01`; head-only job `74865`
+  completed in `01:55:49`. Both exited `0`, had zero evaluation errors or
+  timeouts, and stderr contained only the known PyTorch nested-tensor warning.
+- The 94-file compact report/replay bundle was downloaded to the protected
+  local ERAWAN pull area. Both generated-data directories contain zero JSONL
+  files after successful updates, confirming cleanup.
+
+Deterministic Dragapult ex versus rule Mega Lucario ex eval:
+
+| Generation | Shared critic | Head-only critic |
+| ---: | ---: | ---: |
+| 0 (one-time BC) | 76 / 200 (`0.380`) | 95 / 200 (`0.475`) |
+| 1 | 88 / 200 (`0.440`) | 91 / 200 (`0.455`) |
+| 2 | 91 / 200 (`0.455`) | 93 / 200 (`0.465`) |
+| 3 | 84 / 200 (`0.420`) | 79 / 200 (`0.395`) |
+| Post-update aggregate | 263 / 600 (`0.438`) | 263 / 600 (`0.438`) |
+
+- Neither arm improved significantly over its own BC checkpoint or the matched
+  87 / 200 (`0.435`) rule baseline. The post-update aggregates are exactly
+  equal, so detaching the critic is validated mechanically but is not the
+  remaining performance lever.
+- The best online-trained checkpoint was head-only generation 2 at 93 / 200
+  (`0.465`, Wilson 95% CI approximately `0.397-0.534`). It is seven wins short
+  of tying the raw 50% gate and eight short of exceeding it. The best checkpoint
+  overall was the head-only arm's generation-0 BC at 95 / 200, five wins short
+  of tying 50%. No checkpoint passes the one-matchup gate; the broader
+  all-specialist goal therefore still has no validated passing matchup.
+- Global advantage means/stds were finite in every generation. The shared arm
+  correctly retained nonzero critic gradients into the shared trunk; head-only
+  retained exactly zero. Behavior remained similar across arms: at generation
+  3 both attached on about 42% of opportunities, attacked on about 23%, and
+  selected END on about 3% of decisions.
+- The remaining signal is update strength. Across 42k-80k online actions per
+  generation, weighted PPO policy-gradient norms stayed around
+  `0.0004-0.0011`, mean probability ratios stayed essentially `1.0`, and
+  clipping was zero except `0.000025` in one head-only generation. A one-pass
+  PPO epoch therefore leaves each sample before the clipped objective can make
+  a meaningful repeated update.
+
+Corrective follow-up:
+
+- Keep head-only critic backpropagation, global advantage normalization, the
+  10% rule anchor, reward configuration, and seeds fixed. Compare standard PPO
+  sample reuse at four versus eight optimizer epochs.
+- Corrected BC+PPO reporting so `rule_reuse_factor` and
+  `on_policy_reuse_factor` use actual examples consumed across all epochs. This
+  makes a four-epoch run report reuse `4.0`, rather than the previous misleading
+  per-epoch value `1.0`. The focused local suite passed (10 tests, 4 Torch-only
+  skips).
+- Gate the full jobs with 20-game smokes. Require actual reuse factors 4/8,
+  finite losses, nontrivial ratio movement or clipping, zero shared critic
+  gradient, clean eval, and raw-data cleanup. If both pass, run matched
+  three-generation 1,000-train-game / 200-eval-game jobs.

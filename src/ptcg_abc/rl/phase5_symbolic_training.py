@@ -1877,12 +1877,12 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         rule_examples_used=rule_examples_used,
         on_policy_examples_used=on_policy_examples_used,
         rule_reuse_factor=(
-            rule_anchor_examples_per_epoch / rule_stats.examples
+            rule_examples_used / rule_stats.examples
             if rule_stats.examples
             else 0.0
         ),
         on_policy_reuse_factor=(
-            on_policy_examples_per_epoch / on_policy_stats.examples
+            on_policy_examples_used / on_policy_stats.examples
         ),
         optimizer_steps=optimizer_steps,
         epochs=epochs_value,
