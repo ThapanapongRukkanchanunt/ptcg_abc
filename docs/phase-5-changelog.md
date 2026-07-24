@@ -6634,3 +6634,60 @@ Goal distance and next decision:
   checkpoint, the 87 / 200 rule baseline, and the prior best trained checkpoint
   93 / 200. Inspect clipping by generation for over-update at eight epochs,
   teacher retention, deterministic action behavior, and raw-data cleanup.
+
+## 2026-07-24 - Full Multi-Epoch PPO A/B Completed; Low-Epsilon Pair Submitted
+
+ERAWAN completion and retention:
+
+- Four-epoch job `74885` completed in `04:12:56`; eight-epoch job `74886`
+  completed in `04:07:48`. Both exited `0`, had zero eval errors/timeouts, and
+  stderr contained only the known PyTorch nested-tensor warning.
+- Downloaded the 94-file, 598,708-byte compact report/replay bundle to the
+  protected local ERAWAN pull area. Both generated-data directories contain
+  zero JSONL files after successful updates.
+
+Deterministic Dragapult ex versus rule Mega Lucario ex eval:
+
+| Generation | 4 PPO epochs | 8 PPO epochs |
+| ---: | ---: | ---: |
+| 0 (one-time BC) | 81 / 200 (`0.405`) | 86 / 200 (`0.430`) |
+| 1 | 96 / 200 (`0.480`) | 77 / 200 (`0.385`) |
+| 2 | 82 / 200 (`0.410`) | 88 / 200 (`0.440`) |
+| 3 | 85 / 200 (`0.425`) | 85 / 200 (`0.425`) |
+| Post-update aggregate | 263 / 600 (`0.438`) | 250 / 600 (`0.417`) |
+
+- Four-epoch generation 1 is the new best online-trained checkpoint at
+  96 / 200 (`0.480`, Wilson 95% CI approximately `0.412-0.549`). It is four
+  wins short of tying the raw 50% gate and five short of exceeding it, but is
+  not significantly better than its 81 / 200 BC checkpoint (`p ~= 0.13`), the
+  87 / 200 rule baseline (`p ~= 0.37`), or the prior 93 / 200 best trained
+  checkpoint (`p ~= 0.76`). The one-matchup gate remains 0 / 1 passed.
+- Eight epochs is not promoted. Its aggregate is lower, generation 1 trails
+  the four-epoch arm by 19 wins (`p ~= 0.055`), and neither later generation
+  improves over BC or baseline. Both arms converge to 85 / 200 at generation 3.
+- Corrected reuse accounting is exact at 4.0 and 8.0 in every generation, but
+  full-data ratio movement remained negligible: four-epoch clipping was zero;
+  eight-epoch clipping ranged only `0.000000-0.000180`. The smoke's larger
+  clipping came from its deliberately limited 512-step BC model. Once the full
+  82k-step BC model is saturated, repeated PPO passes alone do not move its
+  policy materially.
+- Generation-1 epsilon `0.90` reduced training-window wins to 87 / 1000 and
+  65 / 1000. Although negative trajectories are valid policy-gradient data,
+  this exploration level creates a very noisy, mostly losing update and then
+  compounds it through later generations. Four epochs is retained; eight and
+  the three-generation `0.90 -> 0.50 -> 0.10` schedule are rejected.
+
+Next controlled experiment:
+
+- Use one exact frozen BC checkpoint for both arms, copied from four-epoch run
+  `phase5_dragapult_vs_lucario_global_head_ppo4` generation 0. Run one online
+  generation only, with four PPO epochs and epsilon `0.30` versus `0.10`.
+- Submitted ERAWAN jobs `74932` (run
+  `phase5_dragapult_vs_lucario_global_head_ppo4_eps030`) and `74933` (run
+  `phase5_dragapult_vs_lucario_global_head_ppo4_eps010`). Each uses 1,000
+  training games, 200 deterministic eval games, head-only critic, global
+  advantages, 10% rule anchoring, and identical policy seed `20260723`.
+- Promotion requires an observed rate above 50%, improvement over the shared
+  81 / 200 source checkpoint, and no action-rate collapse. Even if one arm
+  crosses 50%, confirm it with a larger independent evaluation before scaling
+  to additional opponents or decks.

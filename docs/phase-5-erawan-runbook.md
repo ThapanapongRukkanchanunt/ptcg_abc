@@ -3564,6 +3564,40 @@ Execution status (July 23, 2026):
   `phase5_dragapult_vs_lucario_global_head_ppo4`) and `74886` (8 epochs, run
   `phase5_dragapult_vs_lucario_global_head_ppo8`).
 
+Completion (July 24, 2026):
+
+- jobs `74885` and `74886` completed. Four-epoch evals were 81/96/82/85 and
+  eight-epoch evals were 86/77/88/85 for generations 0-3, all out of 200.
+  Neither passes the 50% gate; eight epochs is rejected.
+- Full-data clipping remained essentially zero despite exact 4/8 reuse. The
+  next test reduces exploration and removes BC variance by copying one source
+  checkpoint into both new run roots before submission:
+
+```bash
+SOURCE=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_global_head_ppo4/gen-0000/specialists/deck-101.pt
+for r in \
+  phase5_dragapult_vs_lucario_global_head_ppo4_eps030 \
+  phase5_dragapult_vs_lucario_global_head_ppo4_eps010
+do
+  m="models/rl/phase5_one_deck_public_ppo_dominant/$r"
+  mkdir -p "$m/scratch" "$m/gen-0000/specialists"
+  cp "$SOURCE" "$m/scratch/deck-101.pt"
+  cp "$SOURCE" "$m/gen-0000/specialists/deck-101.pt"
+done
+
+# Submit with the common Section 21 variables and these per-arm settings:
+# 74932: RUN_NAME=phase5_dragapult_vs_lucario_global_head_ppo4_eps030
+#        GENERATIONS=1 TRAIN_GAMES_PER_GENERATION=1000
+#        EVAL_GAMES_PER_GENERATION=200 EPSILON_END=0.30 PPO_EPOCHS=4
+# 74933: RUN_NAME=phase5_dragapult_vs_lucario_global_head_ppo4_eps010
+#        GENERATIONS=1 TRAIN_GAMES_PER_GENERATION=1000
+#        EVAL_GAMES_PER_GENERATION=200 EPSILON_END=0.10 PPO_EPOCHS=4
+```
+
+Both arms keep `ADVANTAGE_NORMALIZATION=global`,
+`VALUE_BACKPROP_SCOPE=head-only`, `RULE_ANCHOR_FRACTION=0.10`,
+`BC_LOSS_WEIGHT=0.10`, and seed `20260723`.
+
 ## 22. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

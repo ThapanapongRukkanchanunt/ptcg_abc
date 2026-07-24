@@ -1625,6 +1625,18 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   games and 200 deterministic eval games per generation. Current goal status is
   unchanged pending those full evals: best checkpoint 95 / 200 (`0.475`), no
   one-matchup 50% pass, and no validated broader all-specialist pass.
+- Full multi-epoch jobs `74885` and `74886` completed on July 24, 2026. The
+  four-epoch arm scored 96/82/85 across online generations and the eight-epoch
+  arm 77/88/85, all out of 200; aggregates were `0.438` and `0.417`. Four-epoch
+  generation 1 at 96 / 200 (`0.480`) is the new best trained checkpoint but is
+  four wins short of tying the raw 50% gate and is not significantly above its
+  BC checkpoint or the rule baseline. Full-data clipping remained essentially
+  zero despite exact 4/8 reuse, showing that the smoke's movement came from its
+  intentionally undertrained BC initialization. Eight epochs and the
+  three-generation high-exploration schedule are rejected. Matched jobs
+  `74932` (epsilon `0.30`) and `74933` (epsilon `0.10`) now test one online
+  generation from the exact same copied four-epoch generation-0 BC checkpoint,
+  with four PPO epochs, 1,000 train games, and 200 deterministic eval games.
 
 Operational rule:
 
