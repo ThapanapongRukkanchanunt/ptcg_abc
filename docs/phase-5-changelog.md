@@ -6691,3 +6691,61 @@ Next controlled experiment:
   81 / 200 source checkpoint, and no action-rate collapse. Even if one arm
   crosses 50%, confirm it with a larger independent evaluation before scaling
   to additional opponents or decks.
+
+## 2026-07-24 - Low-Epsilon Updates Rejected; 1,000-Game Confirmation Queued
+
+ERAWAN completion and retention:
+
+- Epsilon-0.30 job `74932` completed in `01:17:22`; epsilon-0.10 job `74933`
+  completed in `01:26:49`. Both exited `0`, had zero gameplay errors/timeouts,
+  and removed their consumed raw JSONLs.
+- Downloaded the 48-file, 219,614-byte compact report/replay bundle to the
+  protected local ERAWAN pull area.
+
+Paired one-generation result from one copied BC checkpoint:
+
+| Arm | Source eval | Updated eval | Training wins |
+| --- | ---: | ---: | ---: |
+| Epsilon `0.30` | 100 / 200 (`0.500`) | 78 / 200 (`0.390`) | 182 / 1000 |
+| Epsilon `0.10` | 104 / 200 (`0.520`) | 89 / 200 (`0.445`) | 303 / 1000 |
+
+- Epsilon 0.30 is rejected. Its 11-point drop from the source evaluation is
+  significant (`p ~= 0.027`), and 78 / 200 is also significantly below the
+  source checkpoint's aggregate 285 / 600 (`0.475`) over three independent
+  evaluations (`p ~= 0.037`).
+- Epsilon 0.10 is the less harmful update but is not promoted. Its 89 / 200 is
+  7.5 points below the same-run source evaluation and is statistically
+  indistinguishable from the source aggregate (`p ~= 0.46`). Both updates are
+  below the raw 50% gate, so the current one-matchup goal remains 0 / 1 passed.
+- The updates were no longer completely inert: clip fractions were `0.00112`
+  and `0.00170`, and weighted policy-gradient norms were `0.0228` and `0.0522`.
+  The direction was nevertheless harmful. Lower exploration alone does not fix
+  online credit assignment or policy improvement.
+
+Evaluation reliability and confirmation:
+
+- The exact same copied BC checkpoint scored 81 / 200, 100 / 200, and
+  104 / 200 across three independent eval invocations. Combined it is
+  285 / 600 (`0.475`), but the between-run spread is too large for selecting a
+  submission from a single 200-game result.
+- The official Kaggle wrapper exposes only `battle_start(deck0, deck1)`; it has
+  no battle-seed argument. Exact common-random-number evaluation is therefore
+  unavailable without modifying the engine. Use larger independent samples.
+- Submitted two 1,000-game confirmation evals: job `74962` for the frozen BC
+  source and job `74963` for the epsilon-0.10 checkpoint. Both use deterministic
+  neural action selection, alternate player order, and save one win and one
+  loss replay.
+
+Submission readiness:
+
+- No corrected-online-RL checkpoint is currently promoted for packaging. The
+  BC source remains the practical Dragapult candidate pending the 1,000-game
+  confirmation; epsilon 0.30 is rejected and epsilon 0.10 remains a challenger
+  only.
+- After confirmation, a promoted Dragapult checkpoint still needs evaluation
+  against the broader specialized-rule roster, a refreshed current official
+  Kaggle `cg` package, package smoke validation, and archive download.
+- This corrected experiment trained only Dragapult. A second new corrected-RL
+  submission candidate does not yet exist; a two-submission set must either use
+  a previously validated league specialist as the fallback or repeat the
+  corrected pipeline for another deck after the learning update is fixed.

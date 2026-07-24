@@ -3598,6 +3598,43 @@ Both arms keep `ADVANTAGE_NORMALIZATION=global`,
 `VALUE_BACKPROP_SCOPE=head-only`, `RULE_ANCHOR_FRACTION=0.10`,
 `BC_LOSS_WEIGHT=0.10`, and seed `20260723`.
 
+Low-epsilon completion and confirmation (July 24, 2026):
+
+- job `74932` scored 78 / 200 after epsilon-0.30 training versus 100 / 200 for
+  its source evaluation; job `74933` scored 89 / 200 after epsilon-0.10 training
+  versus 104 / 200 for its source evaluation. Neither update is promoted.
+- Because the official engine wrapper has no battle-seed input and the source
+  checkpoint's repeated 200-game scores varied materially, confirm the source
+  and the less-harmful epsilon-0.10 candidate with 1,000 games each:
+
+```bash
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+
+# Job 74962
+PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+PUBLIC_AGENT_KEYS=sample_lucario \
+CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+CONTROLLED_DECK_INDEX=101 \
+AGENT=phase5-symbolic \
+SPECIALIST_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_global_head_ppo4/gen-0000/specialists \
+GAMES_PER_MATCHUP=1000 \
+REPORT_JSON=reports/phase5_dragapult_lucario_bc_source_confirm_1000g.json \
+REPORT_MD=reports/phase5_dragapult_lucario_bc_source_confirm_1000g.md \
+STATUS_JSON=reports/phase5_dragapult_lucario_bc_source_confirm_status.json \
+sbatch scripts/slurm/phase5_public_agent_eval_conda.sbatch
+
+# Job 74963 uses the same arguments except:
+# SPECIALIST_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_global_head_ppo4_eps010/gen-0001/specialists
+# REPORT_JSON=reports/phase5_dragapult_lucario_eps010_confirm_1000g.json
+# REPORT_MD=reports/phase5_dragapult_lucario_eps010_confirm_1000g.md
+# STATUS_JSON=reports/phase5_dragapult_lucario_eps010_confirm_status.json
+```
+
+After both finish, select a checkpoint only from the 1,000-game result. A new
+submission still requires broader specialized-opponent evaluation and packaging
+with the refreshed current official Kaggle `cg` files. This one-deck experiment
+does not provide a second corrected-RL candidate.
+
 ## 22. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

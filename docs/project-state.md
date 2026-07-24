@@ -1637,6 +1637,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   `74932` (epsilon `0.30`) and `74933` (epsilon `0.10`) now test one online
   generation from the exact same copied four-epoch generation-0 BC checkpoint,
   with four PPO epochs, 1,000 train games, and 200 deterministic eval games.
+- Low-epsilon jobs `74932` and `74933` completed on July 24, 2026. Epsilon 0.30
+  degraded the shared BC checkpoint from 100 / 200 to 78 / 200 (`p ~= 0.027`);
+  epsilon 0.10 degraded it from 104 / 200 to 89 / 200. The same source
+  checkpoint has varied from 81 to 104 wins across independent 200-game evals,
+  with combined result 285 / 600 (`0.475`). The official engine wrapper exposes
+  no battle seed, so jobs `74962` (BC source) and `74963` (epsilon-0.10
+  challenger) now run 1,000-game independent confirmation evals. No new online
+  checkpoint is promoted for Kaggle packaging. Even after confirmation, the
+  selected Dragapult checkpoint needs broader specialized-rule evaluation and
+  refreshed-current-engine package validation; this experiment has not
+  produced a second corrected-RL deck candidate.
 
 Operational rule:
 
