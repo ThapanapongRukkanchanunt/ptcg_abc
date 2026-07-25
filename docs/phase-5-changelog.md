@@ -6840,3 +6840,37 @@ Next controlled gate:
   gate is still 0 / 1, the best confirmed new checkpoint is 441 / 1000
   (`0.441`), and it remains 5.9 percentage points below 50%. No new submission
   checkpoint is ready.
+
+ERAWAN smoke completion and full A/B:
+
+- Smoke jobs `74970` (GAE) and `74971` (discounted return) completed with exit
+  code `0` in `00:10:49` and `00:11:26`. Both grouped exactly 20 finished
+  games, had zero truncations, rejected zero PPO rows, used every accepted row
+  exactly four times, recorded game-shuffled order, kept shared-trunk value
+  gradient exactly `0.0`, completed both evals without errors/timeouts, and
+  deleted all raw JSONL files.
+- GAE used 1,662 actions from a 6-14 training window. Its mean
+  advantage/return target were `0.2339/-0.2689`, value loss was `0.1614`,
+  weighted policy/value gradient norms were `0.0315/0.8922`, mean ratio was
+  `1.00020`, and clipping was `0.0`.
+- Discounted return used 1,550 actions from a 7-13 training window. Its mean
+  advantage/return target were `1.0218/0.5228`, value loss was `0.9809`,
+  weighted policy/value gradient norms were `0.0531/4.6610`, mean ratio was
+  `1.00007`, and clip fraction was `0.000156`. It carries stronger but noisier
+  long-horizon credit; head-only critic isolation kept that larger value
+  gradient out of the actor trunk.
+- Four-game evals were GAE 3/4 before and 3/4 after, discounted 2/4 before and
+  4/4 after. These validate runtime and replay generation only; they are not
+  performance evidence. The official engine does not expose a battle seed, so
+  the two arms also saw different stochastic games despite matching policy
+  seeds.
+- Both objective implementations passed. To use both available ERAWAN slots
+  and resolve the bias/variance tradeoff scientifically, submitted matched
+  one-generation full jobs `74972` (GAE) and `74973` (discounted return). Each
+  uses the exact frozen Dragapult BC checkpoint, 1,000 epsilon-0.10 training
+  games, 200 deterministic eval games, four PPO epochs, global advantages,
+  head-only critic, 10% rule anchor, terminal-only outcome, fractional-prize
+  dense reward, gamma `0.99`, and bounded eight-game shuffling.
+- Goal status remains 0 / 1 until those evals finish. A 200-game result above
+  50% must still be confirmed with a larger independent evaluation before
+  promotion, broader specialist evaluation, or Kaggle packaging.

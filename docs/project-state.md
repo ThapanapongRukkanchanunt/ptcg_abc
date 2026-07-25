@@ -1669,6 +1669,15 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   checkpoint, followed by one 1,000-game arm only if implementation and
   gradient gates pass. Goal status remains 0 / 1 on the one-matchup gate and no
   new corrected-RL submission is ready.
+- Episode-return ERAWAN smokes passed on July 25, 2026: job `74970` GAE and job
+  `74971` discounted return each grouped 20/20 finished games, achieved exact
+  four-pass PPO reuse, rejected zero rows, retained zero shared critic
+  gradient, completed clean eval/replay generation, and removed all raw JSONL.
+  GAE had the lower-variance critic target; discounted return had a stronger
+  but noisier long-horizon policy signal. Full matched jobs are now `74972`
+  (GAE) and `74973` (discounted), each with 1,000 epsilon-0.10 train games and
+  200 eval games from the same frozen BC checkpoint. The goal remains 0 / 1
+  pending those results.
 
 Operational rule:
 

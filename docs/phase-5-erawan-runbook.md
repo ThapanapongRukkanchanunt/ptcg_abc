@@ -3730,6 +3730,19 @@ implementation check only. If both pass, choose the healthier objective from
 its gradients and return statistics for a one-generation 1,000-game /
 200-game-eval run from the same frozen checkpoint.
 
+Execution status (July 25, 2026):
+
+- jobs `74970` (GAE) and `74971` (discounted return) passed every implementation
+  and cleanup gate;
+- because GAE had lower target variance while discounted return retained a
+  stronger long-horizon gradient, both were advanced using the two available
+  slots rather than selecting from four eval games;
+- full job `74972` is GAE and full job `74973` is discounted return. Both use
+  1,000 train games, 200 eval games, epsilon `0.10`, four PPO epochs, the same
+  frozen BC checkpoint and policy seed, and all common smoke controls above.
+  After completion, inspect both generation-0 and generation-1 evals, PPO
+  reports, action rates, errors/timeouts, replays, and raw JSONL cleanup.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
