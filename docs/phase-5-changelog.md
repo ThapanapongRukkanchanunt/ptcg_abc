@@ -6749,3 +6749,41 @@ Submission readiness:
   submission candidate does not yet exist; a two-submission set must either use
   a previously validated league specialist as the fallback or repeat the
   corrected pipeline for another deck after the learning update is fixed.
+
+## 2026-07-25 - 1,000-Game Confirmation Shows No Online Improvement
+
+Confirmation result:
+
+- Frozen BC source job `74962` completed in `00:25:30`: 434 wins, 564 losses,
+  2 draws, 0 timeouts, and 0 errors in 1,000 games. Win rate was `0.434` with
+  Wilson 95% CI approximately `0.404-0.465`.
+- Epsilon-0.10 challenger job `74963` completed in `00:25:50`: 441 wins,
+  559 losses, 0 draws, 0 timeouts, and 0 errors. Win rate was `0.441` with
+  Wilson 95% CI approximately `0.411-0.472`.
+- The challenger gained only seven wins (`+0.7` percentage points), which is
+  statistically indistinguishable from the source (`p ~= 0.75`). Both are
+  significantly below 50% (`p ~= 0.003` source, `p ~= 0.008` challenger).
+- Including prior independent evaluations, the exact BC source is
+  719 / 1600 (`0.4494`, 95% CI approximately `0.425-0.474`), while the
+  epsilon-0.10 checkpoint is 530 / 1200 (`0.4417`, approximately
+  `0.414-0.470`). The online update does not improve the pooled estimate.
+- Both jobs exited `0`; stderr contained only the known PyTorch nested-tensor
+  warning. The compact 22-file, 145,311-byte report/replay bundle was downloaded
+  to the protected local ERAWAN pull area.
+
+Conclusion and submission decision:
+
+- Reject epsilon-0.10 promotion. None of the tested PPO epoch or epsilon
+  schedules has demonstrated improvement over behavior cloning, and the current
+  Dragapult-vs-Lucario gate remains 0 / 1 passed. The best 1,000-game point
+  estimate is still 5.9 percentage points below the 50% target.
+- Do not package either new checkpoint as an improved Kaggle agent. For near-term
+  submissions, use previously validated league specialists; this one-deck
+  experiment provides no second corrected-RL candidate and no replacement for
+  those specialists.
+- Stop epsilon/epoch tuning on the current per-step `reward - value` objective.
+  The next RL implementation should group actions by game, preserve terminal
+  outcome only at the episode boundary, compute discounted returns or GAE over
+  the sequence with fractional-prize deltas as dense rewards, and train from
+  shuffled game-balanced minibatches. Validate that objective on this one-deck
+  matchup before scaling or packaging new RL specialists.

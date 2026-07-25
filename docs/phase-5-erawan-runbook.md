@@ -3635,6 +3635,21 @@ submission still requires broader specialized-opponent evaluation and packaging
 with the refreshed current official Kaggle `cg` files. This one-deck experiment
 does not provide a second corrected-RL candidate.
 
+Confirmation completion (July 25, 2026):
+
+- job `74962` source: 434 / 1000 wins (`0.434`), 2 draws, no errors/timeouts;
+- job `74963` epsilon-0.10: 441 / 1000 wins (`0.441`), no draws,
+  errors, or timeouts;
+- difference `+0.7` points, `p ~= 0.75`; neither passes 50%. Do not promote or
+  package either as an improved agent.
+
+Do not submit more epsilon/epoch sweeps for this objective. The next training
+entry point should consume game-grouped trajectories and compute discounted
+returns or GAE with terminal outcome at episode end and fractional-prize deltas
+as dense rewards, followed by shuffled game-balanced PPO batches. Gate that
+implementation on the same one-deck matchup before returning to submission
+packaging.
+
 ## 22. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

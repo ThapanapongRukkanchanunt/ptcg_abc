@@ -1648,6 +1648,17 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   selected Dragapult checkpoint needs broader specialized-rule evaluation and
   refreshed-current-engine package validation; this experiment has not
   produced a second corrected-RL deck candidate.
+- Confirmation jobs `74962` and `74963` completed on July 25, 2026. The frozen
+  BC source scored 434 / 1000 (`0.434`, 2 draws) and the epsilon-0.10 challenger
+  441 / 1000 (`0.441`); the seven-win difference is not significant
+  (`p ~= 0.75`), and both are significantly below 50%. Pooled with prior evals,
+  source is 719 / 1600 (`0.4494`) and challenger 530 / 1200 (`0.4417`). Reject
+  online promotion and do not package these as improved agents. Near-term
+  submissions should use previously validated league specialists. The next RL
+  implementation should replace per-step `reward - value` targets with
+  game-grouped discounted returns or GAE, terminal outcome at episode end,
+  dense fractional-prize deltas, and shuffled game-balanced minibatches before
+  another one-deck validation.
 
 Operational rule:
 
