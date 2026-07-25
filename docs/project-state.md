@@ -1659,6 +1659,16 @@ Current Phase 5 generalist/search state as of June 29, 2026:
   game-grouped discounted returns or GAE, terminal outcome at episode end,
   dense fractional-prize deltas, and shuffled game-balanced minibatches before
   another one-deck validation.
+- The corrected episode-return path is now implemented locally. Public-agent
+  generation can write terminal-only outcome rewards and terminal flags;
+  BC+PPO training can compute game-grouped discounted returns or GAE and feed
+  deterministic bounded game-shuffled minibatches. Legacy broadcast rewards,
+  per-step targets, and sequential order remain defaults. Focused validation
+  passed (22 tests, 4 local Torch skips). The next ERAWAN gate is a matched
+  20-game GAE versus discounted-return smoke from the same frozen Dragapult BC
+  checkpoint, followed by one 1,000-game arm only if implementation and
+  gradient gates pass. Goal status remains 0 / 1 on the one-matchup gate and no
+  new corrected-RL submission is ready.
 
 Operational rule:
 

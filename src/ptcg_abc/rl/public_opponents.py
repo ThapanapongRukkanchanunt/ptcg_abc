@@ -492,6 +492,7 @@ def generate_phase5_public_agent_trajectories(
     search_config: Any | None = None,
     overwrite: bool = False,
     outcome_reward_scale: float = 1.0,
+    outcome_reward_assignment: str = "broadcast",
     tactical_reward_config: PublicAgentTacticalRewardConfig | None = None,
     policy_epsilon: float = 0.0,
     policy_seed: int | None = None,
@@ -501,6 +502,10 @@ def generate_phase5_public_agent_trajectories(
         raise ValueError(f"Trajectory output already exists at {output_path}.")
     if teacher_agent_kind is not None and teacher_agent_kind != "rule":
         raise ValueError(f"Unsupported trajectory teacher agent: {teacher_agent_kind}.")
+    if outcome_reward_assignment not in {"broadcast", "terminal"}:
+        raise ValueError(
+            "outcome_reward_assignment must be either broadcast or terminal."
+        )
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = _selected_controlled_decks(
         sample_dir=sample_dir,
@@ -670,9 +675,10 @@ def generate_phase5_public_agent_trajectories(
                 records = list(recorder.frames)
                 our_player_index = 0 if our_is_player0 else 1
                 for record_index, record in enumerate(records):
+                    is_last_record = record_index + 1 == len(records)
                     next_frame = (
                         records[record_index + 1].frame
-                        if record_index + 1 < len(records)
+                        if not is_last_record
                         else None
                     )
                     tactical_reward, tactical_metadata = _tactical_reward_for_frame(
@@ -686,7 +692,12 @@ def generate_phase5_public_agent_trajectories(
                     )
                     _accumulate_tactical_reward(tactical_summary, tactical_metadata)
                     scaled_outcome_reward = float(outcome_reward_scale) * reward
-                    step_reward = scaled_outcome_reward + tactical_reward
+                    assigned_outcome_reward = (
+                        scaled_outcome_reward
+                        if outcome_reward_assignment == "broadcast" or is_last_record
+                        else 0.0
+                    )
+                    step_reward = assigned_outcome_reward + tactical_reward
                     frame = _with_metadata(
                         record.frame,
                         final_metadata
@@ -694,6 +705,8 @@ def generate_phase5_public_agent_trajectories(
                             "outcome_reward": reward,
                             "outcome_reward_scale": float(outcome_reward_scale),
                             "scaled_outcome_reward": scaled_outcome_reward,
+                            "assigned_outcome_reward": assigned_outcome_reward,
+                            "outcome_reward_assignment": outcome_reward_assignment,
                         }
                         | tactical_metadata,
                     )
@@ -704,8 +717,12 @@ def generate_phase5_public_agent_trajectories(
                             logprob=record.logprob,
                             value=record.value,
                             reward=step_reward,
-                            terminal=result.finished,
-                            truncated=not result.finished and result.error is None,
+                            terminal=result.finished and is_last_record,
+                            truncated=(
+                                not result.finished
+                                and result.error is None
+                                and is_last_record
+                            ),
                         ),
                         output_path,
                     )
@@ -766,6 +783,7 @@ def generate_phase5_public_agent_trajectories(
         search_telemetry=_finalize_search_telemetry(aggregate_search),
         reward_shaping={
             "outcome_reward_scale": float(outcome_reward_scale),
+            "outcome_reward_assignment": outcome_reward_assignment,
             "tactical_reward": tactical_config.to_dict(),
         },
         tactical_reward_summary=_finalize_tactical_reward_summary(tactical_summary),

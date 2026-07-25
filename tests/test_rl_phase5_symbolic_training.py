@@ -9,10 +9,12 @@ from ptcg_abc.rl.phase5_encoder import Phase5SymbolicEncoder
 from ptcg_abc.rl.phase5_policy import TORCH_AVAILABLE
 from ptcg_abc.rl.phase5_symbolic_training import (
     Phase5TurnContext,
+    _iter_phase5_game_shuffled_records,
     build_phase5_symbolic_dataset,
     decision_frame_to_legal_actions,
     decision_frame_to_state,
     initialize_phase5_policy_checkpoint,
+    phase5_game_return_targets,
     phase5_symbolic_pairwise_positions,
     phase5_symbolic_record_from_decision,
     phase5_symbolic_record_from_trajectory,
@@ -322,6 +324,18 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "global",
                 "--value-backprop-scope",
                 "head-only",
+                "--return-estimation",
+                "gae",
+                "--discount-gamma",
+                "0.97",
+                "--gae-lambda",
+                "0.91",
+                "--ppo-batch-order",
+                "game-shuffled",
+                "--ppo-shuffle-games",
+                "16",
+                "--ppo-shuffle-seed",
+                "123",
             ]
         )
         trajectory_bc_args = parser.parse_args(
@@ -355,10 +369,101 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertEqual(bc_ppo_args.gradient_diagnostic_batches, 4)
         self.assertEqual(bc_ppo_args.advantage_normalization, "global")
         self.assertEqual(bc_ppo_args.value_backprop_scope, "head-only")
+        self.assertEqual(bc_ppo_args.return_estimation, "gae")
+        self.assertEqual(bc_ppo_args.discount_gamma, 0.97)
+        self.assertEqual(bc_ppo_args.gae_lambda, 0.91)
+        self.assertEqual(bc_ppo_args.ppo_batch_order, "game-shuffled")
+        self.assertEqual(bc_ppo_args.ppo_shuffle_games, 16)
+        self.assertEqual(bc_ppo_args.ppo_shuffle_seed, 123)
         self.assertEqual(
             trajectory_bc_args.func.__name__,
             "command_rl_train_phase5_trajectory_bc",
         )
+
+    def test_game_returns_assign_terminal_outcome_once(self):
+        first_frame = _phase5_frame(step_index=1, selected=[0])
+        first_frame.reward_metadata.update(
+            {
+                "tactical_step_reward": 0.25,
+                "scaled_outcome_reward": 1.0,
+            }
+        )
+        second_frame = _phase5_frame(step_index=2, selected=[1])
+        second_frame.reward_metadata.update(
+            {
+                "tactical_step_reward": 0.5,
+                "scaled_outcome_reward": 1.0,
+            }
+        )
+        steps = [
+            TrajectoryStep(
+                decision=first_frame,
+                chosen_indices=[0],
+                reward=1.25,
+                value=0.1,
+                terminal=True,
+            ),
+            TrajectoryStep(
+                decision=second_frame,
+                chosen_indices=[1],
+                reward=1.5,
+                value=0.2,
+                terminal=True,
+            ),
+        ]
+
+        discounted = phase5_game_return_targets(
+            steps,
+            game_key=("game", 1),
+            return_estimation="discounted-return",
+            discount_gamma=0.9,
+            gae_lambda=0.8,
+        )
+        gae = phase5_game_return_targets(
+            steps,
+            game_key=("game", 1),
+            return_estimation="gae",
+            discount_gamma=0.9,
+            gae_lambda=0.8,
+        )
+        legacy = phase5_game_return_targets(
+            steps,
+            game_key=("game", 1),
+            return_estimation="step-reward",
+            discount_gamma=0.9,
+            gae_lambda=0.8,
+        )
+
+        self.assertAlmostEqual(discounted[0].value_target, 1.6)
+        self.assertAlmostEqual(discounted[1].value_target, 1.5)
+        self.assertAlmostEqual(discounted[0].advantage, 1.5)
+        self.assertAlmostEqual(discounted[1].advantage, 1.3)
+        self.assertAlmostEqual(gae[0].advantage, 1.266)
+        self.assertAlmostEqual(gae[0].value_target, 1.366)
+        self.assertAlmostEqual(gae[1].value_target, 1.5)
+        self.assertAlmostEqual(legacy[0].value_target, 1.25)
+        self.assertAlmostEqual(legacy[1].value_target, 1.5)
+
+    def test_game_shuffler_interleaves_complete_games(self):
+        examples = [
+            (f"{game}-{step}", 0.0, 0.0, (game,))
+            for game in ("a", "b", "c")
+            for step in range(3)
+        ]
+
+        shuffled = list(
+            _iter_phase5_game_shuffled_records(
+                lambda: iter(examples),
+                buffer_games=3,
+                seed=7,
+            )
+        )
+
+        self.assertCountEqual(
+            [value[0] for value in shuffled],
+            [value[0] for value in examples],
+        )
+        self.assertEqual(len({value[3] for value in shuffled[:3]}), 3)
 
     @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
     def test_symbolic_trainer_writes_checkpoint(self):
@@ -627,6 +732,10 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 gradient_diagnostic_batches=2,
                 advantage_normalization="global",
                 value_backprop_scope="head-only",
+                return_estimation="gae",
+                ppo_batch_order="game-shuffled",
+                ppo_shuffle_games=2,
+                ppo_shuffle_seed=17,
             )
 
             self.assertEqual(bc_summary.examples_available, 2)
@@ -640,6 +749,9 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             self.assertEqual(ppo_summary.gradient_diagnostic_batches_recorded, 2)
             self.assertEqual(ppo_summary.advantage_normalization, "global")
             self.assertEqual(ppo_summary.value_backprop_scope, "head-only")
+            self.assertEqual(ppo_summary.return_estimation, "gae")
+            self.assertEqual(ppo_summary.on_policy_games, 1)
+            self.assertEqual(ppo_summary.ppo_batch_order, "game-shuffled")
             self.assertEqual(ppo_summary.average_ppo_value_shared_gradient_norm, 0.0)
             self.assertTrue(updated_path.exists())
 

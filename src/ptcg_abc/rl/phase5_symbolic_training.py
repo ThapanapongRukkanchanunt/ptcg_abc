@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import asdict, dataclass
+import random
+from dataclasses import asdict, dataclass, replace
 from itertools import islice
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -27,6 +28,8 @@ PHASE5_DIFFERENTIABLE_POLICY_MODES = ("epsilon_mixture", "sample")
 PHASE5_BC_PPO_UPDATE_SCHEDULES = ("balanced-max", "ppo-epoch")
 PHASE5_ADVANTAGE_NORMALIZATION_MODES = ("batch", "global", "none")
 PHASE5_VALUE_BACKPROP_SCOPES = ("shared", "head-only")
+PHASE5_RETURN_ESTIMATION_MODES = ("step-reward", "discounted-return", "gae")
+PHASE5_PPO_BATCH_ORDERS = ("sequential", "game-shuffled")
 
 
 @dataclass(frozen=True)
@@ -248,6 +251,16 @@ class Phase5BCPPOTrainingSummary:
     advantage_normalization_mean: float
     advantage_normalization_std: float
     value_backprop_scope: str
+    return_estimation: str
+    discount_gamma: float
+    gae_lambda: float
+    on_policy_games: int
+    on_policy_finished_games: int
+    on_policy_truncated_games: int
+    mean_return_target: float
+    ppo_batch_order: str
+    ppo_shuffle_games: int
+    ppo_shuffle_seed: int
     balanced_examples_per_source_per_epoch: int
     rule_anchor_examples_per_epoch: int
     on_policy_examples_per_epoch: int
@@ -305,6 +318,22 @@ class _TrajectorySourceStats:
     skipped_nonfinite: int = 0
     advantage_sum: float = 0.0
     advantage_square_sum: float = 0.0
+
+
+@dataclass(frozen=True)
+class _Phase5ReturnTarget:
+    game_key: tuple[Any, ...]
+    advantage: float
+    value_target: float
+
+
+@dataclass(frozen=True)
+class _Phase5ReturnSummary:
+    targets: list[_Phase5ReturnTarget]
+    games: int
+    finished_games: int
+    truncated_games: int
+    return_target_sum: float
 
 
 @dataclass(frozen=True)
@@ -1552,6 +1581,12 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     gradient_diagnostic_batches: int = 0,
     advantage_normalization: str = "batch",
     value_backprop_scope: str = "shared",
+    return_estimation: str = "step-reward",
+    discount_gamma: float = 0.99,
+    gae_lambda: float = 0.95,
+    ppo_batch_order: str = "sequential",
+    ppo_shuffle_games: int = 8,
+    ppo_shuffle_seed: int = 20260725,
 ) -> Phase5BCPPOTrainingSummary:
     if not on_policy_trajectory_dataset_paths:
         raise ValueError("Provide at least one on-policy trajectory dataset.")
@@ -1586,6 +1621,24 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             + ", ".join(PHASE5_VALUE_BACKPROP_SCOPES)
             + "."
         )
+    if return_estimation not in PHASE5_RETURN_ESTIMATION_MODES:
+        raise ValueError(
+            "Phase 5 BC+PPO return_estimation must be one of "
+            + ", ".join(PHASE5_RETURN_ESTIMATION_MODES)
+            + "."
+        )
+    if not 0.0 <= discount_gamma <= 1.0:
+        raise ValueError("Phase 5 BC+PPO discount_gamma must be between 0 and 1.")
+    if not 0.0 <= gae_lambda <= 1.0:
+        raise ValueError("Phase 5 BC+PPO gae_lambda must be between 0 and 1.")
+    if ppo_batch_order not in PHASE5_PPO_BATCH_ORDERS:
+        raise ValueError(
+            "Phase 5 BC+PPO ppo_batch_order must be one of "
+            + ", ".join(PHASE5_PPO_BATCH_ORDERS)
+            + "."
+        )
+    if ppo_shuffle_games <= 0:
+        raise ValueError("Phase 5 BC+PPO ppo_shuffle_games must be positive.")
     needs_rule_examples = update_schedule == "balanced-max" or rule_anchor_fraction > 0.0
     if needs_rule_examples and not rule_trajectory_dataset_paths:
         raise ValueError("Provide a rule trajectory dataset for the requested BC anchor.")
@@ -1638,17 +1691,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         ):
             pass
     on_policy_stats = _TrajectorySourceStats()
-    for _record, _step in _iter_phase5_hybrid_source(
+    return_summary = _prepare_phase5_return_targets(
         on_policy_trajectory_dataset_paths,
         encoder=encoder,
         max_previous_actions=max_previous_actions,
         deck_index_filter=deck_index_filter,
         step_limit=on_policy_step_limit,
-        require_on_policy=True,
         accepted_policy_modes=normalized_policy_modes,
         stats=on_policy_stats,
-    ):
-        pass
+        return_estimation=return_estimation,
+        discount_gamma=discount_gamma,
+        gae_lambda=gae_lambda,
+    )
     if needs_rule_examples and rule_stats.examples <= 0:
         raise ValueError("Rule trajectory datasets produced zero BC examples.")
     if on_policy_stats.examples <= 0:
@@ -1699,8 +1753,9 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             yield record
 
     def on_policy_factory() -> Iterable[
-        tuple[Phase5SymbolicDecisionRecord, float, float]
+        tuple[Phase5SymbolicDecisionRecord, float, float, tuple[Any, ...]]
     ]:
+        target_index = 0
         for record, step in _iter_phase5_hybrid_source(
             on_policy_trajectory_dataset_paths,
             encoder=encoder,
@@ -1710,7 +1765,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
             require_on_policy=True,
             accepted_policy_modes=normalized_policy_modes,
         ):
-            yield record, float(step.logprob), float(step.reward) - float(step.value)
+            if target_index >= len(return_summary.targets):
+                raise ValueError("Return target source produced too few targets.")
+            target = return_summary.targets[target_index]
+            target_index += 1
+            yield (
+                replace(record, value_target=target.value_target),
+                float(step.logprob),
+                target.advantage,
+                target.game_key,
+            )
+        if target_index != len(return_summary.targets):
+            raise ValueError("Return target source produced too many targets.")
 
     metric_sums = {
         "loss": 0.0,
@@ -1739,10 +1805,26 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     on_policy_examples_used = 0
     final_loss = 0.0
     epochs_value = max(1, epochs)
-    for _epoch in range(epochs_value):
+    for epoch_index in range(epochs_value):
+        epoch_on_policy_factory = on_policy_factory
+        if ppo_batch_order == "game-shuffled":
+            epoch_seed = ppo_shuffle_seed + epoch_index
+
+            def epoch_on_policy_factory(
+                *,
+                shuffle_seed: int = epoch_seed,
+            ) -> Iterable[
+                tuple[Phase5SymbolicDecisionRecord, float, float, tuple[Any, ...]]
+            ]:
+                yield from _iter_phase5_game_shuffled_records(
+                    on_policy_factory,
+                    buffer_games=ppo_shuffle_games,
+                    seed=shuffle_seed,
+                )
+
         if update_schedule == "balanced-max":
             rule_records = _cycle_phase5_records(rule_factory)
-            on_policy_examples = _cycle_phase5_records(on_policy_factory)
+            on_policy_examples = _cycle_phase5_records(epoch_on_policy_factory)
             batches: Iterable[tuple[list[Any], list[Any]]] = (
                 (
                     list(islice(rule_records, current_batch_size)),
@@ -1756,7 +1838,7 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         else:
             batches = _iter_phase5_ppo_epoch_batches(
                 rule_factory=rule_factory,
-                on_policy_factory=on_policy_factory,
+                on_policy_factory=epoch_on_policy_factory,
                 rule_examples_available=rule_stats.examples,
                 on_policy_examples_available=on_policy_stats.examples,
                 rule_examples_target=rule_anchor_examples_per_epoch,
@@ -1830,6 +1912,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         "advantage_normalization_mean": advantage_normalization_mean,
         "advantage_normalization_std": advantage_normalization_std,
         "value_backprop_scope": value_backprop_scope,
+        "return_estimation": return_estimation,
+        "discount_gamma": discount_gamma,
+        "gae_lambda": gae_lambda,
+        "on_policy_games": return_summary.games,
+        "on_policy_finished_games": return_summary.finished_games,
+        "on_policy_truncated_games": return_summary.truncated_games,
+        "mean_return_target": (
+            return_summary.return_target_sum / len(return_summary.targets)
+        ),
+        "ppo_batch_order": ppo_batch_order,
+        "ppo_shuffle_games": ppo_shuffle_games,
+        "ppo_shuffle_seed": ppo_shuffle_seed,
         "balanced_examples_per_source_per_epoch": balanced_examples,
         "rule_anchor_examples_per_epoch": rule_anchor_examples_per_epoch,
         "on_policy_examples_per_epoch": on_policy_examples_per_epoch,
@@ -1871,6 +1965,18 @@ def train_phase5_bc_ppo_policy_from_trajectories(
         advantage_normalization_mean=advantage_normalization_mean,
         advantage_normalization_std=advantage_normalization_std,
         value_backprop_scope=value_backprop_scope,
+        return_estimation=return_estimation,
+        discount_gamma=discount_gamma,
+        gae_lambda=gae_lambda,
+        on_policy_games=return_summary.games,
+        on_policy_finished_games=return_summary.finished_games,
+        on_policy_truncated_games=return_summary.truncated_games,
+        mean_return_target=(
+            return_summary.return_target_sum / len(return_summary.targets)
+        ),
+        ppo_batch_order=ppo_batch_order,
+        ppo_shuffle_games=ppo_shuffle_games,
+        ppo_shuffle_seed=ppo_shuffle_seed,
         balanced_examples_per_source_per_epoch=balanced_examples,
         rule_anchor_examples_per_epoch=rule_anchor_examples_per_epoch,
         on_policy_examples_per_epoch=on_policy_examples_per_epoch,
@@ -1954,6 +2060,193 @@ def train_phase5_bc_ppo_policy_from_trajectories(
     return summary
 
 
+def phase5_game_return_targets(
+    steps: Sequence[TrajectoryStep],
+    *,
+    game_key: tuple[Any, ...],
+    return_estimation: str,
+    discount_gamma: float,
+    gae_lambda: float,
+) -> list[_Phase5ReturnTarget]:
+    if return_estimation not in PHASE5_RETURN_ESTIMATION_MODES:
+        raise ValueError(f"Unsupported Phase 5 return estimation: {return_estimation}.")
+    if not steps:
+        return []
+    if return_estimation == "step-reward":
+        return [
+            _Phase5ReturnTarget(
+                game_key=game_key,
+                advantage=float(step.reward) - float(step.value),
+                value_target=float(step.reward),
+            )
+            for step in steps
+        ]
+
+    finished = any(bool(step.terminal) for step in steps)
+    scaled_outcome_reward = 0.0
+    if finished:
+        for step in reversed(steps):
+            raw_outcome = step.decision.reward_metadata.get("scaled_outcome_reward")
+            if raw_outcome is not None:
+                scaled_outcome_reward = float(raw_outcome)
+                break
+
+    rewards: list[float] = []
+    for step in steps:
+        metadata = step.decision.reward_metadata
+        if "tactical_step_reward" in metadata:
+            dense_reward = float(metadata["tactical_step_reward"])
+        elif "assigned_outcome_reward" in metadata:
+            dense_reward = float(step.reward) - float(metadata["assigned_outcome_reward"])
+        elif "scaled_outcome_reward" in metadata:
+            dense_reward = float(step.reward) - float(metadata["scaled_outcome_reward"])
+        else:
+            dense_reward = float(step.reward)
+        rewards.append(dense_reward)
+    rewards[-1] += scaled_outcome_reward
+
+    values = [float(step.value) for step in steps]
+    if return_estimation == "discounted-return":
+        targets = [0.0] * len(steps)
+        discounted_return = 0.0
+        for index in range(len(steps) - 1, -1, -1):
+            discounted_return = rewards[index] + discount_gamma * discounted_return
+            targets[index] = discounted_return
+        return [
+            _Phase5ReturnTarget(
+                game_key=game_key,
+                advantage=target - value,
+                value_target=target,
+            )
+            for target, value in zip(targets, values, strict=True)
+        ]
+
+    advantages = [0.0] * len(steps)
+    next_advantage = 0.0
+    for index in range(len(steps) - 1, -1, -1):
+        next_value = values[index + 1] if index + 1 < len(steps) else 0.0
+        delta = rewards[index] + discount_gamma * next_value - values[index]
+        next_advantage = (
+            delta + discount_gamma * gae_lambda * next_advantage
+        )
+        advantages[index] = next_advantage
+    return [
+        _Phase5ReturnTarget(
+            game_key=game_key,
+            advantage=advantage,
+            value_target=advantage + value,
+        )
+        for advantage, value in zip(advantages, values, strict=True)
+    ]
+
+
+def _phase5_trajectory_game_key(step: TrajectoryStep) -> tuple[Any, ...]:
+    metadata = step.decision.reward_metadata
+    return (
+        metadata.get("game_index", metadata.get("local_game_index")),
+        metadata.get("deck_index"),
+        metadata.get("player_index"),
+        metadata.get("opponent_agent_key", metadata.get("opponent")),
+        metadata.get("policy_seed"),
+    )
+
+
+def _prepare_phase5_return_targets(
+    trajectory_dataset_paths: Sequence[Path],
+    *,
+    encoder: Phase5SymbolicEncoder,
+    max_previous_actions: int,
+    deck_index_filter: int | None,
+    step_limit: int | None,
+    accepted_policy_modes: Sequence[str],
+    stats: _TrajectorySourceStats,
+    return_estimation: str,
+    discount_gamma: float,
+    gae_lambda: float,
+) -> _Phase5ReturnSummary:
+    targets: list[_Phase5ReturnTarget] = []
+    current_steps: list[TrajectoryStep] = []
+    current_base_key: tuple[Any, ...] | None = None
+    current_game_key: tuple[Any, ...] | None = None
+    previous_step_index: int | None = None
+    game_ordinal = 0
+    games = 0
+    finished_games = 0
+    truncated_games = 0
+
+    def flush_game() -> None:
+        nonlocal current_steps
+        nonlocal games
+        nonlocal finished_games
+        nonlocal truncated_games
+        if not current_steps or current_game_key is None:
+            return
+        game_targets = phase5_game_return_targets(
+            current_steps,
+            game_key=current_game_key,
+            return_estimation=return_estimation,
+            discount_gamma=discount_gamma,
+            gae_lambda=gae_lambda,
+        )
+        targets.extend(game_targets)
+        games += 1
+        finished_games += int(any(bool(step.terminal) for step in current_steps))
+        truncated_games += int(any(bool(step.truncated) for step in current_steps))
+        current_steps = []
+
+    for _record, step in _iter_phase5_hybrid_source(
+        trajectory_dataset_paths,
+        encoder=encoder,
+        max_previous_actions=max_previous_actions,
+        deck_index_filter=deck_index_filter,
+        step_limit=step_limit,
+        require_on_policy=True,
+        accepted_policy_modes=accepted_policy_modes,
+        stats=stats,
+    ):
+        base_key = _phase5_trajectory_game_key(step)
+        raw_step_index = step.decision.reward_metadata.get("step_index")
+        step_index = int(raw_step_index) if raw_step_index is not None else None
+        starts_new_game = (
+            current_base_key is not None
+            and (
+                base_key != current_base_key
+                or (
+                    step_index is not None
+                    and previous_step_index is not None
+                    and step_index <= previous_step_index
+                )
+            )
+        )
+        if starts_new_game:
+            flush_game()
+            game_ordinal += 1
+            current_game_key = (*base_key, game_ordinal)
+        elif current_base_key is None:
+            current_game_key = (*base_key, game_ordinal)
+        current_base_key = base_key
+        previous_step_index = step_index
+        current_steps.append(step)
+    flush_game()
+
+    if len(targets) != stats.examples:
+        raise ValueError(
+            "Return target count does not match accepted PPO example count: "
+            f"{len(targets)} != {stats.examples}."
+        )
+    stats.advantage_sum = sum(target.advantage for target in targets)
+    stats.advantage_square_sum = sum(
+        target.advantage * target.advantage for target in targets
+    )
+    return _Phase5ReturnSummary(
+        targets=targets,
+        games=games,
+        finished_games=finished_games,
+        truncated_games=truncated_games,
+        return_target_sum=sum(target.value_target for target in targets),
+    )
+
+
 def _iter_phase5_hybrid_source(
     trajectory_dataset_paths: Sequence[Path],
     *,
@@ -2028,6 +2321,50 @@ def _cycle_phase5_records(factory: Any) -> Iterable[Any]:
             yield value
         if not yielded:
             return
+
+
+def _iter_phase5_game_shuffled_records(
+    factory: Any,
+    *,
+    buffer_games: int,
+    seed: int,
+) -> Iterable[Any]:
+    if buffer_games <= 0:
+        raise ValueError("Phase 5 game shuffle buffer must be positive.")
+    rng = random.Random(seed)
+    game_buffer: list[list[Any]] = []
+    current_game: list[Any] = []
+    current_key: tuple[Any, ...] | None = None
+
+    def emit_buffer() -> Iterable[Any]:
+        rng.shuffle(game_buffer)
+        for game in game_buffer:
+            rng.shuffle(game)
+        while game_buffer:
+            rng.shuffle(game_buffer)
+            remaining_games: list[list[Any]] = []
+            for game in game_buffer:
+                if game:
+                    yield game.pop()
+                if game:
+                    remaining_games.append(game)
+            game_buffer[:] = remaining_games
+
+    for value in factory():
+        if len(value) < 4:
+            raise ValueError("Game-shuffled PPO examples must include a game key.")
+        game_key = value[3]
+        if current_key is not None and game_key != current_key:
+            game_buffer.append(current_game)
+            current_game = []
+            if len(game_buffer) >= buffer_games:
+                yield from emit_buffer()
+        current_key = game_key
+        current_game.append(value)
+    if current_game:
+        game_buffer.append(current_game)
+    if game_buffer:
+        yield from emit_buffer()
 
 
 def _phase5_batch_sizes(example_count: int, batch_size: int) -> Iterable[int]:

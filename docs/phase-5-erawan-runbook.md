@@ -3650,7 +3650,87 @@ as dense rewards, followed by shuffled game-balanced PPO batches. Gate that
 implementation on the same one-deck matchup before returning to submission
 packaging.
 
-## 22. Ready-To-Train Checklist
+## 22. Episode-Return PPO Matched Smoke
+
+After pulling the episode-return implementation, prepare two isolated run roots
+from the exact same frozen behavior-cloning checkpoint:
+
+```bash
+git pull --ff-only origin main
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export RULE_BOOTSTRAP_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_public_mixed/phase5_dragapult_vs_lucario_outcome1_postaction_frac025_diag/rule_bootstrap/phase5_public_rule_bootstrap_gen-0000.jsonl
+
+SOURCE=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_global_head_ppo4/gen-0000/specialists/deck-101.pt
+for r in \
+  phase5_dragapult_vs_lucario_gae_game_shuffled_smoke \
+  phase5_dragapult_vs_lucario_discounted_game_shuffled_smoke
+do
+  m="models/rl/phase5_one_deck_public_ppo_dominant/$r"
+  mkdir -p "$m/scratch" "$m/gen-0000/specialists"
+  cp "$SOURCE" "$m/scratch/deck-101.pt"
+  cp "$SOURCE" "$m/gen-0000/specialists/deck-101.pt"
+done
+```
+
+Submit both available cluster slots with identical controls except the return
+estimator:
+
+```bash
+COMMON_ENV=(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT"
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS"
+  RULE_BOOTSTRAP_DATASET="$RULE_BOOTSTRAP_DATASET"
+  GENERATIONS=1
+  TRAIN_GAMES_PER_GENERATION=20
+  EVAL_GAMES_PER_GENERATION=4
+  EPSILON_START=0.10
+  EPSILON_END=0.10
+  PPO_EPOCHS=4
+  RULE_ANCHOR_FRACTION=0.10
+  BC_LOSS_WEIGHT=0.10
+  ADVANTAGE_NORMALIZATION=global
+  VALUE_BACKPROP_SCOPE=head-only
+  OUTCOME_REWARD_ASSIGNMENT=terminal
+  TACTICAL_REWARD_MODE=fractional-prize
+  TACTICAL_FRACTIONAL_PRIZE_WEIGHT=0.25
+  DISCOUNT_GAMMA=0.99
+  GAE_LAMBDA=0.95
+  PPO_BATCH_ORDER=game-shuffled
+  PPO_SHUFFLE_GAMES=8
+  PPO_SHUFFLE_SEED=20260725
+  GRADIENT_DIAGNOSTIC_BATCHES=16
+  INIT_SEED=20260723
+  POLICY_SEED=20260723
+)
+
+JOB_GAE=$(
+  env "${COMMON_ENV[@]}" \
+    RUN_NAME=phase5_dragapult_vs_lucario_gae_game_shuffled_smoke \
+    RETURN_ESTIMATION=gae \
+    sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+JOB_DISCOUNTED=$(
+  env "${COMMON_ENV[@]}" \
+    RUN_NAME=phase5_dragapult_vs_lucario_discounted_game_shuffled_smoke \
+    RETURN_ESTIMATION=discounted-return \
+    sbatch --parsable scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch
+)
+
+printf "GAE=%s\nDISCOUNTED=%s\n" "$JOB_GAE" "$JOB_DISCOUNTED"
+```
+
+Inspect each generation-1 `ppo_dominant_report.json`, trajectory report, eval
+JSON, status JSON, and SLURM output/error. Require 20 grouped games, sensible
+finished/truncated counts, finite return/advantage values, actual on-policy
+reuse `4.0`, zero shared critic gradient, clean generation-0 and generation-1
+evals, and zero retained raw JSONL after update. Four-game eval is an
+implementation check only. If both pass, choose the healthier objective from
+its gradients and return statistics for a one-generation 1,000-game /
+200-game-eval run from the same frozen checkpoint.
+
+## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
   `LegalAction`, symbolic tensors, and AlphaStar-style model inputs.

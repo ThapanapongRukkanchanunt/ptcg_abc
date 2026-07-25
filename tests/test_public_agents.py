@@ -137,6 +137,8 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "1234",
                 "--outcome-reward-scale",
                 "0.25",
+                "--outcome-reward-assignment",
+                "terminal",
                 "--tactical-reward-mode",
                 "basic-fractional-prize",
                 "--tactical-fractional-prize-weight",
@@ -158,6 +160,7 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(traj_args.policy_epsilon, 0.75)
         self.assertEqual(traj_args.policy_seed, 1234)
         self.assertEqual(traj_args.outcome_reward_scale, 0.25)
+        self.assertEqual(traj_args.outcome_reward_assignment, "terminal")
         self.assertEqual(traj_args.tactical_reward_mode, "basic-fractional-prize")
         self.assertEqual(traj_args.tactical_fractional_prize_weight, 0.25)
         self.assertEqual(traj_args.tactical_fractional_opponent_weight, 0.5)

@@ -1126,6 +1126,12 @@ def command_rl_train_phase5_bc_ppo(args: argparse.Namespace) -> int:
             gradient_diagnostic_batches=args.gradient_diagnostic_batches,
             advantage_normalization=args.advantage_normalization,
             value_backprop_scope=args.value_backprop_scope,
+            return_estimation=args.return_estimation,
+            discount_gamma=args.discount_gamma,
+            gae_lambda=args.gae_lambda,
+            ppo_batch_order=args.ppo_batch_order,
+            ppo_shuffle_games=args.ppo_shuffle_games,
+            ppo_shuffle_seed=args.ppo_shuffle_seed,
         )
     except (Phase5PolicyUnavailable, ValueError) as exc:
         print(str(exc), file=sys.stderr)
@@ -1507,6 +1513,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             search_config=_root_search_config_from_args(args),
             overwrite=args.overwrite,
             outcome_reward_scale=args.outcome_reward_scale,
+            outcome_reward_assignment=args.outcome_reward_assignment,
             tactical_reward_config=PublicAgentTacticalRewardConfig(
                 mode=args.tactical_reward_mode,
                 attack_bonus=args.tactical_attack_bonus,
@@ -2799,6 +2806,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Scale terminal outcome reward before adding tactical step rewards.",
     )
     rl_public_trajectories.add_argument(
+        "--outcome-reward-assignment",
+        choices=["broadcast", "terminal"],
+        default="broadcast",
+        help=(
+            "Assign outcome reward to every recorded action for legacy datasets "
+            "or only to the final action for episode-return training."
+        ),
+    )
+    rl_public_trajectories.add_argument(
         "--tactical-reward-mode",
         choices=["none", "basic", "fractional-prize", "basic-fractional-prize"],
         default="none",
@@ -3493,6 +3509,45 @@ def build_parser() -> argparse.ArgumentParser:
             "Allow value loss through the shared actor encoder or restrict it "
             "to the value head."
         ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--return-estimation",
+        choices=["step-reward", "discounted-return", "gae"],
+        default="step-reward",
+        help=(
+            "Use the legacy per-step target, game-grouped discounted returns, "
+            "or generalized advantage estimation."
+        ),
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--discount-gamma",
+        type=float,
+        default=0.99,
+        help="Per-decision discount used by discounted-return and GAE targets.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--gae-lambda",
+        type=float,
+        default=0.95,
+        help="GAE trace parameter; ignored by other return estimators.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--ppo-batch-order",
+        choices=["sequential", "game-shuffled"],
+        default="sequential",
+        help="Read PPO rows sequentially or interleave bounded shuffled game buffers.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--ppo-shuffle-games",
+        type=int,
+        default=8,
+        help="Number of complete games held in each bounded shuffle buffer.",
+    )
+    rl_train_phase5_bc_ppo.add_argument(
+        "--ppo-shuffle-seed",
+        type=int,
+        default=20260725,
+        help="Base seed for deterministic per-epoch game shuffling.",
     )
     rl_train_phase5_bc_ppo.add_argument(
         "--deck-index-filter",

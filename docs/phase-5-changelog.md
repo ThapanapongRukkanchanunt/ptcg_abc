@@ -6787,3 +6787,56 @@ Conclusion and submission decision:
   the sequence with fractional-prize deltas as dense rewards, and train from
   shuffled game-balanced minibatches. Validate that objective on this one-deck
   matchup before scaling or packaging new RL specialists.
+
+## 2026-07-25 - Episode-Return PPO Path Implemented
+
+Implementation:
+
+- Added opt-in game-grouped PPO targets to
+  `rl-train-phase5-bc-ppo`: `discounted-return` and `gae`, with configurable
+  discount and GAE lambda. The existing `step-reward` behavior remains the
+  default so prior workflows and artifacts are unchanged.
+- For corrected targets, the trainer reconstructs each action's dense tactical
+  or fractional-prize delta, assigns the game outcome once to the final
+  accepted action, and computes either backward discounted returns or GAE.
+  Legacy trajectory files that broadcast outcome reward remain consumable
+  because their full outcome and dense reward components are recorded
+  separately in metadata.
+- Added bounded `game-shuffled` PPO ordering. It buffers a configurable number
+  of complete games, deterministically shuffles games and actions, then emits
+  rows round-robin across games. This prevents game-sequential minibatches from
+  being dominated by one episode without retaining the complete dataset in
+  memory.
+- New public-agent trajectories support
+  `--outcome-reward-assignment terminal`. In that mode only the final recorded
+  action receives outcome reward and only the final record carries the
+  terminal or truncated flag. The legacy `broadcast` mode remains the default.
+- Training reports and checkpoint metadata now record the return estimator,
+  gamma, lambda, episode/finished/truncated counts, mean return target, PPO
+  ordering, shuffle buffer, and shuffle seed.
+- Wired all controls through
+  `scripts/slurm/phase5_one_deck_public_ppo_dominant_curriculum.sbatch`.
+
+Validation:
+
+- Source compilation checks passed without writing bytecode.
+- Focused tests passed: 22 tests, 4 Torch-only skips on the local machine.
+  Numerical coverage verifies that an old broadcast win is counted once by
+  discounted returns and GAE while `step-reward` reproduces the old targets.
+  Parser and bounded game-interleaving tests also pass.
+- CLI help checks expose all new generation and training controls.
+
+Next controlled gate:
+
+- Run matched 20-train-game / 4-eval-game ERAWAN smokes from the same frozen
+  Dragapult behavior-cloning checkpoint. Both use epsilon `0.10`, terminal-only
+  outcome, fractional-prize dense reward, four PPO epochs, global advantage
+  normalization, head-only critic, 10% rule anchor, and game-shuffled batches.
+  The only difference is `gae` versus `discounted-return`.
+- Smoke promotion requires correct game/finished counts, finite return and
+  advantage statistics, exact four-pass reuse, zero shared-trunk critic
+  gradient, clean checkpoints/evals, and deletion of consumed raw JSONL.
+- Goal distance is unchanged until scientific evaluation: the corrected online
+  gate is still 0 / 1, the best confirmed new checkpoint is 441 / 1000
+  (`0.441`), and it remains 5.9 percentage points below 50%. No new submission
+  checkpoint is ready.
