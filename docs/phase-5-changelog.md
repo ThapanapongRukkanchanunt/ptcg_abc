@@ -6874,3 +6874,81 @@ ERAWAN smoke completion and full A/B:
 - Goal status remains 0 / 1 until those evals finish. A 200-game result above
   50% must still be confirmed with a larger independent evaluation before
   promotion, broader specialist evaluation, or Kaggle packaging.
+
+## 2026-07-25 - Episode-Return Full A/B Completed; GAE Confirmation Submitted
+
+ERAWAN completion, artifact retention, and cleanup:
+
+- GAE job `74972` completed in `01:13:31`; discounted-return job `74973`
+  completed in `01:13:34`. Both exited `0`. All training and evaluation reports
+  recorded zero errors and timeouts; stderr contained only the known PyTorch
+  nested-tensor prototype warning.
+- Downloaded the compact reports, statuses, four SLURM logs, and sampled
+  generation-0/generation-1 win/loss replays to the protected local ERAWAN pull
+  area. The archive contains 36 files, is 352,178 bytes, and has SHA-256
+  `8c641d54702760cdc4d4245b02877d3df9f58c771e9c871bbad0e701f6f3641c`.
+  All eight replay JSON files parsed and all eight HTML views were nonempty.
+- Each log explicitly records deletion of its consumed generation-1 online
+  trajectory. A separate remote search across the Phase 5 data root found zero
+  matching GAE or discounted-return JSONL files.
+
+Deterministic Dragapult ex versus rule Mega Lucario ex evaluation:
+
+| Objective | Generation 0 | Generation 1 | Delta |
+| --- | ---: | ---: | ---: |
+| GAE | 81 / 200 (`0.405`) | 102 / 200 (`0.510`) | +21 wins, +0.105 |
+| Discounted return | 69 / 200 (`0.345`) | 82 / 200 (`0.410`) | +13 wins, +0.065 |
+
+- GAE generation 1 has Wilson 95% CI approximately `0.441-0.578`. Its
+  independent two-proportion comparison against the same-run generation 0 is
+  `p ~= 0.035`. It also leads discounted-return generation 1 by 20 wins and
+  10 percentage points (`p ~= 0.045`).
+- Discounted return did not establish improvement over its generation 0
+  (`p ~= 0.18`) and remains significantly below 50% (`p ~= 0.011`).
+- The frozen generation-0 checkpoint again showed substantial evaluator
+  variation across the two independent invocations, 81 versus 69 wins. This
+  reinforces the predeclared rule that a single 200-game crossing is not enough
+  for packaging.
+- All four evals had zero errors and zero timeouts. The status files report the
+  official sample Lucario opponent available with no loading error.
+
+PPO diagnostics and input-policy behavior:
+
+| Metric | GAE | Discounted return |
+| --- | ---: | ---: |
+| Accepted actions / finished games | 79,196 / 1,000 | 78,779 / 1,000 |
+| Truncated games / rejected PPO rows | 0 / 0 | 0 / 0 |
+| Mean advantage / std | `0.2694 / 0.4016` | `0.8253 / 0.8956` |
+| Mean return target | `-0.2332` | `0.3228` |
+| Mean policy/value loss | `-0.00036 / 0.1271` | `0.00011 / 0.7196` |
+| Policy/value gradient norm | `0.0501 / 1.3971` | `0.0458 / 5.4055` |
+| Mean ratio / clip fraction | `1.00013 / 0.00336` | `1.00003 / 0.00177` |
+| On-policy reuse / shared value gradient | `4.0 / 0.0` | `4.0 / 0.0` |
+
+- Discounted return again produced materially larger target dispersion, value
+  loss, and critic gradient than GAE without a corresponding evaluation gain.
+  Head-only critic isolation worked: the shared-trunk value gradient was exactly
+  `0.0` in both arms while the policy shared-gradient norms were nonzero.
+- The two pre-update epsilon-0.10 collection windows had nearly identical action
+  behavior: attach-taken rates `0.4156` versus `0.4148`, attack-taken rates
+  `0.2330` versus `0.2344`, and END rates `0.03036` versus `0.03034`. Training
+  gameplay was 305 / 1,000 for GAE input and 324 / 1,000 for discounted-return
+  input, with four and three draws respectively and no errors/timeouts. The
+  evaluation split therefore is not explained by action-rate collapse or a
+  malformed collection window.
+
+Goal distance, decision, and next experiment:
+
+- GAE generation 1 is 102 / 200: two wins and one percentage point above the raw
+  50% gate. The raw one-matchup report marks the gate passed, but the confidence
+  interval spans 50%, so the scientific promotion gate remains provisional.
+- Discounted return is 18 wins and nine percentage points short of tying the
+  50% gate. Reject it for confirmation and promotion.
+- Submitted ERAWAN job `75042` for a fresh 1,000-game deterministic confirmation
+  of the GAE generation-1 checkpoint against rule Mega Lucario ex. It alternates
+  player order and retains one compact win and loss replay.
+- Require the 1,000-game GAE point estimate to exceed 50% with zero
+  errors/timeouts before broader specialized-rule evaluation or Kaggle
+  packaging. If it fails, do not continue return-estimator tuning from this
+  single 200-game crossing; inspect the confirmed replay/action failures before
+  choosing another credit-assignment change.

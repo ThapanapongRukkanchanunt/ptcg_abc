@@ -20,6 +20,25 @@ This is the resume point for the project. Start here after switching machines, c
 - Phase 5 ERAWAN storage rule: future generated game datasets should be written
   under `/project/SIGGI/thapanapong.r@cmu.ac.th`; keep `reports/`, `models/`,
   and `experiments/` in the repository.
+- Latest episode-return PPO result: full ERAWAN jobs `74972` (GAE) and `74973`
+  (discounted return) completed cleanly. GAE improved from 81 / 200 (`0.405`)
+  at generation 0 to 102 / 200 (`0.510`) at generation 1; discounted return
+  improved from 69 / 200 (`0.345`) to 82 / 200 (`0.410`). All four evals had
+  zero errors and timeouts.
+- Current Dragapult-vs-Lucario gate status: GAE is two wins and one percentage
+  point above the raw 50% gate in its 200-game eval, but its Wilson 95% interval
+  (`0.441-0.578`) still spans 50%. Treat the gate as provisional, not confirmed.
+  Discounted return is rejected for promotion at nine percentage points below
+  the gate.
+- Latest retention check: both jobs grouped 1,000 finished games, rejected no
+  PPO rows, used each accepted row four times, kept shared-trunk critic gradient
+  at exactly zero, and deleted their consumed raw JSONLs. A 352,178-byte
+  compact 36-file report/status/log/replay bundle was downloaded and verified
+  under the protected local ERAWAN pull area.
+- Current next experiment: ERAWAN job `75042` is running a fresh 1,000-game
+  deterministic confirmation of the GAE generation-1 checkpoint against rule
+  Mega Lucario ex, with one compact win and loss replay retained. Do not package
+  or broaden the checkpoint unless this independent confirmation passes 50%.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
