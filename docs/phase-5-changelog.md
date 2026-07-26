@@ -7010,3 +7010,72 @@ Matched root-search teacher-quality gate:
   search-action labels and compare search distillation against a self-imitation
   control. If neither arm improves, do not train on its search choices; inspect
   changed-decision win/loss examples and scorer margins first.
+
+## 2026-07-26 - Root Search Passes Teacher Gate; Distillation A/B Implemented
+
+Root-search completion and retention:
+
+- ERAWAN jobs `75105` (frozen BC source) and `75106` (GAE generation 1)
+  completed with exit code `0` in `01:07:43` and `01:07:24`.
+- The protected local pull contains compact reports, statuses, four scheduler
+  logs, one win/loss replay pair per arm, and ten games of search-decision
+  traces per arm. The 488,641-byte archive SHA-256 is
+  `c4691592309d93e54f0e5792c9b088979d7874651dbec2b074dedc2462185b44`.
+- Both jobs reported zero gameplay errors and zero timeouts. No raw full-run
+  JSONL was retained or downloaded; only the predeclared compact ten-game trace
+  files remain for diagnosis.
+
+Teacher-quality results:
+
+| Search prior | Wins | Losses | Draws | Win rate | Direct reference | Search delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Frozen BC | 458 | 538 | 4 | `0.458` | 434 / 1,000 | +24 wins, +0.024 |
+| GAE generation 1 | 462 | 538 | 0 | `0.462` | 407 / 1,000 | +55 wins, +0.055 |
+
+- Wilson 95% intervals are approximately `0.427-0.489` for BC-search and
+  `0.431-0.493` for GAE-search. Neither crosses the 50% Dragapult-vs-Lucario
+  promotion gate.
+- GAE-search beats its matched direct-policy confirmation with independent
+  two-proportion `p ~= 0.013`. BC-search versus its direct reference is not
+  significant (`p ~= 0.28`), and the two search arms are indistinguishable
+  (`p ~= 0.86`). Against the pooled direct GAE result of 509 / 1,200,
+  GAE-search is directionally better but not independently significant
+  (`p ~= 0.075`).
+- The best result, GAE-search at 462 / 1,000, is 38 wins and 3.8 percentage
+  points short of tying 50%, and 39 wins short of exceeding the gate.
+
+Search telemetry and trace inspection:
+
+| Metric | Frozen BC | GAE generation 1 |
+| --- | ---: | ---: |
+| Searched decisions | 42,467 | 42,645 |
+| Search-changed decisions | 4,420 (`0.1041`) | 4,592 (`0.1077`) |
+| Candidate probes | 156,089 | 156,484 |
+| Search / candidate errors | 0 / 0 | 0 / 0 |
+| Truncated candidates | 19 | 43 |
+| Mean / max search seconds | `0.0551 / 1.6337` | `0.0541 / 1.5600` |
+
+- The retained BC trace has 462 decisions and 45 changed choices; the GAE
+  trace has 415 decisions and 52 changed choices. Neither trace selected a
+  truncated candidate. The improvement is therefore not explained by error,
+  timeout, or truncation artifacts.
+- Root search passes the predeclared teacher-quality gate narrowly for the GAE
+  prior: it gives a significant matched gain with clean telemetry. It remains a
+  teacher candidate rather than a promotable inference policy.
+
+Next controlled improvement step:
+
+- Added `scripts/slurm/phase5_one_deck_search_distill_arm.sbatch`. It collects
+  1,000 controlled Dragapult games against rule Mega Lucario, trains one
+  policy-only epoch from the exact GAE generation-1 checkpoint, deletes the
+  consumed raw trajectory JSONL after successful training, verifies its
+  absence, and evaluates the resulting direct policy for 1,000 games.
+- The treatment uses `phase5-search` during collection. The matched control uses
+  deterministic `phase5-symbolic` collection with the same checkpoint, matchup,
+  game count, optimizer settings, and evaluation budget. This separates the
+  value of search-selected action labels from the value of simply training for
+  another epoch on model-visited states.
+- Promote only if search distillation beats both the 407 / 1,000 direct GAE
+  reference and the self-imitation control with clean execution and confirmed
+  raw-data cleanup. A result above 50% still requires an independent
+  confirmation before broader evaluation or submission packaging.

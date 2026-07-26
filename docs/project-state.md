@@ -40,12 +40,22 @@ This is the resume point for the project. Start here after switching machines, c
   top-ranked option. The sampled loss still attached five times and attacked six
   times, so the failure is not simple END/attack/attach collapse. More
   return-estimator tuning has no demonstrated better action target.
-- Current next experiment: ERAWAN jobs `75105` and `75106` are matched
-  1,000-game `phase5-search` teacher-quality evaluations using the frozen BC
-  source and GAE generation-1 prior respectively. Each retains ten games of
-  compact search traces plus one win/loss replay. Distill root-search choices
-  only if search shows a credible gain over direct inference; otherwise inspect
-  search-change quality before another training update.
+- Latest root-search teacher gate: ERAWAN jobs `75105` (frozen BC source) and
+  `75106` (GAE generation 1) completed cleanly at 458 / 1,000 (`0.458`) and
+  462 / 1,000 (`0.462`). GAE-search improved significantly over its matched
+  direct GAE confirmation by 55 wins and 5.5 percentage points (`p ~= 0.013`);
+  the two search priors were statistically indistinguishable.
+- Search telemetry was healthy: BC/GAE search changed `4,420 / 42,467` and
+  `4,592 / 42,645` decisions, with zero search/candidate errors, only 19/43
+  truncated candidates among about 156k probes per arm, and about 0.055 seconds
+  average search time. Neither search arm passed 50%; best GAE-search remains
+  38 wins and 3.8 percentage points short of tying the gate.
+- Current next experiment: compare direct-policy distillation from 1,000
+  GAE-root-search games against a deterministic GAE self-imitation control.
+  Both start from the exact GAE generation-1 checkpoint, train one policy-only
+  epoch, delete consumed raw JSONL after successful training, and receive a
+  1,000-game direct-policy evaluation. The reusable arm script is
+  `scripts/slurm/phase5_one_deck_search_distill_arm.sbatch`.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

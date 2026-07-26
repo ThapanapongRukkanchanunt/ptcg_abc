@@ -3743,6 +3743,56 @@ Execution status (July 25, 2026):
   After completion, inspect both generation-0 and generation-1 evals, PPO
   reports, action rates, errors/timeouts, replays, and raw JSONL cleanup.
 
+### Root-Search Teacher Gate And Distillation A/B
+
+The 1,000-game GAE confirmation failed at 407 / 1,000. Matched root-search jobs
+`75105` (frozen BC source) and `75106` (GAE generation 1) then scored
+458 / 1,000 and 462 / 1,000. GAE-search improved significantly over direct GAE
+without search/candidate errors, so advance it as a teacher candidate, not as a
+submission checkpoint.
+
+Use the reusable arm script to compare root-search distillation against
+deterministic self-imitation from the exact same GAE checkpoint:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export BASE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+
+JOB_SEARCH=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_distill_1000g \
+  COLLECT_AGENT=phase5-search \
+  TRAIN_GAMES=1000 \
+  EVAL_GAMES=1000 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+
+JOB_CONTROL=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_self_imitation_1000g \
+  COLLECT_AGENT=phase5-symbolic \
+  TRAIN_GAMES=1000 \
+  EVAL_GAMES=1000 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+
+echo "$JOB_SEARCH" | tee experiments/rl/phase5_dragapult_gae_search_distill_job.txt
+echo "$JOB_CONTROL" | tee experiments/rl/phase5_dragapult_gae_self_imitation_job.txt
+```
+
+Both arms collect model-controlled Dragapult games against rule Mega Lucario,
+train one policy-only epoch from the same source checkpoint, delete the consumed
+trajectory JSONL after successful training, and evaluate the resulting direct
+`phase5-symbolic` policy for 1,000 games. Promotion requires search distillation
+to beat both direct GAE at 407 / 1,000 and the self-imitation control without
+errors, timeouts, or raw-data retention. Crossing 50% still requires an
+independent confirmation before broader evaluation or packaging.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
