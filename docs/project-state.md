@@ -65,7 +65,9 @@ This is the resume point for the project. Start here after switching machines, c
   games from the exact GAE generation-1 source, keep unchanged steps at weight
   `1.0`, train one policy-only epoch, clean raw JSONL, and receive a 1,000-game
   direct evaluation. The recorder now preserves per-step search-change metadata,
-  and the generalist trainer applies and reports correction weights.
+  and the generalist trainer applies and reports correction weights. ERAWAN jobs
+  `75160` (uniform) and `75161` (changed weight `8.0`) are running with verified
+  startup parameters.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

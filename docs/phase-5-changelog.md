@@ -7158,3 +7158,9 @@ Training diagnostics and conclusion:
   share to about 32% without downweighting stable-policy examples. Only advance
   to pairwise correction loss or iterative distillation if weighting beats the
   matched uniform arm and the prior 433 / 1,000 result.
+- Committed and pushed the metadata/weighting implementation and findings as
+  `87fb4d9`, then fast-forwarded the ERAWAN checkout to that exact commit.
+- Submitted ERAWAN jobs `75160` (uniform `1.0 / 1.0`) and `75161` (changed
+  `8.0`, unchanged `1.0`). Both entered `RUNNING`; early stdout verifies the
+  intended source checkpoint, 2,000/1,000 collection/evaluation budgets,
+  optimizer settings, weights, distinct raw paths, and pairwise loss disabled.

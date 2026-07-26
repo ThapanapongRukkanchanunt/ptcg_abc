@@ -3849,6 +3849,14 @@ expected effective correction share from about 5.5% to about 32%. Require the
 weighted arm to beat the matched uniform arm and the prior 433 / 1,000
 distillation result before adding pairwise loss or another iterative generation.
 
+Execution status (July 26, 2026):
+
+- ERAWAN job `75160` is the 2,000-game uniform-weight arm.
+- ERAWAN job `75161` is the matched changed-weight-`8.0` arm.
+- Both entered `RUNNING`. Early logs confirm the exact GAE source, distinct run
+  and raw paths, 2,000 search-collection games, one epoch at `5e-5`, unchanged
+  weight `1.0`, pairwise loss disabled, and 1,000 direct evaluation games.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
