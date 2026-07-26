@@ -3801,6 +3801,53 @@ Execution status (July 26, 2026):
 - Both jobs started concurrently on separate GPU nodes. Early stdout confirms
   the intended GAE generation-1 source, 1,000 collection games, one training
   epoch at learning rate `5e-5`, and 1,000 direct-policy evaluation games.
+- Both completed with exit code `0`. Search distillation scored 433 / 1,000;
+  self-imitation scored 408 / 1,000. The +2.5-point treatment lead is
+  directional (`p ~= 0.257`), not promotion evidence. Self-imitation's
+  408 / 1,000 reproduces the 407 / 1,000 source-policy confirmation.
+- Search changed 4,698 decisions but the epoch contained 85,019 trajectory
+  steps. The previous recorder retained the selected search actions but not the
+  per-step changed marker, so all targets received uniform weight and the train
+  report showed zero changed examples.
+
+The next A/B doubles collection and isolates correction weighting:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export BASE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+
+JOB_UNIFORM=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_distill_uniform_2000g \
+  COLLECT_AGENT=phase5-search \
+  TRAIN_GAMES=2000 \
+  EVAL_GAMES=1000 \
+  CHANGED_WEIGHT=1.0 \
+  UNCHANGED_WEIGHT=1.0 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+
+JOB_WEIGHTED=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_distill_changed8_2000g \
+  COLLECT_AGENT=phase5-search \
+  TRAIN_GAMES=2000 \
+  EVAL_GAMES=1000 \
+  CHANGED_WEIGHT=8.0 \
+  UNCHANGED_WEIGHT=1.0 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+```
+
+This keeps the stable-policy examples at full strength while raising the
+expected effective correction share from about 5.5% to about 32%. Require the
+weighted arm to beat the matched uniform arm and the prior 433 / 1,000
+distillation result before adding pairwise loss or another iterative generation.
 
 ## 23. Ready-To-Train Checklist
 

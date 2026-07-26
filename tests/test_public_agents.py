@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from ptcg_abc.cli import build_parser, command_rl_evaluate_phase5_public_agents
@@ -19,9 +20,33 @@ from ptcg_abc.rl.public_opponents import (
     _tactical_reward_for_frame,
     summarize_public_agent_gate,
 )
+from ptcg_abc.rl.workflow import _policy_metadata
 
 
 class PublicAgentRosterTests(unittest.TestCase):
+    def test_policy_metadata_preserves_search_correction_markers(self):
+        agent = SimpleNamespace(
+            last_policy_metadata={
+                "logprob": 0.0,
+                "value": 0.0,
+                "on_policy": False,
+                "mode": "deterministic",
+                "phase5_search_applied": True,
+                "phase5_baseline_indices": [0],
+                "phase5_search_indices": [1],
+                "phase5_search_changed": True,
+                "phase5_search_error": None,
+            }
+        )
+
+        metadata = _policy_metadata(agent)
+
+        self.assertTrue(metadata["phase5_search_applied"])
+        self.assertEqual(metadata["phase5_baseline_indices"], [0])
+        self.assertEqual(metadata["phase5_search_indices"], [1])
+        self.assertTrue(metadata["phase5_search_changed"])
+        self.assertIsNone(metadata["phase5_search_error"])
+
     def test_rule_public_eval_ignores_specialist_checkpoint_directory(self):
         parser = build_parser()
         with tempfile.TemporaryDirectory() as tmp:

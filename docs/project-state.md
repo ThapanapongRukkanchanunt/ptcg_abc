@@ -50,15 +50,22 @@ This is the resume point for the project. Start here after switching machines, c
   truncated candidates among about 156k probes per arm, and about 0.055 seconds
   average search time. Neither search arm passed 50%; best GAE-search remains
   38 wins and 3.8 percentage points short of tying the gate.
-- Current next experiment: compare direct-policy distillation from 1,000
-  GAE-root-search games against a deterministic GAE self-imitation control.
-  Both start from the exact GAE generation-1 checkpoint, train one policy-only
-  epoch, delete consumed raw JSONL after successful training, and receive a
-  1,000-game direct-policy evaluation. ERAWAN jobs `75113` (search distillation)
-  and `75114` (self-imitation) are running concurrently. Their early logs
-  confirm the intended checkpoint, game budgets, optimizer settings, and
-  distinct collection agents. The reusable arm script is
-  `scripts/slurm/phase5_one_deck_search_distill_arm.sbatch`.
+- Latest distillation A/B: ERAWAN jobs `75113` (search distillation) and `75114`
+  (self-imitation) completed cleanly at 433 / 1,000 (`0.433`) and 408 / 1,000
+  (`0.408`). Search distillation is +25 wins and +2.5 percentage points over
+  control, but the independent comparison is not significant (`p ~= 0.257`).
+  Self-imitation reproduced the 407 / 1,000 source policy almost exactly.
+- Search collection changed 4,698 / 43,857 searched decisions and produced
+  85,019 total trajectory steps. The search-trained policy reached `0.9447`
+  training accuracy, versus `1.0` and essentially zero loss for self-imitation.
+  The directional gain therefore comes from teacher corrections, but only about
+  5.5% of all training steps carried a changed search action.
+- Current next experiment: compare uniform search imitation against an 8x
+  weight on search-changed trajectory steps. Both arms collect 2,000 search
+  games from the exact GAE generation-1 source, keep unchanged steps at weight
+  `1.0`, train one policy-only epoch, clean raw JSONL, and receive a 1,000-game
+  direct evaluation. The recorder now preserves per-step search-change metadata,
+  and the generalist trainer applies and reports correction weights.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

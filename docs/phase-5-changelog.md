@@ -7087,3 +7087,74 @@ Next controlled improvement step:
   checkpoint, 1,000-game collection and evaluation budgets, one epoch,
   learning rate `5e-5`, and distinct raw paths; stderr contains only the known
   PyTorch nested-tensor warning.
+
+## 2026-07-26 - Search Distillation Is Directional; Correction-Weight A/B Ready
+
+Completion, retention, and cleanup:
+
+- ERAWAN jobs `75113` (search distillation) and `75114` (self-imitation)
+  completed with exit code `0` in `01:47:43` and `01:03:21`. Both collection
+  and evaluation phases had zero errors and zero timeouts; stderr contained only
+  the known PyTorch nested-tensor warning.
+- The raw data roots contain no files after training, confirming both exact
+  consumed trajectory JSONLs were deleted before evaluation.
+- Downloaded compact reports, statuses, scheduler logs, collection/training
+  reports, and one win/loss replay pair per arm to the protected local ERAWAN
+  pull area. The 158,455-byte archive SHA-256 is
+  `8c3f3c3dddbb276e969ff8c8985edef821f93322692dd35778c1331ec0adc7d9`.
+
+Matched A/B results:
+
+| Arm | Collection result | Direct-policy evaluation | Wilson 95% |
+| --- | ---: | ---: | ---: |
+| Search distillation | 457 / 1,000 | 433 / 1,000 (`0.433`) | `0.403-0.464` |
+| Self-imitation | 431 / 1,000 | 408 / 1,000 (`0.408`) | `0.378-0.439` |
+
+- Search distillation leads self-imitation by 25 wins and 2.5 percentage points,
+  but the independent two-proportion comparison is not significant
+  (`p ~= 0.257`). It leads the 407 / 1,000 direct GAE reference by 26 wins
+  (`p ~= 0.239`). Self-imitation versus the source is effectively identical
+  (`p ~= 0.964`).
+- The best distilled direct policy is 67 wins and 6.7 percentage points short
+  of tying the 50% gate, and 68 wins short of exceeding it. Do not promote or
+  confirm it yet.
+
+Collection behavior and search quality:
+
+| Metric | Search distillation | Self-imitation |
+| --- | ---: | ---: |
+| Trajectory steps | 85,019 | 82,641 |
+| Attach-taken rate | `0.4026` | `0.4062` |
+| Attack-taken rate | `0.2553` | `0.2606` |
+| END rate | `0.01450` | `0.01661` |
+| Search decisions / changed | 43,857 / 4,698 (`0.1071`) | n/a |
+| Candidate probes / errors | 161,298 / 0 | n/a |
+| Truncated candidates | 46 (`0.000285`) | n/a |
+| Mean / max search seconds | `0.0590 / 1.8347` | n/a |
+
+- Action rates are close and neither arm shows attach, attack, or END collapse.
+  Search collection also reproduced the prior teacher result closely
+  (457 versus 462 wins), with zero search/candidate errors.
+
+Training diagnostics and conclusion:
+
+- Search distillation trained on 85,019 examples with final accuracy `0.9447`
+  and final loss `0.02711`. Self-imitation trained on 82,641 examples with
+  accuracy `1.0` and loss `3.16e-7`, showing that another epoch on the source
+  policy's own deterministic choices makes essentially no policy change.
+- The search collector changed 4,698 searched decisions, only about 5.5% of all
+  trajectory steps. Chosen search actions were recorded correctly, but the
+  public trajectory wrapper did not propagate the per-step
+  `phase5_search_changed` marker. Consequently the generalist report showed zero
+  changed examples and could not apply correction-specific weights.
+- Updated the search agent and trajectory wrapper to preserve search-applied,
+  baseline-index, search-index, changed, and error metadata. Updated trajectory
+  training to multiply self-play example weight by changed/unchanged weights,
+  and added these settings plus pairwise settings to the compact training
+  report. The reusable SLURM arm now exposes these controls.
+- The next matched experiment uses 2,000 search games per arm. Control uses
+  uniform `1.0 / 1.0` changed/unchanged weights; treatment uses `8.0 / 1.0`.
+  This doubles the expected novel labels and raises their effective training
+  share to about 32% without downweighting stable-policy examples. Only advance
+  to pairwise correction loss or iterative distillation if weighting beats the
+  matched uniform arm and the prior 433 / 1,000 result.

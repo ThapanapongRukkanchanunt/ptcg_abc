@@ -33,6 +33,10 @@ TRAIN_EPOCHS="${TRAIN_EPOCHS:-1}"
 BATCH_SIZE="${BATCH_SIZE:-64}"
 LEARNING_RATE="${LEARNING_RATE:-0.00005}"
 SELFPLAY_LIMIT="${SELFPLAY_LIMIT:-0}"
+CHANGED_WEIGHT="${CHANGED_WEIGHT:-1.0}"
+UNCHANGED_WEIGHT="${UNCHANGED_WEIGHT:-1.0}"
+PAIRWISE_CHANGED="${PAIRWISE_CHANGED:-0}"
+PAIRWISE_WEIGHT="${PAIRWISE_WEIGHT:-0.25}"
 CLEAN_RAW_AFTER_TRAIN="${CLEAN_RAW_AFTER_TRAIN:-1}"
 
 MODEL_DIR="${MODEL_DIR:-models/rl/phase5_one_deck_search_distill/${RUN_NAME}/specialists}"
@@ -81,6 +85,10 @@ echo "EVAL_GAMES=$EVAL_GAMES"
 echo "TRAIN_EPOCHS=$TRAIN_EPOCHS"
 echo "BATCH_SIZE=$BATCH_SIZE"
 echo "LEARNING_RATE=$LEARNING_RATE"
+echo "CHANGED_WEIGHT=$CHANGED_WEIGHT"
+echo "UNCHANGED_WEIGHT=$UNCHANGED_WEIGHT"
+echo "PAIRWISE_CHANGED=$PAIRWISE_CHANGED"
+echo "PAIRWISE_WEIGHT=$PAIRWISE_WEIGHT"
 echo "TRAIN_DATASET=$TRAIN_DATASET"
 echo "OUTPUT_CHECKPOINT=$OUTPUT_CHECKPOINT"
 
@@ -101,6 +109,11 @@ echo "OUTPUT_CHECKPOINT=$OUTPUT_CHECKPOINT"
   --report-json "$COLLECT_REPORT" \
   --overwrite
 
+PAIRWISE_ARGS=()
+if [[ "$PAIRWISE_CHANGED" != "0" ]]; then
+  PAIRWISE_ARGS+=(--pairwise-changed --pairwise-weight "$PAIRWISE_WEIGHT")
+fi
+
 "$PY" -m ptcg_abc rl-train-phase5-generalist \
   --no-decision-dataset \
   --selfplay-dataset "$TRAIN_DATASET" \
@@ -110,12 +123,15 @@ echo "OUTPUT_CHECKPOINT=$OUTPUT_CHECKPOINT"
   --epochs "$TRAIN_EPOCHS" \
   --batch-size "$BATCH_SIZE" \
   --learning-rate "$LEARNING_RATE" \
+  --changed-weight "$CHANGED_WEIGHT" \
+  --unchanged-weight "$UNCHANGED_WEIGHT" \
   --selfplay-limit "$SELFPLAY_LIMIT" \
   --selfplay-weight 1.0 \
   --value-loss-weight 0.0 \
   --action-value-loss-weight 0.0 \
   --tactical-loss-weight 0.0 \
-  --deck-index-filter "$CONTROLLED_DECK_INDEX"
+  --deck-index-filter "$CONTROLLED_DECK_INDEX" \
+  "${PAIRWISE_ARGS[@]}"
 
 if [[ "$CLEAN_RAW_AFTER_TRAIN" != "0" ]]; then
   rm -f -- "$TRAIN_DATASET"

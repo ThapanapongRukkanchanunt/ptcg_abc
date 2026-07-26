@@ -188,9 +188,15 @@ class Phase5GeneralistTrainingSummary:
     decision_dataset_path: str | None
     selfplay_dataset_paths: list[str]
     deck_index_filter: int | None
+    changed_weight: float
+    unchanged_weight: float
     search_decision_weight: float
     rule_demo_weight: float
     selfplay_weight: float
+    pairwise_changed: bool
+    pairwise_weight: float
+    pairwise_margin: float
+    pairwise_negatives: str
     value_loss_weight: float
     action_value_loss_weight: float
     tactical_loss_weight: float
@@ -630,8 +636,15 @@ def phase5_symbolic_record_from_trajectory(
     previous_action_features: Sequence[Sequence[float]] = (),
     max_previous_actions: int = 16,
     weight: float = 1.0,
+    changed_weight: float = 1.0,
+    unchanged_weight: float = 1.0,
 ) -> Phase5SymbolicDecisionRecord | None:
     reward = float(step.reward)
+    correction_weight = (
+        float(changed_weight)
+        if bool(step.decision.reward_metadata.get("phase5_search_changed", False))
+        else float(unchanged_weight)
+    )
     return phase5_symbolic_record_from_decision(
         step.decision,
         encoder=encoder,
@@ -639,7 +652,7 @@ def phase5_symbolic_record_from_trajectory(
         max_previous_actions=max_previous_actions,
         target_source="selfplay",
         target_indices_override=step.chosen_indices,
-        weight_override=weight,
+        weight_override=float(weight) * correction_weight,
         value_target=reward,
         action_value_target=reward,
     )
@@ -1106,6 +1119,8 @@ def train_phase5_generalist_policy(
                     previous_action_features=previous_rows,
                     max_previous_actions=max_previous_actions,
                     weight=selfplay_weight,
+                    changed_weight=changed_weight,
+                    unchanged_weight=unchanged_weight,
                 )
                 if record is None:
                     skipped += 1
@@ -1214,9 +1229,15 @@ def train_phase5_generalist_policy(
         ),
         selfplay_dataset_paths=[str(path.as_posix()) for path in selfplay_dataset_paths],
         deck_index_filter=deck_index_filter,
+        changed_weight=changed_weight,
+        unchanged_weight=unchanged_weight,
         search_decision_weight=search_decision_weight,
         rule_demo_weight=rule_demo_weight,
         selfplay_weight=selfplay_weight,
+        pairwise_changed=pairwise_changed,
+        pairwise_weight=pairwise_weight,
+        pairwise_margin=pairwise_margin,
+        pairwise_negatives=pairwise_negatives,
         value_loss_weight=value_loss_weight,
         action_value_loss_weight=action_value_loss_weight,
         tactical_loss_weight=tactical_loss_weight,

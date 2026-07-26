@@ -231,6 +231,32 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertEqual(sum(record.tactical_mask), 3.0)
         self.assertEqual(record.weight, 2.5)
 
+    def test_trajectory_record_weights_search_corrections(self):
+        frame = _phase5_frame(
+            step_index=1,
+            selected=[1],
+            search=[1],
+            baseline=[0],
+            changed=True,
+        )
+        step = TrajectoryStep(
+            decision=frame,
+            chosen_indices=[1],
+        )
+
+        record = phase5_symbolic_record_from_trajectory(
+            step,
+            encoder=Phase5SymbolicEncoder(max_entities=8, max_actions=4),
+            weight=2.0,
+            changed_weight=8.0,
+            unchanged_weight=0.25,
+        )
+
+        self.assertIsNotNone(record)
+        assert record is not None
+        self.assertTrue(record.changed)
+        self.assertEqual(record.weight, 16.0)
+
     def test_teacher_trajectory_context_can_follow_behavior_action(self):
         frame = _phase5_frame(
             step_index=1,

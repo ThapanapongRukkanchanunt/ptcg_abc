@@ -1605,6 +1605,15 @@ def _policy_metadata(agent: Any) -> dict[str, Any]:
         metadata["policy_epsilon_greedy_steps"] = int(payload["epsilon_greedy_steps"])
     if "target_count" in payload:
         metadata["policy_target_count"] = int(payload["target_count"])
+    for key in (
+        "phase5_search_applied",
+        "phase5_baseline_indices",
+        "phase5_search_indices",
+        "phase5_search_changed",
+        "phase5_search_error",
+    ):
+        if key in payload:
+            metadata[key] = payload[key]
     return metadata
 
 

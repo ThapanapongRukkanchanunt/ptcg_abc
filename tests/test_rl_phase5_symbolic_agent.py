@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from ptcg_abc.agent.phase5_search import Phase5SearchPolicyAgent
 from ptcg_abc.agent.phase5_symbolic import Phase5SymbolicPolicyAgent
@@ -93,6 +94,65 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         self.assertAlmostEqual(telemetry["truncated_candidate_rate"], 3 / 12)
         self.assertAlmostEqual(telemetry["avg_search_seconds"], 0.5)
         self.assertAlmostEqual(telemetry["max_search_seconds"], 0.8)
+
+    def test_search_agent_exposes_changed_choice_to_trajectory_recorder(self):
+        agent = object.__new__(Phase5SearchPolicyAgent)
+        agent.deck_ids = [1] * 60
+        agent.card_by_id = {}
+        agent.attack_by_id = {}
+        agent.state_adapter = SimpleNamespace(parse=lambda observation: object())
+        agent.legal_adapter = SimpleNamespace(
+            parse=lambda observation: [
+                SimpleNamespace(min_count=1, max_count=1, rule_score=2.0, local_index=0),
+                SimpleNamespace(min_count=1, max_count=1, rule_score=1.0, local_index=1),
+            ]
+        )
+        agent.memory = SimpleNamespace(
+            observe=lambda state: None,
+            belief_state=lambda state, own_deck_ids: object(),
+        )
+        encoded = SimpleNamespace(
+            legal_action_indices=[0, 1],
+            legal_action_mask=[1.0, 1.0],
+            legal_action_features=[[1.0], [2.0]],
+        )
+        agent.encoder = SimpleNamespace(encode=lambda state, actions, belief: encoded)
+        agent._reset_turn_context_if_needed = lambda state: None
+        agent._score_model_outputs = lambda value: {"action_logits": [2.0, 1.0]}
+        agent._rank_policy_positions = lambda *args: [0, 1]
+        agent._should_search = lambda frame: True
+        trace = SimpleNamespace(
+            search_started=True,
+            search_error=None,
+            candidates=[SimpleNamespace(error=None, truncated=False)],
+        )
+        agent._search_decision = lambda *args: ([1], trace)
+        agent._positions_for_indices = lambda value, indices: [1]
+        agent._observe_selected_actions = lambda features, positions: None
+        agent.last_policy_metadata = {
+            "logprob": 0.0,
+            "value": 0.0,
+            "on_policy": False,
+            "mode": "deterministic",
+        }
+        agent.traces = []
+        agent.search_decisions = 0
+        agent.search_started_decisions = 0
+        agent.changed_decisions = 0
+        agent.search_errors = 0
+        agent.candidate_probes = 0
+        agent.candidate_errors = 0
+        agent.truncated_candidates = 0
+        agent.search_elapsed_seconds = 0.0
+        agent.max_search_elapsed_seconds = 0.0
+
+        with patch("ptcg_abc.agent.phase5_search.make_decision_frame", return_value=object()):
+            selected = agent.act(SimpleNamespace(select=object()))
+
+        self.assertEqual(selected, [1])
+        self.assertEqual(agent.last_policy_metadata["phase5_baseline_indices"], [0])
+        self.assertEqual(agent.last_policy_metadata["phase5_search_indices"], [1])
+        self.assertTrue(agent.last_policy_metadata["phase5_search_changed"])
 
     def test_cli_accepts_phase5_symbolic_agent(self):
         parser = build_parser()

@@ -122,7 +122,10 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             },
         )
         selected = list(baseline)
+        search_applied = False
+        search_error: str | None = None
         if frame is not None and self._should_search(frame):
+            search_applied = True
             start = time.perf_counter()
             selected, trace = self._search_decision(
                 observation,
@@ -146,10 +149,18 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             self.truncated_candidates += sum(
                 1 for candidate in trace.candidates if candidate.truncated
             )
+            search_error = trace.search_error
             self.search_elapsed_seconds += elapsed
             self.max_search_elapsed_seconds = max(self.max_search_elapsed_seconds, elapsed)
 
         selected = _valid_indices(selected, len(legal_actions))
+        self.last_policy_metadata = dict(self.last_policy_metadata) | {
+            "phase5_search_applied": search_applied,
+            "phase5_baseline_indices": list(baseline),
+            "phase5_search_indices": list(selected),
+            "phase5_search_changed": selected != baseline,
+            "phase5_search_error": search_error,
+        }
         selected_positions = self._positions_for_indices(encoded, selected)
         self._observe_selected_actions(encoded.legal_action_features, selected_positions)
         return selected
