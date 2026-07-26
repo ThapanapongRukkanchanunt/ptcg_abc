@@ -6952,3 +6952,61 @@ Goal distance, decision, and next experiment:
   packaging. If it fails, do not continue return-estimator tuning from this
   single 200-game crossing; inspect the confirmed replay/action failures before
   choosing another credit-assignment change.
+
+## 2026-07-26 - GAE Confirmation Failed; Root-Search Teacher Gate Queued
+
+Confirmation completion and retention:
+
+- ERAWAN job `75042` completed in `00:26:45` with exit code `0`. The GAE
+  generation-1 checkpoint scored 407 wins, 592 losses, and one draw in 1,000
+  deterministic games against rule Mega Lucario ex. There were zero errors and
+  zero timeouts; stderr contained only the known PyTorch nested-tensor warning.
+- Win rate was `0.407`, with Wilson 95% CI approximately `0.377-0.438`. This is
+  93 wins and 9.3 percentage points short of tying the 50% gate, and 94 wins
+  short of exceeding it.
+- The earlier 102 / 200 (`0.510`) result was not reproducible and is rejected as
+  promotion evidence. Against the prior frozen-BC 1,000-game confirmation at
+  434 / 1,000, GAE is lower by 27 wins and 2.7 percentage points, though the
+  independent two-proportion difference is not significant (`p ~= 0.22`).
+- Pooling the GAE 200-game full-run eval with this confirmation gives
+  509 / 1,200 (`0.4242`, Wilson 95% approximately `0.396-0.452`). The expanded
+  frozen-source pool is 869 / 2,000 (`0.4345`); the difference is not
+  significant (`p ~= 0.57`). Episode-return GAE has not improved the confirmed
+  policy.
+- Downloaded the 44,536-byte compact report/status/log/replay archive to the
+  protected local ERAWAN pull area. SHA-256 is
+  `fb477b662a48e7015200f469370c35037c6a5f5a314125e7fb8eef08ff9de3a2`.
+  Both replay JSON files parsed, both HTML views were nonempty, and the opponent
+  status was available with no loading error.
+
+Sampled action-quality inspection:
+
+- The retained loss and win traces contained 65 and 19 decisions respectively.
+  Every chosen option matched the rule agent's top-ranked option in these 84
+  sampled decisions. Deterministic evaluation intentionally reports policy
+  log-probability/value as zero, so this is action-agreement evidence, not a
+  model-loading failure.
+- The sampled loss lasted 117 engine selections. Its 29 MAIN decisions included
+  five attaches, six attacks, 13 plays, two evolves, two abilities, and one
+  retreat. The agent lost with five prizes remaining while Lucario reached zero.
+  The failure is therefore not a gross END, attach, or attack-rate collapse.
+- Because the policy remains behavior-cloning-like on the retained states,
+  another return-estimator or PPO-strength sweep has no demonstrated
+  higher-quality action target. The next scientific question is whether existing
+  one-turn root search can supply better decisions on this exact matchup.
+
+Matched root-search teacher-quality gate:
+
+- Submitted ERAWAN job `75105` using the exact frozen BC source checkpoint and
+  job `75106` using the GAE generation-1 checkpoint. Both run
+  `phase5-search` for 1,000 deterministic Dragapult-vs-rule-Lucario games with
+  the same default root-search configuration.
+- Each job retains one win and one loss replay plus search-decision traces for
+  ten games. The reports will expose searched decisions, search-changed
+  decisions, candidate errors/truncations, and timing.
+- This is a teacher-quality test before distillation. If either search arm
+  credibly beats its corresponding direct 1,000-game result and has clean search
+  telemetry, use the stronger search prior to generate model-visited
+  search-action labels and compare search distillation against a self-imitation
+  control. If neither arm improves, do not train on its search choices; inspect
+  changed-decision win/loss examples and scorer margins first.

@@ -25,20 +25,27 @@ This is the resume point for the project. Start here after switching machines, c
   at generation 0 to 102 / 200 (`0.510`) at generation 1; discounted return
   improved from 69 / 200 (`0.345`) to 82 / 200 (`0.410`). All four evals had
   zero errors and timeouts.
-- Current Dragapult-vs-Lucario gate status: GAE is two wins and one percentage
-  point above the raw 50% gate in its 200-game eval, but its Wilson 95% interval
-  (`0.441-0.578`) still spans 50%. Treat the gate as provisional, not confirmed.
-  Discounted return is rejected for promotion at nine percentage points below
-  the gate.
+- Current Dragapult-vs-Lucario gate status: the GAE generation-1 checkpoint's
+  102 / 200 (`0.510`) result did not confirm. ERAWAN job `75042` scored
+  407 / 1,000 (`0.407`, Wilson 95% approximately `0.377-0.438`) with zero
+  errors/timeouts. It is 93 wins and 9.3 percentage points short of tying the
+  50% gate, so GAE and discounted return are both rejected for promotion.
 - Latest retention check: both jobs grouped 1,000 finished games, rejected no
   PPO rows, used each accepted row four times, kept shared-trunk critic gradient
   at exactly zero, and deleted their consumed raw JSONLs. A 352,178-byte
   compact 36-file report/status/log/replay bundle was downloaded and verified
   under the protected local ERAWAN pull area.
-- Current next experiment: ERAWAN job `75042` is running a fresh 1,000-game
-  deterministic confirmation of the GAE generation-1 checkpoint against rule
-  Mega Lucario ex, with one compact win and loss replay retained. Do not package
-  or broaden the checkpoint unless this independent confirmation passes 50%.
+- Latest action-quality inspection: the sampled confirmation win/loss traces
+  contained 84 decisions, and every model choice matched the rule agent's
+  top-ranked option. The sampled loss still attached five times and attacked six
+  times, so the failure is not simple END/attack/attach collapse. More
+  return-estimator tuning has no demonstrated better action target.
+- Current next experiment: ERAWAN jobs `75105` and `75106` are matched
+  1,000-game `phase5-search` teacher-quality evaluations using the frozen BC
+  source and GAE generation-1 prior respectively. Each retains ten games of
+  compact search traces plus one win/loss replay. Distill root-search choices
+  only if search shows a credible gain over direct inference; otherwise inspect
+  search-change quality before another training update.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
