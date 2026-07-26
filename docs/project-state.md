@@ -54,7 +54,10 @@ This is the resume point for the project. Start here after switching machines, c
   GAE-root-search games against a deterministic GAE self-imitation control.
   Both start from the exact GAE generation-1 checkpoint, train one policy-only
   epoch, delete consumed raw JSONL after successful training, and receive a
-  1,000-game direct-policy evaluation. The reusable arm script is
+  1,000-game direct-policy evaluation. ERAWAN jobs `75113` (search distillation)
+  and `75114` (self-imitation) are running concurrently. Their early logs
+  confirm the intended checkpoint, game budgets, optimizer settings, and
+  distinct collection agents. The reusable arm script is
   `scripts/slurm/phase5_one_deck_search_distill_arm.sbatch`.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,

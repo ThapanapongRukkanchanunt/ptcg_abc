@@ -3793,6 +3793,15 @@ to beat both direct GAE at 407 / 1,000 and the self-imitation control without
 errors, timeouts, or raw-data retention. Crossing 50% still requires an
 independent confirmation before broader evaluation or packaging.
 
+Execution status (July 26, 2026):
+
+- ERAWAN job `75113` is the `phase5-search` distillation treatment.
+- ERAWAN job `75114` is the deterministic `phase5-symbolic` self-imitation
+  control.
+- Both jobs started concurrently on separate GPU nodes. Early stdout confirms
+  the intended GAE generation-1 source, 1,000 collection games, one training
+  epoch at learning rate `5e-5`, and 1,000 direct-policy evaluation games.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

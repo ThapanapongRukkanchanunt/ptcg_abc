@@ -7079,3 +7079,11 @@ Next controlled improvement step:
   reference and the self-imitation control with clean execution and confirmed
   raw-data cleanup. A result above 50% still requires an independent
   confirmation before broader evaluation or submission packaging.
+- Committed the reusable arm and teacher-gate findings as `bda4ca2`, pushed it
+  to `origin/main`, and fast-forwarded the ERAWAN checkout to the same commit.
+- Submitted ERAWAN jobs `75113` (`phase5-search` treatment) and `75114`
+  (deterministic `phase5-symbolic` control). Both entered `RUNNING` concurrently
+  on separate GPU nodes. Early logs confirm the intended GAE generation-1
+  checkpoint, 1,000-game collection and evaluation budgets, one epoch,
+  learning rate `5e-5`, and distinct raw paths; stderr contains only the known
+  PyTorch nested-tensor warning.
