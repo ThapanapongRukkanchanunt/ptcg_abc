@@ -79,6 +79,8 @@ This is the resume point for the project. Start here after switching machines, c
   for a uniform cross-entropy plus search-over-baseline pairwise arm at weight
   `0.10`. The dependent arm deletes the shared raw JSONL after successful
   training. Both 1,000-game evaluations use common base seed `20260727`.
+  ERAWAN control job `75178` is running; pairwise job `75179` is pending on its
+  `afterok` dependency.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

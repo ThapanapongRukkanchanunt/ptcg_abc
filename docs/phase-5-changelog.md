@@ -7271,3 +7271,9 @@ Implementation and reproducibility:
 - Validation passes: shell syntax and diff checks are clean; focused simulator,
   public-agent, report, symbolic-agent, and symbolic-training tests complete
   with 61 passes and one environment-dependent skip.
+- Committed and pushed the implementation as `38ec71f`, then fast-forwarded the
+  ERAWAN checkout to that exact commit.
+- Submitted ERAWAN job `75178` for shared collection plus uniform training and
+  job `75179` for dependent pairwise training and final cleanup. Job `75178`
+  entered `RUNNING` with verified parameters; `75179` is correctly held by
+  `afterok:75178`.

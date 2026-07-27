@@ -3917,6 +3917,15 @@ third-action drift. The only training difference is the pairwise term. Require
 the pairwise arm to beat the common-seed uniform control and the prior
 433 / 1,000 direct distillation result before confirmation or iteration.
 
+Execution status (July 27, 2026):
+
+- ERAWAN job `75178` is the collect/train/evaluate uniform control.
+- ERAWAN job `75179` is the reuse/train/evaluate/cleanup pairwise arm, submitted
+  with `afterok:75178`.
+- The control entered `RUNNING` with verified shared path, collection enabled,
+  cleanup disabled, uniform weights, and evaluation seed `20260727`. The
+  pairwise arm remains dependency-held as intended.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
