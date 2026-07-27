@@ -60,14 +60,22 @@ This is the resume point for the project. Start here after switching machines, c
   training accuracy, versus `1.0` and essentially zero loss for self-imitation.
   The directional gain therefore comes from teacher corrections, but only about
   5.5% of all training steps carried a changed search action.
-- Current next experiment: compare uniform search imitation against an 8x
-  weight on search-changed trajectory steps. Both arms collect 2,000 search
-  games from the exact GAE generation-1 source, keep unchanged steps at weight
-  `1.0`, train one policy-only epoch, clean raw JSONL, and receive a 1,000-game
-  direct evaluation. The recorder now preserves per-step search-change metadata,
-  and the generalist trainer applies and reports correction weights. ERAWAN jobs
-  `75160` (uniform) and `75161` (changed weight `8.0`) are running with verified
-  startup parameters.
+- Latest correction-weight A/B: ERAWAN jobs `75160` (uniform) and `75161`
+  (changed weight `8.0`) completed cleanly at 418 / 1,000 (`0.418`) and
+  398 / 1,000 (`0.398`). The weighted arm is lower by 20 wins; the comparison
+  is not significant (`p ~= 0.363`), but it gives no evidence for aggressive
+  correction weighting. Both remain below the prior 433 / 1,000 distillation.
+- Metadata accounting now works: uniform/weighted training observed 9,288/9,182
+  changed examples among 167,163/169,829 total steps. Weight `8.0` raised the
+  effective correction share to about 31.4%, reduced accuracy from `0.9444` to
+  `0.9218`, raised final loss from `0.0482` to `1.5331`, and did not improve
+  evaluation. Reject weight `8.0`.
+- The two nominally matched search collections differed at 862 / 2,000 and
+  942 / 2,000 (`p ~= 0.011`) despite identical policy/search settings. Future
+  optimizer comparisons should train from one shared trajectory dataset to
+  eliminate this collection-quality confound. Current next action is user
+  selection among a shared-data pairwise test, confidence-filtered corrections,
+  a more robust search teacher, or iterative search DAgger.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

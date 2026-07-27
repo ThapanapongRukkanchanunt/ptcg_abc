@@ -7164,3 +7164,76 @@ Training diagnostics and conclusion:
   `8.0`, unchanged `1.0`). Both entered `RUNNING`; early stdout verifies the
   intended source checkpoint, 2,000/1,000 collection/evaluation budgets,
   optimizer settings, weights, distinct raw paths, and pairwise loss disabled.
+
+## 2026-07-27 - Aggressive Correction Weight Rejected
+
+Completion, artifacts, and cleanup:
+
+- ERAWAN jobs `75160` (uniform correction weight) and `75161` (changed weight
+  `8.0`) completed with exit code `0` in `02:55:16` and `02:55:15`.
+  Collection and direct evaluation had zero errors and zero timeouts. Stderr
+  contained only the known PyTorch nested-tensor warning.
+- Both protected raw roots were empty after training, confirming exact consumed
+  JSONL cleanup before evaluation.
+- Downloaded compact reports, statuses, logs, collection/training reports, and
+  one win/loss replay pair per arm to the protected local ERAWAN pull area. The
+  179,621-byte archive SHA-256 is
+  `3934062242f7e0c44a9158dae9e7158c7e88fe15aef9e4c8bc9635bf3f060685`.
+
+Matched results:
+
+| Arm | Search collection | Direct evaluation | Wilson 95% |
+| --- | ---: | ---: | ---: |
+| Uniform `1.0 / 1.0` | 862 / 2,000 (`0.431`) | 418 / 1,000 (`0.418`) | `0.388-0.449` |
+| Changed `8.0 / 1.0` | 942 / 2,000 (`0.471`) | 398 / 1,000 (`0.398`) | `0.368-0.429` |
+
+- The weighted arm trails uniform by 20 wins and two percentage points
+  (`p ~= 0.363`). Uniform is statistically indistinguishable from both the
+  prior 433 / 1,000 distillation (`p ~= 0.498`) and the 407 / 1,000 source
+  (`p ~= 0.617`). Weighted is also indistinguishable from the source
+  (`p ~= 0.682`) and points in the wrong direction.
+- Neither passes the 50% gate. Uniform is 82 wins and 8.2 percentage points
+  short of tying; weighted is 102 wins and 10.2 points short.
+- Pooling the two independent uniform-distillation evaluations gives
+  851 / 2,000 (`0.4255`, Wilson 95% `0.404-0.447`). This still does not
+  significantly beat the direct source confirmation (`p ~= 0.333`).
+
+Collection, training, and action diagnostics:
+
+| Metric | Uniform | Changed `8.0` |
+| --- | ---: | ---: |
+| Total / changed examples | 167,163 / 9,288 | 169,829 / 9,182 |
+| Training accuracy | `0.9444` | `0.9218` |
+| Final loss | `0.04823` | `1.53309` |
+| Effective changed loss share | `5.56%` | `31.38%` |
+| Attach-taken rate | `0.4059` | `0.4026` |
+| Attack-taken rate | `0.2546` | `0.2564` |
+| END rate | `0.01475` | `0.01461` |
+| Search-change rate | `0.10767` | `0.10551` |
+| Candidate errors | 0 / 317,205 | 0 / 319,977 |
+| Truncated candidates | 68 | 76 |
+
+- Metadata propagation and changed-example accounting are confirmed working.
+  The 8x weight materially altered optimization but did not improve play, so
+  reject aggressive correction weighting rather than scaling it further.
+- Collection action rates and sampled direct-policy win/loss replays show normal
+  attaches and attacks; there is no simple attach, attack, or END collapse.
+- The nominally identical search collectors differed by four points
+  (862 versus 942 wins, `p ~= 0.011`). Their pooled 1,804 / 4,000 (`0.451`)
+  agrees with prior teacher quality, but the arm-to-arm difference is a
+  meaningful confound. Future optimizer comparisons should reuse one shared
+  trajectory dataset.
+
+Candidate next directions, pending user selection:
+
+- Shared-data pairwise correction A/B: collect once, then compare uniform
+  cross-entropy against the same anchor plus a small pairwise search-over-
+  baseline ranking loss.
+- Confidence-filtered distillation: record within-decision search margins and
+  emphasize only high-confidence changed labels while retaining uniform
+  unchanged examples.
+- Stronger teacher gate: evaluate multi-sample hidden-state search or a more
+  robust candidate aggregator before spending another distillation budget.
+- Iterative search DAgger: use the best 433 / 1,000 distilled checkpoint as the
+  next search prior and relabel its visited states, preferably after a shared-
+  data or confidence gate establishes that the update is beneficial.
