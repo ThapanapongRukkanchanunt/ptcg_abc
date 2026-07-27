@@ -3926,6 +3926,78 @@ Execution status (July 27, 2026):
   cleanup disabled, uniform weights, and evaluation seed `20260727`. The
   pairwise arm remains dependency-held as intended.
 
+Completed result:
+
+- Jobs `75178` and `75179` completed cleanly. On the exact shared dataset and
+  common seed, uniform scored 408 / 1,000 and pairwise `0.10` scored
+  428 / 1,000. The directional +2.0-point result is not significant and remains
+  below the 50% gate and prior 433 / 1,000 best. Final raw cleanup passed.
+
+### Shared-Data Confidence-Margin A/B
+
+Keep the pairwise `0.10` objective and isolate whether near-tie search labels
+are harmful. The control collects once and retains the shared JSONL; the
+dependent treatment reuses it, zero-weights changed labels whose recorded
+selected-minus-baseline search score is below `0.10`, and performs final
+cleanup. Both direct evaluations use the same base seed:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export BASE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+export SHARED_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_search_distill/phase5_dragapult_gae_search_margin_shared_2000g/raw_train/phase5-search_trajectories_2000g.jsonl
+export SHARED_COLLECT_REPORT=experiments/rl/phase5_one_deck_search_distill/phase5_dragapult_gae_search_margin_pairwise010_all_2000g/collection_report.json
+
+JOB_ALL=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_margin_pairwise010_all_2000g \
+  COLLECT_AGENT=phase5-search \
+  COLLECT_DATASET=1 \
+  CLEAN_RAW_AFTER_TRAIN=0 \
+  TRAIN_DATASET="$SHARED_DATASET" \
+  COLLECT_REPORT="$SHARED_COLLECT_REPORT" \
+  TRAIN_GAMES=2000 \
+  EVAL_GAMES=1000 \
+  CHANGED_WEIGHT=1.0 \
+  UNCHANGED_WEIGHT=1.0 \
+  PAIRWISE_CHANGED=1 \
+  PAIRWISE_WEIGHT=0.10 \
+  CHANGED_MIN_MARGIN=0.0 \
+  LOW_MARGIN_WEIGHT=1.0 \
+  EVAL_SEED=20260727 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+
+JOB_MARGIN=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_margin_pairwise010_m010_2000g \
+  COLLECT_AGENT=phase5-search \
+  COLLECT_DATASET=0 \
+  CLEAN_RAW_AFTER_TRAIN=1 \
+  TRAIN_DATASET="$SHARED_DATASET" \
+  COLLECT_REPORT="$SHARED_COLLECT_REPORT" \
+  TRAIN_GAMES=2000 \
+  EVAL_GAMES=1000 \
+  CHANGED_WEIGHT=1.0 \
+  UNCHANGED_WEIGHT=1.0 \
+  PAIRWISE_CHANGED=1 \
+  PAIRWISE_WEIGHT=0.10 \
+  CHANGED_MIN_MARGIN=0.10 \
+  LOW_MARGIN_WEIGHT=0.0 \
+  EVAL_SEED=20260727 \
+  sbatch --parsable --dependency="afterok:$JOB_ALL" \
+    scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+```
+
+Require the filtered arm to beat both its exact-data all-correction control and
+the prior 433 / 1,000 best before confirmation. A score above 50% still needs an
+independent confirmation.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

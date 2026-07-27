@@ -176,6 +176,8 @@ class Phase5GeneralistTrainingSummary:
     selfplay_examples: int
     skipped_no_target: int
     changed_examples: int
+    margin_available_changed_examples: int
+    low_margin_changed_examples: int
     actions: int
     value_examples: int
     action_value_examples: int
@@ -193,6 +195,8 @@ class Phase5GeneralistTrainingSummary:
     search_decision_weight: float
     rule_demo_weight: float
     selfplay_weight: float
+    selfplay_changed_min_margin: float
+    selfplay_low_margin_weight: float
     pairwise_changed: bool
     pairwise_weight: float
     pairwise_margin: float
@@ -638,13 +642,18 @@ def phase5_symbolic_record_from_trajectory(
     weight: float = 1.0,
     changed_weight: float = 1.0,
     unchanged_weight: float = 1.0,
+    changed_min_margin: float = 0.0,
+    low_margin_weight: float = 1.0,
 ) -> Phase5SymbolicDecisionRecord | None:
     reward = float(step.reward)
-    correction_weight = (
-        float(changed_weight)
-        if bool(step.decision.reward_metadata.get("phase5_search_changed", False))
-        else float(unchanged_weight)
-    )
+    metadata = step.decision.reward_metadata
+    changed = bool(metadata.get("phase5_search_changed", False))
+    correction_weight = float(changed_weight if changed else unchanged_weight)
+    margin = _search_score_margin(metadata)
+    if changed and changed_min_margin > 0.0 and (
+        margin is None or margin < changed_min_margin
+    ):
+        correction_weight *= float(low_margin_weight)
     return phase5_symbolic_record_from_decision(
         step.decision,
         encoder=encoder,
@@ -656,6 +665,16 @@ def phase5_symbolic_record_from_trajectory(
         value_target=reward,
         action_value_target=reward,
     )
+
+
+def _search_score_margin(metadata: dict[str, Any]) -> float | None:
+    value = metadata.get("phase5_search_score_margin")
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _trajectory_behavior_indices(step: TrajectoryStep) -> list[int] | None:
@@ -931,6 +950,8 @@ def train_phase5_generalist_policy(
     search_decision_weight: float = 1.0,
     rule_demo_weight: float = 0.25,
     selfplay_weight: float = 1.0,
+    selfplay_changed_min_margin: float = 0.0,
+    selfplay_low_margin_weight: float = 1.0,
     pairwise_changed: bool = False,
     pairwise_weight: float = 0.25,
     pairwise_margin: float = 1.0,
@@ -996,6 +1017,8 @@ def train_phase5_generalist_policy(
     final_selfplay_examples = 0
     final_skipped = 0
     final_changed = 0
+    final_margin_available_changed = 0
+    final_low_margin_changed = 0
     final_actions = 0
     final_value_examples = 0
     final_action_value_examples = 0
@@ -1013,6 +1036,8 @@ def train_phase5_generalist_policy(
         selfplay_examples = 0
         skipped = 0
         changed_examples = 0
+        margin_available_changed_examples = 0
+        low_margin_changed_examples = 0
         actions = 0
         value_examples = 0
         action_value_examples = 0
@@ -1025,11 +1050,20 @@ def train_phase5_generalist_policy(
             nonlocal tactical_examples
             nonlocal value_examples
             nonlocal changed_examples
+            nonlocal margin_available_changed_examples
+            nonlocal low_margin_changed_examples
             if record is None:
                 return
             batch.append(record)
             actions += int(sum(record.encoded.legal_action_mask))
             changed_examples += int(record.changed)
+            if record.changed and record.metadata.get("target_source") == "selfplay":
+                margin = _search_score_margin(record.metadata)
+                margin_available_changed_examples += int(margin is not None)
+                low_margin_changed_examples += int(
+                    selfplay_changed_min_margin > 0.0
+                    and (margin is None or margin < selfplay_changed_min_margin)
+                )
             value_examples += int(_record_value_target(record) is not None)
             action_value_examples += int(sum(record.action_value_mask or []))
             tactical_examples += int(sum(record.tactical_mask or []))
@@ -1121,6 +1155,8 @@ def train_phase5_generalist_policy(
                     weight=selfplay_weight,
                     changed_weight=changed_weight,
                     unchanged_weight=unchanged_weight,
+                    changed_min_margin=selfplay_changed_min_margin,
+                    low_margin_weight=selfplay_low_margin_weight,
                 )
                 if record is None:
                     skipped += 1
@@ -1145,6 +1181,8 @@ def train_phase5_generalist_policy(
         final_selfplay_examples = selfplay_examples
         final_skipped = skipped
         final_changed = changed_examples
+        final_margin_available_changed = margin_available_changed_examples
+        final_low_margin_changed = low_margin_changed_examples
         final_actions = actions
         final_value_examples = value_examples
         final_action_value_examples = action_value_examples
@@ -1181,6 +1219,8 @@ def train_phase5_generalist_policy(
         "search_decision_weight": search_decision_weight,
         "rule_demo_weight": rule_demo_weight,
         "selfplay_weight": selfplay_weight,
+        "selfplay_changed_min_margin": selfplay_changed_min_margin,
+        "selfplay_low_margin_weight": selfplay_low_margin_weight,
         "pairwise_changed": pairwise_changed,
         "pairwise_weight": pairwise_weight,
         "pairwise_margin": pairwise_margin,
@@ -1193,6 +1233,8 @@ def train_phase5_generalist_policy(
         "decision_examples": final_decision_examples,
         "rule_examples": final_rule_examples,
         "selfplay_examples": final_selfplay_examples,
+        "margin_available_changed_examples": final_margin_available_changed,
+        "low_margin_changed_examples": final_low_margin_changed,
         "value_examples": final_value_examples,
         "action_value_examples": final_action_value_examples,
         "tactical_examples": final_tactical_examples,
@@ -1215,6 +1257,8 @@ def train_phase5_generalist_policy(
         selfplay_examples=final_selfplay_examples,
         skipped_no_target=final_skipped,
         changed_examples=final_changed,
+        margin_available_changed_examples=final_margin_available_changed,
+        low_margin_changed_examples=final_low_margin_changed,
         actions=final_actions,
         value_examples=final_value_examples,
         action_value_examples=final_action_value_examples,
@@ -1234,6 +1278,8 @@ def train_phase5_generalist_policy(
         search_decision_weight=search_decision_weight,
         rule_demo_weight=rule_demo_weight,
         selfplay_weight=selfplay_weight,
+        selfplay_changed_min_margin=selfplay_changed_min_margin,
+        selfplay_low_margin_weight=selfplay_low_margin_weight,
         pairwise_changed=pairwise_changed,
         pairwise_weight=pairwise_weight,
         pairwise_margin=pairwise_margin,

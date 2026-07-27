@@ -74,13 +74,21 @@ This is the resume point for the project. Start here after switching machines, c
   942 / 2,000 (`p ~= 0.011`) despite identical policy/search settings. Future
   optimizer comparisons should train from one shared trajectory dataset to
   eliminate this collection-quality confound.
-- Selected next experiment: collect one 2,000-game search trajectory dataset,
-  train/evaluate a uniform cross-entropy control, then reuse the exact dataset
-  for a uniform cross-entropy plus search-over-baseline pairwise arm at weight
-  `0.10`. The dependent arm deletes the shared raw JSONL after successful
-  training. Both 1,000-game evaluations use common base seed `20260727`.
-  ERAWAN control job `75178` is running; pairwise job `75179` is pending on its
-  `afterok` dependency.
+- Latest shared-data pairwise A/B: jobs `75178` (uniform) and `75179`
+  (pairwise weight `0.10`) reused the exact 168,614-example dataset and common
+  evaluation seed. Uniform scored 408 / 1,000 (`0.408`); pairwise scored
+  428 / 1,000 (`0.428`). The +20-win direction is encouraging but not
+  significant (`p ~= 0.36`), remains below the prior 433 / 1,000 result, and is
+  72 wins short of tying the 50% gate. Both had zero errors/timeouts.
+- Shared collection produced 911 wins, 1,085 losses, and 4 draws, with 9,356
+  search changes among 86,286 searched decisions, zero search/candidate errors,
+  and 100 truncated candidates. The dependent job deleted the shared raw JSONL;
+  a verified compact local archive has SHA-256
+  `2cc2c1435a33907318f8103f9b33b7e342837f219b0a442d28aacf63e9d89a2c`.
+- Selected next experiment: record selected-minus-baseline root-search score
+  margins and compare pairwise `0.10` on one shared 2,000-game dataset with and
+  without changed labels below margin `0.10`. Both 1,000-game evaluations use
+  common base seed `20260727`; the dependent treatment performs final cleanup.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

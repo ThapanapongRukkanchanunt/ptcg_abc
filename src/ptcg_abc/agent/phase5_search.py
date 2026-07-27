@@ -124,6 +124,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         selected = list(baseline)
         search_applied = False
         search_error: str | None = None
+        trace: RootSearchDecisionTrace | None = None
         if frame is not None and self._should_search(frame):
             search_applied = True
             start = time.perf_counter()
@@ -154,12 +155,22 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             self.max_search_elapsed_seconds = max(self.max_search_elapsed_seconds, elapsed)
 
         selected = _valid_indices(selected, len(legal_actions))
+        baseline_score = _search_candidate_score(trace, baseline)
+        selected_score = _search_candidate_score(trace, selected)
+        score_margin = (
+            selected_score - baseline_score
+            if selected_score is not None and baseline_score is not None
+            else None
+        )
         self.last_policy_metadata = dict(self.last_policy_metadata) | {
             "phase5_search_applied": search_applied,
             "phase5_baseline_indices": list(baseline),
             "phase5_search_indices": list(selected),
             "phase5_search_changed": selected != baseline,
             "phase5_search_error": search_error,
+            "phase5_search_baseline_score": baseline_score,
+            "phase5_search_selected_score": selected_score,
+            "phase5_search_score_margin": score_margin,
         }
         selected_positions = self._positions_for_indices(encoded, selected)
         self._observe_selected_actions(encoded.legal_action_features, selected_positions)
@@ -437,6 +448,19 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             return float(output["state_value"][0].detach().cpu().item())
         except Exception:
             return None
+
+
+def _search_candidate_score(
+    trace: RootSearchDecisionTrace | None,
+    indices: Sequence[int],
+) -> float | None:
+    if trace is None:
+        return None
+    target = list(indices)
+    for candidate in trace.candidates:
+        if candidate.error is None and candidate.indices == target:
+            return float(candidate.combined_score)
+    return None
 
 
 def _get(value: Any, name: str, default: Any = None) -> Any:

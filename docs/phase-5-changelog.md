@@ -7277,3 +7277,60 @@ Implementation and reproducibility:
   job `75179` for dependent pairwise training and final cleanup. Job `75178`
   entered `RUNNING` with verified parameters; `75179` is correctly held by
   `afterok:75178`.
+
+## 2026-07-27 - Shared Pairwise Is Directional; Confidence Filter Implemented
+
+Completion, artifacts, and cleanup:
+
+- ERAWAN jobs `75178` (uniform cross-entropy) and `75179` (pairwise weight
+  `0.10`) completed with exit code `0` in `03:08:46` and `00:28:54`.
+  The dependent arm started after the control completed and reused the exact
+  shared trajectory path and collection report.
+- The shared raw-data root contains no files after the dependent training job,
+  confirming final JSONL cleanup. Downloaded compact statuses, logs, reports,
+  and sampled win/loss replays to the protected local pull area. The 131,301-byte
+  archive SHA-256 is
+  `2cc2c1435a33907318f8103f9b33b7e342837f219b0a442d28aacf63e9d89a2c`.
+- Stderr contains only the known PyTorch warnings. Collection and both
+  evaluations had zero errors and zero timeouts.
+
+Exact shared-data results:
+
+| Arm | Examples / changed | Accuracy / loss | Direct evaluation |
+| --- | ---: | ---: | ---: |
+| Uniform | 168,614 / 9,356 | `0.944512 / 0.054732` | 408 / 1,000 (`0.408`) |
+| Pairwise `0.10` | 168,614 / 9,356 | `0.941316 / 0.155933` | 428 / 1,000 (`0.428`) |
+
+- Both evaluations used base seed `20260727`. Pairwise leads the exact-data
+  uniform control by 20 wins and 2.0 percentage points, but the independent
+  comparison is not significant (`p ~= 0.36`). It also remains five wins below
+  the prior 433 / 1,000 search-distillation result.
+- Pairwise is 72 wins and 7.2 percentage points short of tying the 50% gate,
+  and 73 wins short of exceeding it. Do not promote or confirm it.
+- Shared collection completed 2,000 games at 911 wins, 1,085 losses, and
+  4 draws. It produced 168,614 trajectory steps, 86,286 searched decisions,
+  9,356 changes (`0.10843`), 316,680 candidate probes, zero search/candidate
+  errors, and 100 truncated candidates. Mean/max search time was
+  `0.05585 / 1.9403` seconds.
+- Collection action rates were healthy: attach `0.39835`, attack `0.25972`,
+  and END `0.01482`. The comparison is not confounded by collection, action
+  collapse, errors, timeouts, or evaluation seed.
+
+Next controlled improvement:
+
+- A small pairwise term is directionally useful, but treating every changed
+  root-search action as equally reliable may train on near-tie labels. A
+  diagnostic sample of 52 changed trace decisions had selected-minus-baseline
+  combined-score margins from `0.00029` to `1.92`, with median `0.1571`;
+  threshold `0.10` retains 28 / 52 (`53.8%`) of corrections.
+- Added root-search baseline, selected, and score-margin metadata to trajectory
+  records. The mixed trainer can now apply a configurable multiplier to changed
+  self-play examples below a predeclared margin and reports available/filtered
+  counts. The reusable SLURM arm exposes both settings.
+- The next shared-data A/B keeps pairwise weight `0.10`, all optimizer settings,
+  source checkpoint, data, and seed fixed. Control uses every correction;
+  treatment assigns zero weight to changed labels with margin below `0.10`.
+  The dependent treatment deletes the shared JSONL after successful training.
+- Validation is clean: shell syntax and diff checks pass; focused simulator,
+  public-agent, Phase 4, symbolic-agent, and symbolic-training tests complete
+  with 57 passes and 6 environment-dependent skips.

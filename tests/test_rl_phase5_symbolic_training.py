@@ -257,6 +257,30 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         self.assertTrue(record.changed)
         self.assertEqual(record.weight, 16.0)
 
+    def test_trajectory_record_can_filter_low_margin_search_corrections(self):
+        frame = _phase5_frame(
+            step_index=1,
+            selected=[1],
+            search=[1],
+            baseline=[0],
+            changed=True,
+        )
+        frame.reward_metadata["phase5_search_score_margin"] = 0.05
+        step = TrajectoryStep(decision=frame, chosen_indices=[1])
+
+        record = phase5_symbolic_record_from_trajectory(
+            step,
+            encoder=Phase5SymbolicEncoder(max_entities=8, max_actions=4),
+            weight=2.0,
+            changed_min_margin=0.1,
+            low_margin_weight=0.0,
+        )
+
+        self.assertIsNotNone(record)
+        assert record is not None
+        self.assertTrue(record.changed)
+        self.assertEqual(record.weight, 0.0)
+
     def test_teacher_trajectory_context_can_follow_behavior_action(self):
         frame = _phase5_frame(
             step_index=1,
@@ -327,6 +351,10 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "selfplay-b.jsonl",
                 "--initial-checkpoint",
                 "previous.pt",
+                "--selfplay-changed-min-margin",
+                "0.1",
+                "--selfplay-low-margin-weight",
+                "0.0",
                 "--checkpoint",
                 "generalist.pt",
             ]
@@ -384,6 +412,8 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
         )
         self.assertEqual(len(generalist_args.selfplay_dataset), 2)
         self.assertEqual(generalist_args.initial_checkpoint, Path("previous.pt"))
+        self.assertEqual(generalist_args.selfplay_changed_min_margin, 0.1)
+        self.assertEqual(generalist_args.selfplay_low_margin_weight, 0.0)
         self.assertEqual(
             bc_ppo_args.func.__name__,
             "command_rl_train_phase5_bc_ppo",

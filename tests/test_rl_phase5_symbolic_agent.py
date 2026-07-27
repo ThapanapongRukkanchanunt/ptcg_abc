@@ -124,7 +124,20 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         trace = SimpleNamespace(
             search_started=True,
             search_error=None,
-            candidates=[SimpleNamespace(error=None, truncated=False)],
+            candidates=[
+                SimpleNamespace(
+                    indices=[0],
+                    combined_score=0.2,
+                    error=None,
+                    truncated=False,
+                ),
+                SimpleNamespace(
+                    indices=[1],
+                    combined_score=0.5,
+                    error=None,
+                    truncated=False,
+                ),
+            ],
         )
         agent._search_decision = lambda *args: ([1], trace)
         agent._positions_for_indices = lambda value, indices: [1]
@@ -153,6 +166,10 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         self.assertEqual(agent.last_policy_metadata["phase5_baseline_indices"], [0])
         self.assertEqual(agent.last_policy_metadata["phase5_search_indices"], [1])
         self.assertTrue(agent.last_policy_metadata["phase5_search_changed"])
+        self.assertAlmostEqual(
+            agent.last_policy_metadata["phase5_search_score_margin"],
+            0.3,
+        )
 
     def test_cli_accepts_phase5_symbolic_agent(self):
         parser = build_parser()

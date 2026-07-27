@@ -36,6 +36,9 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "phase5_search_indices": [1],
                 "phase5_search_changed": True,
                 "phase5_search_error": None,
+                "phase5_search_baseline_score": 0.2,
+                "phase5_search_selected_score": 0.5,
+                "phase5_search_score_margin": 0.3,
             }
         )
 
@@ -46,6 +49,7 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(metadata["phase5_search_indices"], [1])
         self.assertTrue(metadata["phase5_search_changed"])
         self.assertIsNone(metadata["phase5_search_error"])
+        self.assertAlmostEqual(metadata["phase5_search_score_margin"], 0.3)
 
     def test_rule_public_eval_ignores_specialist_checkpoint_directory(self):
         parser = build_parser()

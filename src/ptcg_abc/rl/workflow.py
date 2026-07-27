@@ -1611,6 +1611,9 @@ def _policy_metadata(agent: Any) -> dict[str, Any]:
         "phase5_search_indices",
         "phase5_search_changed",
         "phase5_search_error",
+        "phase5_search_baseline_score",
+        "phase5_search_selected_score",
+        "phase5_search_score_margin",
     ):
         if key in payload:
             metadata[key] = payload[key]

@@ -789,6 +789,8 @@ def command_rl_train_phase5_generalist(args: argparse.Namespace) -> int:
             search_decision_weight=args.search_decision_weight,
             rule_demo_weight=args.rule_demo_weight,
             selfplay_weight=args.selfplay_weight,
+            selfplay_changed_min_margin=args.selfplay_changed_min_margin,
+            selfplay_low_margin_weight=args.selfplay_low_margin_weight,
             pairwise_changed=args.pairwise_changed,
             pairwise_weight=args.pairwise_weight,
             pairwise_margin=args.pairwise_margin,
@@ -2383,6 +2385,18 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_phase5_generalist.add_argument("--search-decision-weight", type=float, default=1.0)
     rl_train_phase5_generalist.add_argument("--rule-demo-weight", type=float, default=0.25)
     rl_train_phase5_generalist.add_argument("--selfplay-weight", type=float, default=1.0)
+    rl_train_phase5_generalist.add_argument(
+        "--selfplay-changed-min-margin",
+        type=float,
+        default=0.0,
+        help="Minimum recorded root-search score margin for full changed-step weight.",
+    )
+    rl_train_phase5_generalist.add_argument(
+        "--selfplay-low-margin-weight",
+        type=float,
+        default=1.0,
+        help="Weight multiplier for changed trajectory steps below the margin threshold.",
+    )
     rl_train_phase5_generalist.add_argument(
         "--pairwise-changed",
         action="store_true",
