@@ -89,6 +89,10 @@ This is the resume point for the project. Start here after switching machines, c
   margins and compare pairwise `0.10` on one shared 2,000-game dataset with and
   without changed labels below margin `0.10`. Both 1,000-game evaluations use
   common base seed `20260727`; the dependent treatment performs final cleanup.
+  ERAWAN control job `75287` is running and treatment job `75288` is held on
+  the verified `afterok:75287` dependency.
+  ERAWAN control job `75287` is running and treatment job `75288` is held on
+  the verified `afterok:75287` dependency.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

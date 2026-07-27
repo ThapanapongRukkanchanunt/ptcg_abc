@@ -3998,6 +3998,15 @@ Require the filtered arm to beat both its exact-data all-correction control and
 the prior 433 / 1,000 best before confirmation. A score above 50% still needs an
 independent confirmation.
 
+Execution status (July 27, 2026):
+
+- ERAWAN job `75287` is the shared-data all-correction control.
+- ERAWAN job `75288` is the margin-`0.10` reuse/filter/final-cleanup treatment,
+  submitted with `afterok:75287`.
+- The control entered `RUNNING` with verified source, paths, game budgets,
+  pairwise weight, margin settings, collection/cleanup lifecycle, and common
+  evaluation seed. The treatment is dependency-held as intended.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

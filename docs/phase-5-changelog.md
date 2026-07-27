@@ -7334,3 +7334,13 @@ Next controlled improvement:
 - Validation is clean: shell syntax and diff checks pass; focused simulator,
   public-agent, Phase 4, symbolic-agent, and symbolic-training tests complete
   with 57 passes and 6 environment-dependent skips.
+- Committed and pushed the implementation and completed-pair findings as
+  `e68905a`, then fast-forwarded the ERAWAN checkout to that exact commit.
+- Submitted ERAWAN job `75287` for shared collection plus all-correction
+  pairwise training/evaluation and job `75288` for dependent margin-`0.10`
+  filtering, training/evaluation, and final cleanup. Job `75287` entered
+  `RUNNING`; `75288` is correctly held by `afterok:75287`.
+- Control stdout verifies the intended GAE generation-1 source, shared paths,
+  2,000/1,000 game budgets, pairwise weight `0.10`, margin threshold `0.0`,
+  low-margin weight `1.0`, collection enabled, cleanup disabled, and common
+  evaluation seed `20260727`.
