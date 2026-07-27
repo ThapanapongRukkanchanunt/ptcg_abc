@@ -73,9 +73,12 @@ This is the resume point for the project. Start here after switching machines, c
 - The two nominally matched search collections differed at 862 / 2,000 and
   942 / 2,000 (`p ~= 0.011`) despite identical policy/search settings. Future
   optimizer comparisons should train from one shared trajectory dataset to
-  eliminate this collection-quality confound. Current next action is user
-  selection among a shared-data pairwise test, confidence-filtered corrections,
-  a more robust search teacher, or iterative search DAgger.
+  eliminate this collection-quality confound.
+- Selected next experiment: collect one 2,000-game search trajectory dataset,
+  train/evaluate a uniform cross-entropy control, then reuse the exact dataset
+  for a uniform cross-entropy plus search-over-baseline pairwise arm at weight
+  `0.10`. The dependent arm deletes the shared raw JSONL after successful
+  training. Both 1,000-game evaluations use common base seed `20260727`.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

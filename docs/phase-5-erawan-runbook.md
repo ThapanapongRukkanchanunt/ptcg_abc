@@ -3857,6 +3857,66 @@ Execution status (July 26, 2026):
   and raw paths, 2,000 search-collection games, one epoch at `5e-5`, unchanged
   weight `1.0`, pairwise loss disabled, and 1,000 direct evaluation games.
 
+### Shared-Data Pairwise Correction A/B
+
+After rejecting changed weight `8.0`, use one collected dataset for both
+optimizer arms. The control retains the shared JSONL; the dependent pairwise job
+reuses it and performs final cleanup. Both evaluations use the same base seed:
+
+```bash
+export GAME_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export BASE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+export SHARED_DATASET=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_one_deck_search_distill/phase5_dragapult_gae_search_shared_pair_2000g/raw_train/phase5-search_trajectories_2000g.jsonl
+export SHARED_COLLECT_REPORT=experiments/rl/phase5_one_deck_search_distill/phase5_dragapult_gae_search_shared_uniform_2000g/collection_report.json
+
+JOB_UNIFORM=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_shared_uniform_2000g \
+  COLLECT_AGENT=phase5-search \
+  COLLECT_DATASET=1 \
+  CLEAN_RAW_AFTER_TRAIN=0 \
+  TRAIN_DATASET="$SHARED_DATASET" \
+  COLLECT_REPORT="$SHARED_COLLECT_REPORT" \
+  TRAIN_GAMES=2000 \
+  EVAL_GAMES=1000 \
+  CHANGED_WEIGHT=1.0 \
+  UNCHANGED_WEIGHT=1.0 \
+  PAIRWISE_CHANGED=0 \
+  EVAL_SEED=20260727 \
+  sbatch --parsable scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+
+JOB_PAIRWISE=$(
+  GAME_DATA_ROOT="$GAME_DATA_ROOT" \
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  BASE_MODEL_DIR="$BASE_MODEL_DIR" \
+  RUN_NAME=phase5_dragapult_gae_search_shared_pairwise010_2000g \
+  COLLECT_AGENT=phase5-search \
+  COLLECT_DATASET=0 \
+  CLEAN_RAW_AFTER_TRAIN=1 \
+  TRAIN_DATASET="$SHARED_DATASET" \
+  COLLECT_REPORT="$SHARED_COLLECT_REPORT" \
+  TRAIN_GAMES=2000 \
+  EVAL_GAMES=1000 \
+  CHANGED_WEIGHT=1.0 \
+  UNCHANGED_WEIGHT=1.0 \
+  PAIRWISE_CHANGED=1 \
+  PAIRWISE_WEIGHT=0.10 \
+  EVAL_SEED=20260727 \
+  sbatch --parsable --dependency="afterok:$JOB_UNIFORM" \
+    scripts/slurm/phase5_one_deck_search_distill_arm.sbatch
+)
+```
+
+Pairwise weight `0.10` lies between the historical `0.05` setting that mostly
+copied baseline choices and the `0.25` setting that produced excessive
+third-action drift. The only training difference is the pairwise term. Require
+the pairwise arm to beat the common-seed uniform control and the prior
+433 / 1,000 direct distillation result before confirmation or iteration.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

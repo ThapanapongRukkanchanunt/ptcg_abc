@@ -603,6 +603,7 @@ class Phase4RlTests(unittest.TestCase):
             max_steps=600,
             rows=[row],
             search_telemetry=dict(telemetry),
+            game_seed=20260727,
         )
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -619,6 +620,7 @@ class Phase4RlTests(unittest.TestCase):
             markdown = md_path.read_text(encoding="utf-8")
 
         self.assertEqual(payload["search_telemetry"]["searched_decisions"], 10)
+        self.assertEqual(payload["game_seed"], 20260727)
         self.assertEqual(payload["rows"][0]["search_telemetry"]["changed_decisions"], 3)
         self.assertIn("## Search Telemetry", markdown)
         self.assertIn("- Search-changed decisions: 3", markdown)

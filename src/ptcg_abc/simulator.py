@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -80,6 +81,7 @@ def run_battle(
     card_data: Sequence[Any] | None = None,
     attack_data: Sequence[Any] | None = None,
     max_steps: int = 600,
+    seed: int | None = None,
 ) -> BattleResult:
     if len(deck0) != 60 or len(deck1) != 60:
         raise ValueError("Both decks must contain 60 card IDs.")
@@ -103,6 +105,8 @@ def run_battle(
     obs = None
     steps = 0
     try:
+        if seed is not None:
+            random.seed(int(seed))
         obs_dict, start_data = battle_start(deck0, deck1)
         if obs_dict is None:
             return BattleResult(

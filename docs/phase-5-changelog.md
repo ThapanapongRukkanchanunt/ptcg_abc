@@ -7237,3 +7237,37 @@ Candidate next directions, pending user selection:
 - Iterative search DAgger: use the best 433 / 1,000 distilled checkpoint as the
   next search prior and relabel its visited states, preferably after a shared-
   data or confidence gate establishes that the update is beneficial.
+
+## 2026-07-27 - Shared-Data Pairwise Correction Selected
+
+Selected design:
+
+- User selected the shared-data pairwise correction A/B. One control job
+  collects 2,000 GAE-prior search games, trains uniform cross-entropy, evaluates
+  1,000 direct games, and retains the exact raw JSONL for its dependent arm.
+- The second job starts only after the control succeeds, skips collection,
+  verifies and reuses the same JSONL and collection report, trains from the same
+  GAE checkpoint with the same uniform cross-entropy plus search-over-baseline
+  pairwise loss, evaluates 1,000 games, and deletes the shared JSONL after
+  successful training.
+- Pairwise weight is `0.10`, between the historical `0.05` setting that mostly
+  copied baseline choices and the `0.25` setting that caused excessive
+  third-action drift. Changed and unchanged cross-entropy weights remain `1.0`;
+  pairwise negatives remain baseline-only with margin `1.0`.
+
+Implementation and reproducibility:
+
+- `phase5_one_deck_search_distill_arm.sbatch` now accepts
+  `COLLECT_DATASET=0/1`. Reuse mode fails if either the shared trajectory file
+  or collection report is missing/empty. The control can explicitly retain raw
+  data for a dependent arm; the final arm retains the existing cleanup guard.
+- Added optional `--game-seed` to public-agent evaluation and threaded it to
+  `run_battle`. The benchmark report records the base seed. Each game receives a
+  deterministic base-plus-global-game-index seed, allowing both checkpoints to
+  use the common base seed `20260727`.
+- The intended causal contrast changes only the pairwise term. Collection data,
+  source checkpoint, one-epoch optimizer configuration, cross-entropy weights,
+  evaluation budget, and evaluation seeds are shared.
+- Validation passes: shell syntax and diff checks are clean; focused simulator,
+  public-agent, report, symbolic-agent, and symbolic-training tests complete
+  with 61 passes and one environment-dependent skip.

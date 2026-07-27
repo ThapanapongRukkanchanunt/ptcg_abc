@@ -37,7 +37,9 @@ CHANGED_WEIGHT="${CHANGED_WEIGHT:-1.0}"
 UNCHANGED_WEIGHT="${UNCHANGED_WEIGHT:-1.0}"
 PAIRWISE_CHANGED="${PAIRWISE_CHANGED:-0}"
 PAIRWISE_WEIGHT="${PAIRWISE_WEIGHT:-0.25}"
+COLLECT_DATASET="${COLLECT_DATASET:-1}"
 CLEAN_RAW_AFTER_TRAIN="${CLEAN_RAW_AFTER_TRAIN:-1}"
+EVAL_SEED="${EVAL_SEED:-20260727}"
 
 MODEL_DIR="${MODEL_DIR:-models/rl/phase5_one_deck_search_distill/${RUN_NAME}/specialists}"
 REPORT_ROOT="${REPORT_ROOT:-experiments/rl/phase5_one_deck_search_distill/${RUN_NAME}}"
@@ -89,25 +91,50 @@ echo "CHANGED_WEIGHT=$CHANGED_WEIGHT"
 echo "UNCHANGED_WEIGHT=$UNCHANGED_WEIGHT"
 echo "PAIRWISE_CHANGED=$PAIRWISE_CHANGED"
 echo "PAIRWISE_WEIGHT=$PAIRWISE_WEIGHT"
+echo "COLLECT_DATASET=$COLLECT_DATASET"
+echo "CLEAN_RAW_AFTER_TRAIN=$CLEAN_RAW_AFTER_TRAIN"
+echo "EVAL_SEED=$EVAL_SEED"
 echo "TRAIN_DATASET=$TRAIN_DATASET"
 echo "OUTPUT_CHECKPOINT=$OUTPUT_CHECKPOINT"
 
-"$PY" -m ptcg_abc rl-generate-phase5-public-agent-trajectories \
-  "${ROOT_ARGS[@]}" \
-  --public-agent-key "$OPPONENT_PUBLIC_AGENT_KEY" \
-  --controlled-public-agent-key "$CONTROLLED_PUBLIC_AGENT_KEY" \
-  --controlled-deck-index "$CONTROLLED_DECK_INDEX" \
-  --agent "$COLLECT_AGENT" \
-  --specialist-model-dir "$BASE_MODEL_DIR" \
-  --games-per-matchup "$TRAIN_GAMES" \
-  --max-steps "$MAX_STEPS" \
-  --require-min-opponents 1 \
-  --outcome-reward-scale 0.0 \
-  --outcome-reward-assignment terminal \
-  --tactical-reward-mode none \
-  --output "$TRAIN_DATASET" \
-  --report-json "$COLLECT_REPORT" \
-  --overwrite
+case "$COLLECT_DATASET" in
+  0|1)
+    ;;
+  *)
+    echo "COLLECT_DATASET must be 0 or 1, got: $COLLECT_DATASET" >&2
+    exit 2
+    ;;
+esac
+
+if [[ "$COLLECT_DATASET" == "1" ]]; then
+  "$PY" -m ptcg_abc rl-generate-phase5-public-agent-trajectories \
+    "${ROOT_ARGS[@]}" \
+    --public-agent-key "$OPPONENT_PUBLIC_AGENT_KEY" \
+    --controlled-public-agent-key "$CONTROLLED_PUBLIC_AGENT_KEY" \
+    --controlled-deck-index "$CONTROLLED_DECK_INDEX" \
+    --agent "$COLLECT_AGENT" \
+    --specialist-model-dir "$BASE_MODEL_DIR" \
+    --games-per-matchup "$TRAIN_GAMES" \
+    --max-steps "$MAX_STEPS" \
+    --require-min-opponents 1 \
+    --outcome-reward-scale 0.0 \
+    --outcome-reward-assignment terminal \
+    --tactical-reward-mode none \
+    --output "$TRAIN_DATASET" \
+    --report-json "$COLLECT_REPORT" \
+    --overwrite
+else
+  if [[ ! -s "$TRAIN_DATASET" ]]; then
+    echo "Shared trajectory dataset is missing or empty: $TRAIN_DATASET" >&2
+    exit 2
+  fi
+  if [[ ! -s "$COLLECT_REPORT" ]]; then
+    echo "Shared collection report is missing or empty: $COLLECT_REPORT" >&2
+    exit 2
+  fi
+  echo "Reusing shared trajectory dataset: $TRAIN_DATASET"
+  echo "Reusing shared collection report: $COLLECT_REPORT"
+fi
 
 PAIRWISE_ARGS=()
 if [[ "$PAIRWISE_CHANGED" != "0" ]]; then
@@ -140,6 +167,8 @@ if [[ "$CLEAN_RAW_AFTER_TRAIN" != "0" ]]; then
     exit 2
   fi
   echo "Deleted consumed trajectory dataset: $TRAIN_DATASET"
+else
+  echo "Retained shared trajectory dataset for dependent arm: $TRAIN_DATASET"
 fi
 
 "$PY" -m ptcg_abc rl-evaluate-phase5-public-agents \
@@ -151,6 +180,7 @@ fi
   --specialist-model-dir "$MODEL_DIR" \
   --games-per-matchup "$EVAL_GAMES" \
   --max-steps "$MAX_STEPS" \
+  --game-seed "$EVAL_SEED" \
   --require-min-opponents 1 \
   --report-json "$EVAL_REPORT_JSON" \
   --report-md "$EVAL_REPORT_MD" \

@@ -208,6 +208,8 @@ class PublicAgentRosterTests(unittest.TestCase):
                 "1",
                 "--saved-loss-replays",
                 "1",
+                "--game-seed",
+                "20260727",
             ]
         )
         self.assertEqual(eval_public_args.controlled_public_agent_key, "sample_dragapult")
@@ -215,6 +217,7 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(eval_public_args.agent, "phase5-symbolic")
         self.assertEqual(eval_public_args.saved_win_replays, 1)
         self.assertEqual(eval_public_args.saved_loss_replays, 1)
+        self.assertEqual(eval_public_args.game_seed, 20260727)
 
         rule_eval_args = parser.parse_args(
             [

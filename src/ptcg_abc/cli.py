@@ -1418,6 +1418,7 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             saved_win_replays=args.saved_win_replays,
             saved_loss_replays=args.saved_loss_replays,
             replay_trace_limit=args.replay_trace_limit,
+            game_seed=args.game_seed,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -3742,6 +3743,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     rl_evaluate_public.add_argument("--games-per-matchup", type=int, default=2)
     rl_evaluate_public.add_argument("--max-steps", type=int, default=600)
+    rl_evaluate_public.add_argument(
+        "--game-seed",
+        type=int,
+        default=None,
+        help="Optional common base seed for reproducible public-agent games.",
+    )
     _add_phase5_search_config_args(rl_evaluate_public)
     rl_evaluate_public.add_argument(
         "--search-trace-output",

@@ -297,6 +297,7 @@ def run_phase5_public_agent_benchmark(
     saved_win_replays: int = 0,
     saved_loss_replays: int = 0,
     replay_trace_limit: int = 120,
+    game_seed: int | None = None,
 ) -> tuple[Phase3RequiredBenchmarkResult, list[PublicAgentStatus]]:
     card_data, attack_data = load_engine_metadata(sample_dir)
     if search_trace_path is not None:
@@ -331,6 +332,7 @@ def run_phase5_public_agent_benchmark(
     debug_games: list[Phase3RequiredDebugGame] = []
     aggregate_search: dict[str, Any] = {}
     saved_replay_counts = {"win": 0, "loss": 0}
+    evaluation_game_index = 0
     if replay_output_dir is not None:
         replay_output_dir.mkdir(parents=True, exist_ok=True)
     for our_deck in our_decks:
@@ -351,6 +353,12 @@ def run_phase5_public_agent_benchmark(
                 games=games_per_matchup,
             )
             for game_index in range(games_per_matchup):
+                battle_seed = (
+                    int(game_seed) + evaluation_game_index
+                    if game_seed is not None
+                    else None
+                )
+                evaluation_game_index += 1
                 our_is_player0 = game_index % 2 == 0
                 reward_metadata = {
                     "game_index": game_index + 1,
@@ -372,6 +380,7 @@ def run_phase5_public_agent_benchmark(
                     ),
                     "controlled_public_agent_key": controlled_public_agent_key,
                     "policy_epsilon": float(policy_epsilon),
+                    "game_seed": battle_seed,
                 }
                 base_agent = _make_agent(
                     agent_kind,
@@ -412,6 +421,7 @@ def run_phase5_public_agent_benchmark(
                     card_data=card_data,
                     attack_data=attack_data,
                     max_steps=max_steps,
+                    seed=battle_seed,
                 )
                 _record_row_outcome(row, result, our_is_player0=our_is_player0)
                 search_agent = _search_agent_from_public_agent(our_agent)
@@ -464,6 +474,7 @@ def run_phase5_public_agent_benchmark(
             rows=rows,
             debug_games=debug_games,
             search_telemetry=_finalize_search_telemetry(aggregate_search),
+            game_seed=game_seed,
         ),
         statuses,
     )
