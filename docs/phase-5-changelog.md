@@ -7410,3 +7410,49 @@ Next controlled improvement:
   `phase5-search` runtime, Dragapult-vs-Lucario matchup, 1,000-game budgets,
   fresh common seed `20260728`, five-game search traces, and one retained
   win/loss replay per arm.
+
+## 2026-07-28 - Distilled Prior Does Not Strengthen Search
+
+Completion and retained evidence:
+
+- ERAWAN jobs `75295` (GAE-prior search) and `75296` (distilled-prior search)
+  completed with exit code `0` in `01:20:44` and `01:16:52`. Both started
+  together and used common seed `20260728`.
+- Downloaded scheduler status, reports, logs, five-game search traces, and one
+  win/loss replay pair per arm to the protected local pull area. The compact
+  282,735-byte archive SHA-256 is
+  `c2c115b4a5a5ba9f2d8b0df2f0b33dc2138cf5bb49b14eeeabf1b66e28b1a5da`.
+- Both jobs had zero battle errors, timeouts, search errors, and candidate
+  errors. Stderr contains only the known PyTorch nested-tensor warning.
+
+Matched result:
+
+| Search prior | Wins / 1,000 | Wilson 95% | Changed / searched | Candidate probes |
+| --- | ---: | ---: | ---: | ---: |
+| GAE generation 1 | 436 (`0.436`) | `0.406-0.467` | 4,610 / 42,867 (`0.10754`) | 157,534 |
+| Best distilled | 438 (`0.438`) | `0.408-0.469` | 4,828 / 43,532 (`0.11091`) | 160,014 |
+
+- The distilled prior leads by only two wins and 0.2 percentage points
+  (`p ~= 0.928`). This is no evidence of a stronger search teacher and fails
+  the predeclared gate for iterative DAgger.
+- Distilled-prior search is 62 wins and 6.2 percentage points short of tying
+  50%, and 63 wins short of exceeding it. Neither checkpoint is promotable.
+- Search timing and truncation were comparable: GAE/distilled mean search time
+  `0.06314 / 0.06116` seconds, maximum `2.367 / 2.287` seconds, and 31 / 21
+  truncated candidates. Both had zero search/candidate errors.
+- Five-game trace diagnostics were also healthy. GAE/distilled traces contained
+  235 / 194 records, 23 / 25 changes, zero errors or truncations, and mean
+  selected-minus-baseline combined margins `0.0348 / 0.0793`.
+
+Decision and next controlled improvement:
+
+- Reject iterative DAgger from the 433 / 1,000 distilled checkpoint. Repeated
+  training-objective changes do not materially improve either direct play or
+  the root-search teacher.
+- The current top-4 search evaluates only 3.68 candidates per searched decision
+  on average. The next upstream test widens candidate coverage rather than
+  changing the policy or score: compare `SEARCH_TOP_K=4` against `8` using the
+  same GAE prior, 1,000 games per arm, identical defaults, and fresh common seed
+  `20260729`.
+- Advance top-8 only if it beats the matched top-4 control with clean timing and
+  error telemetry. Crossing 50% still requires independent confirmation.

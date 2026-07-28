@@ -95,12 +95,18 @@ This is the resume point for the project. Start here after switching machines, c
   the 50% gate. The dependent job deleted the shared raw JSONL. A verified
   149,721-byte compact archive has SHA-256
   `e199cf7f23fae76e235d714a74443a17c6d9b0ce670cff77bc70912d5caf635f`.
-- Selected next experiment: stop tuning distillation weights and test whether
-  the historical 433 / 1,000 distilled checkpoint improves the root-search
-  teacher itself. Compare root search with the original GAE prior versus the
-  distilled prior over 1,000 games each using fresh common seed `20260728`.
-  ERAWAN jobs `75295` (GAE prior) and `75296` (distilled prior) are running.
-  ERAWAN jobs `75295` (GAE prior) and `75296` (distilled prior) are running.
+- Latest teacher-prior gate: ERAWAN jobs `75295` (GAE prior) and `75296`
+  (historical best distilled prior) completed cleanly with identical root
+  search and common seed. Results were 436 / 1,000 (`0.436`) and 438 / 1,000
+  (`0.438`), only +2 wins (`p ~= 0.928`). The distilled prior does not create a
+  stronger teacher, so do not advance iterative DAgger.
+- Distilled-prior search is 62 wins and 6.2 percentage points short of tying
+  the 50% gate. Both arms had zero errors/timeouts and near-identical healthy
+  search telemetry. A verified 282,735-byte compact archive has SHA-256
+  `c2c115b4a5a5ba9f2d8b0df2f0b33dc2138cf5bb49b14eeeabf1b66e28b1a5da`.
+- Selected next experiment: widen root-search candidate coverage using the
+  stable GAE prior. Compare top `4` against top `8` over 1,000 matched games
+  each with fresh common seed `20260729`.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
