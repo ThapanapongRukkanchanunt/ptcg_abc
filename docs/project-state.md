@@ -117,7 +117,8 @@ This is the resume point for the project. Start here after switching machines, c
   `2f041e595fda03252381c5236a203be4dae4326ffcd2db2528d4d93d2ccb0895`.
 - Selected next experiment: independently confirm the promising candidate-width
   direction with matched top-4/top-8 10,000-game evaluations using fresh common
-  seed `20260730`. This increases evaluation games, not training games.
+  seed `20260730`. This increases evaluation games, not training games. ERAWAN
+  jobs `75344` (top 4) and `75345` (top 8) are running concurrently.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

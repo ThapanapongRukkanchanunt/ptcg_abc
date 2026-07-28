@@ -7506,3 +7506,10 @@ Decision:
   inference improvement is real.
 - Promote top 8 only if it beats top 4 and clears 50% on the larger run. If it
   does not, proceed to the proposed sparse sampled-state value-learning pilot.
+- Committed and pushed the candidate-width result and confirmation design as
+  `8084192`, then fast-forwarded ERAWAN to that exact commit.
+- Submitted ERAWAN jobs `75344` (top-4 10,000-game control) and `75345`
+  (top-8 10,000-game treatment). Both entered `RUNNING` on separate nodes.
+- Startup logs verify the common GAE checkpoint, 10,000-game budgets, fresh
+  common seed `20260730`, matched trace/replay settings, and intended sole
+  width contrast.

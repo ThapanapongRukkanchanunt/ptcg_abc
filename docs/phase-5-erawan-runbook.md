@@ -4208,6 +4208,14 @@ Promote top 8 only if it beats top 4 and clears the 50% gate. Otherwise move
 to the sparse sampled-state value-learning pilot before increasing training
 games.
 
+Execution status (July 28, 2026):
+
+- ERAWAN job `75344` is the top-4 10,000-game control.
+- ERAWAN job `75345` is the top-8 10,000-game treatment.
+- Both entered `RUNNING` concurrently on separate nodes. Startup logs verify
+  the common checkpoint, budget, seed, trace/replay settings, and candidate
+  widths.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
