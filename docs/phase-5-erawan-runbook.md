@@ -4069,6 +4069,14 @@ JOB_DISTILLED_SEARCH=$(
 Advance to iterative search DAgger only if distilled-prior search beats the
 matched GAE-prior search. A result above 50% requires independent confirmation.
 
+Execution status (July 28, 2026):
+
+- ERAWAN job `75295` is the original-GAE-prior root-search control.
+- ERAWAN job `75296` is the distilled-prior root-search treatment.
+- Both entered `RUNNING` concurrently. Startup logs verify the two intended
+  checkpoint directories and otherwise identical matchup, search runtime,
+  1,000-game budget, common seed `20260728`, trace, and replay settings.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

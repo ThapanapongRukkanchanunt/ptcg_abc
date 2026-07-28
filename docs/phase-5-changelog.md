@@ -7401,3 +7401,12 @@ Next controlled improvement:
 - Added optional `GAME_SEED` forwarding to the reusable public-agent evaluation
   SLURM script so this and future teacher comparisons can use exact matched
   game seeds.
+- Committed and pushed the completed-pair analysis and teacher-gate support as
+  `e403871`, then fast-forwarded the ERAWAN checkout to that exact commit.
+- Submitted concurrent ERAWAN jobs `75295` (original GAE prior plus root
+  search) and `75296` (historical best distilled prior plus root search). Both
+  entered `RUNNING`.
+- Early stdout verifies the intended two checkpoint directories, identical
+  `phase5-search` runtime, Dragapult-vs-Lucario matchup, 1,000-game budgets,
+  fresh common seed `20260728`, five-game search traces, and one retained
+  win/loss replay per arm.

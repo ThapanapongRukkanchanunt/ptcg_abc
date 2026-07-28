@@ -99,6 +99,8 @@ This is the resume point for the project. Start here after switching machines, c
   the historical 433 / 1,000 distilled checkpoint improves the root-search
   teacher itself. Compare root search with the original GAE prior versus the
   distilled prior over 1,000 games each using fresh common seed `20260728`.
+  ERAWAN jobs `75295` (GAE prior) and `75296` (distilled prior) are running.
+  ERAWAN jobs `75295` (GAE prior) and `75296` (distilled prior) are running.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
