@@ -104,10 +104,20 @@ This is the resume point for the project. Start here after switching machines, c
   the 50% gate. Both arms had zero errors/timeouts and near-identical healthy
   search telemetry. A verified 282,735-byte compact archive has SHA-256
   `c2c115b4a5a5ba9f2d8b0df2f0b33dc2138cf5bb49b14eeeabf1b66e28b1a5da`.
-- Selected next experiment: widen root-search candidate coverage using the
-  stable GAE prior. Compare top `4` against top `8` over 1,000 matched games
-  each with fresh common seed `20260729`. ERAWAN jobs `75300` (top 4) and
-  `75301` (top 8) are running concurrently.
+- Latest candidate-width gate: ERAWAN jobs `75300` (top 4) and `75301`
+  (top 8) completed cleanly at 471 / 1,000 (`0.471`) and 487 / 1,000
+  (`0.487`). Top 8 is +16 wins and +1.6 percentage points, but the difference
+  is not significant at this budget (`p ~= 0.474`). Both had zero
+  errors/timeouts.
+- Top 8 is the closest result to the 50% gate: 13 wins and 1.3 percentage
+  points short of tying. It increased candidate probes from 158,317 to 240,101,
+  change rate from `0.1076` to `0.1327`, and mean search time from `0.0656` to
+  `0.0941` seconds without failures. A verified 360,301-byte archive has
+  SHA-256
+  `2f041e595fda03252381c5236a203be4dae4326ffcd2db2528d4d93d2ccb0895`.
+- Selected next experiment: independently confirm the promising candidate-width
+  direction with matched top-4/top-8 10,000-game evaluations using fresh common
+  seed `20260730`. This increases evaluation games, not training games.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

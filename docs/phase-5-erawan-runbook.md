@@ -4146,6 +4146,68 @@ Execution status (July 28, 2026):
   checkpoint, matchup, 1,000-game budget, seed `20260729`, trace/replay
   settings, and intended candidate-width contrast.
 
+Completed result:
+
+- Jobs `75300` and `75301` completed cleanly at 471 / 1,000 and 487 / 1,000.
+  Top 8 leads by 1.6 points (`p ~= 0.474`) and is only 1.3 points below the
+  gate. Wider search remained error- and timeout-free.
+
+### Candidate-Width 10,000-Game Confirmation
+
+Use a fresh seed and increase evaluation—not training—because top 8 is now
+close enough to the gate that 1,000 games are inconclusive:
+
+```bash
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export GAE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+
+JOB_TOP4_10K=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  GAMES_PER_MATCHUP=10000 \
+  GAME_SEED=20260730 \
+  SEARCH_TOP_K=4 \
+  REPORT_JSON=reports/phase5_dragapult_gae_search_top4_10000g.json \
+  REPORT_MD=reports/phase5_dragapult_gae_search_top4_10000g.md \
+  STATUS_JSON=reports/phase5_dragapult_gae_search_top4_10000g_status.json \
+  REPLAY_OUTPUT_DIR=experiments/rl/phase5_search_topk_confirm_10k/top4/replays \
+  SAVED_WIN_REPLAYS=1 \
+  SAVED_LOSS_REPLAYS=1 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_topk_confirm_10k/top4/search_trace_5g.jsonl \
+  SEARCH_TRACE_GAMES=5 \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_TOP8_10K=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  GAMES_PER_MATCHUP=10000 \
+  GAME_SEED=20260730 \
+  SEARCH_TOP_K=8 \
+  REPORT_JSON=reports/phase5_dragapult_gae_search_top8_10000g.json \
+  REPORT_MD=reports/phase5_dragapult_gae_search_top8_10000g.md \
+  STATUS_JSON=reports/phase5_dragapult_gae_search_top8_10000g_status.json \
+  REPLAY_OUTPUT_DIR=experiments/rl/phase5_search_topk_confirm_10k/top8/replays \
+  SAVED_WIN_REPLAYS=1 \
+  SAVED_LOSS_REPLAYS=1 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_topk_confirm_10k/top8/search_trace_5g.jsonl \
+  SEARCH_TRACE_GAMES=5 \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Promote top 8 only if it beats top 4 and clears the 50% gate. Otherwise move
+to the sparse sampled-state value-learning pilot before increasing training
+games.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

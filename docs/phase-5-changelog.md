@@ -7463,3 +7463,46 @@ Decision and next controlled improvement:
 - Startup logs verify the common GAE checkpoint, Dragapult-vs-Lucario matchup,
   1,000-game budget, fresh common seed `20260729`, and the intended sole
   contrast `SEARCH_TOP_K=4` versus `8`. Trace and replay settings are matched.
+
+## 2026-07-28 - Top 8 Reaches the Gate Neighborhood
+
+Completion and retained evidence:
+
+- ERAWAN jobs `75300` (top 4) and `75301` (top 8) completed with exit code `0`
+  in `01:25:29` and `01:39:07`, using the same GAE prior and base seed
+  `20260729`.
+- Downloaded scheduler status, reports, logs, five-game search traces, and one
+  win/loss replay pair per arm. The compact 360,301-byte archive SHA-256 is
+  `2f041e595fda03252381c5236a203be4dae4326ffcd2db2528d4d93d2ccb0895`.
+- Both arms had zero battle errors, timeouts, search errors, and candidate
+  errors. Stderr contains only the known PyTorch nested-tensor warning.
+
+Matched candidate-width result:
+
+| Width | Wins / 1,000 | Wilson 95% | Changed / searched | Probes | Mean / max search sec |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Top 4 | 471 (`0.471`) | `0.440-0.502` | 4,631 / 43,029 (`0.10763`) | 158,317 | `0.06560 / 2.078` |
+| Top 8 | 487 (`0.487`) | `0.456-0.518` | 5,639 / 42,490 (`0.13271`) | 240,101 | `0.09411 / 2.828` |
+
+- Top 8 leads by 16 wins and 1.6 percentage points, but the independent
+  comparison is not significant at 1,000 games (`p ~= 0.474`).
+- Top 8 is only 13 wins and 1.3 percentage points short of tying the 50% gate,
+  and 14 wins short of exceeding it. Its Wilson interval includes 50%.
+- Wider coverage increased probes by `51.7%` and mean search latency by `43.5%`
+  while remaining well below the job time limit and producing no errors or
+  timeouts. Truncated candidates rose from 34 to 74 but remained only
+  `0.00031` of probes.
+- Five-game top-4/top-8 traces contained 228 / 187 records and 26 / 18 changes,
+  with zero errors or truncations. Mean selected-minus-baseline combined margin
+  was `0.0284 / 0.0498`.
+
+Decision:
+
+- This is the correct point to increase game count for evaluation. The effect
+  is promising, execution is healthy, and the candidate lies close enough to
+  the gate that 1,000 games cannot resolve it.
+- Run a fresh matched 10,000-game top-4/top-8 confirmation with common seed
+  `20260730`. Do not increase training games yet; first determine whether the
+  inference improvement is real.
+- Promote top 8 only if it beats top 4 and clears 50% on the larger run. If it
+  does not, proceed to the proposed sparse sampled-state value-learning pilot.
