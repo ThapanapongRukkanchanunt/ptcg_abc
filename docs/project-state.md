@@ -85,14 +85,20 @@ This is the resume point for the project. Start here after switching machines, c
   and 100 truncated candidates. The dependent job deleted the shared raw JSONL;
   a verified compact local archive has SHA-256
   `2cc2c1435a33907318f8103f9b33b7e342837f219b0a442d28aacf63e9d89a2c`.
-- Selected next experiment: record selected-minus-baseline root-search score
-  margins and compare pairwise `0.10` on one shared 2,000-game dataset with and
-  without changed labels below margin `0.10`. Both 1,000-game evaluations use
-  common base seed `20260727`; the dependent treatment performs final cleanup.
-  ERAWAN control job `75287` is running and treatment job `75288` is held on
-  the verified `afterok:75287` dependency.
-  ERAWAN control job `75287` is running and treatment job `75288` is held on
-  the verified `afterok:75287` dependency.
+- Latest confidence-margin A/B: jobs `75287` (all corrections) and `75288`
+  (drop changed labels below margin `0.10`) reused the exact 165,502-example
+  dataset and common seed. The filter removed 4,206 / 9,297 corrections and
+  improved evaluation from 407 / 1,000 (`0.407`) to 425 / 1,000 (`0.425`),
+  but the +18-win difference is not significant (`p ~= 0.414`) and remains
+  below the historical 433 / 1,000 best. Both had zero errors/timeouts.
+- The filtered checkpoint is 75 wins and 7.5 percentage points short of tying
+  the 50% gate. The dependent job deleted the shared raw JSONL. A verified
+  149,721-byte compact archive has SHA-256
+  `e199cf7f23fae76e235d714a74443a17c6d9b0ce670cff77bc70912d5caf635f`.
+- Selected next experiment: stop tuning distillation weights and test whether
+  the historical 433 / 1,000 distilled checkpoint improves the root-search
+  teacher itself. Compare root search with the original GAE prior versus the
+  distilled prior over 1,000 games each using fresh common seed `20260728`.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

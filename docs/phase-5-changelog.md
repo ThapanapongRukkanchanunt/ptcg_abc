@@ -7344,3 +7344,60 @@ Next controlled improvement:
   2,000/1,000 game budgets, pairwise weight `0.10`, margin threshold `0.0`,
   low-margin weight `1.0`, collection enabled, cleanup disabled, and common
   evaluation seed `20260727`.
+
+## 2026-07-28 - Confidence Filter Directional; Teacher-Prior Gate Selected
+
+Completion, retention, and cleanup:
+
+- ERAWAN jobs `75287` (all corrections) and `75288` (margin-`0.10` filter)
+  completed with exit code `0` in `02:57:12` and `00:28:15`. The dependent
+  treatment started after the control completed and reused the exact shared
+  trajectory file and collection report.
+- The protected raw directory is empty after treatment, and stdout explicitly
+  records deletion of the consumed JSONL. Both evaluations had zero errors and
+  zero timeouts; stderr contains only the known PyTorch nested-tensor warning.
+- Downloaded compact scheduler status, logs, reports, and one win/loss replay
+  pair per arm to the protected local pull area. The 149,721-byte archive
+  SHA-256 is
+  `e199cf7f23fae76e235d714a74443a17c6d9b0ce670cff77bc70912d5caf635f`.
+
+Exact shared-data comparison:
+
+| Arm | Used corrections | Accuracy / final loss | Direct evaluation |
+| --- | ---: | ---: | ---: |
+| Pairwise `0.10`, all | 9,297 / 9,297 | `0.94050 / 0.78943` | 407 / 1,000 (`0.407`) |
+| Pairwise `0.10`, margin `>= 0.10` | 5,091 / 9,297 | `0.94381 / 0.62739` | 425 / 1,000 (`0.425`) |
+
+- The filter zero-weighted 4,206 / 9,297 (`45.24%`) low-margin changed labels.
+  It improved the exact-seed result by 18 wins and 1.8 percentage points, but
+  the independent comparison is not significant (`p ~= 0.414`).
+- Filtered evaluation has Wilson 95% interval approximately `0.395-0.456` and
+  is statistically indistinguishable from the historical 433 / 1,000 best
+  (`p ~= 0.718`). It is 75 wins and 7.5 percentage points short of tying the
+  50% gate, and 76 wins short of exceeding it. Do not promote it.
+- Shared collection completed 2,000 games at 906 wins, 1,092 losses, and
+  2 draws. It produced 165,502 steps, 84,952 searched decisions, 9,297 changes
+  (`0.10944`), 311,937 candidate probes, zero search/candidate errors, and
+  70 truncated candidates. Mean/max search time was `0.05577 / 1.62381`
+  seconds.
+- Collection behavior remained healthy: attach `0.40368`, attack `0.25711`,
+  and END `0.01532`. The A/B is not confounded by data, seed, collection
+  behavior, errors, timeouts, or cleanup.
+
+Next controlled improvement:
+
+- Pairwise and confidence filtering have each produced small directional gains,
+  but repeated direct-policy results remain around `0.41-0.43`, while root
+  search previously reached 462 / 1,000. Further loss-weight tuning is unlikely
+  to close the gate without a stronger teacher.
+- The next gate compares identical root search with two priors: original GAE
+  generation 1 versus the historical best 433 / 1,000 distilled checkpoint.
+  Both checkpoints are present and non-empty on ERAWAN. Each arm runs 1,000
+  Dragapult-vs-Lucario games with fresh common base seed `20260728`, identical
+  search settings, compact sampled traces, and one win/loss replay.
+- Advance to iterative search DAgger only if the distilled prior improves the
+  matched root-search result. Crossing 50% still requires independent
+  confirmation.
+- Added optional `GAME_SEED` forwarding to the reusable public-agent evaluation
+  SLURM script so this and future teacher comparisons can use exact matched
+  game seeds.

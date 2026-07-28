@@ -4007,6 +4007,68 @@ Execution status (July 27, 2026):
   pairwise weight, margin settings, collection/cleanup lifecycle, and common
   evaluation seed. The treatment is dependency-held as intended.
 
+Completed result:
+
+- Jobs `75287` and `75288` completed cleanly at 407 / 1,000 and 425 / 1,000.
+  The filter removed 4,206 / 9,297 low-margin corrections. Its +1.8-point
+  direction is not significant and remains below the historical 433 / 1,000
+  best and the 50% gate. Final raw cleanup passed.
+
+### Distilled-Prior Root-Search Teacher Gate
+
+Before another iterative distillation run, test whether the best distilled
+checkpoint improves the root-search teacher. Use fresh common seed `20260728`
+and identical search/evaluation settings:
+
+```bash
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export GAE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+export DISTILLED_MODEL_DIR=models/rl/phase5_one_deck_search_distill/phase5_dragapult_gae_search_distill_1000g/specialists
+
+JOB_GAE_SEARCH=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED=20260728 \
+  REPORT_JSON=reports/phase5_dragapult_gae_prior_search_teacher_1000g.json \
+  REPORT_MD=reports/phase5_dragapult_gae_prior_search_teacher_1000g.md \
+  STATUS_JSON=reports/phase5_dragapult_gae_prior_search_teacher_status.json \
+  REPLAY_OUTPUT_DIR=experiments/rl/phase5_search_teacher_prior_gate/gae/replays \
+  SAVED_WIN_REPLAYS=1 \
+  SAVED_LOSS_REPLAYS=1 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_teacher_prior_gate/gae/search_trace_5g.jsonl \
+  SEARCH_TRACE_GAMES=5 \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_DISTILLED_SEARCH=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$DISTILLED_MODEL_DIR" \
+  AGENT=phase5-search \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED=20260728 \
+  REPORT_JSON=reports/phase5_dragapult_distilled_prior_search_teacher_1000g.json \
+  REPORT_MD=reports/phase5_dragapult_distilled_prior_search_teacher_1000g.md \
+  STATUS_JSON=reports/phase5_dragapult_distilled_prior_search_teacher_status.json \
+  REPLAY_OUTPUT_DIR=experiments/rl/phase5_search_teacher_prior_gate/distilled/replays \
+  SAVED_WIN_REPLAYS=1 \
+  SAVED_LOSS_REPLAYS=1 \
+  SEARCH_TRACE_OUTPUT=experiments/rl/phase5_search_teacher_prior_gate/distilled/search_trace_5g.jsonl \
+  SEARCH_TRACE_GAMES=5 \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Advance to iterative search DAgger only if distilled-prior search beats the
+matched GAE-prior search. A result above 50% requires independent confirmation.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
