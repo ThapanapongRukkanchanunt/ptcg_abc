@@ -106,7 +106,8 @@ This is the resume point for the project. Start here after switching machines, c
   `c2c115b4a5a5ba9f2d8b0df2f0b33dc2138cf5bb49b14eeeabf1b66e28b1a5da`.
 - Selected next experiment: widen root-search candidate coverage using the
   stable GAE prior. Compare top `4` against top `8` over 1,000 matched games
-  each with fresh common seed `20260729`.
+  each with fresh common seed `20260729`. ERAWAN jobs `75300` (top 4) and
+  `75301` (top 8) are running concurrently.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

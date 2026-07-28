@@ -7456,3 +7456,10 @@ Decision and next controlled improvement:
   `20260729`.
 - Advance top-8 only if it beats the matched top-4 control with clean timing and
   error telemetry. Crossing 50% still requires independent confirmation.
+- Committed and pushed the completed teacher-prior result and candidate-width
+  design as `c30eb76`, then fast-forwarded ERAWAN to that exact commit.
+- Submitted ERAWAN jobs `75300` (top 4) and `75301` (top 8). Both entered
+  `RUNNING` concurrently.
+- Startup logs verify the common GAE checkpoint, Dragapult-vs-Lucario matchup,
+  1,000-game budget, fresh common seed `20260729`, and the intended sole
+  contrast `SEARCH_TOP_K=4` versus `8`. Trace and replay settings are matched.

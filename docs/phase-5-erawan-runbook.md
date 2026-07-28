@@ -4138,6 +4138,14 @@ JOB_TOP8=$(
 Advance top-8 only if it beats top-4 with clean timing, errors, and truncation.
 A score above 50% requires independent confirmation.
 
+Execution status (July 28, 2026):
+
+- ERAWAN job `75300` is the top-4 control.
+- ERAWAN job `75301` is the top-8 treatment.
+- Both entered `RUNNING` concurrently. Startup logs verify the common GAE
+  checkpoint, matchup, 1,000-game budget, seed `20260729`, trace/replay
+  settings, and intended candidate-width contrast.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
