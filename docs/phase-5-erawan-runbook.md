@@ -4289,6 +4289,15 @@ After both jobs finish, repeat the same two commands with
 The two arms must use identical shard indices and derived seeds. Promote top 8
 only if the aggregate beats top 4 and clears the 50% gate.
 
+First-batch execution status (July 29, 2026):
+
+- ERAWAN jobs `75410` (top 4) and `75411` (top 8) are running concurrently.
+- Both startup logs verify shard 0, common seed `20260730`, 1,000 games,
+  width-specific artifact paths, the common specialist directory, and the
+  intended top-4/top-8 contrast.
+- Each job will continue sequentially through shards 1-4. Submit no additional
+  work until both finish.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,

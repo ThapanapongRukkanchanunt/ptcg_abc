@@ -7568,3 +7568,11 @@ Implementation and next submission:
   the two-job limit without weakening seed pairing or fault containment.
 - The shard runner accepts comma-separated indices, avoiding shell quoting
   ambiguity when the list is forwarded through remote submission tooling.
+- Committed and pushed the timeout recovery as `b4880bb`, the QOS-compatible
+  batch runner as `8fb9cae`, and comma-safe shard forwarding as `bc9297d`.
+  ERAWAN was fast-forwarded to the latter commit.
+- Submitted first-batch ERAWAN jobs `75410` (top 4) and `75411` (top 8) for
+  shards 0-4. Both entered `RUNNING` concurrently on separate nodes.
+- Startup logs verify common shard-0 seed `20260730`, 1,000 games per shard,
+  the common GAE specialist directory, independent report/status/replay/trace
+  paths, and the intended sole contrast `SEARCH_TOP_K=4` versus `8`.
