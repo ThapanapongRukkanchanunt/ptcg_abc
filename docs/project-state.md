@@ -115,10 +115,22 @@ This is the resume point for the project. Start here after switching machines, c
   `0.0941` seconds without failures. A verified 360,301-byte archive has
   SHA-256
   `2f041e595fda03252381c5236a203be4dae4326ffcd2db2528d4d93d2ccb0895`.
-- Selected next experiment: independently confirm the promising candidate-width
-  direction with matched top-4/top-8 10,000-game evaluations using fresh common
-  seed `20260730`. This increases evaluation games, not training games. ERAWAN
-  jobs `75344` (top 4) and `75345` (top 8) are running concurrently.
+- The first 10,000-game candidate-width confirmation attempt did not produce a
+  result: ERAWAN jobs `75344` (top 4) and `75345` (top 8) both hit the
+  `24:00:00` scheduler limit. Neither wrote its final report or status JSON, so
+  no partial win rate is valid. Top-8 stdout records 9,017 game
+  initializations; top-4 stdout was buffered and exposes no trustworthy count.
+- The evaluation jobs produced no raw training JSONL, so raw cleanup is
+  vacuously complete. Scheduler status, logs, five-game traces, and sampled
+  win/loss replays were retained in a verified 289,792-byte compact archive
+  with SHA-256
+  `386efe9a77234fa62b43d2a5d0f8d6c7598f317a3e576404ce8236f52d86aa61`.
+- Selected recovery: rerun the exact matched 10,000-game top-4/top-8
+  confirmation as two concurrent ten-task arrays, limited to one running task
+  per arm. Each task evaluates 1,000 games and writes an independent report;
+  shard seeds are paired and cover `20260730` through `20269729`. This retains
+  the intended sample while preventing a time limit from destroying all
+  outcomes.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

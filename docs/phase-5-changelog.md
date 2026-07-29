@@ -7513,3 +7513,48 @@ Decision:
 - Startup logs verify the common GAE checkpoint, 10,000-game budgets, fresh
   common seed `20260730`, matched trace/replay settings, and intended sole
   width contrast.
+
+## 2026-07-29 - Monolithic Confirmation Timed Out; Recover With Shards
+
+Completion diagnosis and retained evidence:
+
+- ERAWAN jobs `75344` (top 4) and `75345` (top 8) both reached the
+  `24:00:00` SLURM limit and ended `TIMEOUT`; their batch steps were cancelled
+  with exit code `0:15`.
+- Neither process reached final report generation. The expected JSON/Markdown
+  reports and status JSONs do not exist, so there is no defensible partial
+  win/loss comparison and no updated distance from the 50% gate.
+- Top-8 stdout contains 9,017 repeated game-initialization messages, suggesting
+  roughly 90% progress. Top-4 stdout contains only startup metadata because its
+  simulator output remained buffered. These counts cannot recover outcomes.
+- Both jobs were evaluation-only and produced no raw training JSONL; raw JSONL
+  cleanup is therefore complete with nothing to delete.
+- Securely downloaded scheduler status, stdout/stderr, both five-game search
+  traces, and one sampled win/loss replay pair per arm. The compact partial
+  archive is 289,792 bytes with SHA-256
+  `386efe9a77234fa62b43d2a5d0f8d6c7598f317a3e576404ce8236f52d86aa61`.
+  No old downloaded artifact was modified or removed.
+
+Scientific interpretation:
+
+- This is an evaluation orchestration failure, not evidence against either
+  candidate width. The latest valid gate estimate remains top 8 at 487 / 1,000
+  (`0.487`), 13 wins and 1.3 percentage points short of tying 50%.
+- A single 10,000-game process is a poor fault-containment unit: a late timeout
+  discards all aggregate outcomes because reports are written only at normal
+  completion.
+
+Implementation and next submission:
+
+- Extended `scripts/slurm/phase5_public_agent_eval_conda.sbatch` with optional
+  array sharding. `SHARD_INDEX` defaults to `SLURM_ARRAY_TASK_ID`,
+  `GAME_SEED_STRIDE` creates deterministic non-overlapping seed ranges, and
+  `{shard}` placeholders expand in report, status, replay, and search-trace
+  paths.
+- Recover the predeclared confirmation as exactly two concurrent arrays:
+  top 4 and top 8, each `0-9%1`, with 1,000 games per task. Paired shard
+  indices use the same derived seed; the ten ranges exactly cover the intended
+  10,000 fresh seeds starting at `20260730`.
+- Each shard now produces an independently retainable report within the
+  already-demonstrated 1,000-game runtime. Aggregate only after all ten reports
+  per arm exist; promote top 8 only if it beats top 4 and clears 50%.

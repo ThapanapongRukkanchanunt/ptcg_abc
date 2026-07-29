@@ -4216,6 +4216,75 @@ Execution status (July 28, 2026):
   the common checkpoint, budget, seed, trace/replay settings, and candidate
   widths.
 
+Completion status (July 29, 2026):
+
+- Both monolithic jobs hit the `24:00:00` time limit before writing final
+  report/status files. Do not infer a win rate from either partial run.
+- Job `75345` stdout contains 9,017 game-initialization messages, but this is
+  progress evidence only. Job `75344` stdout was buffered and has no usable
+  partial count.
+- The jobs were evaluation-only and produced no raw training JSONL. Their
+  scheduler status, logs, five-game traces, and sampled replays are retained in
+  the compact partial archive documented in `docs/phase-5-changelog.md`.
+
+Use restartable 1,000-game shards for the recovery. The reusable evaluation
+script expands `{shard}` in artifact paths and offsets `GAME_SEED` by
+`SHARD_INDEX * GAME_SEED_STRIDE`. Submit only these two arrays; `%1` keeps one
+task per arm running at a time:
+
+```bash
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export GAE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+
+JOB_TOP4_SHARDS=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED=20260730 \
+  GAME_SEED_STRIDE=1000 \
+  SEARCH_TOP_K=4 \
+  REPORT_JSON='reports/phase5_dragapult_gae_search_top4_10000g_shard-{shard}.json' \
+  REPORT_MD='reports/phase5_dragapult_gae_search_top4_10000g_shard-{shard}.md' \
+  STATUS_JSON='reports/phase5_dragapult_gae_search_top4_10000g_status_shard-{shard}.json' \
+  REPLAY_OUTPUT_DIR='experiments/rl/phase5_search_topk_confirm_10k_sharded/top4/shard-{shard}/replays' \
+  SAVED_WIN_REPLAYS=1 \
+  SAVED_LOSS_REPLAYS=1 \
+  SEARCH_TRACE_OUTPUT='experiments/rl/phase5_search_topk_confirm_10k_sharded/top4/shard-{shard}/search_trace_5g.jsonl' \
+  SEARCH_TRACE_GAMES=5 \
+  sbatch --parsable --array=0-9%1 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_TOP8_SHARDS=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED=20260730 \
+  GAME_SEED_STRIDE=1000 \
+  SEARCH_TOP_K=8 \
+  REPORT_JSON='reports/phase5_dragapult_gae_search_top8_10000g_shard-{shard}.json' \
+  REPORT_MD='reports/phase5_dragapult_gae_search_top8_10000g_shard-{shard}.md' \
+  STATUS_JSON='reports/phase5_dragapult_gae_search_top8_10000g_status_shard-{shard}.json' \
+  REPLAY_OUTPUT_DIR='experiments/rl/phase5_search_topk_confirm_10k_sharded/top8/shard-{shard}/replays' \
+  SAVED_WIN_REPLAYS=1 \
+  SAVED_LOSS_REPLAYS=1 \
+  SEARCH_TRACE_OUTPUT='experiments/rl/phase5_search_topk_confirm_10k_sharded/top8/shard-{shard}/search_trace_5g.jsonl' \
+  SEARCH_TRACE_GAMES=5 \
+  sbatch --parsable --array=0-9%1 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Aggregate only after all 20 task reports exist. The two arms must use identical
+shard indices and derived seeds. Promote top 8 only if the aggregate beats top
+4 and clears the 50% gate.
+
 ## 23. Ready-To-Train Checklist
 
 - Adapter smoke proves raw observations become canonical `GameState`,
