@@ -11,7 +11,7 @@ set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
 
 SHARD_INDICES="${SHARD_INDICES:-0 1 2 3 4}"
-for shard_index in $SHARD_INDICES; do
+for shard_index in ${SHARD_INDICES//,/ }; do
   echo "Starting Phase 5 public-evaluation shard $shard_index"
   SHARD_INDEX="$shard_index" \
     bash scripts/slurm/phase5_public_agent_eval_conda.sbatch

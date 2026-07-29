@@ -4256,7 +4256,7 @@ JOB_TOP4_SHARDS=$(
   SAVED_LOSS_REPLAYS=1 \
   SEARCH_TRACE_OUTPUT='experiments/rl/phase5_search_topk_confirm_10k_sharded/top4/shard-{shard}/search_trace_5g.jsonl' \
   SEARCH_TRACE_GAMES=5 \
-  SHARD_INDICES='0 1 2 3 4' \
+  SHARD_INDICES=0,1,2,3,4 \
   sbatch --parsable scripts/slurm/phase5_public_agent_eval_shard_batch.sbatch
 )
 
@@ -4279,13 +4279,13 @@ JOB_TOP8_SHARDS=$(
   SAVED_LOSS_REPLAYS=1 \
   SEARCH_TRACE_OUTPUT='experiments/rl/phase5_search_topk_confirm_10k_sharded/top8/shard-{shard}/search_trace_5g.jsonl' \
   SEARCH_TRACE_GAMES=5 \
-  SHARD_INDICES='0 1 2 3 4' \
+  SHARD_INDICES=0,1,2,3,4 \
   sbatch --parsable scripts/slurm/phase5_public_agent_eval_shard_batch.sbatch
 )
 ```
 
 After both jobs finish, repeat the same two commands with
-`SHARD_INDICES='5 6 7 8 9'`. Aggregate only after all 20 shard reports exist.
+`SHARD_INDICES=5,6,7,8,9`. Aggregate only after all 20 shard reports exist.
 The two arms must use identical shard indices and derived seeds. Promote top 8
 only if the aggregate beats top 4 and clears the 50% gate.
 

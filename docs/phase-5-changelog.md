@@ -7566,3 +7566,5 @@ Implementation and next submission:
   per 1,000 games. Submit one top-4 and one top-8 job for shards 0-4, then the
   matched second pair for shards 5-9 after the first pair finishes. This obeys
   the two-job limit without weakening seed pairing or fault containment.
+- The shard runner accepts comma-separated indices, avoiding shell quoting
+  ambiguity when the list is forwarded through remote submission tooling.
