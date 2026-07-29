@@ -126,11 +126,12 @@ This is the resume point for the project. Start here after switching machines, c
   with SHA-256
   `386efe9a77234fa62b43d2a5d0f8d6c7598f317a3e576404ce8236f52d86aa61`.
 - Selected recovery: rerun the exact matched 10,000-game top-4/top-8
-  confirmation as two concurrent ten-task arrays, limited to one running task
-  per arm. Each task evaluates 1,000 games and writes an independent report;
-  shard seeds are paired and cover `20260730` through `20269729`. This retains
-  the intended sample while preventing a time limit from destroying all
-  outcomes.
+  confirmation as durable 1,000-game shards. ERAWAN's QOS rejects ten-task
+  arrays because every task counts against the two-job submit limit, so each
+  ordinary job runs five shards sequentially. Submit matched top-4/top-8 jobs
+  for shards 0-4, then a second matched pair for shards 5-9. Seeds remain paired
+  and cover `20260730` through `20269729`; every finished shard retains its own
+  report.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

@@ -4229,8 +4229,9 @@ Completion status (July 29, 2026):
 
 Use restartable 1,000-game shards for the recovery. The reusable evaluation
 script expands `{shard}` in artifact paths and offsets `GAME_SEED` by
-`SHARD_INDEX * GAME_SEED_STRIDE`. Submit only these two arrays; `%1` keeps one
-task per arm running at a time:
+`SHARD_INDEX * GAME_SEED_STRIDE`. ERAWAN's QOS counts array tasks against its
+two-job submission limit, so use two ordinary jobs that each run five shards
+sequentially:
 
 ```bash
 export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
@@ -4255,7 +4256,8 @@ JOB_TOP4_SHARDS=$(
   SAVED_LOSS_REPLAYS=1 \
   SEARCH_TRACE_OUTPUT='experiments/rl/phase5_search_topk_confirm_10k_sharded/top4/shard-{shard}/search_trace_5g.jsonl' \
   SEARCH_TRACE_GAMES=5 \
-  sbatch --parsable --array=0-9%1 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+  SHARD_INDICES='0 1 2 3 4' \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_shard_batch.sbatch
 )
 
 JOB_TOP8_SHARDS=$(
@@ -4277,13 +4279,15 @@ JOB_TOP8_SHARDS=$(
   SAVED_LOSS_REPLAYS=1 \
   SEARCH_TRACE_OUTPUT='experiments/rl/phase5_search_topk_confirm_10k_sharded/top8/shard-{shard}/search_trace_5g.jsonl' \
   SEARCH_TRACE_GAMES=5 \
-  sbatch --parsable --array=0-9%1 scripts/slurm/phase5_public_agent_eval_conda.sbatch
+  SHARD_INDICES='0 1 2 3 4' \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_shard_batch.sbatch
 )
 ```
 
-Aggregate only after all 20 task reports exist. The two arms must use identical
-shard indices and derived seeds. Promote top 8 only if the aggregate beats top
-4 and clears the 50% gate.
+After both jobs finish, repeat the same two commands with
+`SHARD_INDICES='5 6 7 8 9'`. Aggregate only after all 20 shard reports exist.
+The two arms must use identical shard indices and derived seeds. Promote top 8
+only if the aggregate beats top 4 and clears the 50% gate.
 
 ## 23. Ready-To-Train Checklist
 

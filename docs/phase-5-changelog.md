@@ -7558,3 +7558,11 @@ Implementation and next submission:
 - Each shard now produces an independently retainable report within the
   already-demonstrated 1,000-game runtime. Aggregate only after all ten reports
   per arm exist; promote top 8 only if it beats top 4 and clears 50%.
+- ERAWAN rejected the attempted `0-9%1` array submission with
+  `QOSMaxSubmitJobPerUserLimit`; no recovery job was created. Its QOS counts
+  every array task rather than only concurrently running tasks.
+- Added `phase5_public_agent_eval_shard_batch.sbatch`. Each ordinary job runs
+  an explicit five-shard list sequentially, preserving an independent report
+  per 1,000 games. Submit one top-4 and one top-8 job for shards 0-4, then the
+  matched second pair for shards 5-9 after the first pair finishes. This obeys
+  the two-job limit without weakening seed pairing or fault containment.
