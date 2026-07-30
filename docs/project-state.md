@@ -155,7 +155,8 @@ This is the resume point for the project. Start here after switching machines, c
   now supports deterministic random retention of one decision per game while
   broadcasting the completed-game outcome to that state. Start with two
   10,000-game top-4 collection shards (20,000 sampled states total) before
-  considering million-game scale.
+  considering million-game scale. ERAWAN jobs `75441` (offset 0) and `75442`
+  (offset 10,000) are running concurrently.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

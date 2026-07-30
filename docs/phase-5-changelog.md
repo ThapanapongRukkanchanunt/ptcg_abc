@@ -7669,3 +7669,11 @@ Sparse sampled-state implementation and pilot:
   random state per game for 20,000 total value examples. This measures runtime,
   bytes per state, label balance, and parseability before any million-game
   scale-up.
+- Committed and pushed the sparse sampler as `f05e7e2` and explicit outcome
+  assignment forwarding as `bfd6f0e`, then fast-forwarded ERAWAN to the latter.
+- Submitted ERAWAN jobs `75441` (game offset 0) and `75442` (offset 10,000).
+  Both entered `RUNNING` concurrently on separate nodes.
+- Startup logs verify the common top-4 GAE search behavior, 10,000 games per
+  shard, exactly one sampled record per game, common sampling seed `20260731`,
+  broadcast outcome assignment, no tactical shaping, and distinct external
+  dataset paths.

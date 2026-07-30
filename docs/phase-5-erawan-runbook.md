@@ -4373,6 +4373,15 @@ Acceptance checks:
 - This is a storage/runtime pilot, not a million-game commitment. Scale only
   after measuring bytes per sampled state and training whether the value head
   improves held-out calibration and the Dragapult-vs-Lucario gate.
+
+Execution status (July 30, 2026):
+
+- Jobs `75441` (offset 0) and `75442` (offset 10,000) entered `RUNNING`
+  concurrently.
+- Startup logs verify top-4 search, the common GAE specialist, 10,000 games per
+  shard, one sampled record per game, common sample seed `20260731`, broadcast
+  outcome targets, no tactical shaping, distinct output paths, and the intended
+  offsets.
 - Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
   concurrently. Startup verifies shard 5, common seed `20265730`, independent
   artifact paths, and the intended candidate widths.
