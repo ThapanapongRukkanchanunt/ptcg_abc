@@ -4302,6 +4302,12 @@ First-batch execution status (July 29, 2026):
 - Both arms had zero battle errors, timeouts, search errors, and candidate
   errors. Continue the predeclared confirmation with the same commands,
   changing only `SHARD_INDICES=5,6,7,8,9`.
+- Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
+  concurrently. Startup verifies shard 5, common seed `20265730`, independent
+  artifact paths, and the intended candidate widths.
+- Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
+  concurrently. Startup verifies shard 5, common seed `20265730`, independent
+  artifact paths, and the intended candidate widths.
 
 ## 23. Ready-To-Train Checklist
 

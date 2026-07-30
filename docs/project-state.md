@@ -141,6 +141,10 @@ This is the resume point for the project. Start here after switching machines, c
 - Both interim arms had zero battle errors, timeouts, search errors, and
   candidate errors. Complete the predeclared sample with matched shards 5-9;
   do not promote or reject candidate width from the unplanned halfway look.
+  ERAWAN jobs `75428` (top 4) and `75429` (top 8) are running this second
+  five-shard batch.
+  ERAWAN jobs `75428` (top 4) and `75429` (top 8) are running this second
+  five-shard batch.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

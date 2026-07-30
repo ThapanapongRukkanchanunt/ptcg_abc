@@ -7618,3 +7618,9 @@ Decision:
 - Promotion still requires top 8 to beat top 4 and clear 50% in the full
   aggregate. If it fails, reject width 8 and advance to sparse sampled-state
   value learning rather than increasing search cost further.
+- Committed and pushed the verified halfway result as `24f02be`, then
+  fast-forwarded ERAWAN to that commit.
+- Submitted second-batch jobs `75428` (top 4) and `75429` (top 8) for shards
+  5-9. Both entered `RUNNING` concurrently on separate nodes. Startup logs
+  verify shard 5, common derived seed `20265730`, 1,000 games, width-specific
+  artifact paths, and the intended top-4/top-8 contrast.
