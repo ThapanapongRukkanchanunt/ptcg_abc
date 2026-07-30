@@ -131,8 +131,16 @@ This is the resume point for the project. Start here after switching machines, c
   ordinary job runs five shards sequentially. Submit matched top-4/top-8 jobs
   for shards 0-4, then a second matched pair for shards 5-9. Seeds remain paired
   and cover `20260730` through `20269729`; every finished shard retains its own
-  report. First-batch ERAWAN jobs `75410` (top 4) and `75411` (top 8) are
-  running concurrently on shards 0-4.
+  report. First-batch ERAWAN jobs `75410` (top 4) and `75411` (top 8)
+  completed shards 0-4 cleanly.
+- The 5,000-game interim aggregates are top 4 at 2,327 / 5,000 (`0.4654`,
+  Wilson 95% `0.4516-0.4793`) and top 8 at 2,275 / 5,000 (`0.4550`,
+  `0.4412-0.4688`). Top 8 trails by 52 wins and 1.04 percentage points
+  (`p ~= 0.297`), so the earlier direction has not replicated but remains
+  statistically inconclusive.
+- Both interim arms had zero battle errors, timeouts, search errors, and
+  candidate errors. Complete the predeclared sample with matched shards 5-9;
+  do not promote or reject candidate width from the unplanned halfway look.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

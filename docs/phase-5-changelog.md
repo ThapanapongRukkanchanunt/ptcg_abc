@@ -7576,3 +7576,45 @@ Implementation and next submission:
 - Startup logs verify common shard-0 seed `20260730`, 1,000 games per shard,
   the common GAE specialist directory, independent report/status/replay/trace
   paths, and the intended sole contrast `SEARCH_TOP_K=4` versus `8`.
+
+## 2026-07-30 - Candidate-Width Confirmation Halfway Result
+
+Completion and retention:
+
+- ERAWAN jobs `75410` (top 4) and `75411` (top 8) completed five sequential
+  1,000-game shards with exit code `0` in `06:30:06` and `09:25:51`.
+- All ten expected report JSONs, Markdown reports, status JSONs, sampled search
+  traces, and win/loss replays exist. Stderr contains only the known PyTorch
+  nested-tensor warning.
+- The evaluation-only jobs produced no raw training JSONL, so raw cleanup is
+  complete with nothing to delete.
+- Securely downloaded the compact evidence bundle to the protected local pull
+  area. It is 1,876,184 bytes with SHA-256
+  `d6747311403fa385a88091bfc4599de505b1bde27b4e155d75d282fefa670586`.
+
+Matched 5,000-game interim result:
+
+| Width | Wins / games | Wilson 95% | Changed / searched | Probes | Mean / max search sec |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Top 4 | 2,327 / 5,000 (`0.4654`) | `0.4516-0.4793` | 23,266 / 214,815 (`0.10831`) | 790,202 | `0.06340 / 3.168` |
+| Top 8 | 2,275 / 5,000 (`0.4550`) | `0.4412-0.4688` | 28,154 / 210,802 (`0.13356`) | 1,187,399 | `0.10810 / 5.247` |
+
+- Top 8 trails by 52 wins and 1.04 percentage points (`p ~= 0.297`). The
+  earlier +1.6-point direction has not replicated, but the halfway contrast is
+  not statistically decisive.
+- Top 4 is 173 wins and 3.46 percentage points short of tying the 50% gate.
+  Top 8 is 225 wins and 4.50 points short.
+- Both arms had zero battle errors, timeouts, search errors, and candidate
+  errors. Top-4/top-8 truncated candidates were 171 / 341, only `0.000216` /
+  `0.000287` of probes.
+- Wider search raised candidate probes by 50.3%, mean search time by 70.5%, and
+  change rate from 10.83% to 13.36%, without improving the interim outcome.
+
+Decision:
+
+- Do not stop on an unplanned halfway look. Complete the predeclared
+  10,000-game matched sample with shards 5-9 using the same checkpoint,
+  settings, and deterministic seed stride.
+- Promotion still requires top 8 to beat top 4 and clear 50% in the full
+  aggregate. If it fails, reject width 8 and advance to sparse sampled-state
+  value learning rather than increasing search cost further.

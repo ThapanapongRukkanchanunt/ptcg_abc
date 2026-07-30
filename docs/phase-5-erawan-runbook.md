@@ -4291,12 +4291,17 @@ only if the aggregate beats top 4 and clears the 50% gate.
 
 First-batch execution status (July 29, 2026):
 
-- ERAWAN jobs `75410` (top 4) and `75411` (top 8) are running concurrently.
+- ERAWAN jobs `75410` (top 4) and `75411` (top 8) completed cleanly in
+  `06:30:06` and `09:25:51`.
 - Both startup logs verify shard 0, common seed `20260730`, 1,000 games,
   width-specific artifact paths, the common specialist directory, and the
   intended top-4/top-8 contrast.
-- Each job will continue sequentially through shards 1-4. Submit no additional
-  work until both finish.
+- Across shards 0-4, top 4 scored 2,327 / 5,000 (`0.4654`) and top 8 scored
+  2,275 / 5,000 (`0.4550`). The top-8 minus top-4 difference is -1.04
+  percentage points (`p ~= 0.297`).
+- Both arms had zero battle errors, timeouts, search errors, and candidate
+  errors. Continue the predeclared confirmation with the same commands,
+  changing only `SHARD_INDICES=5,6,7,8,9`.
 
 ## 23. Ready-To-Train Checklist
 
