@@ -4305,6 +4305,74 @@ First-batch execution status (July 29, 2026):
 - Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
   concurrently. Startup verifies shard 5, common seed `20265730`, independent
   artifact paths, and the intended candidate widths.
+
+Final candidate-width result (July 30, 2026):
+
+- Top 4: 4,613 / 10,000 (`0.4613`, Wilson 95% `0.4516-0.4711`).
+- Top 8: 4,584 / 10,000 (`0.4584`, Wilson 95% `0.4487-0.4682`).
+- Top 8 trails by 0.29 percentage points (`p ~= 0.681`) while using 50.2% more
+  candidate probes and 59.7% more mean search time. Retain top 4 and reject
+  width 8.
+
+### Sparse Sampled-State Value Collection Pilot
+
+Collect one deterministic random decision from every completed game. This
+reduces disk rows by roughly the number of decisions per game while retaining
+equal game weighting and an outcome label for every retained state:
+
+```bash
+export PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents
+export GAE_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists
+export VALUE_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_sparse_value_dragapult_lucario_20k
+
+JOB_VALUE_0=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=10000 \
+  GAME_OFFSET=0 \
+  TRAJECTORY_SAMPLES_PER_GAME=1 \
+  TRAJECTORY_SAMPLE_SEED=20260731 \
+  OUTCOME_REWARD_ASSIGNMENT=broadcast \
+  TACTICAL_REWARD_MODE=none \
+  OUTPUT="$VALUE_DATA_ROOT/shard-0.jsonl" \
+  REPORT_JSON=experiments/rl/phase5_sparse_value_dragapult_lucario_20k_shard-0.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_trajectories.sbatch
+)
+
+JOB_VALUE_1=$(
+  PUBLIC_AGENT_ROOTS="$PUBLIC_AGENT_ROOTS" \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR="$GAE_MODEL_DIR" \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=10000 \
+  GAME_OFFSET=10000 \
+  TRAJECTORY_SAMPLES_PER_GAME=1 \
+  TRAJECTORY_SAMPLE_SEED=20260731 \
+  OUTCOME_REWARD_ASSIGNMENT=broadcast \
+  TACTICAL_REWARD_MODE=none \
+  OUTPUT="$VALUE_DATA_ROOT/shard-1.jsonl" \
+  REPORT_JSON=experiments/rl/phase5_sparse_value_dragapult_lucario_20k_shard-1.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_trajectories.sbatch
+)
+```
+
+Acceptance checks:
+
+- Each clean 10,000-game shard should contain approximately 10,000 JSONL rows,
+  with exactly one row for every game that exposed at least one decision.
+- Verify deterministic sampling metadata, win/loss/draw balance, zero
+  errors/timeouts, search telemetry, line count, file size, and parseability.
+- This is a storage/runtime pilot, not a million-game commitment. Scale only
+  after measuring bytes per sampled state and training whether the value head
+  improves held-out calibration and the Dragapult-vs-Lucario gate.
 - Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
   concurrently. Startup verifies shard 5, common seed `20265730`, independent
   artifact paths, and the intended candidate widths.

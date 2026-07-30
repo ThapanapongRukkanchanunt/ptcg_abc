@@ -141,10 +141,21 @@ This is the resume point for the project. Start here after switching machines, c
 - Both interim arms had zero battle errors, timeouts, search errors, and
   candidate errors. Complete the predeclared sample with matched shards 5-9;
   do not promote or reject candidate width from the unplanned halfway look.
-  ERAWAN jobs `75428` (top 4) and `75429` (top 8) are running this second
-  five-shard batch.
-  ERAWAN jobs `75428` (top 4) and `75429` (top 8) are running this second
-  five-shard batch.
+  ERAWAN jobs `75428` (top 4) and `75429` (top 8) completed the second
+  five-shard batch cleanly.
+- Final 10,000-game candidate-width result: top 4 scored 4,613 / 10,000
+  (`0.4613`, Wilson 95% `0.4516-0.4711`) and top 8 scored 4,584 / 10,000
+  (`0.4584`, `0.4487-0.4682`). Top 8 trails by 29 wins and 0.29 percentage
+  points (`p ~= 0.681`) while using 50.2% more probes and 59.7% more mean
+  search time. Reject width 8; retain top 4.
+- Top 4 is 387 wins and 3.87 percentage points short of tying the 50% gate.
+  Both widths had zero battle errors, timeouts, search errors, and candidate
+  errors.
+- Selected next improvement: sparse sampled-state value learning. Collection
+  now supports deterministic random retention of one decision per game while
+  broadcasting the completed-game outcome to that state. Start with two
+  10,000-game top-4 collection shards (20,000 sampled states total) before
+  considering million-game scale.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

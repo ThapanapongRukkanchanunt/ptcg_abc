@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from html import escape
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -75,6 +76,8 @@ class PublicAgentTrajectorySummary:
     policy_epsilon: float | None = None
     policy_seed: int | None = None
     teacher_agent: str | None = None
+    trajectory_samples_per_game: int = 0
+    trajectory_sample_seed: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -508,6 +511,8 @@ def generate_phase5_public_agent_trajectories(
     policy_epsilon: float = 0.0,
     policy_seed: int | None = None,
     teacher_agent_kind: str | None = None,
+    trajectory_samples_per_game: int = 0,
+    trajectory_sample_seed: int = 0,
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
         raise ValueError(f"Trajectory output already exists at {output_path}.")
@@ -517,6 +522,8 @@ def generate_phase5_public_agent_trajectories(
         raise ValueError(
             "outcome_reward_assignment must be either broadcast or terminal."
         )
+    if trajectory_samples_per_game < 0:
+        raise ValueError("trajectory_samples_per_game must be non-negative.")
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = _selected_controlled_decks(
         sample_dir=sample_dir,
@@ -684,6 +691,13 @@ def generate_phase5_public_agent_trajectories(
                 }
                 reward = reward_from_result_metadata(final_metadata)
                 records = list(recorder.frames)
+                sampled_record_indices = set(
+                    _sample_trajectory_record_indices(
+                        len(records),
+                        samples_per_game=trajectory_samples_per_game,
+                        seed=trajectory_sample_seed + absolute_game_index,
+                    )
+                )
                 our_player_index = 0 if our_is_player0 else 1
                 for record_index, record in enumerate(records):
                     is_last_record = record_index + 1 == len(records)
@@ -702,6 +716,8 @@ def generate_phase5_public_agent_trajectories(
                         player_index=our_player_index,
                     )
                     _accumulate_tactical_reward(tactical_summary, tactical_metadata)
+                    if record_index not in sampled_record_indices:
+                        continue
                     scaled_outcome_reward = float(outcome_reward_scale) * reward
                     assigned_outcome_reward = (
                         scaled_outcome_reward
@@ -718,6 +734,11 @@ def generate_phase5_public_agent_trajectories(
                             "scaled_outcome_reward": scaled_outcome_reward,
                             "assigned_outcome_reward": assigned_outcome_reward,
                             "outcome_reward_assignment": outcome_reward_assignment,
+                            "trajectory_sampled": trajectory_samples_per_game > 0,
+                            "trajectory_record_index": record_index,
+                            "trajectory_game_records": len(records),
+                            "trajectory_samples_per_game": trajectory_samples_per_game,
+                            "trajectory_sample_seed": trajectory_sample_seed,
                         }
                         | tactical_metadata,
                     )
@@ -808,7 +829,22 @@ def generate_phase5_public_agent_trajectories(
         ),
         policy_seed=policy_seed,
         teacher_agent=teacher_agent_kind,
+        trajectory_samples_per_game=trajectory_samples_per_game,
+        trajectory_sample_seed=trajectory_sample_seed,
     )
+
+
+def _sample_trajectory_record_indices(
+    record_count: int,
+    *,
+    samples_per_game: int,
+    seed: int,
+) -> list[int]:
+    if record_count <= 0:
+        return []
+    if samples_per_game <= 0 or samples_per_game >= record_count:
+        return list(range(record_count))
+    return sorted(random.Random(seed).sample(range(record_count), samples_per_game))
 
 
 def write_public_agent_status_report(

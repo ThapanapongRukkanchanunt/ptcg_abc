@@ -7624,3 +7624,47 @@ Decision:
   5-9. Both entered `RUNNING` concurrently on separate nodes. Startup logs
   verify shard 5, common derived seed `20265730`, 1,000 games, width-specific
   artifact paths, and the intended top-4/top-8 contrast.
+
+## 2026-07-30 - Width 8 Rejected; Sparse Value Collection Implemented
+
+Final candidate-width confirmation:
+
+- Jobs `75428` (top 4) and `75429` (top 8) completed shards 5-9 with exit code
+  `0` in `07:08:29` and `08:54:11`.
+- All second-batch reports, statuses, traces, and replays exist. The
+  evaluation-only jobs produced no raw training JSONL. The downloaded compact
+  batch-2 archive is 1,942,147 bytes with SHA-256
+  `59a8e2718926926cf8e9a7c48bc996a68dd423b446ae26e570180b80e18ccb43`.
+
+| Width | Wins / games | Wilson 95% | Changed / searched | Probes | Mean / max search sec |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Top 4 | 4,613 / 10,000 (`0.4613`) | `0.4516-0.4711` | 46,420 / 430,458 (`0.10784`) | 1,582,473 | `0.06595 / 3.168` |
+| Top 8 | 4,584 / 10,000 (`0.4584`) | `0.4487-0.4682` | 56,458 / 422,647 (`0.13358`) | 2,376,531 | `0.10530 / 5.602` |
+
+- Top 8 trails by 29 wins and 0.29 percentage points (`p ~= 0.681`). It fails
+  both promotion conditions: it neither beats top 4 nor clears 50%.
+- Top 4 is 387 wins and 3.87 points short of tying the gate; top 8 is 416 wins
+  and 4.16 points short.
+- Both arms had zero battle errors, timeouts, search errors, and candidate
+  errors. Width 8 increased probes by 50.2% and mean search time by 59.7%
+  without outcome benefit. Reject width 8 and retain width 4.
+
+Sparse sampled-state implementation and pilot:
+
+- Added `--trajectory-samples-per-game` and `--trajectory-sample-seed` to
+  public-agent trajectory collection. A positive sample count selects
+  deterministic random decision indices independently within each game after
+  the outcome is known; zero preserves legacy dense recording.
+- Sampled rows retain completed-game outcome metadata, original record index,
+  decisions-per-game count, and sampling configuration. With broadcast outcome
+  assignment, one sampled state per game receives a valid value target.
+- Added matching ERAWAN environment controls and explicit `SEARCH_TOP_K`
+  forwarding to `phase5_public_agent_trajectories.sbatch`.
+- Added focused sampling tests for dense compatibility, determinism,
+  uniqueness, ordering, and short-game bounds. The new tests plus public-agent
+  and symbolic-training tests pass (28 tests, 4 Torch-dependent skips); the
+  modified SLURM script passes Bash syntax validation.
+- Next run: two concurrent 10,000-game top-4 collection shards, retaining one
+  random state per game for 20,000 total value examples. This measures runtime,
+  bytes per state, label balance, and parseability before any million-game
+  scale-up.

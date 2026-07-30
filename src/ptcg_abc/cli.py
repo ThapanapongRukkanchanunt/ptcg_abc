@@ -1529,6 +1529,8 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             policy_epsilon=args.policy_epsilon,
             policy_seed=args.policy_seed,
             teacher_agent_kind=args.teacher_agent,
+            trajectory_samples_per_game=args.trajectory_samples_per_game,
+            trajectory_sample_seed=args.trajectory_sample_seed,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -2814,6 +2816,21 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--games-per-matchup", type=int, default=2)
     rl_public_trajectories.add_argument("--game-offset", type=int, default=0)
     rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
+    rl_public_trajectories.add_argument(
+        "--trajectory-samples-per-game",
+        type=int,
+        default=0,
+        help=(
+            "Randomly retain this many decision records from each completed game. "
+            "Zero retains every record."
+        ),
+    )
+    rl_public_trajectories.add_argument(
+        "--trajectory-sample-seed",
+        type=int,
+        default=0,
+        help="Base seed for deterministic per-game trajectory record sampling.",
+    )
     rl_public_trajectories.add_argument(
         "--outcome-reward-scale",
         type=float,
