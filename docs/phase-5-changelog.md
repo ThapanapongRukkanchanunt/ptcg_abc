@@ -7659,7 +7659,8 @@ Sparse sampled-state implementation and pilot:
   decisions-per-game count, and sampling configuration. With broadcast outcome
   assignment, one sampled state per game receives a valid value target.
 - Added matching ERAWAN environment controls and explicit `SEARCH_TOP_K`
-  forwarding to `phase5_public_agent_trajectories.sbatch`.
+  forwarding to `phase5_public_agent_trajectories.sbatch`; the script now also
+  forwards `OUTCOME_REWARD_ASSIGNMENT` explicitly.
 - Added focused sampling tests for dense compatibility, determinism,
   uniqueness, ordering, and short-game bounds. The new tests plus public-agent
   and symbolic-training tests pass (28 tests, 4 Torch-dependent skips); the
