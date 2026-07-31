@@ -7722,3 +7722,6 @@ Implementation and next controlled experiment:
 - After training, compare row accounting, loss, checkpoint integrity, and fresh
   matched top-4 evaluation. Scale data only if the 20k arm improves value
   calibration or game outcome.
+- The generic PPO SLURM wrapper now accepts comma-separated trajectory dataset
+  lists as well as legacy whitespace-separated lists, avoiding remote shell
+  quoting ambiguity for the 20k arm.

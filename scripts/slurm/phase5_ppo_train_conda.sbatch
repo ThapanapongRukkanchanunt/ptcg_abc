@@ -33,7 +33,7 @@ ENTROPY_WEIGHT="${ENTROPY_WEIGHT:-0.01}"
 SELFPLAY_LIMIT="${SELFPLAY_LIMIT:-0}"
 
 DATASET_ARGS=()
-for path in $TRAJECTORY_DATASETS; do
+for path in ${TRAJECTORY_DATASETS//,/ }; do
   DATASET_ARGS+=(--trajectory-dataset "$path")
 done
 

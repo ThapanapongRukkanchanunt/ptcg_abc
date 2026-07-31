@@ -4413,7 +4413,7 @@ JOB_VALUE_10K=$(
 )
 
 JOB_VALUE_20K=$(
-  TRAJECTORY_DATASETS="$VALUE_DATA_ROOT/shard-0.jsonl $VALUE_DATA_ROOT/shard-1.jsonl" \
+  TRAJECTORY_DATASETS="$VALUE_DATA_ROOT/shard-0.jsonl,$VALUE_DATA_ROOT/shard-1.jsonl" \
   CHECKPOINT="$SOURCE_MODEL" \
   OUTPUT_CHECKPOINT=models/rl/phase5_sparse_value_20k/specialists/deck-101.pt \
   REPORT_JSON=experiments/rl/phase5_sparse_value_20k_train_report.json \
