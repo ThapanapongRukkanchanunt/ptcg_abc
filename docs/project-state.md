@@ -172,14 +172,16 @@ This is the resume point for the project. Start here after switching machines, c
   common source, while all four value-head tensors changed.
 - The 10k/20k final minibatch losses were `1.0117 / 0.8118`. This is only a
   training diagnostic, not evidence of better play. Next compare both value
-  heads under matched top-4 search with a fresh common seed.
+  heads under matched top-4 search with a fresh common seed. ERAWAN jobs
+  `75461` (10k head) and `75462` (20k head) are running this evaluation.
 - Head-only training jobs `75459` (10k) and `75460` (20k) completed on CUDA in
   54 / 49 seconds with exactly 10,000 / 20,000 examples and zero skips. Both
   checkpoints are finite; all non-value parameters are byte-identical to the
   common source, while all four value-head tensors changed.
 - The 10k/20k final minibatch losses were `1.0117 / 0.8118`. This is only a
   training diagnostic, not evidence of better play. Next compare both value
-  heads under matched top-4 search with a fresh common seed.
+  heads under matched top-4 search with a fresh common seed. ERAWAN jobs
+  `75461` (10k head) and `75462` (20k head) are running this evaluation.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

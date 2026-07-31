@@ -7755,3 +7755,8 @@ Next experiment:
 - This isolates value-data scale because the policy and shared encoder are
   exactly unchanged. Advance the 20k head only if it beats the 10k head with
   clean telemetry; compare the winner against the frozen source afterward.
+- Committed and pushed verified training results and the evaluation design as
+  `0022273`, then fast-forwarded ERAWAN to that commit.
+- Submitted jobs `75461` (10k value head) and `75462` (20k value head). Both
+  entered `RUNNING` concurrently with top-4 search, 1,000 games, common seed
+  `20260732`, and matched trace/replay settings.

@@ -4488,6 +4488,20 @@ JOB_VALUE_20K_EVAL=$(
 Advance the 20k arm only if it beats 10k cleanly. The eventual winner still
 requires a matched comparison against the frozen source before promotion.
 
+Execution status (July 31, 2026):
+
+- Jobs `75461` (10k value head) and `75462` (20k value head) entered
+  `RUNNING` concurrently.
+- Both use top-4 search, 1,000 games, common seed `20260732`, matched
+  trace/replay retention, and differ only in the value-head checkpoint.
+
+Execution status (July 31, 2026):
+
+- Jobs `75461` (10k value head) and `75462` (20k value head) entered
+  `RUNNING` concurrently.
+- Both use top-4 search, 1,000 games, common seed `20260732`, matched
+  trace/replay retention, and differ only in the value-head checkpoint.
+
 Training result (July 31, 2026):
 
 - Jobs `75459` (10k) and `75460` (20k) completed in 54 / 49 seconds on CUDA.
