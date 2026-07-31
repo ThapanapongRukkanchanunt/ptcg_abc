@@ -7760,3 +7760,32 @@ Next experiment:
 - Submitted jobs `75461` (10k value head) and `75462` (20k value head). Both
   entered `RUNNING` concurrently with top-4 search, 1,000 games, common seed
   `20260732`, and matched trace/replay settings.
+
+## 2026-07-31 - Twenty-Thousand Sparse States Beat Ten Thousand
+
+Matched evaluation:
+
+- Jobs `75461` / `75462` completed with exit code `0` in `01:15:15` /
+  `01:18:43`.
+- The 10k head scored 441 / 1,000 (`0.441`, Wilson 95% `0.411-0.472`).
+  The 20k head scored 485 / 1,000 (`0.485`, `0.454-0.516`).
+- The 20k arm leads by 44 wins and 4.4 percentage points; the independent
+  two-proportion comparison gives `p ~= 0.0485`.
+- Both arms had zero battle errors, timeouts, search errors, and candidate
+  errors. Search timing was comparable: mean `0.06068 / 0.06290` seconds and
+  maximum `2.000 / 1.986` seconds for 10k/20k.
+- Search behavior remained comparable: 10k/20k changed 4,733 / 4,563 of
+  43,331 / 42,983 decisions and probed 159,229 / 158,019 candidates.
+- The 20k head is 15 wins and 1.5 percentage points short of tying 50%; its
+  Wilson interval includes the gate.
+- Securely downloaded reports, statuses, logs, five-game traces, and sampled
+  win/loss replays. The 337,495-byte archive SHA-256 is
+  `a236ac3eecf1f2b14b38274959036b53b2e0633e82d35c8040f29b8f2478d5bb`.
+
+Decision:
+
+- The scale direction is strong enough to advance 20k, but not to promote it.
+  Compare the 20k head against the frozen source checkpoint on 1,000 fresh
+  matched games with common seed `20260733`.
+- Retain the 10k checkpoint and both sparse JSONLs until source confirmation
+  and any calibration analysis are complete.

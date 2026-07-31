@@ -4490,17 +4490,107 @@ requires a matched comparison against the frozen source before promotion.
 
 Execution status (July 31, 2026):
 
-- Jobs `75461` (10k value head) and `75462` (20k value head) entered
-  `RUNNING` concurrently.
+- Jobs `75461` (10k value head) and `75462` (20k value head) completed cleanly
+  in `01:15:15` and `01:18:43`.
 - Both use top-4 search, 1,000 games, common seed `20260732`, matched
   trace/replay retention, and differ only in the value-head checkpoint.
+- Results were 441 / 1,000 (`0.441`) for 10k and 485 / 1,000 (`0.485`) for
+  20k. The +4.4-point 20k advantage has `p ~= 0.0485`; both arms had zero
+  errors, timeouts, search errors, and candidate errors.
+
+Compare the 20k winner against the frozen source on a new common seed:
+
+```bash
+COMMON_SEED=20260733
+
+JOB_SOURCE_EVAL=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_source_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_source_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_source_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_VALUE_20K_CONFIRM=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_sparse_value_20k/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_20k_confirm_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_20k_confirm_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_20k_confirm_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Promote neither from the scale test alone. The 20k head must beat the frozen
+source cleanly; crossing 50% still requires confirmation at larger evaluation
+scale.
 
 Execution status (July 31, 2026):
 
-- Jobs `75461` (10k value head) and `75462` (20k value head) entered
-  `RUNNING` concurrently.
+- Jobs `75461` (10k value head) and `75462` (20k value head) completed cleanly
+  in `01:15:15` and `01:18:43`.
 - Both use top-4 search, 1,000 games, common seed `20260732`, matched
   trace/replay retention, and differ only in the value-head checkpoint.
+- Results were 441 / 1,000 (`0.441`) for 10k and 485 / 1,000 (`0.485`) for
+  20k. The +4.4-point 20k advantage has `p ~= 0.0485`; both arms had zero
+  errors, timeouts, search errors, and candidate errors.
+
+Compare the 20k winner against the frozen source on a new common seed:
+
+```bash
+COMMON_SEED=20260733
+
+JOB_SOURCE_EVAL=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_source_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_source_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_source_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_VALUE_20K_CONFIRM=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_sparse_value_20k/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_20k_confirm_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_20k_confirm_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_20k_confirm_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Promote neither from the scale test alone. The 20k head must beat the frozen
+source cleanly; crossing 50% still requires confirmation at larger evaluation
+scale.
 
 Training result (July 31, 2026):
 
