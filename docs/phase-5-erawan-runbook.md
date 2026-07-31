@@ -4436,6 +4436,108 @@ Acceptance checks:
 - Compare value loss and checkpoint integrity, then evaluate both models with
   top-4 search on fresh matched games. More data advances only if it improves
   evaluation or held-out value calibration.
+
+Training result (July 31, 2026):
+
+- Jobs `75459` (10k) and `75460` (20k) completed in 54 / 49 seconds on CUDA.
+- Reports contain exactly 10,000 / 20,000 examples, zero skipped rows, policy
+  weight 0, entropy weight 0, value weight 1, and `head-only` scope.
+- All non-value checkpoint tensors remain exactly equal to the common source;
+  all four value-head tensors changed and all tensors are finite.
+- Final minibatch losses are `1.0117 / 0.8118`. Evaluate before interpreting
+  this as a scale benefit.
+
+Matched evaluation:
+
+```bash
+COMMON_SEED=20260732
+
+JOB_VALUE_10K_EVAL=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_sparse_value_10k/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_10k_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_10k_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_10k_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_VALUE_20K_EVAL=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_sparse_value_20k/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_20k_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_20k_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_20k_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Advance the 20k arm only if it beats 10k cleanly. The eventual winner still
+requires a matched comparison against the frozen source before promotion.
+
+Training result (July 31, 2026):
+
+- Jobs `75459` (10k) and `75460` (20k) completed in 54 / 49 seconds on CUDA.
+- Reports contain exactly 10,000 / 20,000 examples, zero skipped rows, policy
+  weight 0, entropy weight 0, value weight 1, and `head-only` scope.
+- All non-value checkpoint tensors remain exactly equal to the common source;
+  all four value-head tensors changed and all tensors are finite.
+- Final minibatch losses are `1.0117 / 0.8118`. Evaluate before interpreting
+  this as a scale benefit.
+
+Matched evaluation:
+
+```bash
+COMMON_SEED=20260732
+
+JOB_VALUE_10K_EVAL=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_sparse_value_10k/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_10k_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_10k_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_10k_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+
+JOB_VALUE_20K_EVAL=$(
+  PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents \
+  PUBLIC_AGENT_KEYS=sample_lucario \
+  CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult \
+  CONTROLLED_DECK_INDEX=101 \
+  SPECIALIST_MODEL_DIR=models/rl/phase5_sparse_value_20k/specialists \
+  AGENT=phase5-search \
+  SEARCH_TOP_K=4 \
+  GAMES_PER_MATCHUP=1000 \
+  GAME_SEED="$COMMON_SEED" \
+  REPORT_JSON=reports/phase5_sparse_value_20k_search_1000g.json \
+  REPORT_MD=reports/phase5_sparse_value_20k_search_1000g.md \
+  STATUS_JSON=reports/phase5_sparse_value_20k_search_1000g_status.json \
+  sbatch --parsable scripts/slurm/phase5_public_agent_eval_conda.sbatch
+)
+```
+
+Advance the 20k arm only if it beats 10k cleanly. The eventual winner still
+requires a matched comparison against the frozen source before promotion.
 - Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
   concurrently. Startup verifies shard 5, common seed `20265730`, independent
   artifact paths, and the intended candidate widths.

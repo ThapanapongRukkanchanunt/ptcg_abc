@@ -7725,3 +7725,33 @@ Implementation and next controlled experiment:
 - The generic PPO SLURM wrapper now accepts comma-separated trajectory dataset
   lists as well as legacy whitespace-separated lists, avoiding remote shell
   quoting ambiguity for the 20k arm.
+- Committed and pushed head-only training support as `d6e3349`. The 10k arm
+  started as job `75459`; the initial 20k submission was not created because
+  its whitespace-separated dataset list was split by the remote shell.
+- Committed and pushed comma-safe dataset forwarding as `b095a49`, then
+  submitted only the missing 20k arm as job `75460`.
+
+Training result:
+
+- Jobs `75459` / `75460` completed with exit code `0` in 54 / 49 seconds on
+  CUDA, consuming exactly 10,000 / 20,000 examples with zero skipped rows.
+- Both reports verify policy loss weight 0, entropy weight 0, value loss weight
+  1, and `value_backprop_scope=head-only`.
+- Checkpoint integrity comparison found zero changed non-value tensors, all
+  four value-head tensors changed, and all tensors finite in both arms.
+- Final minibatch loss was `1.011726` for 10k and `0.811829` for 20k. Because
+  these are terminal minibatch values rather than common held-out calibration,
+  they do not determine promotion.
+- Securely downloaded reports, logs, scheduler status, and both checkpoints in
+  a 4,008,019-byte compact archive with SHA-256
+  `79e30eeb40fff7e5ce392bffa97b8253d4c465ad5cd0f7125bc222a16506e06a`.
+- Retain the two 406 MB sparse source shards until matched evaluation and any
+  calibration follow-up are complete.
+
+Next experiment:
+
+- Compare the 10k and 20k value heads under identical top-4 search for 1,000
+  fresh Dragapult-vs-Lucario games per arm with common seed `20260732`.
+- This isolates value-data scale because the policy and shared encoder are
+  exactly unchanged. Advance the 20k head only if it beats the 10k head with
+  clean telemetry; compare the winner against the frozen source afterward.
