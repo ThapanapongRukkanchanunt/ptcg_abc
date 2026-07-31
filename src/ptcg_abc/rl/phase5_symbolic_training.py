@@ -231,6 +231,7 @@ class Phase5PPOTrainingSummary:
     clip_epsilon: float
     policy_loss_weight: float
     value_loss_weight: float
+    value_backprop_scope: str
     entropy_weight: float
     max_entities: int
     max_actions: int
@@ -1313,6 +1314,7 @@ def train_phase5_ppo_policy_from_trajectories(
     clip_epsilon: float = 0.2,
     policy_loss_weight: float = 1.0,
     value_loss_weight: float = 0.5,
+    value_backprop_scope: str = "shared",
     entropy_weight: float = 0.01,
     selfplay_limit: int | None = None,
     deck_index_filter: int | None = None,
@@ -1320,6 +1322,12 @@ def train_phase5_ppo_policy_from_trajectories(
 ) -> Phase5PPOTrainingSummary:
     if not trajectory_dataset_paths:
         raise ValueError("Provide at least one trajectory dataset.")
+    if value_backprop_scope not in PHASE5_VALUE_BACKPROP_SCOPES:
+        raise ValueError(
+            "Phase 5 PPO value_backprop_scope must be one of "
+            + ", ".join(PHASE5_VALUE_BACKPROP_SCOPES)
+            + "."
+        )
     torch, nn = _require_torch()
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     if checkpoint.get("format") != PHASE5_POLICY_CHECKPOINT_FORMAT:
@@ -1368,6 +1376,7 @@ def train_phase5_ppo_policy_from_trajectories(
                 clip_epsilon=clip_epsilon,
                 policy_loss_weight=policy_loss_weight,
                 value_loss_weight=value_loss_weight,
+                value_backprop_scope=value_backprop_scope,
                 entropy_weight=entropy_weight,
             )
             batch = []
@@ -1438,6 +1447,7 @@ def train_phase5_ppo_policy_from_trajectories(
         "clip_epsilon": clip_epsilon,
         "policy_loss_weight": policy_loss_weight,
         "value_loss_weight": value_loss_weight,
+        "value_backprop_scope": value_backprop_scope,
         "entropy_weight": entropy_weight,
         "selfplay_limit": selfplay_limit,
         "deck_index_filter": deck_index_filter,
@@ -1465,6 +1475,7 @@ def train_phase5_ppo_policy_from_trajectories(
         clip_epsilon=clip_epsilon,
         policy_loss_weight=policy_loss_weight,
         value_loss_weight=value_loss_weight,
+        value_backprop_scope=value_backprop_scope,
         entropy_weight=entropy_weight,
         max_entities=max_entities,
         max_actions=max_actions,
@@ -2800,6 +2811,7 @@ def _train_ppo_batch(
     clip_epsilon: float,
     policy_loss_weight: float,
     value_loss_weight: float,
+    value_backprop_scope: str,
     entropy_weight: float,
 ) -> float:
     records = [example[0] for example in examples]
@@ -2885,7 +2897,12 @@ def _train_ppo_batch(
         target = _record_value_target(record)
         value_target_values.append(float(target) if target is not None else float(advantage))
     value_targets = torch.tensor(value_target_values, dtype=torch.float32, device=device)
-    value_loss = nn.functional.mse_loss(output["state_value"], value_targets)
+    value_predictions = (
+        model.value_head(output["state_embedding"].detach()).squeeze(-1)
+        if value_backprop_scope == "head-only"
+        else output["state_value"]
+    )
+    value_loss = nn.functional.mse_loss(value_predictions, value_targets)
     probs = torch.exp(log_probs) * action_mask
     entropy = -(probs * log_probs.masked_fill(action_mask <= 0, 0.0)).sum(dim=1).mean()
     loss = (

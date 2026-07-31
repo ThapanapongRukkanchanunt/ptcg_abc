@@ -1079,6 +1079,7 @@ def command_rl_train_phase5_ppo(args: argparse.Namespace) -> int:
             clip_epsilon=args.clip_epsilon,
             policy_loss_weight=args.policy_loss_weight,
             value_loss_weight=args.value_loss_weight,
+            value_backprop_scope=args.value_backprop_scope,
             entropy_weight=args.entropy_weight,
             selfplay_limit=selfplay_limit,
             deck_index_filter=args.deck_index_filter,
@@ -3376,6 +3377,12 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_phase5_ppo.add_argument("--clip-epsilon", type=float, default=0.2)
     rl_train_phase5_ppo.add_argument("--policy-loss-weight", type=float, default=1.0)
     rl_train_phase5_ppo.add_argument("--value-loss-weight", type=float, default=0.5)
+    rl_train_phase5_ppo.add_argument(
+        "--value-backprop-scope",
+        choices=["shared", "head-only"],
+        default="shared",
+        help="Allow value loss through the shared encoder or update only the value head.",
+    )
     rl_train_phase5_ppo.add_argument("--entropy-weight", type=float, default=0.01)
     rl_train_phase5_ppo.add_argument(
         "--deck-index-filter",

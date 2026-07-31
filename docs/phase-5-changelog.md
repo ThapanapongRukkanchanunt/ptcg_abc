@@ -7677,3 +7677,48 @@ Sparse sampled-state implementation and pilot:
   shard, exactly one sampled record per game, common sampling seed `20260731`,
   broadcast outcome assignment, no tactical shaping, and distinct external
   dataset paths.
+
+## 2026-07-31 - Sparse Collection Succeeds; Value-Head Scale Test
+
+Collection result and retention:
+
+- Jobs `75441` and `75442` completed 10,000 games each with exit code `0` in
+  `13:56:17` and `14:03:13`; peak batch RSS was only 275 / 278 MB.
+- Each shard contains exactly 10,000 rows, proving one retained decision per
+  game. Shard sizes are 406,618,580 / 405,305,668 bytes, or about 40.6 KB per
+  state and 811.9 MB total.
+- Shard 0 produced 4,675 wins, 5,307 losses, and 18 draws; shard 1 produced
+  4,583 wins, 5,400 losses, and 17 draws. Both had zero battle errors,
+  timeouts, search errors, and candidate errors.
+- Securely downloaded compact reports, scheduler status, and logs without
+  downloading or modifying the large external JSONLs. The 15,254-byte compact
+  archive SHA-256 is
+  `937d47fed2a9bf93045ea8f21b46f88512f1098e215d7a56b9091b8770a808a9`.
+- Retain both raw sparse JSONLs until their training consumers finish and
+  reports/checkpoints are verified.
+
+Scale decision:
+
+- One million states would occupy about 40.6 GB at the current encoding, which
+  is feasible under external project storage.
+- Compute is the immediate bottleneck: top-4 search produces 10,000 games in
+  about 14 node-hours. One million games would require about 58 node-days, or
+  roughly 29 elapsed days at the two-job concurrency limit.
+- Do not commit to one million games before demonstrating that additional
+  sparse value labels improve prediction or play.
+
+Implementation and next controlled experiment:
+
+- Extended the simple Phase 5 trajectory trainer with
+  `value_backprop_scope={shared,head-only}` and matching CLI/SLURM forwarding.
+  In `head-only` mode, value predictions are recomputed from a detached state
+  embedding, preventing value loss from changing the policy/shared encoder.
+- The 28-test focused suite passes with four Torch-dependent skips; the
+  modified training SLURM script passes Bash syntax validation.
+- Next A/B: initialize both arms from the same GAE deck-101 specialist. Train
+  one value head on shard 0 (10,000 states) and one on both shards (20,000),
+  with policy weight 0, entropy weight 0, value weight 1, one epoch, batch 128,
+  and learning rate `5e-5`.
+- After training, compare row accounting, loss, checkpoint integrity, and fresh
+  matched top-4 evaluation. Scale data only if the 20k arm improves value
+  calibration or game outcome.

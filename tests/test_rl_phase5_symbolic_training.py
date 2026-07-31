@@ -392,6 +392,15 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
                 "123",
             ]
         )
+        ppo_args = parser.parse_args(
+            [
+                "rl-train-phase5-ppo",
+                "--trajectory-dataset",
+                "sparse.jsonl",
+                "--value-backprop-scope",
+                "head-only",
+            ]
+        )
         trajectory_bc_args = parser.parse_args(
             [
                 "rl-train-phase5-trajectory-bc",
@@ -418,6 +427,7 @@ class Phase5SymbolicTrainingTests(unittest.TestCase):
             bc_ppo_args.func.__name__,
             "command_rl_train_phase5_bc_ppo",
         )
+        self.assertEqual(ppo_args.value_backprop_scope, "head-only")
         self.assertEqual(bc_ppo_args.bc_loss_weight, 1.0)
         self.assertEqual(bc_ppo_args.ppo_policy_loss_weight, 1.0)
         self.assertEqual(bc_ppo_args.update_schedule, "ppo-epoch")

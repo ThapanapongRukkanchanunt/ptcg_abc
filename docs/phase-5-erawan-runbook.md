@@ -4376,12 +4376,66 @@ Acceptance checks:
 
 Execution status (July 30, 2026):
 
-- Jobs `75441` (offset 0) and `75442` (offset 10,000) entered `RUNNING`
-  concurrently.
+- Jobs `75441` (offset 0) and `75442` (offset 10,000) completed cleanly in
+  `13:56:17` and `14:03:13`.
 - Startup logs verify top-4 search, the common GAE specialist, 10,000 games per
   shard, one sampled record per game, common sample seed `20260731`, broadcast
   outcome targets, no tactical shaping, distinct output paths, and the intended
   offsets.
+- Each shard contains exactly 10,000 parseable-intended JSONL rows. Dataset
+  sizes are 406,618,580 and 405,305,668 bytes, about 40.6 KB per row.
+- Aggregate outcomes are 9,258 wins, 10,707 losses, and 35 draws, with zero
+  errors/timeouts and clean search telemetry.
+
+### Sparse Value-Head 10k-vs-20k Training
+
+Train from the same frozen GAE specialist checkpoint. Set both policy and
+entropy objectives to zero and detach the state embedding before the value head
+so policy logits and the shared actor encoder cannot change:
+
+```bash
+export VALUE_DATA_ROOT=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_sparse_value_dragapult_lucario_20k
+export SOURCE_MODEL=models/rl/phase5_one_deck_public_ppo_dominant/phase5_dragapult_vs_lucario_gae_game_shuffled/gen-0001/specialists/deck-101.pt
+
+JOB_VALUE_10K=$(
+  TRAJECTORY_DATASETS="$VALUE_DATA_ROOT/shard-0.jsonl" \
+  CHECKPOINT="$SOURCE_MODEL" \
+  OUTPUT_CHECKPOINT=models/rl/phase5_sparse_value_10k/specialists/deck-101.pt \
+  REPORT_JSON=experiments/rl/phase5_sparse_value_10k_train_report.json \
+  EPOCHS=1 \
+  BATCH_SIZE=128 \
+  LEARNING_RATE=0.00005 \
+  POLICY_LOSS_WEIGHT=0 \
+  VALUE_LOSS_WEIGHT=1 \
+  VALUE_BACKPROP_SCOPE=head-only \
+  ENTROPY_WEIGHT=0 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_ppo_train_conda.sbatch
+)
+
+JOB_VALUE_20K=$(
+  TRAJECTORY_DATASETS="$VALUE_DATA_ROOT/shard-0.jsonl $VALUE_DATA_ROOT/shard-1.jsonl" \
+  CHECKPOINT="$SOURCE_MODEL" \
+  OUTPUT_CHECKPOINT=models/rl/phase5_sparse_value_20k/specialists/deck-101.pt \
+  REPORT_JSON=experiments/rl/phase5_sparse_value_20k_train_report.json \
+  EPOCHS=1 \
+  BATCH_SIZE=128 \
+  LEARNING_RATE=0.00005 \
+  POLICY_LOSS_WEIGHT=0 \
+  VALUE_LOSS_WEIGHT=1 \
+  VALUE_BACKPROP_SCOPE=head-only \
+  ENTROPY_WEIGHT=0 \
+  sbatch --parsable --gres=gpu:1 --cpus-per-task=4 scripts/slurm/phase5_ppo_train_conda.sbatch
+)
+```
+
+Acceptance checks:
+
+- 10k/20k jobs must report exactly 10,000/20,000 examples and no skipped rows.
+- `value_backprop_scope` must be `head-only`; policy and entropy weights must
+  be zero.
+- Compare value loss and checkpoint integrity, then evaluate both models with
+  top-4 search on fresh matched games. More data advances only if it improves
+  evaluation or held-out value calibration.
 - Second-batch jobs `75428` (top 4) and `75429` (top 8) entered `RUNNING`
   concurrently. Startup verifies shard 5, common seed `20265730`, independent
   artifact paths, and the intended candidate widths.

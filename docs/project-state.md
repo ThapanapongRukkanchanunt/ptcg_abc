@@ -156,7 +156,16 @@ This is the resume point for the project. Start here after switching machines, c
   broadcasting the completed-game outcome to that state. Start with two
   10,000-game top-4 collection shards (20,000 sampled states total) before
   considering million-game scale. ERAWAN jobs `75441` (offset 0) and `75442`
-  (offset 10,000) are running concurrently.
+  (offset 10,000) completed cleanly.
+- Sparse collection produced exactly 20,000 rows from 20,000 games with zero
+  errors/timeouts: 9,258 wins, 10,707 losses, and 35 draws. The two datasets
+  total 811,924,248 bytes, or about 40.6 KB per sampled state. At this encoding,
+  one million states would require about 40.6 GB.
+- Current top-4 throughput is about 10,000 games per 14 node-hours, so a
+  million-game collection would take about 58 node-days or 29 elapsed days
+  with two concurrent jobs. Do not scale yet. First compare head-only value
+  training on 10,000 versus 20,000 sampled states, then evaluate both with
+  fresh games.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,
