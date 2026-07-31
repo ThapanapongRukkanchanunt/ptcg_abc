@@ -7789,3 +7789,8 @@ Decision:
   matched games with common seed `20260733`.
 - Retain the 10k checkpoint and both sparse JSONLs until source confirmation
   and any calibration analysis are complete.
+- Committed and pushed the scale-test result and source-confirmation design as
+  `9d82d75`, then fast-forwarded ERAWAN to that commit.
+- Submitted jobs `75463` (frozen source) and `75464` (20k value head). Both
+  entered `RUNNING` concurrently with top-4 search, 1,000 games, common seed
+  `20260733`, and matched trace/replay retention.

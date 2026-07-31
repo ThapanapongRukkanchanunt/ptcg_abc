@@ -4542,6 +4542,20 @@ scale.
 
 Execution status (July 31, 2026):
 
+- Jobs `75463` (frozen source) and `75464` (20k value head) entered `RUNNING`
+  concurrently.
+- Both use top-4 search, 1,000 games, common seed `20260733`, and matched
+  trace/replay settings.
+
+Execution status (July 31, 2026):
+
+- Jobs `75463` (frozen source) and `75464` (20k value head) entered `RUNNING`
+  concurrently.
+- Both use top-4 search, 1,000 games, common seed `20260733`, and matched
+  trace/replay settings.
+
+Execution status (July 31, 2026):
+
 - Jobs `75461` (10k value head) and `75462` (20k value head) completed cleanly
   in `01:15:15` and `01:18:43`.
 - Both use top-4 search, 1,000 games, common seed `20260732`, matched
