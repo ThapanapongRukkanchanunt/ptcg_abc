@@ -187,12 +187,15 @@ This is the resume point for the project. Start here after switching machines, c
 - Active training objective: exact own prizes taken per controlled turn, with
   discounted turn return (`gamma=0.97`) so equal prize totals are ranked by
   speed. Win/loss is now evaluation-only. Collection supports one randomly
-  sampled turn-start state per game; head-only value training consumes the
-  already-computed return with `return_estimation=step-reward`.
+  sampled turn-start state per game; the simple head-only value trainer consumes
+  the already-computed return directly from `step.reward`.
 - Primary evaluation metrics are average discounted prize score, average prizes
   taken, six-prize rate, and turns to six. The next run is two concurrent 10k
   prize-return collection shards, followed by a source-initialized 20k
   prize-value head versus the existing 20k outcome head.
+- ERAWAN collection/training smokes `76128 / 76129` completed cleanly. Full
+  10,000-game prize-return collection jobs `76130 / 76131` are running with
+  offsets 0 / 10,000, top-4 search, one sampled turn per game, and gamma `0.97`.
 - Head-only training jobs `75459` (10k) and `75460` (20k) completed on CUDA in
   54 / 49 seconds with exactly 10,000 / 20,000 examples and zero skips. Both
   checkpoints are finite; all non-value parameters are byte-identical to the

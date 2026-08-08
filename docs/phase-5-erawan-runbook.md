@@ -35,17 +35,17 @@ Train the combined sparse datasets through
 `scripts/slurm/phase5_ppo_train_conda.sbatch` with:
 
 ```text
-RETURN_ESTIMATION=step-reward
 POLICY_LOSS_WEIGHT=0
 ENTROPY_WEIGHT=0
 VALUE_LOSS_WEIGHT=1
 VALUE_BACKPROP_SCOPE=head-only
 ```
 
-The collector has already stored the discounted return in each row's `reward`;
-do not use `discounted-return` or GAE in the trainer, which would discount it a
-second time. Initialize the prize head from the frozen source checkpoint for a
-clean comparison with the outcome-trained head.
+The simple Phase 5 PPO trainer consumes each row's `reward` directly. The
+collector has already stored the discounted return there; do not route this
+dataset through the BC+PPO `discounted-return` or GAE estimators, which would
+discount it a second time. Initialize the prize head from the frozen source
+checkpoint for a clean comparison with the outcome-trained head.
 
 Evaluation through `scripts/slurm/phase5_public_agent_eval_conda.sbatch` now
 adds `prize_telemetry` to JSON and Markdown reports. Use the same

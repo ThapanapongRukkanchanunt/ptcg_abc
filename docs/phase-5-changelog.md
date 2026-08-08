@@ -7831,12 +7831,12 @@ Prize-return objective and implementation:
   keeps storage bounded while retaining a valid return target. Rows record the
   raw turn reward, discounted return, before/after prizes, turn index/count,
   gamma, and an explicit marker that outcome was not used for training.
-- The existing simple PPO trainer is the consumer: use
-  `return_estimation=step-reward`, policy/entropy weights `0`, value weight `1`,
-  and `value_backprop_scope=head-only`. The stored reward is already the
-  discounted return, so it must not be discounted a second time. This freezes
-  the policy and shared encoder and changes only the value head used by root
-  search.
+- The existing simple PPO trainer is the consumer: it reads `step.reward`
+  directly. Use policy/entropy weights `0`, value weight `1`, and
+  `value_backprop_scope=head-only`. The stored reward is already the discounted
+  return, so it must not be routed through the BC+PPO discounted-return or GAE
+  estimators. This freezes the policy and shared encoder and changes only the
+  value head used by root search.
 - Public-agent evaluation now reports total/average prizes, 0-6 prize
   distribution, six-prize rate, average controlled turns, average turns to six,
   and average discounted prize score. The last metric is the primary A/B
@@ -7861,3 +7861,24 @@ Predeclared next experiment:
   fresh common 1,000-game seed. Promotion is determined first by average
   discounted prize score, then average prizes, six-prize rate, and turns to six;
   win rate is reported but does not veto an otherwise better prize objective.
+
+ERAWAN validation and submission:
+
+- Fast-forwarded ERAWAN to commit `35fa50e`. Both modified SLURM scripts pass
+  native Bash syntax validation, and the 31-test focused suite passes there.
+- Collection smoke job `76128` completed 2 / 2 games in 20 seconds with exactly
+  two sampled rows, zero errors/timeouts, and no search/candidate errors. It
+  observed prize totals of six and four, mean discounted prize score `3.7804`,
+  and one game reaching six. Both battles were classified as wins, directly
+  demonstrating why win labels and prize completion are not equivalent.
+- Head-only training smoke job `76129` consumed both rows with zero skips,
+  policy/entropy weights `0`, value weight `1`, and
+  `value_backprop_scope=head-only`; it wrote a valid checkpoint and report.
+  The two-row raw JSONL and disposable checkpoint were then removed. Compact
+  smoke reports/logs were retained.
+- Submitted full collection jobs `76130` (game offset 0) and `76131` (offset
+  10,000). Both are running concurrently. Startup logs verify 10,000 games per
+  arm, top-4 search, the 20k outcome head as behavior, one sampled turn start
+  per game, common sampling seed `20260808`, exact-prize objective, gamma
+  `0.97`, outcome scale `0`, no tactical shaping, and distinct external JSONL
+  paths.
