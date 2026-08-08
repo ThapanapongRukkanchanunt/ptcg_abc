@@ -1422,6 +1422,7 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             saved_loss_replays=args.saved_loss_replays,
             replay_trace_limit=args.replay_trace_limit,
             game_seed=args.game_seed,
+            prize_discount_gamma=args.prize_discount_gamma,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -1532,6 +1533,8 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             teacher_agent_kind=args.teacher_agent,
             trajectory_samples_per_game=args.trajectory_samples_per_game,
             trajectory_sample_seed=args.trajectory_sample_seed,
+            reward_objective=args.reward_objective,
+            turn_prize_discount_gamma=args.turn_prize_discount_gamma,
         )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -2818,6 +2821,21 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--game-offset", type=int, default=0)
     rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
     rl_public_trajectories.add_argument(
+        "--reward-objective",
+        choices=["legacy", "discounted-turn-prizes"],
+        default="legacy",
+        help=(
+            "Use legacy outcome/tactical rewards or exact own prizes taken per "
+            "turn with a discounted future-prize return."
+        ),
+    )
+    rl_public_trajectories.add_argument(
+        "--turn-prize-discount-gamma",
+        type=float,
+        default=0.97,
+        help="Per-controlled-turn discount for discounted-turn-prizes targets.",
+    )
+    rl_public_trajectories.add_argument(
         "--trajectory-samples-per-game",
         type=int,
         default=0,
@@ -3786,6 +3804,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Optional common base seed for reproducible public-agent games.",
+    )
+    rl_evaluate_public.add_argument(
+        "--prize-discount-gamma",
+        type=float,
+        default=0.97,
+        help="Per-controlled-turn discount used by prize-centric evaluation.",
     )
     _add_phase5_search_config_args(rl_evaluate_public)
     rl_evaluate_public.add_argument(

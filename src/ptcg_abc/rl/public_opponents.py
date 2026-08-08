@@ -78,6 +78,9 @@ class PublicAgentTrajectorySummary:
     teacher_agent: str | None = None
     trajectory_samples_per_game: int = 0
     trajectory_sample_seed: int = 0
+    reward_objective: str = "legacy"
+    turn_prize_discount_gamma: float = 0.97
+    turn_prize_summary: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -301,7 +304,10 @@ def run_phase5_public_agent_benchmark(
     saved_loss_replays: int = 0,
     replay_trace_limit: int = 120,
     game_seed: int | None = None,
+    prize_discount_gamma: float = 0.97,
 ) -> tuple[Phase3RequiredBenchmarkResult, list[PublicAgentStatus]]:
+    if not 0.0 <= prize_discount_gamma <= 1.0:
+        raise ValueError("prize_discount_gamma must be between 0 and 1.")
     card_data, attack_data = load_engine_metadata(sample_dir)
     if search_trace_path is not None:
         search_trace_path.parent.mkdir(parents=True, exist_ok=True)
@@ -336,6 +342,7 @@ def run_phase5_public_agent_benchmark(
     aggregate_search: dict[str, Any] = {}
     saved_replay_counts = {"win": 0, "loss": 0}
     evaluation_game_index = 0
+    prize_games: list[dict[str, Any]] = []
     if replay_output_dir is not None:
         replay_output_dir.mkdir(parents=True, exist_ok=True)
     for our_deck in our_decks:
@@ -402,17 +409,13 @@ def run_phase5_public_agent_benchmark(
                     saved_win_replays=saved_win_replays,
                     saved_loss_replays=saved_loss_replays,
                 )
-                our_agent = (
-                    RecordingPolicyAgent(
-                        base_agent,
-                        _controlled_deck_ids(our_deck),
-                        card_data=card_data,
-                        attack_data=attack_data,
-                        reward_metadata=reward_metadata,
-                        trace_limit=replay_trace_limit,
-                    )
-                    if should_capture
-                    else base_agent
+                our_agent = RecordingPolicyAgent(
+                    base_agent,
+                    _controlled_deck_ids(our_deck),
+                    card_data=card_data,
+                    attack_data=attack_data,
+                    reward_metadata=reward_metadata,
+                    trace_limit=0,
                 )
                 opponent_agent = opponent.make_agent()
                 result = run_battle(
@@ -427,6 +430,19 @@ def run_phase5_public_agent_benchmark(
                     seed=battle_seed,
                 )
                 _record_row_outcome(row, result, our_is_player0=our_is_player0)
+                our_player_index = 0 if our_is_player0 else 1
+                prize_games.append(
+                    _prize_evaluation_game(
+                        list(our_agent.frames),
+                        final_prize_count=(
+                            result.prize_counts[our_player_index]
+                            if result.prize_counts is not None
+                            else None
+                        ),
+                        finished=result.finished,
+                        gamma=prize_discount_gamma,
+                    )
+                )
                 search_agent = _search_agent_from_public_agent(our_agent)
                 if search_agent is not None:
                     _accumulate_search_telemetry(row.search_telemetry, search_agent.search_telemetry())
@@ -447,13 +463,14 @@ def run_phase5_public_agent_benchmark(
                             result=result,
                             our_player_index=0 if our_is_player0 else 1,
                         )
-                if isinstance(our_agent, RecordingPolicyAgent):
+                if should_capture:
                     replay = _public_replay_debug_game(
                         row,
                         result,
                         our_agent=our_agent,
                         game_index=game_index,
                         our_player_index=0 if our_is_player0 else 1,
+                        trace_limit=replay_trace_limit,
                     )
                     if _maybe_write_public_replay(
                         replay,
@@ -477,6 +494,10 @@ def run_phase5_public_agent_benchmark(
             rows=rows,
             debug_games=debug_games,
             search_telemetry=_finalize_search_telemetry(aggregate_search),
+            prize_telemetry=_summarize_prize_evaluation_games(
+                prize_games,
+                gamma=prize_discount_gamma,
+            ),
             game_seed=game_seed,
         ),
         statuses,
@@ -513,6 +534,8 @@ def generate_phase5_public_agent_trajectories(
     teacher_agent_kind: str | None = None,
     trajectory_samples_per_game: int = 0,
     trajectory_sample_seed: int = 0,
+    reward_objective: str = "legacy",
+    turn_prize_discount_gamma: float = 0.97,
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
         raise ValueError(f"Trajectory output already exists at {output_path}.")
@@ -524,6 +547,12 @@ def generate_phase5_public_agent_trajectories(
         )
     if trajectory_samples_per_game < 0:
         raise ValueError("trajectory_samples_per_game must be non-negative.")
+    if reward_objective not in {"legacy", "discounted-turn-prizes"}:
+        raise ValueError(
+            "reward_objective must be legacy or discounted-turn-prizes."
+        )
+    if not 0.0 <= turn_prize_discount_gamma <= 1.0:
+        raise ValueError("turn_prize_discount_gamma must be between 0 and 1.")
     card_data, attack_data = load_engine_metadata(sample_dir)
     our_decks = _selected_controlled_decks(
         sample_dir=sample_dir,
@@ -567,6 +596,7 @@ def generate_phase5_public_agent_trajectories(
     aggregate_search: dict[str, Any] = {}
     tactical_config = tactical_reward_config or PublicAgentTacticalRewardConfig()
     tactical_summary = _empty_tactical_reward_summary(tactical_config)
+    turn_prize_games: list[dict[str, Any]] = []
 
     local_game_index = 0
     for our_deck in our_decks:
@@ -691,14 +721,45 @@ def generate_phase5_public_agent_trajectories(
                 }
                 reward = reward_from_result_metadata(final_metadata)
                 records = list(recorder.frames)
-                sampled_record_indices = set(
-                    _sample_trajectory_record_indices(
-                        len(records),
+                our_player_index = 0 if our_is_player0 else 1
+                turn_target_by_record: dict[int, dict[str, Any]] = {}
+                if reward_objective == "discounted-turn-prizes":
+                    final_prize_count = (
+                        result.prize_counts[our_player_index]
+                        if result.prize_counts is not None
+                        else None
+                    )
+                    turn_targets = _turn_prize_targets(
+                        records,
+                        final_prize_count=final_prize_count,
+                        gamma=turn_prize_discount_gamma,
+                    )
+                    turn_prize_games.append(
+                        _turn_prize_game_summary(
+                            turn_targets,
+                            final_prize_count=final_prize_count,
+                            finished=result.finished,
+                        )
+                    )
+                    sampled_turn_indices = _sample_trajectory_record_indices(
+                        len(turn_targets),
                         samples_per_game=trajectory_samples_per_game,
                         seed=trajectory_sample_seed + absolute_game_index,
                     )
-                )
-                our_player_index = 0 if our_is_player0 else 1
+                    for turn_index in sampled_turn_indices:
+                        target = dict(turn_targets[turn_index])
+                        target["turn_index"] = turn_index
+                        target["turns_in_game"] = len(turn_targets)
+                        turn_target_by_record[int(target["record_index"])] = target
+                    sampled_record_indices = set(turn_target_by_record)
+                else:
+                    sampled_record_indices = set(
+                        _sample_trajectory_record_indices(
+                            len(records),
+                            samples_per_game=trajectory_samples_per_game,
+                            seed=trajectory_sample_seed + absolute_game_index,
+                        )
+                    )
                 for record_index, record in enumerate(records):
                     is_last_record = record_index + 1 == len(records)
                     next_frame = (
@@ -724,7 +785,31 @@ def generate_phase5_public_agent_trajectories(
                         if outcome_reward_assignment == "broadcast" or is_last_record
                         else 0.0
                     )
-                    step_reward = assigned_outcome_reward + tactical_reward
+                    turn_target = turn_target_by_record.get(record_index)
+                    step_reward = (
+                        float(turn_target["return"])
+                        if turn_target is not None
+                        else assigned_outcome_reward + tactical_reward
+                    )
+                    prize_metadata = (
+                        {
+                            "reward_objective": reward_objective,
+                            "outcome_used_for_training": False,
+                            "turn_prize_reward": turn_target["prize_reward"],
+                            "discounted_turn_prize_return": turn_target["return"],
+                            "turn_prizes_before": turn_target["prizes_before"],
+                            "turn_prizes_after": turn_target["prizes_after"],
+                            "turn_number": turn_target["turn"],
+                            "turn_index": turn_target["turn_index"],
+                            "turns_in_game": turn_target["turns_in_game"],
+                            "turn_prize_discount_gamma": turn_prize_discount_gamma,
+                        }
+                        if turn_target is not None
+                        else {
+                            "reward_objective": reward_objective,
+                            "outcome_used_for_training": True,
+                        }
+                    )
                     frame = _with_metadata(
                         record.frame,
                         final_metadata
@@ -740,6 +825,7 @@ def generate_phase5_public_agent_trajectories(
                             "trajectory_samples_per_game": trajectory_samples_per_game,
                             "trajectory_sample_seed": trajectory_sample_seed,
                         }
+                        | prize_metadata
                         | tactical_metadata,
                     )
                     append_trajectory_jsonl(
@@ -749,11 +835,21 @@ def generate_phase5_public_agent_trajectories(
                             logprob=record.logprob,
                             value=record.value,
                             reward=step_reward,
-                            terminal=result.finished and is_last_record,
+                            terminal=result.finished and (
+                                is_last_record
+                                if turn_target is None
+                                else int(turn_target["turn_index"]) + 1
+                                == int(turn_target["turns_in_game"])
+                            ),
                             truncated=(
                                 not result.finished
                                 and result.error is None
-                                and is_last_record
+                                and (
+                                    is_last_record
+                                    if turn_target is None
+                                    else int(turn_target["turn_index"]) + 1
+                                    == int(turn_target["turns_in_game"])
+                                )
                             ),
                         ),
                         output_path,
@@ -817,6 +913,8 @@ def generate_phase5_public_agent_trajectories(
             "outcome_reward_scale": float(outcome_reward_scale),
             "outcome_reward_assignment": outcome_reward_assignment,
             "tactical_reward": tactical_config.to_dict(),
+            "reward_objective": reward_objective,
+            "turn_prize_discount_gamma": float(turn_prize_discount_gamma),
         },
         tactical_reward_summary=_finalize_tactical_reward_summary(tactical_summary),
         specialist_model_dir=specialist_model_dir.as_posix() if specialist_model_dir else None,
@@ -831,6 +929,13 @@ def generate_phase5_public_agent_trajectories(
         teacher_agent=teacher_agent_kind,
         trajectory_samples_per_game=trajectory_samples_per_game,
         trajectory_sample_seed=trajectory_sample_seed,
+        reward_objective=reward_objective,
+        turn_prize_discount_gamma=turn_prize_discount_gamma,
+        turn_prize_summary=(
+            _summarize_turn_prize_games(turn_prize_games)
+            if reward_objective == "discounted-turn-prizes"
+            else None
+        ),
     )
 
 
@@ -845,6 +950,140 @@ def _sample_trajectory_record_indices(
     if samples_per_game <= 0 or samples_per_game >= record_count:
         return list(range(record_count))
     return sorted(random.Random(seed).sample(range(record_count), samples_per_game))
+
+
+def _turn_prize_targets(
+    records: Sequence[Any],
+    *,
+    final_prize_count: int | None,
+    gamma: float,
+) -> list[dict[str, Any]]:
+    """Build one exact, own-prize return target at the start of each turn."""
+    if not 0.0 <= gamma <= 1.0:
+        raise ValueError("gamma must be between 0 and 1.")
+    turn_starts: list[dict[str, Any]] = []
+    previous_turn: int | None = None
+    for record_index, record in enumerate(records):
+        board = record.frame.board
+        turn = _optional_board_int(board.get("turn"))
+        prizes = _optional_board_int(board.get("my_prizes"))
+        if turn is None or turn <= 0 or prizes is None:
+            continue
+        if turn == previous_turn:
+            continue
+        turn_starts.append(
+            {
+                "record_index": record_index,
+                "turn": turn,
+                "prizes_before": prizes,
+            }
+        )
+        previous_turn = turn
+    if records and not turn_starts:
+        raise ValueError(
+            "Recorded decisions contain no turn/my_prizes board fields; "
+            "cannot construct discounted turn-prize targets."
+        )
+
+    returns = [0.0] * len(turn_starts)
+    running_return = 0.0
+    for index in range(len(turn_starts) - 1, -1, -1):
+        before = int(turn_starts[index]["prizes_before"])
+        if index + 1 < len(turn_starts):
+            after = int(turn_starts[index + 1]["prizes_before"])
+        elif final_prize_count is not None:
+            after = int(final_prize_count)
+        else:
+            after = before
+        prize_reward = max(0, before - after)
+        running_return = float(prize_reward) + gamma * running_return
+        returns[index] = running_return
+        turn_starts[index]["prizes_after"] = after
+        turn_starts[index]["prize_reward"] = prize_reward
+    for target, discounted_return in zip(turn_starts, returns, strict=True):
+        target["return"] = discounted_return
+    return turn_starts
+
+
+def _optional_board_int(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _turn_prize_game_summary(
+    targets: Sequence[dict[str, Any]],
+    *,
+    final_prize_count: int | None,
+    finished: bool,
+) -> dict[str, Any]:
+    prizes_taken = max(0, 6 - int(final_prize_count)) if final_prize_count is not None else 0
+    reached_six = final_prize_count == 0
+    return {
+        "turns": len(targets),
+        "prizes_taken": prizes_taken,
+        "reached_six_prizes": reached_six,
+        "turns_to_six": len(targets) if reached_six else None,
+        "discounted_prize_score": float(targets[0]["return"]) if targets else 0.0,
+        "finished": bool(finished),
+    }
+
+
+def _prize_evaluation_game(
+    records: Sequence[Any],
+    *,
+    final_prize_count: int | None,
+    finished: bool,
+    gamma: float,
+) -> dict[str, Any]:
+    return _turn_prize_game_summary(
+        _turn_prize_targets(
+            records,
+            final_prize_count=final_prize_count,
+            gamma=gamma,
+        ),
+        final_prize_count=final_prize_count,
+        finished=finished,
+    )
+
+
+def _summarize_turn_prize_games(games: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    count = len(games)
+    prizes = [int(game["prizes_taken"]) for game in games]
+    turns = [int(game["turns"]) for game in games]
+    turns_to_six = [
+        int(game["turns_to_six"])
+        for game in games
+        if game.get("turns_to_six") is not None
+    ]
+    scores = [float(game["discounted_prize_score"]) for game in games]
+    distribution = {str(value): prizes.count(value) for value in range(7)}
+    return {
+        "games": count,
+        "total_prizes_taken": sum(prizes),
+        "average_prizes_taken": sum(prizes) / count if count else 0.0,
+        "prizes_taken_distribution": distribution,
+        "games_reaching_six_prizes": len(turns_to_six),
+        "six_prize_rate": len(turns_to_six) / count if count else 0.0,
+        "average_controlled_turns": sum(turns) / count if count else 0.0,
+        "average_turns_to_six": (
+            sum(turns_to_six) / len(turns_to_six) if turns_to_six else None
+        ),
+        "average_discounted_prize_score": sum(scores) / count if count else 0.0,
+    }
+
+
+def _summarize_prize_evaluation_games(
+    games: Sequence[dict[str, Any]],
+    *,
+    gamma: float,
+) -> dict[str, Any]:
+    return _summarize_turn_prize_games(games) | {
+        "turn_prize_discount_gamma": float(gamma),
+        "primary_metric": "average_discounted_prize_score",
+        "win_loss_is_diagnostic_only": True,
+    }
 
 
 def write_public_agent_status_report(
@@ -985,6 +1224,7 @@ def _public_replay_debug_game(
     our_agent: RecordingPolicyAgent,
     game_index: int,
     our_player_index: int,
+    trace_limit: int = 0,
 ) -> Phase3RequiredDebugGame:
     return Phase3RequiredDebugGame(
         deck_index=row.deck_index,
@@ -998,7 +1238,9 @@ def _public_replay_debug_game(
         steps=int(getattr(result, "steps", 0) or 0),
         prize_counts=getattr(result, "prize_counts", None),
         error=getattr(result, "error", None),
-        trace=_compact_replay_trace(our_agent.frames),
+        trace=_compact_replay_trace(
+            our_agent.frames[:trace_limit] if trace_limit > 0 else our_agent.frames
+        ),
     )
 
 

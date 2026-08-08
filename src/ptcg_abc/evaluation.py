@@ -447,6 +447,7 @@ class Phase3RequiredBenchmarkResult:
     rows: list[Phase3RequiredBenchmarkRow]
     debug_games: list[Phase3RequiredDebugGame] = field(default_factory=list)
     search_telemetry: dict[str, Any] = field(default_factory=dict)
+    prize_telemetry: dict[str, Any] = field(default_factory=dict)
     game_seed: int | None = None
 
     def to_dict(self) -> dict:
@@ -461,6 +462,8 @@ class Phase3RequiredBenchmarkResult:
         }
         if self.search_telemetry:
             payload["search_telemetry"] = dict(self.search_telemetry)
+        if self.prize_telemetry:
+            payload["prize_telemetry"] = dict(self.prize_telemetry)
         if self.game_seed is not None:
             payload["game_seed"] = int(self.game_seed)
         return payload

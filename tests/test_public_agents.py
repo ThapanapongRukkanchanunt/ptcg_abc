@@ -17,13 +17,75 @@ from ptcg_abc.rl.records import ActionFrame, DecisionFrame
 from ptcg_abc.rl.public_opponents import (
     PublicAgentTacticalRewardConfig,
     _filter_public_opponents,
+    _summarize_turn_prize_games,
     _tactical_reward_for_frame,
+    _turn_prize_game_summary,
+    _turn_prize_targets,
     summarize_public_agent_gate,
 )
-from ptcg_abc.rl.workflow import _policy_metadata
+from ptcg_abc.rl.workflow import RecordedPolicyFrame, _policy_metadata
 
 
 class PublicAgentRosterTests(unittest.TestCase):
+    def test_discounted_turn_prizes_use_exact_prize_deltas(self):
+        records = [
+            _recorded_turn(turn=1, prizes=6),
+            _recorded_turn(turn=1, prizes=6),
+            _recorded_turn(turn=2, prizes=5),
+        ]
+
+        targets = _turn_prize_targets(records, final_prize_count=2, gamma=0.9)
+
+        self.assertEqual([target["record_index"] for target in targets], [0, 2])
+        self.assertEqual([target["prize_reward"] for target in targets], [1, 3])
+        self.assertAlmostEqual(targets[0]["return"], 3.7)
+        self.assertAlmostEqual(targets[1]["return"], 3.0)
+
+    def test_turn_prize_summary_reports_primary_progress_metrics(self):
+        fast = _turn_prize_game_summary(
+            _turn_prize_targets(
+                [_recorded_turn(turn=1, prizes=6), _recorded_turn(turn=2, prizes=3)],
+                final_prize_count=0,
+                gamma=0.9,
+            ),
+            final_prize_count=0,
+            finished=True,
+        )
+        partial = _turn_prize_game_summary(
+            _turn_prize_targets(
+                [_recorded_turn(turn=1, prizes=6)],
+                final_prize_count=4,
+                gamma=0.9,
+            ),
+            final_prize_count=4,
+            finished=False,
+        )
+
+        summary = _summarize_turn_prize_games([fast, partial])
+
+        self.assertEqual(summary["total_prizes_taken"], 8)
+        self.assertEqual(summary["average_prizes_taken"], 4.0)
+        self.assertEqual(summary["games_reaching_six_prizes"], 1)
+        self.assertEqual(summary["average_turns_to_six"], 2.0)
+
+    def test_prize_pipeline_cli_defaults_and_overrides(self):
+        args = build_parser().parse_args(
+            [
+                "rl-generate-phase5-public-agent-trajectories",
+                "--reward-objective",
+                "discounted-turn-prizes",
+                "--turn-prize-discount-gamma",
+                "0.95",
+            ]
+        )
+        eval_args = build_parser().parse_args(
+            ["rl-evaluate-phase5-public-agents"]
+        )
+
+        self.assertEqual(args.reward_objective, "discounted-turn-prizes")
+        self.assertAlmostEqual(args.turn_prize_discount_gamma, 0.95)
+        self.assertAlmostEqual(eval_args.prize_discount_gamma, 0.97)
+
     def test_policy_metadata_preserves_search_correction_markers(self):
         agent = SimpleNamespace(
             last_policy_metadata={
@@ -497,6 +559,13 @@ def _public_tactical_frame(board: dict | None = None) -> DecisionFrame:
         rule_selected_indices=[0],
         board=board or {},
         board_image=[],
+    )
+
+
+def _recorded_turn(*, turn: int, prizes: int) -> RecordedPolicyFrame:
+    return RecordedPolicyFrame(
+        frame=_public_tactical_frame(board={"turn": turn, "my_prizes": prizes}),
+        chosen_indices=[0],
     )
 
 

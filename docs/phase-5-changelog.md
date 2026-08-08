@@ -7794,3 +7794,70 @@ Decision:
 - Submitted jobs `75463` (frozen source) and `75464` (20k value head). Both
   entered `RUNNING` concurrently with top-4 search, 1,000 games, common seed
   `20260733`, and matched trace/replay retention.
+
+## 2026-08-08 - Replace Win Labels With Discounted Exact-Prize Returns
+
+Sparse value source confirmation:
+
+- Jobs `75463` (frozen source) and `75464` (20k outcome-trained value head)
+  completed with exit code `0` in `01:17:27 / 01:16:15`.
+- Source scored 457 / 1,000 (`0.457`); the 20k head scored 482 / 1,000
+  (`0.482`). The 20k direction is +25 wins and +2.5 percentage points, but is
+  not significant (`p ~= 0.263`). Both arms had zero errors and timeouts.
+- The 20k head remains 18 wins and 1.8 percentage points short of tying the
+  historical 50% Dragapult-vs-Lucario gate. From this experiment onward,
+  win/loss is a secondary diagnostic rather than the training target or primary
+  promotion metric.
+- Securely downloaded reports, scheduler status, logs, five-game traces, and
+  sampled win/loss replays into a new protected local directory. The compact
+  archive is 219,409 bytes with SHA-256
+  `df991aec99c9ab65b4eb898831201191293cf482cabc07df1b2b95e4b025c33d`.
+  The evaluation jobs created no raw JSONL. The two earlier sparse outcome
+  JSONLs remain intentionally retained pending the matched prize-objective A/B.
+
+Prize-return objective and implementation:
+
+- Added `reward_objective=discounted-turn-prizes`. For each controlled turn,
+  the collector uses the first recorded state and assigns the exact own-prize
+  delta: `max(0, prizes_before - prizes_after)`. The final turn uses the battle
+  result's final remaining-prize count. There is no win/loss bonus, opponent
+  penalty, damage fraction, or tactical heuristic in this target.
+- Returns are computed across controlled turns as
+  `G_t = prizes_taken_t + gamma * G_(t+1)`. The initial experiment fixes
+  `gamma=0.97`: taking an additional prize dominates a small timing difference,
+  while taking the same six prizes in fewer turns scores higher.
+- A positive `trajectory_samples_per_game` samples turn starts rather than
+  arbitrary action records for this objective. One sample per game therefore
+  keeps storage bounded while retaining a valid return target. Rows record the
+  raw turn reward, discounted return, before/after prizes, turn index/count,
+  gamma, and an explicit marker that outcome was not used for training.
+- The existing simple PPO trainer is the consumer: use
+  `return_estimation=step-reward`, policy/entropy weights `0`, value weight `1`,
+  and `value_backprop_scope=head-only`. The stored reward is already the
+  discounted return, so it must not be discounted a second time. This freezes
+  the policy and shared encoder and changes only the value head used by root
+  search.
+- Public-agent evaluation now reports total/average prizes, 0-6 prize
+  distribution, six-prize rate, average controlled turns, average turns to six,
+  and average discounted prize score. The last metric is the primary A/B
+  objective; win/loss remains in the report as a diagnostic.
+- Added CLI and SLURM forwarding for the reward objective and gamma. Focused
+  tests cover exact multi-prize deltas, per-turn discounting, aggregation, and
+  parser controls. The focused suite passes 31 tests with four expected
+  Torch-dependent skips; all changed Python files parse and `git diff --check`
+  passes. Local Bash syntax validation is unavailable because the only local
+  `bash.exe` is the disabled Windows subsystem shim; validate both scripts on
+  ERAWAN before submission.
+
+Predeclared next experiment:
+
+- Collect two concurrent 10,000-game Dragapult-vs-Lucario shards using top-4
+  search and the current 20k outcome head as behavior, retaining one random
+  controlled-turn start per game with common sampling seed and `gamma=0.97`.
+- Train a fresh prize-value head from the same frozen GAE source checkpoint on
+  the combined 20,000 prize-return rows. Do not initialize it from the outcome
+  head, which would confound the target comparison.
+- Compare the prize-trained 20k head against the outcome-trained 20k head on a
+  fresh common 1,000-game seed. Promotion is determined first by average
+  discounted prize score, then average prizes, six-prize rate, and turns to six;
+  win rate is reported but does not veto an otherwise better prize objective.

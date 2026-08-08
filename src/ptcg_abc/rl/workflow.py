@@ -1201,6 +1201,28 @@ def write_phase4_benchmark_report(
                 f"{float(row_telemetry.get('avg_search_seconds', 0.0)):.4f} |"
             )
         lines.append("")
+    if result.prize_telemetry:
+        telemetry = result.prize_telemetry
+        avg_turns_to_six = telemetry.get("average_turns_to_six")
+        lines.extend(
+            [
+                "## Prize-Centric Evaluation",
+                "",
+                "Primary objective: discounted own-prize progress; win/loss is diagnostic only.",
+                "",
+                f"- Total prizes taken: {int(telemetry.get('total_prizes_taken', 0))}",
+                f"- Average prizes taken per game: {float(telemetry.get('average_prizes_taken', 0.0)):.4f}",
+                f"- Games reaching six prizes: {int(telemetry.get('games_reaching_six_prizes', 0))}",
+                f"- Six-prize rate: {float(telemetry.get('six_prize_rate', 0.0)):.4f}",
+                f"- Average controlled turns: {float(telemetry.get('average_controlled_turns', 0.0)):.4f}",
+                "- Average turns to six: "
+                + (f"{float(avg_turns_to_six):.4f}" if avg_turns_to_six is not None else "n/a"),
+                f"- Average discounted prize score: {float(telemetry.get('average_discounted_prize_score', 0.0)):.4f}",
+                f"- Per-turn discount gamma: {float(telemetry.get('turn_prize_discount_gamma', 0.0)):.4f}",
+                f"- Prize distribution (0..6): `{telemetry.get('prizes_taken_distribution', {})}`",
+                "",
+            ]
+        )
     lines.extend(
         [
             "## Matchups",

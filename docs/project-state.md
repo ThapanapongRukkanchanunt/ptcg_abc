@@ -179,7 +179,20 @@ This is the resume point for the project. Start here after switching machines, c
   +44-win, +4.4-point advantage is nominally significant (`p ~= 0.0485`) with
   zero errors/timeouts. Advance 20k to a fresh matched comparison against the
   frozen source; it remains 15 wins and 1.5 points short of tying 50%. ERAWAN
-  jobs `75463` (source) and `75464` (20k head) are running that confirmation.
+  jobs `75463` (source) and `75464` (20k head) were submitted for that confirmation.
+- Source-confirmation jobs `75463 / 75464` completed at 457 / 1,000 and
+  482 / 1,000. The outcome-trained 20k head is +2.5 points but not significant
+  (`p ~= 0.263`), and remains 18 wins / 1.8 points short of the historical 50%
+  gate. Both arms had zero errors/timeouts.
+- Active training objective: exact own prizes taken per controlled turn, with
+  discounted turn return (`gamma=0.97`) so equal prize totals are ranked by
+  speed. Win/loss is now evaluation-only. Collection supports one randomly
+  sampled turn-start state per game; head-only value training consumes the
+  already-computed return with `return_estimation=step-reward`.
+- Primary evaluation metrics are average discounted prize score, average prizes
+  taken, six-prize rate, and turns to six. The next run is two concurrent 10k
+  prize-return collection shards, followed by a source-initialized 20k
+  prize-value head versus the existing 20k outcome head.
 - Head-only training jobs `75459` (10k) and `75460` (20k) completed on CUDA in
   54 / 49 seconds with exactly 10,000 / 20,000 examples and zero skips. Both
   checkpoints are finite; all non-value parameters are byte-identical to the
@@ -193,7 +206,7 @@ This is the resume point for the project. Start here after switching machines, c
   +44-win, +4.4-point advantage is nominally significant (`p ~= 0.0485`) with
   zero errors/timeouts. Advance 20k to a fresh matched comparison against the
   frozen source; it remains 15 wins and 1.5 points short of tying 50%. ERAWAN
-  jobs `75463` (source) and `75464` (20k head) are running that confirmation.
+  jobs `75463` (source) and `75464` (20k head) were submitted for that confirmation.
 - Latest Phase 5 benchmark milestone: `phase5-search` using
   `models/rl/phase5_symbolic_policy_10shards.pt` reached 139 / 360 wins,
   0.386 win rate, 1 timeout, and 0 errors on the required 10-game benchmark,

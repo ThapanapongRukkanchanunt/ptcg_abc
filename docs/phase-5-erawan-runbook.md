@@ -12,6 +12,47 @@ training: generate search-improved decision data with bounded one-turn root
 search, merge the array shards, then train the Torch behavior-cloning/distillation
 model from the merged dataset.
 
+## Discounted turn-prize value pipeline
+
+Use exact own prizes taken as the training signal. `gamma=0.97` discounts once
+per controlled turn. With sparse collection, `TRAJECTORY_SAMPLES_PER_GAME=1`
+retains one randomly selected turn-start state from every game.
+
+Collection settings:
+
+```text
+REWARD_OBJECTIVE=discounted-turn-prizes
+TURN_PRIZE_DISCOUNT_GAMMA=0.97
+OUTCOME_REWARD_SCALE=0
+TACTICAL_REWARD_MODE=none
+TRAJECTORY_SAMPLES_PER_GAME=1
+```
+
+Submit through `scripts/slurm/phase5_public_agent_trajectories.sbatch`, using
+distinct `GAME_OFFSET`, `OUTPUT`, and `REPORT_JSON` values for each shard.
+
+Train the combined sparse datasets through
+`scripts/slurm/phase5_ppo_train_conda.sbatch` with:
+
+```text
+RETURN_ESTIMATION=step-reward
+POLICY_LOSS_WEIGHT=0
+ENTROPY_WEIGHT=0
+VALUE_LOSS_WEIGHT=1
+VALUE_BACKPROP_SCOPE=head-only
+```
+
+The collector has already stored the discounted return in each row's `reward`;
+do not use `discounted-return` or GAE in the trainer, which would discount it a
+second time. Initialize the prize head from the frozen source checkpoint for a
+clean comparison with the outcome-trained head.
+
+Evaluation through `scripts/slurm/phase5_public_agent_eval_conda.sbatch` now
+adds `prize_telemetry` to JSON and Markdown reports. Use the same
+`PRIZE_DISCOUNT_GAMMA=0.97` in both A/B arms. Rank by average discounted prize
+score, with average prizes, six-prize rate, and turns to six as supporting
+metrics; retain win/loss only as a diagnostic.
+
 Phase 5 builds on the Phase 4 package and uses the existing 9-deck by 4-benchmark
 matchup grid. It does not require integrating the full 13-deck pool before the first
 large run.
