@@ -53,6 +53,13 @@ adds `prize_telemetry` to JSON and Markdown reports. Use the same
 score, with average prizes, six-prize rate, and turns to six as supporting
 metrics; retain win/loss only as a diagnostic.
 
+Important: head-only training cannot affect search while the default
+`LEAF_STATE_VALUE_WEIGHT=0.0` is active. Prize-head A/B jobs must explicitly
+enable the same nonzero leaf path in both arms. The first controlled comparison
+uses normalized tactical weight `0.5` and normalized leaf-value weight `0.5`;
+candidate leaf values are min-max normalized, so raw outcome and prize target
+scales do not determine the score weight.
+
 Phase 5 builds on the Phase 4 package and uses the existing 9-deck by 4-benchmark
 matchup grid. It does not require integrating the full 13-deck pool before the first
 large run.

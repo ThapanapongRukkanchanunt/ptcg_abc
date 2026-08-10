@@ -194,8 +194,25 @@ This is the resume point for the project. Start here after switching machines, c
   prize-return collection shards, followed by a source-initialized 20k
   prize-value head versus the existing 20k outcome head.
 - ERAWAN collection/training smokes `76128 / 76129` completed cleanly. Full
-  10,000-game prize-return collection jobs `76130 / 76131` are running with
+  10,000-game prize-return collection jobs `76130 / 76131` were submitted with
   offsets 0 / 10,000, top-4 search, one sampled turn per game, and gamma `0.97`.
+- Prize-return jobs `76130 / 76131` completed cleanly with exactly 10,000 rows
+  each, zero errors/timeouts, and 869,938,647 total bytes. All 20,000 rows parse;
+  IDs cover 1-20,000 uniquely and target/schema audit found zero issues.
+- Combined collection metrics: average prizes `3.2728`, six-prize rate
+  `0.34485`, average controlled turns `9.60225`, average turns to six `9.4992`,
+  and average discounted prize score `2.69386`. Retain both raw JSONLs for the
+  planned combined training consumer.
+- Critical correction: prior head-only value evaluations `75461-75464` used
+  the default `leaf_state_value_weight=0.0`. Because only value-head tensors
+  changed, those heads could not affect search actions. Retract the claimed
+  causal 10k/20k and source/20k improvements; they were run variation. The new
+  prize data remain valid, but their head must be evaluated with a nonzero leaf
+  path.
+- Next controlled experiment: train a source-initialized prize head on both
+  shards, then compare it with the outcome head using the identical normalized
+  tactical `0.5` plus normalized leaf value `0.5` search mixture and fresh
+  common seeds. Promote on prize-centric metrics, not win rate.
 - Head-only training jobs `75459` (10k) and `75460` (20k) completed on CUDA in
   54 / 49 seconds with exactly 10,000 / 20,000 examples and zero skips. Both
   checkpoints are finite; all non-value parameters are byte-identical to the

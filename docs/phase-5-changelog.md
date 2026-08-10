@@ -7882,3 +7882,92 @@ ERAWAN validation and submission:
   per game, common sampling seed `20260808`, exact-prize objective, gamma
   `0.97`, outcome scale `0`, no tactical shaping, and distinct external JSONL
   paths.
+
+## 2026-08-10 - Twenty-Thousand Exact-Prize Rows Validate; Value Path Was Inert
+
+Completion and retained evidence:
+
+- ERAWAN jobs `76130 / 76131` completed with exit code `0` in
+  `14:49:53 / 14:01:29`; peak batch RSS was 279,504 / 278,224 KB.
+- Each job started 10,000 games and wrote exactly 10,000 sampled turn-start
+  rows. Both had zero battle errors, timeouts, search errors, and candidate
+  errors. Stderr contains only the known PyTorch nested-tensor warning.
+- Raw shard sizes are 434,913,845 / 435,024,802 bytes, 869,938,647 bytes
+  total, or about 43.50 KB per row. At this encoding, one million rows would be
+  about 43.5 GB.
+- Raw SHA-256 values are
+  `ee9f5c60cd52951e35fa9a4f20fa5da05fb329aff83ad9272698f7655eaca9a4`
+  for shard 0 and
+  `384d8fcf87098c13c30039572dfed55d51a527ffc9727f0ebee50b52d700be42`
+  for shard 1.
+- Securely downloaded only reports, logs, scheduler status, and raw-file
+  checksums. The 15,964-byte compact archive SHA-256 is
+  `78797138404262923a2d7b62f7d926d0210d1f54ff9b1e47d038d44c91900b02`.
+  The temporary transfer archive was removed from ERAWAN. The two raw JSONLs
+  are the exact expected external files and remain retained for training.
+
+Prize and behavior summary:
+
+| Metric | Shard 0 | Shard 1 | Combined |
+| --- | ---: | ---: | ---: |
+| Games / sampled rows | 10,000 | 10,000 | 20,000 |
+| Wins / losses / draws | 4,587 / 5,395 / 18 | 4,602 / 5,377 / 21 | 9,189 / 10,772 / 39 |
+| Average prizes taken | 3.2710 | 3.2746 | 3.2728 |
+| Six-prize games / rate | 3,406 / 0.3406 | 3,491 / 0.3491 | 6,897 / 0.34485 |
+| Average controlled turns | 9.6061 | 9.5984 | 9.60225 |
+| Average turns to six | 9.4812 | 9.5168 | 9.4992 |
+| Average discounted prize score | 2.69236 | 2.69537 | 2.69386 |
+
+- Combined prize-count distribution for 0 through 6 prizes is
+  `4,094 / 2,986 / 1,379 / 1,508 / 1,874 / 1,262 / 6,897`.
+- Shard average-prize difference is only 0.0036 (`p ~= 0.916`); the six-prize
+  rate difference is 0.85 points (`p ~= 0.206`). Treat the shards as compatible.
+- Combined search changed 92,190 / 859,830 decisions (`0.10722`) across
+  3,162,192 probes, with 727 truncated candidates (`0.000230`). Attach, attack,
+  and END rates were `0.40073 / 0.25492 / 0.01474`, closely matched by shard.
+- Win rate was `0.45945`, while only `0.34485` of games reached six prizes.
+  This 11.46-point separation reinforces that win/loss and prize completion are
+  meaningfully different objectives in this simulator.
+
+Full JSONL audit:
+
+- Parsed all 20,000 lines. Game IDs cover exactly 1 through 20,000 with no
+  duplicates. No invalid JSON, missing IDs, non-finite rewards, reward/metadata
+  mismatches, wrong objectives/gamma, invalid sampled turns, or rows marked as
+  using outcome for training were found.
+- Sampled return targets span 0 to 6, with mean `2.28579`, standard deviation
+  `2.02284`, and zero-return rate `0.2913`. The immediate sampled-turn reward
+  distribution is `0: 15,624`, `1: 2,914`, `2: 331`, `3: 988`, `4: 123`,
+  `5: 11`, `6: 9`. Multi-KO turns are preserved exactly.
+- Mean sampled zero-based turn index is `4.27135` within games averaging
+  `9.60225` controlled turns. There are 2,491 terminal sampled rows and zero
+  truncated rows.
+
+Critical causal correction:
+
+- The value head is an unbounded linear output, so prize targets in `[0, 6]`
+  are representable. Root search also min-max normalizes candidate leaf values,
+  so outcome-value and prize-value output scales can be compared safely.
+- However, `RootSearchConfig.leaf_state_value_weight` defaults to `0.0`, and
+  jobs `75461-75464` did not set `LEAF_STATE_VALUE_WEIGHT`. Head-only training
+  changed only the four value-head tensors, while policy/shared tensors stayed
+  identical. Consequently, those evaluations could not use either trained
+  value head for action selection.
+- Retract the causal interpretation that 20k outcome rows improved play over
+  10k or the frozen source. The observed 441/485 and 457/482 differences measure
+  uncontrolled run variation, not value-head effectiveness. The collection
+  behavior in jobs `76130 / 76131` was effectively the unchanged policy plus
+  tactical top-4 search; describing it as behavior improved by the 20k value
+  head was incorrect. This does not invalidate the new prize-return labels.
+
+Scientific next step:
+
+- Train the planned source-initialized prize head on the combined 20,000 rows,
+  then evaluate it only with a nonzero leaf-value path.
+- Use an identical normalized candidate-scoring mixture for the outcome head
+  and prize head. The established starting point is normalized tactical weight
+  `0.5` plus normalized leaf-value weight `0.5`; min-max normalization controls
+  their different raw target scales.
+- Run the two heads on a fresh common seed and promote on discounted prize score,
+  average prizes, six-prize rate, and turns to six. Do not cite the old inert
+  head-only evaluations as evidence or use a zero leaf weight again.
