@@ -7997,3 +7997,50 @@ Scientific next step:
 - One-week decision rule: if the prize head improves primary prize metrics with
   clean telemetry, spend the remaining budget on a larger confirmation. If it
   does not, stop prize-head scaling rather than collecting more data.
+
+## 2026-08-10 - Prize Head Wins the 1,000-Game Directional Gate
+
+Matched result:
+
+| Metric | Outcome head `76225` | Prize head `76226` | Prize delta |
+| --- | ---: | ---: | ---: |
+| Discounted prize score | 2.43448 | 2.54268 | +0.10820 (+4.44%) |
+| Average prizes | 3.002 | 3.112 | +0.110 |
+| Six-prize rate | 0.312 | 0.324 | +0.012 |
+| Average turns to six | 10.2885 | 9.7315 | -0.5570 |
+| Average controlled turns | 9.951 | 9.887 | -0.064 |
+| Wins / 1,000 | 419 | 431 | +12 |
+
+- Jobs `76225 / 76226` completed with exit code `0` in `01:32:32 / 01:26:08`.
+  Both had zero errors, timeouts, search errors, and candidate errors. Stderr
+  contains only the known PyTorch nested-tensor warning.
+- The prize head improves every predeclared primary/supporting prize metric and
+  also the secondary win diagnostic. Independent approximations remain
+  inconclusive at 1,000 games: average-prize `p ~= 0.319`, six-prize-rate
+  `p ~= 0.564`, and win-rate `p ~= 0.587`. Treat this as a consistent
+  directional gate, not confirmation.
+- Outcome/prize search changed 15,194 / 13,361 decisions among
+  41,968 / 43,448 searches (`0.3620 / 0.3075`). Both paths are materially
+  active, unlike the earlier zero-leaf evaluations. Five-game traces contain
+  leaf values for all 835 / 928 candidates, and 221 / 246 records have
+  nonconstant leaf values across candidates.
+- Prize search was slightly faster (`0.0722` versus `0.0832` mean seconds) and
+  had 21 versus 42 truncated candidates; neither arm showed an operational
+  regression.
+- Securely downloaded training reports/logs, scheduler status, both 1,000-game
+  reports/statuses/traces/replays, and the corrected prize checkpoint. The
+  2,371,164-byte archive SHA-256 is
+  `c9c24a998a3120cd4c7f4e290ce36a52428dfb3d32a98bbd589d580c697649e9`.
+  Removed the temporary ERAWAN transfer archive.
+
+Decision and confirmation:
+
+- The prize head passes the predeclared one-week directional gate. Do not
+  collect more training data or tune gamma before confirmation.
+- Submitted jobs `76237` (outcome head) and `76238` (prize head) for a matched
+  10,000-game confirmation with fresh common seed `20260811` and the exact same
+  top-4, normalized tactical `0.5`, normalized leaf `0.5`, gamma `0.97`
+  configuration. Both entered `RUNNING` concurrently.
+- If the approximately +0.11 average-prize and +4.4% discounted-score effects
+  persist, this budget should resolve them while finishing comfortably inside
+  the remaining week. Promotion still depends on prize metrics, not win rate.

@@ -217,10 +217,21 @@ This is the resume point for the project. Start here after switching machines, c
   only four finite value-head tensors changed. Job `76222` is rejected because
   SLURM comma parsing silently limited it to shard 0. The training wrapper now
   accepts colon-separated lists for safe `sbatch --export` forwarding.
-- Matched 1,000-game evaluation jobs `76225 / 76226` are running on outcome
+- Matched 1,000-game evaluation jobs `76225 / 76226` were submitted on outcome
   versus prize heads with common seed `20260810` and identical normalized
   tactical `0.5` plus leaf-value `0.5` scoring. Advance quickly to larger
   confirmation only if the prize head wins the prize-centric metrics.
+- Jobs `76225 / 76226` completed cleanly. The prize head improved discounted
+  prize score `2.43448 -> 2.54268`, average prizes `3.002 -> 3.112`, six-prize
+  rate `0.312 -> 0.324`, and turns to six `10.2885 -> 9.7315`; win rate also
+  moved `0.419 -> 0.431`. These 1,000-game differences are directionally
+  consistent but not individually significant.
+- The leaf path was genuinely active: both arms changed more than 13k search
+  decisions, and sampled traces showed varying leaf values across nearly every
+  searched record. Prize-head scaling passes the one-week directional gate.
+- Matched 10,000-game confirmation jobs `76237 / 76238` are running with fresh
+  seed `20260811` and the unchanged normalized tactical/leaf 50:50 mixture.
+  Do not tune or collect more data until this confirmation completes.
 - Head-only training jobs `75459` (10k) and `75460` (20k) completed on CUDA in
   54 / 49 seconds with exactly 10,000 / 20,000 examples and zero skips. Both
   checkpoints are finite; all non-value parameters are byte-identical to the
