@@ -7971,3 +7971,29 @@ Scientific next step:
 - Run the two heads on a fresh common seed and promote on discounted prize score,
   average prizes, six-prize rate, and turns to six. Do not cite the old inert
   head-only evaluations as evidence or use a zero leaf weight again.
+
+## 2026-08-10 - One-Week Prize-Head Decision Funnel Started
+
+- Initial training job `76222` completed cleanly but consumed only shard 0:
+  10,000 examples instead of the requested 20,000. The comma inside
+  `sbatch --export=...,TRAJECTORY_DATASETS=path0,path1,...` was parsed by SLURM
+  as an environment-variable separator. Reject this checkpoint for the 20k A/B.
+- Corrected job `76223` used a single wildcard expanding inside the job and
+  consumed both verified shards: 20,000 examples, zero skipped rows, one epoch,
+  batch 128, learning rate `5e-5`, policy/entropy weights `0`, value weight `1`,
+  and head-only backpropagation. It completed in `00:02:04`.
+- The corrected checkpoint is finite. Exactly the four `value_head` tensors
+  changed; all 52 non-value tensors are byte-identical to the frozen GAE source.
+  Mean target was `2.285790`; final minibatch loss `3.757555` is retained only
+  as an optimizer diagnostic.
+- Hardened `phase5_ppo_train_conda.sbatch` to accept colon-separated dataset
+  lists. Use `:` through `sbatch --export`; commas remain supported only after
+  control reaches the job script.
+- Submitted matched evaluation jobs `76225` (20k outcome head) and `76226`
+  (20k prize head). Both use 1,000 fresh games, common seed `20260810`, top-4
+  search, gamma `0.97`, normalized tactical weight `0.5`, and normalized leaf
+  state-value weight `0.5`. This is the first current A/B in which the trained
+  value heads can actually change search choices.
+- One-week decision rule: if the prize head improves primary prize metrics with
+  clean telemetry, spend the remaining budget on a larger confirmation. If it
+  does not, stop prize-head scaling rather than collecting more data.

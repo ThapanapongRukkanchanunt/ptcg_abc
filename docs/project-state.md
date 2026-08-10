@@ -213,6 +213,14 @@ This is the resume point for the project. Start here after switching machines, c
   shards, then compare it with the outcome head using the identical normalized
   tactical `0.5` plus normalized leaf value `0.5` search mixture and fresh
   common seeds. Promote on prize-centric metrics, not win rate.
+- Corrected prize training job `76223` consumed all 20,000 rows with zero skips;
+  only four finite value-head tensors changed. Job `76222` is rejected because
+  SLURM comma parsing silently limited it to shard 0. The training wrapper now
+  accepts colon-separated lists for safe `sbatch --export` forwarding.
+- Matched 1,000-game evaluation jobs `76225 / 76226` are running on outcome
+  versus prize heads with common seed `20260810` and identical normalized
+  tactical `0.5` plus leaf-value `0.5` scoring. Advance quickly to larger
+  confirmation only if the prize head wins the prize-centric metrics.
 - Head-only training jobs `75459` (10k) and `75460` (20k) completed on CUDA in
   54 / 49 seconds with exactly 10,000 / 20,000 examples and zero skips. Both
   checkpoints are finite; all non-value parameters are byte-identical to the

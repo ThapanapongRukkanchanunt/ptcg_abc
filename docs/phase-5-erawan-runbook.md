@@ -41,6 +41,11 @@ VALUE_LOSS_WEIGHT=1
 VALUE_BACKPROP_SCOPE=head-only
 ```
 
+When forwarding multiple Linux dataset paths through `sbatch --export`, join
+them with `:`. Do not use a comma: SLURM treats commas as separators between
+exported variables. The wrapper accepts colon-, comma-, or whitespace-separated
+paths once inside the job.
+
 The simple Phase 5 PPO trainer consumes each row's `reward` directly. The
 collector has already stored the discounted return there; do not route this
 dataset through the BC+PPO `discounted-return` or GAE estimators, which would
