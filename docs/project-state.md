@@ -66,7 +66,8 @@ This is the resume point for the project. Start here after switching machines, c
   `2.69261` (`+2.37%`), average prizes from `3.195` to `3.279`, six-prize rate
   from `0.325` to `0.343`, and the secondary win diagnostic from `0.430` to
   `0.458`. These directions are not statistically resolved; run the final
-  fresh-seed 10,000-game confirmation before promotion.
+  fresh-seed 10,000-game confirmation before promotion. Confirmation jobs
+  `76355 / 76356` are running with common seed `20260816` and a 48-hour limit.
 - Adaptive breadth behaved as designed: the five-game trace expanded 59 / 200
   decisions and restored four unique states in 147 / 154 decisions with at
   least four candidates, versus 81 / 140 in the fixed trace. Full evaluation

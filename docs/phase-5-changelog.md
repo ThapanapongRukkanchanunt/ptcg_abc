@@ -8455,3 +8455,14 @@ Decision:
   if discounted prize score and average prizes remain positive, supported by
   six-prize completion and clean operation. This is the final scale test for
   this mechanism; do not tune the probe cap on the confirmation seed.
+
+Confirmation launch:
+
+- Submitted fixed control `76355` and adaptive challenger `76356`. Both entered
+  `RUNNING` together with a verified 48-hour limit, fresh common seed
+  `20260816`, 10,000 games, raw tactical weight `1.0`, leaf weight `0.0`, and
+  initial top-4 width. Startup confirms unique-state target `0 / 4` and adaptive
+  cap `8`; no other search or reward setting differs.
+- The confirmation retains only five traced games plus one win/loss replay per
+  arm. After completion, inspect prize distributions and operational telemetry
+  before deciding promotion. Do not launch another scale run for this mechanism.

@@ -4814,3 +4814,8 @@ JOB_UNIQUE_CONFIRM=$(sbatch --parsable --time=48:00:00 --export=ALL,$COMMON_CONF
 Do not tune target or cap on this seed. Promote adaptive search only if both
 primary prize metrics remain positive with supporting six-prize behavior and
 zero operational regression.
+
+Execution status (August 11, 2026): confirmation jobs `76355` (fixed) and
+`76356` (adaptive) entered `RUNNING` together. Scheduler and startup logs verify
+the 48-hour limit, 10,000 games, common seed `20260816`, and intended target
+`0 / 4` with adaptive cap `8`.
