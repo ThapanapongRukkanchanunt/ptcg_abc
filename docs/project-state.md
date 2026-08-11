@@ -35,6 +35,12 @@ This is the resume point for the project. Start here after switching machines, c
   `0.5 / 0.5` learned-value mixture beats raw tactical-only search. The next
   matched experiment should preserve raw tactical scoring and compare leaf
   weight `0.0` against a modest exact-prize leaf contribution.
+- That deployment ablation is now queued on ERAWAN as jobs `76314 / 76315`.
+  Both use the exact same 20,000-row prize checkpoint, raw tactical weight
+  `1.0`, no tactical normalization, top-4 search, 1,000 games, and common seed
+  `20260812`; only leaf weight changes from `0.0` to `0.5`. Advance to a
+  10,000-game confirmation only if the leaf arm improves discounted prize
+  score and average prizes without an operational regression.
 - Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
   (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
   50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.

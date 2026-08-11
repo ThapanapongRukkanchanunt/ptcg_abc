@@ -8113,3 +8113,28 @@ Decision:
   versus a modest `0.5` leaf contribution. Start with 1,000 games per arm; use
   the remaining week for a 10,000-game confirmation only if the leaf-augmented
   arm improves the prize metrics cleanly.
+
+## 2026-08-11 - Raw-Tactical Prize-Leaf Deployment Ablation Queued
+
+- Fast-forwarded the ERAWAN checkout to confirmation commit `4a8e5d0`, verified
+  the retained prize checkpoint
+  `models/rl/phase5_turn_prize_20k_v2/specialists/deck-101.pt`, and passed
+  native Bash syntax validation for the public-agent evaluation script.
+- Submitted job `76314` as the raw tactical-only control and job `76315` as the
+  prize-leaf challenger. Both entered `RUNNING` together; startup logs verify
+  the intended checkpoint, 1,000-game budget, seed, top-4 width, raw tactical
+  settings, and respective `0.0 / 0.5` leaf weights.
+- Both arms use the same prize-trained checkpoint, Dragapult versus the official
+  sample Lucario agent, top-4 search, 1,000 games, common seed `20260812`, raw
+  tactical weight `1.0`, tactical normalization disabled, gamma `0.97`, and
+  matched report/status/trace/replay retention. The sole experimental variable
+  is `leaf_state_value_weight`: `0.0` for `76314`, `0.5` for `76315`.
+- This design preserves the proven tactical ranking and asks whether a modest
+  exact-prize leaf term adds useful tie-breaking or refinement. It avoids the
+  confound in the earlier normalized `0.5 / 0.5` comparison, which changed both
+  tactical scaling and the learned head at once.
+- Promotion rule: require a clean improvement in average discounted prize
+  score and average prizes, with six-prize rate and turns to six as supporting
+  metrics and zero operational regressions. Treat 1,000 games as a directional
+  screen; submit a fresh-seed 10,000-game confirmation only if the leaf arm
+  passes that screen.
