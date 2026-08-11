@@ -8369,3 +8369,18 @@ Implementation and next experiment:
   turns to six support the decision. Candidate probes and search time quantify
   the compute cost. Advance only if prize behavior improves cleanly with zero
   operational regressions.
+
+ERAWAN launch:
+
+- Pushed implementation commit `9705782`, fast-forwarded ERAWAN to that exact
+  commit, passed native Bash validation, and passed the focused adaptive-search
+  and CLI tests there.
+- Submitted fixed top-4 control `76333` and adaptive unique-state challenger
+  `76334`. Both entered `RUNNING` together with common seed `20260815`, 1,000
+  games, the same exact-prize checkpoint loaded but leaf weight `0.0`, raw
+  tactical scoring, and top-4 initial width. Startup logs verify that the sole
+  search difference is unique-state target `0` versus target `4` with probe
+  cap `8`.
+- Each arm retains a five-game schema-v2 search trace plus one sampled win and
+  loss replay. Inspect prize metrics, effective probes, latency, errors,
+  timeouts, and the sampled decision sequences after both finish.

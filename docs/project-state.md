@@ -62,8 +62,10 @@ This is the resume point for the project. Start here after switching machines, c
 - Adaptive unique-state search is implemented behind opt-in controls. It keeps
   fixed top-4 as default, but can probe ranks five through eight only when the
   first four roots contain duplicate modeled end states. The next matched
-  experiment is fixed top-4 versus a four-unique-state target capped at eight,
-  using prize metrics for promotion and probe/time telemetry for compute cost.
+  experiment is running as jobs `76333 / 76334`: fixed top-4 versus a four-
+  unique-state target capped at eight, using common seed `20260815` and 1,000
+  games per arm. Use prize metrics for promotion and probe/time telemetry for
+  compute cost.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

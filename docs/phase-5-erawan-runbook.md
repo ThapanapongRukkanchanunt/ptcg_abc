@@ -4788,3 +4788,8 @@ JOB_UNIQUE_TOP4=$(sbatch --parsable --export=ALL,$COMMON_EXPORTS,SEARCH_UNIQUE_S
 Promotion requires a clean improvement in discounted prize score and average
 prizes, supported by six-prize completion and turns to six, with zero errors or
 timeouts. Report candidate-probe and search-time inflation explicitly.
+
+Execution status (August 11, 2026): fixed control `76333` and adaptive
+challenger `76334` entered `RUNNING` together. Startup confirms common seed
+`20260815`, 1,000 games, raw tactical weight `1.0`, leaf weight `0.0`, and
+unique-state target `0 / 4` with challenger probe cap `8`.
