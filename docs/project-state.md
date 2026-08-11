@@ -20,6 +20,32 @@ This is the resume point for the project. Start here after switching machines, c
 - Phase 5 ERAWAN storage rule: future generated game datasets should be written
   under `/project/SIGGI/thapanapong.r@cmu.ac.th`; keep `reports/`, `models/`,
   and `experiments/` in the repository.
+- Latest prize-objective confirmation: matched 10,000-game jobs `76237`
+  (outcome head) and `76238` (exact-prize head) completed cleanly. The prize
+  head raised average discounted prize score from `2.32229` to `2.46197`
+  (`+6.01%`), average prizes from `2.8546` to `3.0074` (`+0.1528`,
+  approximate `p = 1.10e-5`), and six-prize rate from `0.2867` to `0.3038`
+  (`+0.0171`, approximate `p = 0.0080`). Average turns to six fell from
+  `9.9648` to `9.7044`. This confirms the exact-prize head is superior to the
+  outcome head when both use the same normalized tactical/leaf `0.5 / 0.5`
+  mixture.
+- Prize-head deployment status: promote the exact-prize head as the learned
+  value component, but do not yet replace the best tactical-only top-4 agent.
+  The confirmation isolates value-target quality; it does not show that the
+  `0.5 / 0.5` learned-value mixture beats raw tactical-only search. The next
+  matched experiment should preserve raw tactical scoring and compare leaf
+  weight `0.0` against a modest exact-prize leaf contribution.
+- Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
+  (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
+  50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.
+  Both confirmation jobs had zero battle errors, timeouts, search errors, and
+  candidate errors. They generated no raw training JSONL, so raw cleanup is
+  vacuously complete.
+- Confirmation evidence is retained in a new protected local directory as a
+  314,414-byte compact archive with SHA-256
+  `826353e11796fbc2714611b6d63b333bfb60af654cc440efd63615d28ea391b8`.
+  Reports, logs, statuses, five-game traces, and sampled replays are included;
+  the verified temporary ERAWAN transfer archive was removed.
 - Latest episode-return PPO result: full ERAWAN jobs `74972` (GAE) and `74973`
   (discounted return) completed cleanly. GAE improved from 81 / 200 (`0.405`)
   at generation 0 to 102 / 200 (`0.510`) at generation 1; discounted return

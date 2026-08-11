@@ -8044,3 +8044,72 @@ Decision and confirmation:
 - If the approximately +0.11 average-prize and +4.4% discounted-score effects
   persist, this budget should resolve them while finishing comfortably inside
   the remaining week. Promotion still depends on prize metrics, not win rate.
+
+## 2026-08-11 - Exact-Prize Head Wins the 10,000-Game Confirmation
+
+Matched result:
+
+| Metric | Outcome head `76237` | Prize head `76238` | Prize delta |
+| --- | ---: | ---: | ---: |
+| Discounted prize score | 2.322293 | 2.461974 | +0.139681 (+6.01%) |
+| Average prizes | 2.8546 | 3.0074 | +0.1528 |
+| Six-prize games / rate | 2,867 / 0.2867 | 3,038 / 0.3038 | +171 / +0.0171 |
+| Average turns to six | 9.9648 | 9.7044 | -0.2604 |
+| Average controlled turns | 9.8492 | 9.8340 | -0.0152 |
+| Wins / losses / draws | 3,950 / 6,035 / 15 | 4,157 / 5,824 / 19 | +207 wins |
+
+Confirmation and statistics:
+
+- Jobs `76237 / 76238` completed with exit code `0` in `16:40:27 / 16:40:26`.
+  Peak batch RSS was 274,988 / 272,068 KB. Both had zero battle errors,
+  timeouts, search errors, and candidate errors. Stderr contains only the known
+  PyTorch nested-tensor warning.
+- The prize head repeats the 1,000-game direction on every predeclared prize
+  metric. An independent two-sample approximation gives average-prize
+  difference `+0.1528`, 95% CI approximately `[0.0847, 0.2209]`,
+  `z = 4.40`, `p = 1.10e-5`. The six-prize-rate difference is `+0.0171`,
+  95% CI approximately `[0.00446, 0.02974]`, `z = 2.65`, `p = 0.0080`.
+- Win rate, retained only as a diagnostic, also rose from `0.3950` to `0.4157`:
+  difference `+0.0207`, 95% CI approximately `[0.00709, 0.03431]`,
+  `z = 2.98`, `p = 0.00287`. The prize arm is still 843 wins and 8.43
+  percentage points short of tying the historical 50% Dragapult-vs-Lucario
+  gate.
+- Prize-count distributions for counts 0 through 6 were
+  `2,744 / 1,573 / 658 / 742 / 851 / 565 / 2,867` for the outcome head and
+  `2,591 / 1,415 / 626 / 788 / 895 / 647 / 3,038` for the prize head.
+
+Search and artifact audit:
+
+- Outcome search changed 148,855 / 411,830 decisions (`0.36145`) across
+  1,534,179 candidate probes; prize search changed 131,841 / 431,746
+  (`0.30537`) across 1,576,242 probes. Mean search time was `0.0913 / 0.0842`
+  seconds and truncated candidates were `432 / 283`. The learned-value path
+  was active and operationally healthy in both arms.
+- These evaluation jobs generated no training JSONL, so raw JSONL cleanup is
+  vacuously complete. The previously verified 20,000-row prize-training shards
+  are older retained inputs and were not modified by this inspection.
+- Securely downloaded both JSON/Markdown reports, status JSONs, scheduler
+  status, stdout/stderr, five-game search traces, and sampled win/loss replays
+  into a new protected local directory. The compact archive is 314,414 bytes
+  with SHA-256
+  `826353e11796fbc2714611b6d63b333bfb60af654cc440efd63615d28ea391b8`.
+  The verified temporary ERAWAN transfer archive was removed.
+
+Decision:
+
+- Promote the exact-prize head over the outcome head for the learned value
+  component. The 1,000-game directional result is now confirmed at 10,000
+  games with statistically resolved improvements in average prizes and
+  six-prize completion.
+- Do not yet call the `0.5 / 0.5` normalized tactical/leaf mixture the best
+  playable agent. This A/B isolates which learned head is better; it does not
+  compare the learned-value mixture against the project's best raw
+  tactical-only top-4 search. The 20,000-game collection behavior under
+  tactical-only search averaged `3.2728` prizes and `2.69386` discounted prize
+  score, which is a non-matched but material warning against premature agent
+  promotion.
+- Next run a matched fresh-seed ablation that keeps the proven raw tactical
+  score unchanged and changes only exact-prize leaf weight: `0.0` control
+  versus a modest `0.5` leaf contribution. Start with 1,000 games per arm; use
+  the remaining week for a 10,000-game confirmation only if the leaf-augmented
+  arm improves the prize metrics cleanly.
