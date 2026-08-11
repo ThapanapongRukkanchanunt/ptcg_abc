@@ -128,6 +128,8 @@ def _slug(value: str) -> str:
 def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig | None:
     fields = {
         "top_k": getattr(args, "search_top_k", None),
+        "unique_state_target": getattr(args, "search_unique_state_target", None),
+        "max_candidate_probes": getattr(args, "search_max_candidate_probes", None),
         "max_rollout_steps": getattr(args, "search_rollout_steps", None),
         "tactical_score_weight": getattr(args, "tactical_score_weight", None),
         "normalize_tactical_score": (
@@ -143,6 +145,16 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
     base_config = RootSearchConfig()
     return RootSearchConfig(
         top_k=fields["top_k"] if fields["top_k"] is not None else base_config.top_k,
+        unique_state_target=(
+            fields["unique_state_target"]
+            if fields["unique_state_target"] is not None
+            else base_config.unique_state_target
+        ),
+        max_candidate_probes=(
+            fields["max_candidate_probes"]
+            if fields["max_candidate_probes"] is not None
+            else base_config.max_candidate_probes
+        ),
         max_rollout_steps=(
             fields["max_rollout_steps"]
             if fields["max_rollout_steps"] is not None
@@ -203,6 +215,18 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         type=int,
         default=None,
         help="Override phase5-search one-turn rollout step cap.",
+    )
+    parser.add_argument(
+        "--search-unique-state-target",
+        type=int,
+        default=None,
+        help="Expand past top-k until this many distinct modeled end states are probed.",
+    )
+    parser.add_argument(
+        "--search-max-candidate-probes",
+        type=int,
+        default=None,
+        help="Hard root-probe cap for unique-state expansion.",
     )
     parser.add_argument(
         "--policy-prior-weight",

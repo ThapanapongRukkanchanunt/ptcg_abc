@@ -8283,3 +8283,89 @@ ERAWAN validation and launch:
   and `76326` (seed `20260814`). Both entered `RUNNING` with raw tactical
   weight `1.0`, leaf weight `0.0`, top-4 search, and schema-v2 tracing enabled
   for all 100 games. Analyze shards separately and merged after completion.
+
+## 2026-08-11 - Top-4 Sequence Equivalence Replicates; Adaptive Unique-State Search Added
+
+Completed evaluation and artifact audit:
+
+- Evaluation jobs `76325 / 76326` completed with exit code `0` in `00:19:01 /
+  00:14:18`. They scored `39-60-1 / 51-49-0`, with zero battle errors,
+  timeouts, search errors, and candidate errors. The combined secondary win
+  diagnostic is `90 / 200 = 0.450`, five percentage points and ten wins short
+  of tying the 50% Dragapult-vs-Lucario gate; Wilson 95% CI is approximately
+  `[0.383, 0.519]`. The 12-point shard difference is not resolved at this
+  sample size (`z = 1.71`, two-sided `p = 0.088`).
+- Combined prize behavior was `3.390` average prizes, `2.77446` average
+  discounted prize score, `70 / 200 = 0.350` six-prize completion, `9.371`
+  average turns to six among completions, and `9.965` average controlled turns.
+  Win/loss remains diagnostic; these jobs were designed to measure candidate
+  equivalence, not promote an agent from 200 games.
+- Diagnostic jobs `76331 / 76332` completed cleanly in seven / five seconds.
+  Both schema-v2 traces parsed completely: `4,480 / 4,259` records, zero
+  missing action sequences, zero missing modeled-state fingerprints, and zero
+  malformed JSONL rows. Evaluation generated no raw training JSONL, so raw
+  training-data cleanup is vacuously complete. The two all-game search traces
+  are intentional retained diagnostic artifacts, not disposable raw training
+  data.
+- Securely downloaded reports, status JSONs, stdout/stderr, diagnostics, and
+  both full traces into a new protected local directory. The 20-file transfer
+  archive is 9,801,677 bytes with SHA-256
+  `a444dda2f9e27fb93aef98ea38a3a77810933162d92a426c9c16b1b98ddf360e`.
+  These jobs were not configured to save separate battle replays; their
+  schema-v2 traces retain every evaluated root rollout instead. The verified
+  temporary ERAWAN archive was removed.
+
+Replicated equivalence result:
+
+| Metric | Shard A | Shard B | Combined |
+| --- | ---: | ---: | ---: |
+| Decisions | 4,480 | 4,259 | 8,739 |
+| Decisions with exact-state duplicates | 1,488 (33.21%) | 1,404 (32.97%) | 2,892 (33.09%) |
+| Candidate pairs | 23,167 | 21,829 | 44,996 |
+| Exact-state duplicate pairs | 2,430 (10.49%) | 2,256 (10.33%) | 4,686 (10.41%) |
+| Different-action-multiset convergence | 1,868 | 1,811 | 3,679 |
+| All candidates exact-equivalent | 64 (1.43%) | 60 (1.41%) | 124 (1.42%) |
+
+- The primary rate is essentially identical across independent seeds. The
+  combined 33.09% decision rate has Wilson 95% CI approximately
+  `[32.11%, 34.09%]`; sequence redundancy is established, not smoke noise.
+- Exact equivalence is stricter than equal tactical totals: the candidates end
+  in an identical modeled state including exposed deck order, hand, discard,
+  prize identities, board attachments/status, and turn flags. All 4,686 exact
+  pairs used different recorded sequences and had identical tactical score.
+  Of those pairs, 3,679 used different action-multiset fingerprints, while
+  common examples also showed commutative ordering such as attach/play,
+  ability/play, stadium/play, and retreat/attach before the same attack or END.
+- Root-type duplicates were led by `PLAY -> PLAY` (1,137 pairs),
+  `ATTACH -> PLAY` (667), `ABILITY -> PLAY` (617), `PLAY -> RETREAT` (411),
+  and `ABILITY -> ATTACH` (373). Duplicate classes had size two / three / four
+  in `2,298 / 552 / 122` cases.
+- The nominal 32,188 root candidates represented 28,420 distinct modeled end
+  states: duplicate roots consumed 3,768 slots, or 11.71% of search capacity.
+  Mean effective breadth was 3.252 unique states per searched decision rather
+  than the nominal top four. In 124 decisions, every candidate converged to one
+  state.
+- Root priors gave every exact duplicate pair a different combined score
+  (mean absolute gap `0.0481`) despite zero tactical-score difference. This did
+  not corrupt the final choice: search changed 931 / 8,739 decisions, and in
+  all 931 the selected and baseline candidates had different exact, visible-
+  board, and coarse outcomes. Equivalent routes therefore waste breadth, but
+  the existing prior tie-break already preserves the baseline among them.
+
+Implementation and next experiment:
+
+- Added optional adaptive unique-state search. Fixed top-4 remains the default.
+  When enabled with target four and cap eight, search evaluates the normal top
+  four, then probes ranks five through eight only while fewer than four unique
+  modeled end states have been found. Scoring is unchanged; the experiment
+  isolates effective breadth rather than introducing another reward term.
+- Added CLI and SLURM controls for the unique-state target and hard probe cap.
+  The same bounded logic is available to online evaluation and search-data
+  generation. Focused validation passes 51 tests with one expected
+  Torch-dependent skip; `git diff --check` passes.
+- Next run a matched fresh-seed 1,000-game A/B: fixed top-4 control versus
+  adaptive four-unique-state search capped at eight roots. Primary promotion
+  metrics are discounted prize score and average prizes; six-prize rate and
+  turns to six support the decision. Candidate probes and search time quantify
+  the compute cost. Advance only if prize behavior improves cleanly with zero
+  operational regressions.

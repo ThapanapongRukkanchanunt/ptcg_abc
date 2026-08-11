@@ -32,6 +32,8 @@ class RootSearchConfig:
     """Small bounded one-turn root-search configuration for Phase 5 data generation."""
 
     top_k: int = 4
+    unique_state_target: int = 0
+    max_candidate_probes: int = 8
     max_rollout_steps: int = 30
     min_candidates: int = 2
     rule_prior_weight: float = 0.08
@@ -290,7 +292,11 @@ class OneTurnRootSearchAgent:
         frame: DecisionFrame,
         baseline: list[int],
     ) -> tuple[list[int], RootSearchDecisionTrace]:
-        candidates = _candidate_evaluations(frame, baseline, top_k=self.config.top_k)
+        candidates = _candidate_evaluations(
+            frame,
+            baseline,
+            top_k=_candidate_probe_limit(self.config),
+        )
         search_started = False
         search_error: str | None = None
         hidden: HiddenStateSample | None = None
@@ -313,6 +319,7 @@ class OneTurnRootSearchAgent:
             )
             search_started = True
             root_search_id = int(_get(root_state, "searchId", 0) or 0)
+            evaluated_candidates: list[CandidateEvaluation] = []
             for candidate in candidates:
                 self._evaluate_candidate(
                     root_search_id=root_search_id,
@@ -320,6 +327,10 @@ class OneTurnRootSearchAgent:
                     root_observation=observation,
                     root_frame=frame,
                 )
+                evaluated_candidates.append(candidate)
+                if _candidate_search_is_complete(evaluated_candidates, self.config):
+                    break
+            candidates = evaluated_candidates
         except Exception as exc:
             search_error = f"{type(exc).__name__}: {exc}"
         finally:
@@ -823,6 +834,32 @@ def _candidate_evaluations(
             )
         )
     return candidates
+
+
+def _candidate_probe_limit(config: RootSearchConfig) -> int:
+    """Return the bounded root pool used by fixed or unique-state search."""
+
+    if config.unique_state_target <= 0:
+        return max(0, int(config.top_k))
+    return max(int(config.top_k), int(config.max_candidate_probes))
+
+
+def _candidate_search_is_complete(
+    candidates: Sequence[CandidateEvaluation],
+    config: RootSearchConfig,
+) -> bool:
+    """Stop after top-k, or expand until the requested unique-state breadth exists."""
+
+    if len(candidates) < max(0, int(config.top_k)):
+        return False
+    if config.unique_state_target <= 0:
+        return True
+    unique_states = {
+        candidate.end_state_fingerprint
+        for candidate in candidates
+        if candidate.error is None and candidate.end_state_fingerprint
+    }
+    return len(unique_states) >= int(config.unique_state_target)
 
 
 def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSearchConfig) -> None:

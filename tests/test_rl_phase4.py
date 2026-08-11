@@ -24,6 +24,8 @@ from ptcg_abc.rl.phase5_search import (
     RootSearchDecisionTrace,
     _best_candidate_indices,
     _candidate_evaluations,
+    _candidate_probe_limit,
+    _candidate_search_is_complete,
     _replace_frame_selection,
     _score_candidates,
     merge_search_data,
@@ -785,6 +787,31 @@ class Phase4RlTests(unittest.TestCase):
         self.assertEqual(relabeled.rule_selected_indices, [1])
         self.assertEqual(relabeled.reward_metadata["phase5_baseline_indices"], [0])
         self.assertTrue(relabeled.reward_metadata["phase5_search_changed"])
+
+    def test_unique_state_search_expands_only_when_top_k_is_redundant(self):
+        config = RootSearchConfig(
+            top_k=4,
+            unique_state_target=4,
+            max_candidate_probes=8,
+        )
+        candidates = [
+            CandidateEvaluation(
+                indices=[index],
+                option_index=index,
+                option_type="PLAY",
+                card_name=str(index),
+                attack_id=None,
+                rule_score=0.0,
+                rule_rank=index + 1,
+                end_state_fingerprint=fingerprint,
+            )
+            for index, fingerprint in enumerate(["a", "b", "b", "c", "d"])
+        ]
+
+        self.assertEqual(_candidate_probe_limit(config), 8)
+        self.assertFalse(_candidate_search_is_complete(candidates[:4], config))
+        self.assertTrue(_candidate_search_is_complete(candidates, config))
+        self.assertEqual(_candidate_probe_limit(RootSearchConfig(top_k=4)), 4)
 
     def test_phase5_hidden_state_sampler_matches_visible_counts(self):
         own_deck = list(range(1, 61))

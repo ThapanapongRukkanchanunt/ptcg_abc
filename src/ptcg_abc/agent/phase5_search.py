@@ -17,6 +17,8 @@ from ptcg_abc.rl.phase5_search import (
     RootSearchConfig,
     RootSearchDecisionTrace,
     _best_candidate_indices,
+    _candidate_probe_limit,
+    _candidate_search_is_complete,
     _hidden_counts,
     _load_search_api,
     _score_candidates,
@@ -271,6 +273,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             legal_actions,
             scores,
             model_outputs,
+            candidate_limit=_candidate_probe_limit(self.config),
         )
         search_started = False
         search_error: str | None = None
@@ -294,6 +297,7 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             )
             search_started = True
             root_search_id = int(_get(root_state, "searchId", 0) or 0)
+            evaluated_candidates: list[CandidateEvaluation] = []
             for candidate in candidates:
                 OneTurnRootSearchAgent._evaluate_candidate(
                     self,
@@ -302,6 +306,10 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
                     root_observation=observation,
                     root_frame=frame,
                 )
+                evaluated_candidates.append(candidate)
+                if _candidate_search_is_complete(evaluated_candidates, self.config):
+                    break
+            candidates = evaluated_candidates
         except Exception as exc:
             search_error = f"{type(exc).__name__}: {exc}"
         finally:
@@ -346,13 +354,15 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         legal_actions: Sequence[Any],
         scores: Sequence[float],
         model_outputs: dict[str, Any] | None = None,
+        candidate_limit: int | None = None,
     ) -> list[CandidateEvaluation]:
+        limit = self.config.top_k if candidate_limit is None else max(0, int(candidate_limit))
         ordered_indices: list[int] = []
         for index in baseline:
             if 0 <= index < len(frame.legal_options) and index not in ordered_indices:
                 ordered_indices.append(int(index))
         for position in self._rank_policy_positions(encoded, legal_actions, scores):
-            if len(ordered_indices) >= self.config.top_k:
+            if len(ordered_indices) >= limit:
                 break
             index = int(encoded.legal_action_indices[position])
             if 0 <= index < len(frame.legal_options) and index not in ordered_indices:

@@ -204,6 +204,10 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
                 "6",
                 "--search-rollout-steps",
                 "30",
+                "--search-unique-state-target",
+                "4",
+                "--search-max-candidate-probes",
+                "8",
             ]
         )
         search_selfplay_args = parser.parse_args(
@@ -239,6 +243,8 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         )
         self.assertEqual(search_eval_args.search_top_k, 6)
         self.assertEqual(search_eval_args.search_rollout_steps, 30)
+        self.assertEqual(search_eval_args.search_unique_state_target, 4)
+        self.assertEqual(search_eval_args.search_max_candidate_probes, 8)
         self.assertEqual(search_selfplay_args.command, "rl-generate-phase5-search-selfplay")
         self.assertEqual(search_selfplay_args.games, 4)
         self.assertEqual(search_selfplay_args.game_offset, 12)

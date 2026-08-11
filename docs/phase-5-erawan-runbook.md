@@ -4760,3 +4760,31 @@ REPORT_JSON=reports/phase5_top4_sequence_equivalence_shard_a.json \
 REPORT_MD=reports/phase5_top4_sequence_equivalence_shard_a.md \
 sbatch --parsable scripts/slurm/phase5_search_sequence_equivalence_conda.sbatch
 ```
+
+Completed result (August 11, 2026):
+
+- Evaluations `76325 / 76326` and diagnostics `76331 / 76332` completed cleanly.
+- Exact-state duplicates appeared in `1,488 / 4,480` and `1,404 / 4,259`
+  decisions, independently replicating at `33.21% / 32.97%`.
+- Combined, 32,188 candidate roots represented 28,420 unique modeled end
+  states. Fixed top-4 therefore spent 11.71% of its slots on duplicates.
+- All 4,686 exact duplicate pairs had identical tactical score. None of the 931
+  actual search changes merely swapped to an equivalent end state; redundancy
+  reduces breadth but the rule-prior tie-break already stabilizes the choice.
+
+The next matched A/B preserves raw tactical scoring and changes only adaptive
+candidate expansion. The challenger seeks four distinct modeled end states,
+probing at most eight roots. Keep saved replays small and trace five games per
+arm; the 1,000-game reports remain the decision artifacts.
+
+```bash
+COMMON_EXPORTS='PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents,PUBLIC_AGENT_KEYS=sample_lucario,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,CONTROLLED_DECK_INDEX=101,SPECIALIST_MODEL_DIR=models/rl/phase5_turn_prize_20k_v2/specialists,AGENT=phase5-search,SEARCH_TOP_K=4,GAMES_PER_MATCHUP=1000,GAME_SEED=20260815,PRIZE_DISCOUNT_GAMMA=0.97,NORMALIZE_TACTICAL_SCORE=0,TACTICAL_SCORE_WEIGHT=1.0,LEAF_STATE_VALUE_WEIGHT=0.0,SEARCH_TRACE_GAMES=5,SAVED_WIN_REPLAYS=1,SAVED_LOSS_REPLAYS=1'
+
+JOB_FIXED_TOP4=$(sbatch --parsable --export=ALL,$COMMON_EXPORTS,SEARCH_UNIQUE_STATE_TARGET=0,REPORT_JSON=reports/phase5_fixed_top4_1000g.json,REPORT_MD=reports/phase5_fixed_top4_1000g.md,STATUS_JSON=reports/phase5_fixed_top4_1000g_status.json,SEARCH_TRACE_OUTPUT=experiments/rl/phase5_unique_state_ab/fixed_top4_trace.jsonl,REPLAY_OUTPUT_DIR=experiments/rl/phase5_unique_state_ab/fixed_top4_replays scripts/slurm/phase5_public_agent_eval_conda.sbatch)
+
+JOB_UNIQUE_TOP4=$(sbatch --parsable --export=ALL,$COMMON_EXPORTS,SEARCH_UNIQUE_STATE_TARGET=4,SEARCH_MAX_CANDIDATE_PROBES=8,REPORT_JSON=reports/phase5_unique_state_top4_cap8_1000g.json,REPORT_MD=reports/phase5_unique_state_top4_cap8_1000g.md,STATUS_JSON=reports/phase5_unique_state_top4_cap8_1000g_status.json,SEARCH_TRACE_OUTPUT=experiments/rl/phase5_unique_state_ab/unique_top4_cap8_trace.jsonl,REPLAY_OUTPUT_DIR=experiments/rl/phase5_unique_state_ab/unique_top4_cap8_replays scripts/slurm/phase5_public_agent_eval_conda.sbatch)
+```
+
+Promotion requires a clean improvement in discounted prize score and average
+prizes, supported by six-prize completion and turns to six, with zero errors or
+timeouts. Report candidate-probe and search-time inflation explicitly.

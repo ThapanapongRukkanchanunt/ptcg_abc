@@ -48,38 +48,27 @@ This is the resume point for the project. Start here after switching machines, c
   should make prize value a guarded near-tie breaker: first preserve candidates
   within a small raw-tactical margin, then use prize value only inside that
   set. Validate against a matched raw-tactical control before promotion.
-- Active search-sequence investigation: legacy five-game raw-tactical traces
-  show that 152 / 214 root decisions (`71.0%`) had at least two top-4 choices
-  with the same recorded coarse turn-end outcome; 335 / 1,118 candidate pairs
-  (`30.0%`) matched on result, prizes, damage, tactical score, and termination
-  flags. The old schema cannot prove interchangeability because it omits the
-  intervening action sequence and exact end state. Schema-v2 tracing now records
-  every simulated choice plus order-sensitive sequence, order-insensitive
-  action-multiset, visible-board, and stricter modeled-state fingerprints. A new
-  diagnostic measures reordered-equivalent and convergent action paths.
-- Real-engine smoke jobs `76322 / 76323` validated schema-v2 collection and
-  diagnostics with zero missing sequence/state fields. In two games, 28 / 85
-  decisions contained exact-state-equivalent top-4 choices and 42 / 466 pairs
-  converged to the same modeled state; all exact pairs had identical tactical
-  score but differing combined score because of root priors. After removing
-  transient option indices from sequence identity, independent 100-game raw-
-  tactical trace jobs `76325 / 76326` are running with all-game tracing.
-- Real-engine smoke jobs `76322 / 76323` validated schema-v2 collection and
-  diagnostics with zero missing sequence/state fields. In two games, 28 / 85
-  decisions contained exact-state-equivalent top-4 choices and 42 / 466 pairs
-  converged to the same modeled state; all exact pairs had identical tactical
-  score but differing combined score because of root priors. After removing
-  transient option indices from sequence identity, independent 100-game raw-
-  tactical trace jobs `76325 / 76326` are running with all-game tracing.
-- Active search-sequence investigation: legacy five-game raw-tactical traces
-  show that 152 / 214 root decisions (`71.0%`) had at least two top-4 choices
-  with the same recorded coarse turn-end outcome; 335 / 1,118 candidate pairs
-  (`30.0%`) matched on result, prizes, damage, tactical score, and termination
-  flags. The old schema cannot prove interchangeability because it omits the
-  intervening action sequence and exact end state. Schema-v2 tracing now records
-  every simulated choice plus order-sensitive sequence, order-insensitive
-  action-multiset, visible-board, and stricter modeled-state fingerprints. A new
-  diagnostic measures reordered-equivalent and convergent action paths.
+- Top-4 action-sequence equivalence is confirmed on independent 100-game jobs
+  `76325 / 76326`. Exact modeled-state duplicates occurred in 1,488 / 4,480
+  (`33.21%`) and 1,404 / 4,259 (`32.97%`) decisions. Combined, 2,892 / 8,739
+  decisions (`33.09%`, Wilson 95% approximately `32.11-34.09%`) contained an
+  interchangeable class, and 4,686 / 44,996 candidate pairs (`10.41%`) reached
+  the same full state with a different recorded sequence.
+- Duplicate roots consume meaningful width: 32,188 candidates collapsed to
+  28,420 unique states, losing 3,768 slots (`11.71%`) and leaving mean effective
+  breadth 3.252 instead of four. All exact pairs had identical tactical score;
+  root-prior differences preserved the baseline, and none of the 931 actual
+  search changes selected an exact/board/coarse-equivalent alternative.
+- Adaptive unique-state search is implemented behind opt-in controls. It keeps
+  fixed top-4 as default, but can probe ranks five through eight only when the
+  first four roots contain duplicate modeled end states. The next matched
+  experiment is fixed top-4 versus a four-unique-state target capped at eight,
+  using prize metrics for promotion and probe/time telemetry for compute cost.
+- The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
+  ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
+  approximately `0.383-0.519`). They had zero errors/timeouts and combined
+  average prizes `3.390`, discounted prize score `2.77446`, and six-prize rate
+  `0.350`; the sample is diagnostic, not a promotion result.
 - Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
   (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
   50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.
