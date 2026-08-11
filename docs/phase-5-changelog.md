@@ -8138,3 +8138,66 @@ Decision:
   metrics and zero operational regressions. Treat 1,000 games as a directional
   screen; submit a fresh-seed 10,000-game confirmation only if the leaf arm
   passes that screen.
+
+## 2026-08-11 - Additive Prize Leaf Fails the Raw-Tactical Deployment Gate
+
+Matched result:
+
+| Metric | Raw tactical `76314` | Prize leaf `76315` | Leaf delta |
+| --- | ---: | ---: | ---: |
+| Discounted prize score | 2.732210 | 2.372888 | -0.359322 (-13.15%) |
+| Average prizes | 3.333 | 2.887 | -0.446 |
+| Six-prize games / rate | 367 / 0.367 | 290 / 0.290 | -77 / -0.077 |
+| Average turns to six | 9.5995 | 9.5241 | -0.0753 |
+| Average controlled turns | 9.669 | 9.760 | +0.091 |
+| Wins / losses / draws | 484 / 515 / 1 | 423 / 576 / 1 | -61 wins |
+
+- Jobs `76314 / 76315` completed with exit code `0` in `01:34:24 / 01:41:20`.
+  Both had zero battle errors, timeouts, search errors, and candidate errors.
+  Stderr contains only the known PyTorch nested-tensor warning.
+- The primary prize metrics reject the leaf arm decisively. The average-prize
+  difference is `-0.446`, approximate 95% CI `[-0.662, -0.230]`,
+  `z = -4.04`, `p = 5.25e-5`. The six-prize-rate difference is `-0.077`,
+  approximate 95% CI `[-0.118, -0.036]`, `z = -3.68`, `p = 0.000235`.
+  The conditional turns-to-six decrease is not a benefit: 77 fewer games
+  reached six prizes, changing the selected subset.
+- The secondary win diagnostic fell by 6.1 percentage points (`z = -2.75`,
+  `p = 0.00605`). Raw tactical ended only 16 wins and 1.6 points short of the
+  50% gate in this 1,000-game sample; the stable historical 10,000-game result
+  remains `0.4613`, 387 wins and 3.87 points short.
+- Prize-count distributions for counts 0 through 6 were
+  `211 / 135 / 70 / 69 / 91 / 57 / 367` for raw tactical and
+  `282 / 150 / 51 / 78 / 84 / 65 / 290` for prize leaf. The leaf arm created
+  71 more zero-prize games while eliminating 77 six-prize completions.
+
+Search diagnosis and retention:
+
+- Raw tactical changed 4,676 / 43,539 searched decisions (`0.10740`); leaf
+  weight `0.5` changed 14,335 / 41,455 (`0.34580`). The leaf term therefore
+  more than tripled baseline disruption. Mean search time rose from `0.0699`
+  to `0.0882` seconds; probes, errors, and truncation remained healthy.
+- The five-game leaf trace had nonconstant leaf values in 225 / 229 records.
+  Among its 72 changed trace decisions, 36 accepted a lower raw-tactical score.
+  Those 36 sacrificed `0.0564` tactical score on average for `0.3918` normalized
+  leaf score. Observed shifts included attack-to-play, attack-to-attach, and
+  one attack-to-END choice. Min-max normalization makes the nominal `0.5`
+  leaf weight large relative to typical raw tactical margins.
+- These evaluation jobs generated no raw training JSONL, so raw cleanup is
+  vacuously complete. Securely downloaded reports, statuses, logs, traces, and
+  sampled replays into a new protected directory. The compact archive is
+  371,705 bytes with SHA-256
+  `282258b878bc5801eb4ba58815955b2be8386d364853fc5f30940ff63b426a77`.
+  The verified temporary ERAWAN transfer archive was removed.
+
+Decision:
+
+- Reject additive normalized prize-leaf weight `0.5`; do not spend 20,000 games
+  on its predeclared confirmation. Raw tactical top-4 remains the best playable
+  agent.
+- Retain the prize head as evidence that exact-prize targets rank states better
+  than win/loss targets under an identical learned-value mixture, but stop
+  allowing that rank to override materially better tactical actions.
+- Next implement a guarded near-tie mechanism: select the candidates within a
+  small margin of the best raw tactical score and apply normalized prize value
+  only inside that set. Compare it against raw tactical control on a fresh
+  matched 1,000-game seed before considering any larger run.

@@ -35,12 +35,19 @@ This is the resume point for the project. Start here after switching machines, c
   `0.5 / 0.5` learned-value mixture beats raw tactical-only search. The next
   matched experiment should preserve raw tactical scoring and compare leaf
   weight `0.0` against a modest exact-prize leaf contribution.
-- That deployment ablation is now queued on ERAWAN as jobs `76314 / 76315`.
-  Both use the exact same 20,000-row prize checkpoint, raw tactical weight
-  `1.0`, no tactical normalization, top-4 search, 1,000 games, and common seed
-  `20260812`; only leaf weight changes from `0.0` to `0.5`. Advance to a
-  10,000-game confirmation only if the leaf arm improves discounted prize
-  score and average prizes without an operational regression.
+- Raw-tactical deployment jobs `76314 / 76315` completed cleanly and reject
+  prize-leaf weight `0.5`. Against the raw-tactical control, the leaf arm cut
+  discounted prize score from `2.73221` to `2.37289`, average prizes from
+  `3.333` to `2.887` (`-0.446`, approximate `p = 5.25e-5`), six-prize rate
+  from `0.367` to `0.290` (`p = 0.000235`), and the secondary win diagnostic
+  from `0.484` to `0.423` (`p = 0.00605`). Do not run the planned 10,000-game
+  confirmation and do not deploy this leaf mixture.
+- Raw tactical top-4 remains the best playable agent. Prize training is still
+  validated as a better learned target than win/loss, but its normalized leaf
+  rank is too disruptive for additive action scoring. The next implementation
+  should make prize value a guarded near-tie breaker: first preserve candidates
+  within a small raw-tactical margin, then use prize value only inside that
+  set. Validate against a matched raw-tactical control before promotion.
 - Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
   (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
   50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.
