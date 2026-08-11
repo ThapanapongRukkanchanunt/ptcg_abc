@@ -4793,3 +4793,24 @@ Execution status (August 11, 2026): fixed control `76333` and adaptive
 challenger `76334` entered `RUNNING` together. Startup confirms common seed
 `20260815`, 1,000 games, raw tactical weight `1.0`, leaf weight `0.0`, and
 unique-state target `0 / 4` with challenger probe cap `8`.
+
+Screen result: fixed/adaptive discounted prize score was `2.630388 / 2.692606`,
+average prizes `3.195 / 3.279`, six-prize rate `0.325 / 0.343`, and diagnostic
+win rate `0.430 / 0.458`. Adaptive search cost 10.41% more probes per decision
+and 12.81% more mean search time. The direction passes the screen but is not
+resolved at 1,000 games.
+
+Run one final fresh-seed 10,000-game confirmation. Override the script's
+24-hour default because the 1,000-game screen took nearly three hours.
+
+```bash
+COMMON_CONFIRM='PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents,PUBLIC_AGENT_KEYS=sample_lucario,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,CONTROLLED_DECK_INDEX=101,SPECIALIST_MODEL_DIR=models/rl/phase5_turn_prize_20k_v2/specialists,AGENT=phase5-search,SEARCH_TOP_K=4,GAMES_PER_MATCHUP=10000,GAME_SEED=20260816,PRIZE_DISCOUNT_GAMMA=0.97,NORMALIZE_TACTICAL_SCORE=0,TACTICAL_SCORE_WEIGHT=1.0,LEAF_STATE_VALUE_WEIGHT=0.0,SEARCH_TRACE_GAMES=5,SAVED_WIN_REPLAYS=1,SAVED_LOSS_REPLAYS=1'
+
+JOB_FIXED_CONFIRM=$(sbatch --parsable --time=48:00:00 --export=ALL,$COMMON_CONFIRM,SEARCH_UNIQUE_STATE_TARGET=0,REPORT_JSON=reports/phase5_fixed_top4_confirm_10000g.json,REPORT_MD=reports/phase5_fixed_top4_confirm_10000g.md,STATUS_JSON=reports/phase5_fixed_top4_confirm_10000g_status.json,SEARCH_TRACE_OUTPUT=experiments/rl/phase5_unique_state_confirm/fixed_top4_trace.jsonl,REPLAY_OUTPUT_DIR=experiments/rl/phase5_unique_state_confirm/fixed_top4_replays scripts/slurm/phase5_public_agent_eval_conda.sbatch)
+
+JOB_UNIQUE_CONFIRM=$(sbatch --parsable --time=48:00:00 --export=ALL,$COMMON_CONFIRM,SEARCH_UNIQUE_STATE_TARGET=4,SEARCH_MAX_CANDIDATE_PROBES=8,REPORT_JSON=reports/phase5_unique_state_top4_cap8_confirm_10000g.json,REPORT_MD=reports/phase5_unique_state_top4_cap8_confirm_10000g.md,STATUS_JSON=reports/phase5_unique_state_top4_cap8_confirm_10000g_status.json,SEARCH_TRACE_OUTPUT=experiments/rl/phase5_unique_state_confirm/unique_top4_cap8_trace.jsonl,REPLAY_OUTPUT_DIR=experiments/rl/phase5_unique_state_confirm/unique_top4_cap8_replays scripts/slurm/phase5_public_agent_eval_conda.sbatch)
+```
+
+Do not tune target or cap on this seed. Promote adaptive search only if both
+primary prize metrics remain positive with supporting six-prize behavior and
+zero operational regression.

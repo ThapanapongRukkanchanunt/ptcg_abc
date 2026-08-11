@@ -61,16 +61,25 @@ This is the resume point for the project. Start here after switching machines, c
   search changes selected an exact/board/coarse-equivalent alternative.
 - Adaptive unique-state search is implemented behind opt-in controls. It keeps
   fixed top-4 as default, but can probe ranks five through eight only when the
-  first four roots contain duplicate modeled end states. The next matched
-  experiment is running as jobs `76333 / 76334`: fixed top-4 versus a four-
-  unique-state target capped at eight, using common seed `20260815` and 1,000
-  games per arm. Use prize metrics for promotion and probe/time telemetry for
-  compute cost.
+  first four roots contain duplicate modeled end states. Matched 1,000-game
+  jobs `76333 / 76334` improved discounted prize score from `2.63039` to
+  `2.69261` (`+2.37%`), average prizes from `3.195` to `3.279`, six-prize rate
+  from `0.325` to `0.343`, and the secondary win diagnostic from `0.430` to
+  `0.458`. These directions are not statistically resolved; run the final
+  fresh-seed 10,000-game confirmation before promotion.
+- Adaptive breadth behaved as designed: the five-game trace expanded 59 / 200
+  decisions and restored four unique states in 147 / 154 decisions with at
+  least four candidates, versus 81 / 140 in the fixed trace. Full evaluation
+  cost was +10.41% probes per decision and +12.81% mean search time, with zero
+  errors or timeouts.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
   average prizes `3.390`, discounted prize score `2.77446`, and six-prize rate
   `0.350`; the sample is diagnostic, not a promotion result.
+- Latest gate distance: adaptive job `76334` scored 458 / 1,000 (`0.458`), 42
+  wins and 4.2 percentage points short of tying the 50% Dragapult-vs-Lucario
+  diagnostic gate. Prize return remains the promotion objective.
 - Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
   (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
   50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.

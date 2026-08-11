@@ -8384,3 +8384,74 @@ ERAWAN launch:
 - Each arm retains a five-game schema-v2 search trace plus one sampled win and
   loss replay. Inspect prize metrics, effective probes, latency, errors,
   timeouts, and the sampled decision sequences after both finish.
+
+## 2026-08-11 - Adaptive Unique-State Search Passes the 1,000-Game Screen
+
+Matched result:
+
+| Metric | Fixed top-4 `76333` | Unique-state cap-8 `76334` | Adaptive delta |
+| --- | ---: | ---: | ---: |
+| Discounted prize score | 2.630388 | 2.692606 | +0.062218 (+2.37%) |
+| Average prizes | 3.195 | 3.279 | +0.084 |
+| Six-prize games / rate | 325 / 0.325 | 343 / 0.343 | +18 / +0.018 |
+| Average turns to six | 9.4585 | 9.6676 | +0.2092 |
+| Average controlled turns | 9.503 | 9.692 | +0.189 |
+| Wins / losses / draws | 430 / 569 / 1 | 458 / 541 / 1 | +28 wins |
+
+Statistical and operational interpretation:
+
+- Jobs `76333 / 76334` completed with exit code `0` in `02:38:16 /
+  02:57:15`, with zero battle errors, timeouts, search errors, and candidate
+  errors. Peak batch RSS was 276,064 / 280,376 KB. Stderr contains only the
+  known PyTorch nested-tensor warning.
+- All predeclared top-line metrics move toward adaptive search, but 1,000 games
+  do not resolve the effect. Average-prize delta `+0.084` has approximate 95%
+  CI `[-0.127, +0.295]`, `z = 0.779`, `p = 0.436`. Six-prize-rate delta
+  `+0.018` has approximate 95% CI `[-0.0233, +0.0593]`, `p = 0.393`.
+  The secondary win delta `+0.028` has approximate 95% CI
+  `[-0.0155, +0.0715]`, `p = 0.208`.
+- The conditional turns-to-six metric worsened by 0.209 turns while 18 more
+  games reached six prizes. Do not interpret that selected-subset statistic as
+  a decisive speed regression; the primary discounted prize metric already
+  accounts for both prize amount and timing and improved by 2.37%.
+- The adaptive arm remains 42 wins and 4.2 percentage points short of tying the
+  50% Dragapult-vs-Lucario diagnostic gate. Fixed top-4 is 70 wins and seven
+  points short. Win/loss remains secondary to prize return.
+
+Breadth and compute verification:
+
+- Fixed search used 156,432 probes across 42,546 decisions (`3.6768` probes
+  per decision) at `0.1631` seconds per decision. Adaptive search used 175,916
+  probes across 43,335 decisions (`4.0594` per decision) at `0.1840` seconds.
+  Adaptive expansion therefore cost 10.41% more probes per decision, 12.81%
+  more mean search time, and 11.99% more wall time.
+- In the five traced adaptive games, 59 / 200 decisions expanded beyond four
+  roots, requiring 80 extra probes (`1.356` per expanded decision). Among 154
+  decisions with at least four candidates, 147 (`95.45%`) reached four unique
+  end states; no decision needed the full eight-probe cap. The fixed trace
+  reached four unique states in only 81 / 140 (`57.86%`) decisions with four
+  candidates. This verifies that the mechanism repaired breadth rather than
+  accidentally changing scoring.
+- Both retained traces parsed completely with zero malformed rows, missing
+  state fingerprints, candidate errors, or truncated candidates in the sampled
+  games. The evaluation jobs generated no raw training JSONL, so raw cleanup is
+  vacuously complete; the two five-game search traces are intentional retained
+  diagnostics.
+- Securely downloaded JSON/Markdown reports, availability statuses,
+  stdout/stderr, both search traces, and one win/loss replay per arm. The
+  verified 503,529-byte archive has SHA-256
+  `cd1447ddd3f6aa0094945a9ec70db20aeb3cdd418315ea8eda516d0b913b9067`.
+  The temporary ERAWAN transfer archive was removed.
+
+Decision:
+
+- Adaptive unique-state search passes the directional 1,000-game screen but is
+  not yet promoted. It improves all main prize/completion outcomes at modest
+  compute cost, while sampling uncertainty remains much larger than the
+  observed effect.
+- Use the remaining week for the predeclared scale confirmation: matched
+  fresh-seed 10,000-game fixed versus adaptive arms, with a 48-hour scheduler
+  limit, minimal five-game traces, and one win/loss replay per arm. Promote only
+  if discounted prize score and average prizes remain positive, supported by
+  six-prize completion and clean operation. This is the final scale test for
+  this mechanism; do not tune the probe cap on the confirmation seed.
