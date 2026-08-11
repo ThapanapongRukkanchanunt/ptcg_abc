@@ -4733,3 +4733,30 @@ requires a matched comparison against the frozen source before promotion.
   large-scale shard generation.
 - After the symbolic path exists, diagnostics still run as SLURM jobs, never as
   large login-node workloads.
+
+## 24. Top-4 Action-Sequence Equivalence Diagnostic
+
+Schema-v2 search traces retain every simulated action and stable fingerprints
+for the ordered sequence, unordered action multiset, visible end board, and
+stricter modeled end state. Use two independent raw-tactical trace shards so
+equivalence rates can be checked for replication before merging.
+
+```bash
+COMMON_EXPORTS='PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents,PUBLIC_AGENT_KEYS=sample_lucario,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,CONTROLLED_DECK_INDEX=101,SPECIALIST_MODEL_DIR=models/rl/phase5_turn_prize_20k_v2/specialists,AGENT=phase5-search,SEARCH_TOP_K=4,GAMES_PER_MATCHUP=100,PRIZE_DISCOUNT_GAMMA=0.97,NORMALIZE_TACTICAL_SCORE=0,TACTICAL_SCORE_WEIGHT=1.0,LEAF_STATE_VALUE_WEIGHT=0.0,SEARCH_TRACE_GAMES=100'
+
+JOB_SEQUENCE_A=$(sbatch --parsable --export=ALL,$COMMON_EXPORTS,GAME_SEED=20260813,REPORT_JSON=reports/phase5_top4_sequence_equivalence_shard_a_100g.json,REPORT_MD=reports/phase5_top4_sequence_equivalence_shard_a_100g.md,STATUS_JSON=reports/phase5_top4_sequence_equivalence_shard_a_100g_status.json,SEARCH_TRACE_OUTPUT=experiments/rl/phase5_top4_sequence_equivalence/shard_a_trace_100g.jsonl scripts/slurm/phase5_public_agent_eval_conda.sbatch)
+
+JOB_SEQUENCE_B=$(sbatch --parsable --export=ALL,$COMMON_EXPORTS,GAME_SEED=20260814,REPORT_JSON=reports/phase5_top4_sequence_equivalence_shard_b_100g.json,REPORT_MD=reports/phase5_top4_sequence_equivalence_shard_b_100g.md,STATUS_JSON=reports/phase5_top4_sequence_equivalence_shard_b_100g_status.json,SEARCH_TRACE_OUTPUT=experiments/rl/phase5_top4_sequence_equivalence/shard_b_trace_100g.jsonl scripts/slurm/phase5_public_agent_eval_conda.sbatch)
+```
+
+After both jobs finish, run the diagnostic on each trace, then concatenate the
+two JSONL files and diagnose the merged trace. Do not treat equal tactical
+totals as equivalence; the primary result requires identical modeled-state
+fingerprints with different sequence fingerprints.
+
+```bash
+TRACE_INPUT=experiments/rl/phase5_top4_sequence_equivalence/shard_a_trace_100g.jsonl \
+REPORT_JSON=reports/phase5_top4_sequence_equivalence_shard_a.json \
+REPORT_MD=reports/phase5_top4_sequence_equivalence_shard_a.md \
+sbatch --parsable scripts/slurm/phase5_search_sequence_equivalence_conda.sbatch
+```

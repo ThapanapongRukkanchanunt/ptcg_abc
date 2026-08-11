@@ -48,6 +48,24 @@ This is the resume point for the project. Start here after switching machines, c
   should make prize value a guarded near-tie breaker: first preserve candidates
   within a small raw-tactical margin, then use prize value only inside that
   set. Validate against a matched raw-tactical control before promotion.
+- Active search-sequence investigation: legacy five-game raw-tactical traces
+  show that 152 / 214 root decisions (`71.0%`) had at least two top-4 choices
+  with the same recorded coarse turn-end outcome; 335 / 1,118 candidate pairs
+  (`30.0%`) matched on result, prizes, damage, tactical score, and termination
+  flags. The old schema cannot prove interchangeability because it omits the
+  intervening action sequence and exact end state. Schema-v2 tracing now records
+  every simulated choice plus order-sensitive sequence, order-insensitive
+  action-multiset, visible-board, and stricter modeled-state fingerprints. A new
+  diagnostic measures reordered-equivalent and convergent action paths.
+- Active search-sequence investigation: legacy five-game raw-tactical traces
+  show that 152 / 214 root decisions (`71.0%`) had at least two top-4 choices
+  with the same recorded coarse turn-end outcome; 335 / 1,118 candidate pairs
+  (`30.0%`) matched on result, prizes, damage, tactical score, and termination
+  flags. The old schema cannot prove interchangeability because it omits the
+  intervening action sequence and exact end state. Schema-v2 tracing now records
+  every simulated choice plus order-sensitive sequence, order-insensitive
+  action-multiset, visible-board, and stricter modeled-state fingerprints. A new
+  diagnostic measures reordered-equivalent and convergent action paths.
 - Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
   (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
   50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.

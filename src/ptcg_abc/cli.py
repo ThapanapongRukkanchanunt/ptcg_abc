@@ -75,8 +75,10 @@ from ptcg_abc.rl.phase5_search import (
 )
 from ptcg_abc.rl.phase5_diagnostics import (
     diagnose_search_distillation,
+    diagnose_search_sequence_equivalence,
     diagnose_search_score_components,
     diagnose_search_traces,
+    write_search_sequence_equivalence_markdown,
     write_search_score_component_markdown,
     write_trace_diagnostic_markdown,
 )
@@ -1013,6 +1015,25 @@ def command_rl_diagnose_search_score_components(args: argparse.Namespace) -> int
     )
     print(json.dumps(diagnostics, indent=2, sort_keys=True))
     print(f"Wrote Phase 5 search score-component diagnostics to {args.report_md}.")
+    return 0
+
+
+def command_rl_diagnose_search_sequence_equivalence(args: argparse.Namespace) -> int:
+    if not args.trace_input.exists():
+        print(f"Phase 5 search trace file not found at {args.trace_input}.", file=sys.stderr)
+        return 2
+    diagnostics = diagnose_search_sequence_equivalence(
+        args.trace_input,
+        example_limit=args.examples,
+    )
+    args.report_json.parent.mkdir(parents=True, exist_ok=True)
+    args.report_json.write_text(
+        json.dumps(diagnostics, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    write_search_sequence_equivalence_markdown(diagnostics, args.report_md)
+    print(json.dumps(diagnostics, indent=2, sort_keys=True))
+    print(f"Wrote Phase 5 search sequence-equivalence diagnostics to {args.report_md}.")
     return 0
 
 
@@ -3301,6 +3322,30 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("reports") / "phase5_search_score_components.md",
     )
     rl_diagnose_scores.set_defaults(func=command_rl_diagnose_search_score_components)
+
+    rl_diagnose_sequence_equivalence = subparsers.add_parser(
+        "rl-diagnose-search-sequence-equivalence",
+        help="Measure whether top search candidates reach interchangeable turn-end states.",
+    )
+    rl_diagnose_sequence_equivalence.add_argument(
+        "--trace-input",
+        type=_path,
+        default=Path("experiments") / "rl" / "phase5_search_sequence_traces.jsonl",
+    )
+    rl_diagnose_sequence_equivalence.add_argument("--examples", type=int, default=20)
+    rl_diagnose_sequence_equivalence.add_argument(
+        "--report-json",
+        type=_path,
+        default=Path("reports") / "phase5_search_sequence_equivalence.json",
+    )
+    rl_diagnose_sequence_equivalence.add_argument(
+        "--report-md",
+        type=_path,
+        default=Path("reports") / "phase5_search_sequence_equivalence.md",
+    )
+    rl_diagnose_sequence_equivalence.set_defaults(
+        func=command_rl_diagnose_search_sequence_equivalence
+    )
 
     rl_diagnose_symbolic = subparsers.add_parser(
         "rl-diagnose-phase5-symbolic",

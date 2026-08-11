@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
+from itertools import combinations
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -174,6 +175,298 @@ SCORE_COMPONENT_FIELDS: tuple[str, ...] = (
     "self_damage_delta",
     "rollout_steps",
 )
+
+
+def diagnose_search_sequence_equivalence(
+    path: Path,
+    *,
+    example_limit: int = 20,
+) -> dict[str, Any]:
+    records = candidate_pairs = 0
+    records_with_exact_equivalence = records_with_board_equivalence = 0
+    records_all_exact_equivalent = 0
+    exact_state_pairs = board_equivalent_pairs = coarse_equivalent_pairs = 0
+    same_multiset_pairs = reordered_multiset_pairs = 0
+    interchangeable_reordered_pairs = convergent_action_pairs = 0
+    exact_tactical_disagreements = exact_combined_disagreements = 0
+    exact_tactical_abs_delta = exact_combined_abs_delta = 0.0
+    missing_sequence_candidates = missing_state_candidates = 0
+    exact_class_sizes: Counter[int] = Counter()
+    root_type_pairs: Counter[str] = Counter()
+    examples: list[dict[str, Any]] = []
+
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            payload = json.loads(stripped)
+            candidates = [
+                candidate
+                for candidate in list(payload.get("candidates", []) or [])
+                if candidate.get("error") is None
+            ]
+            if len(candidates) < 2:
+                continue
+            records += 1
+            candidate_pairs += len(candidates) * (len(candidates) - 1) // 2
+            missing_sequence_candidates += sum(
+                not candidate.get("rollout_actions") for candidate in candidates
+            )
+            missing_state_candidates += sum(
+                not candidate.get("end_state_fingerprint") for candidate in candidates
+            )
+
+            exact_groups: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
+            board_groups: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
+            for candidate in candidates:
+                exact = candidate.get("end_state_fingerprint")
+                board = candidate.get("end_board_fingerprint")
+                if exact:
+                    exact_groups[str(exact)].append(candidate)
+                if board:
+                    board_groups[str(board)].append(candidate)
+            exact_sizes = [len(group) for group in exact_groups.values() if len(group) > 1]
+            board_sizes = [len(group) for group in board_groups.values() if len(group) > 1]
+            records_with_exact_equivalence += int(bool(exact_sizes))
+            records_with_board_equivalence += int(bool(board_sizes))
+            records_all_exact_equivalent += int(
+                len(exact_groups) == 1 and sum(len(group) for group in exact_groups.values()) == len(candidates)
+            )
+            for size in exact_sizes:
+                exact_class_sizes[size] += 1
+
+            for first, second in combinations(candidates, 2):
+                exact_equal = bool(first.get("end_state_fingerprint")) and (
+                    first.get("end_state_fingerprint") == second.get("end_state_fingerprint")
+                )
+                board_equal = bool(first.get("end_board_fingerprint")) and (
+                    first.get("end_board_fingerprint") == second.get("end_board_fingerprint")
+                )
+                coarse_equal = _coarse_candidate_outcome(first) == _coarse_candidate_outcome(second)
+                same_multiset = bool(first.get("rollout_multiset_fingerprint")) and (
+                    first.get("rollout_multiset_fingerprint")
+                    == second.get("rollout_multiset_fingerprint")
+                )
+                same_sequence = bool(first.get("rollout_sequence_fingerprint")) and (
+                    first.get("rollout_sequence_fingerprint")
+                    == second.get("rollout_sequence_fingerprint")
+                )
+                exact_state_pairs += int(exact_equal)
+                board_equivalent_pairs += int(board_equal)
+                coarse_equivalent_pairs += int(coarse_equal)
+                same_multiset_pairs += int(same_multiset)
+                reordered = same_multiset and not same_sequence
+                reordered_multiset_pairs += int(reordered)
+                interchangeable = exact_equal and not same_sequence
+                interchangeable_reordered_pairs += int(interchangeable)
+                convergent = exact_equal and not same_multiset
+                convergent_action_pairs += int(convergent)
+                if exact_equal:
+                    tactical_delta = abs(
+                        float(first.get("tactical_score", 0.0) or 0.0)
+                        - float(second.get("tactical_score", 0.0) or 0.0)
+                    )
+                    combined_delta = abs(
+                        float(first.get("combined_score", 0.0) or 0.0)
+                        - float(second.get("combined_score", 0.0) or 0.0)
+                    )
+                    exact_tactical_abs_delta += tactical_delta
+                    exact_combined_abs_delta += combined_delta
+                    exact_tactical_disagreements += int(tactical_delta > 1e-9)
+                    exact_combined_disagreements += int(combined_delta > 1e-9)
+                    root_type_pairs[
+                        " -> ".join(
+                            sorted(
+                                [
+                                    str(first.get("option_type", "")),
+                                    str(second.get("option_type", "")),
+                                ]
+                            )
+                        )
+                    ] += 1
+                    if len(examples) < max(0, int(example_limit)) and not same_sequence:
+                        examples.append(
+                            {
+                                "game_index": payload.get("game_index"),
+                                "turn": payload.get("turn"),
+                                "outcome": payload.get("game_outcome"),
+                                "same_action_multiset": same_multiset,
+                                "first_root": _candidate_root_label(first),
+                                "second_root": _candidate_root_label(second),
+                                "first_sequence": _rollout_sequence_labels(first),
+                                "second_sequence": _rollout_sequence_labels(second),
+                                "tactical_score": [
+                                    first.get("tactical_score"),
+                                    second.get("tactical_score"),
+                                ],
+                                "combined_score": [
+                                    first.get("combined_score"),
+                                    second.get("combined_score"),
+                                ],
+                            }
+                        )
+
+    pair_denominator = max(1, candidate_pairs)
+    exact_denominator = max(1, exact_state_pairs)
+    return {
+        "trace_path": str(path.as_posix()),
+        "records": records,
+        "candidate_pairs": candidate_pairs,
+        "missing_sequence_candidates": missing_sequence_candidates,
+        "missing_state_candidates": missing_state_candidates,
+        "records_with_exact_equivalence": records_with_exact_equivalence,
+        "records_with_exact_equivalence_rate": (
+            records_with_exact_equivalence / records if records else 0.0
+        ),
+        "records_with_board_equivalence": records_with_board_equivalence,
+        "records_with_board_equivalence_rate": (
+            records_with_board_equivalence / records if records else 0.0
+        ),
+        "records_all_exact_equivalent": records_all_exact_equivalent,
+        "records_all_exact_equivalent_rate": (
+            records_all_exact_equivalent / records if records else 0.0
+        ),
+        "exact_state_pairs": exact_state_pairs,
+        "exact_state_pair_rate": exact_state_pairs / pair_denominator if candidate_pairs else 0.0,
+        "board_equivalent_pairs": board_equivalent_pairs,
+        "board_equivalent_pair_rate": (
+            board_equivalent_pairs / pair_denominator if candidate_pairs else 0.0
+        ),
+        "coarse_equivalent_pairs": coarse_equivalent_pairs,
+        "coarse_equivalent_pair_rate": (
+            coarse_equivalent_pairs / pair_denominator if candidate_pairs else 0.0
+        ),
+        "same_action_multiset_pairs": same_multiset_pairs,
+        "reordered_action_multiset_pairs": reordered_multiset_pairs,
+        "interchangeable_different_sequence_pairs": interchangeable_reordered_pairs,
+        "convergent_different_action_pairs": convergent_action_pairs,
+        "exact_state_tactical_score_disagreements": exact_tactical_disagreements,
+        "exact_state_combined_score_disagreements": exact_combined_disagreements,
+        "mean_exact_state_tactical_abs_delta": (
+            exact_tactical_abs_delta / exact_denominator if exact_state_pairs else 0.0
+        ),
+        "mean_exact_state_combined_abs_delta": (
+            exact_combined_abs_delta / exact_denominator if exact_state_pairs else 0.0
+        ),
+        "exact_equivalence_class_sizes": dict(sorted(exact_class_sizes.items())),
+        "equivalent_root_type_pairs": dict(root_type_pairs.most_common()),
+        "examples": examples,
+    }
+
+
+def write_search_sequence_equivalence_markdown(
+    payload: dict[str, Any],
+    path: Path,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# Phase 5 Search Sequence Equivalence",
+        "",
+        f"- Trace: `{payload.get('trace_path', '')}`",
+        f"- Search decisions: {payload.get('records', 0)}",
+        f"- Candidate pairs: {payload.get('candidate_pairs', 0)}",
+        (
+            "- Decisions with exact turn-end equivalence: "
+            f"{payload.get('records_with_exact_equivalence', 0)} "
+            f"({payload.get('records_with_exact_equivalence_rate', 0.0):.4f})"
+        ),
+        (
+            "- Exact-state equivalent pairs: "
+            f"{payload.get('exact_state_pairs', 0)} "
+            f"({payload.get('exact_state_pair_rate', 0.0):.4f})"
+        ),
+        (
+            "- Visible-board equivalent pairs: "
+            f"{payload.get('board_equivalent_pairs', 0)} "
+            f"({payload.get('board_equivalent_pair_rate', 0.0):.4f})"
+        ),
+        (
+            "- Same action multiset in a different order: "
+            f"{payload.get('reordered_action_multiset_pairs', 0)}"
+        ),
+        (
+            "- Different sequences reaching the same exact state: "
+            f"{payload.get('interchangeable_different_sequence_pairs', 0)}"
+        ),
+        (
+            "- Different action multisets converging to the same exact state: "
+            f"{payload.get('convergent_different_action_pairs', 0)}"
+        ),
+        "",
+        "## Equivalent Root-Type Pairs",
+        "",
+        "| Pair | Count |",
+        "| --- | ---: |",
+    ]
+    for label, count in dict(payload.get("equivalent_root_type_pairs", {})).items():
+        lines.append(f"| {label or '(unknown)'} | {count} |")
+    lines.extend(["", "## Examples", ""])
+    for index, example in enumerate(list(payload.get("examples", []) or []), start=1):
+        lines.extend(
+            [
+                f"### Example {index}: game {example.get('game_index')}, turn {example.get('turn')}",
+                "",
+                f"- Root A: {example.get('first_root', '')}",
+                f"- Root B: {example.get('second_root', '')}",
+                f"- Same action multiset: {example.get('same_action_multiset', False)}",
+                f"- Sequence A: {' | '.join(example.get('first_sequence', []))}",
+                f"- Sequence B: {' | '.join(example.get('second_sequence', []))}",
+                "",
+            ]
+        )
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def _coarse_candidate_outcome(candidate: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        candidate.get("end_turn"),
+        candidate.get("end_result"),
+        tuple(candidate.get("end_prize_counts") or []),
+        round(float(candidate.get("damage_delta", 0.0) or 0.0), 6),
+        round(float(candidate.get("self_damage_delta", 0.0) or 0.0), 6),
+        round(float(candidate.get("tactical_score", 0.0) or 0.0), 6),
+        bool(candidate.get("terminal")),
+        bool(candidate.get("turn_ended")),
+        bool(candidate.get("truncated")),
+        candidate.get("error"),
+    )
+
+
+def _candidate_root_label(candidate: dict[str, Any]) -> str:
+    parts = [str(candidate.get("option_type", ""))]
+    if candidate.get("card_name"):
+        parts.append(str(candidate["card_name"]))
+    if candidate.get("attack_id") is not None:
+        parts.append(f"attack {candidate['attack_id']}")
+    return " ".join(part for part in parts if part).strip()
+
+
+def _rollout_sequence_labels(candidate: dict[str, Any]) -> list[str]:
+    labels: list[str] = []
+    for decision in list(candidate.get("rollout_actions", []) or []):
+        actions = list(decision.get("actions", []) or [])
+        if not actions:
+            labels.append(
+                f"{decision.get('select_type', '')}/{decision.get('context', '')}: {decision.get('indices', [])}"
+            )
+            continue
+        selected: list[str] = []
+        for action in actions:
+            parts = [str(action.get("option_type", ""))]
+            if action.get("card_name"):
+                parts.append(str(action["card_name"]))
+            elif action.get("card_id") is not None:
+                parts.append(f"card {action['card_id']}")
+            if action.get("target_name"):
+                parts.append(f"-> {action['target_name']}")
+            elif action.get("target_card_id") is not None:
+                parts.append(f"-> card {action['target_card_id']}")
+            if action.get("attack_id") is not None:
+                parts.append(f"attack {action['attack_id']}")
+            selected.append(" ".join(part for part in parts if part))
+        labels.append(" + ".join(selected))
+    return labels
 
 
 @dataclass

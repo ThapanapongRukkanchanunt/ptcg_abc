@@ -15,12 +15,63 @@ from ptcg_abc.rl.phase5_belief import (
     visible_opponent_card_ids,
 )
 from ptcg_abc.rl.phase5_reports import compare_benchmark_reports
-from ptcg_abc.rl.phase5_search import CandidateEvaluation, RootSearchConfig, _score_candidates
+from ptcg_abc.rl.phase5_search import (
+    CandidateEvaluation,
+    RootSearchConfig,
+    _fingerprint_payload,
+    _rollout_action_multiset,
+    _score_candidates,
+    _search_state_snapshot,
+)
 from ptcg_abc.rl.workflow import _policy_pool_model_path
 from ptcg_abc.submission import PHASE5_SEARCH_MAIN_PY, build_phase5_search_submission_bundle
 
 
 class Phase5FullAgentScaffoldTests(unittest.TestCase):
+    def test_search_state_fingerprint_ignores_unordered_hand_order(self):
+        first = {
+            "turn": 3,
+            "result": -1,
+            "players": [
+                {
+                    "deckCount": 40,
+                    "handCount": 2,
+                    "hand": [{"id": 8}, {"id": 4}],
+                    "discard": [{"id": 2}, {"id": 1}],
+                    "active": [{"id": 10, "hp": 70}],
+                    "bench": [],
+                },
+                {},
+            ],
+        }
+        second = json.loads(json.dumps(first))
+        second["players"][0]["hand"].reverse()
+        second["players"][0]["discard"].reverse()
+
+        self.assertEqual(
+            _fingerprint_payload(_search_state_snapshot(first, player_index=0)),
+            _fingerprint_payload(_search_state_snapshot(second, player_index=0)),
+        )
+
+    def test_rollout_multiset_ignores_action_order(self):
+        play = {
+            "player_index": 0,
+            "select_type": "MAIN",
+            "context": "MAIN",
+            "actions": [{"option_type": "PLAY", "card_name": "A"}],
+        }
+        attach = {
+            "player_index": 0,
+            "select_type": "MAIN",
+            "context": "MAIN",
+            "actions": [{"option_type": "ATTACH", "card_name": "Energy"}],
+        }
+
+        self.assertEqual(
+            _rollout_action_multiset([play, attach]),
+            _rollout_action_multiset([attach, play]),
+        )
+
     def test_opponent_prior_infers_visible_league_deck(self):
         priors = [
             OpponentDeckPrior(index=1, label="Alpha", card_ids=(1, 1, 2, 3)),

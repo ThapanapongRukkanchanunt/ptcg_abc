@@ -13,6 +13,7 @@ from ptcg_abc.rl.featurizer import BOARD_IMAGE_HEIGHT, BOARD_IMAGE_WIDTH, make_d
 from ptcg_abc.rl.model import LinearOptionModel, train_behavior_cloning_model
 from ptcg_abc.rl.phase5_diagnostics import (
     diagnose_search_distillation,
+    diagnose_search_sequence_equivalence,
     diagnose_search_score_components,
     diagnose_search_traces,
     write_search_score_component_markdown,
@@ -539,6 +540,22 @@ class Phase4RlTests(unittest.TestCase):
             Path("experiments/public-score-traces.jsonl"),
         )
 
+        equivalence_args = parser.parse_args(
+            [
+                "rl-diagnose-search-sequence-equivalence",
+                "--trace-input",
+                "experiments/sequence-traces.jsonl",
+            ]
+        )
+        self.assertEqual(
+            equivalence_args.command,
+            "rl-diagnose-search-sequence-equivalence",
+        )
+        self.assertEqual(
+            equivalence_args.trace_input,
+            Path("experiments/sequence-traces.jsonl"),
+        )
+
         weighted_train_args = parser.parse_args(
             [
                 "rl-train-bc",
@@ -961,6 +978,71 @@ class Phase4RlTests(unittest.TestCase):
             [{"deck_index": 3, "opponent": "Mega Abomasnow ex", "count": 1}],
         )
         self.assertLess(diagnostics.mean_search_minus_baseline_combined_score, 0)
+
+    def test_phase5_sequence_equivalence_detects_reordered_interchangeable_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            trace = Path(tmp) / "sequence-traces.jsonl"
+            common = {
+                "end_state_fingerprint": "same-state",
+                "end_board_fingerprint": "same-board",
+                "rollout_multiset_fingerprint": "same-actions",
+                "tactical_score": 1.0,
+            }
+            row = {
+                "game_index": 7,
+                "turn": 4,
+                "game_outcome": "win",
+                "candidates": [
+                    common
+                    | {
+                        "indices": [0],
+                        "option_type": "PLAY",
+                        "card_name": "Search Card",
+                        "combined_score": 1.08,
+                        "rollout_sequence_fingerprint": "play-then-attach",
+                        "rollout_actions": [
+                            {"actions": [{"option_type": "PLAY", "card_name": "Search Card"}]},
+                            {"actions": [{"option_type": "ATTACH", "card_name": "Energy"}]},
+                        ],
+                    },
+                    common
+                    | {
+                        "indices": [1],
+                        "option_type": "ATTACH",
+                        "card_name": "Energy",
+                        "combined_score": 1.02,
+                        "rollout_sequence_fingerprint": "attach-then-play",
+                        "rollout_actions": [
+                            {"actions": [{"option_type": "ATTACH", "card_name": "Energy"}]},
+                            {"actions": [{"option_type": "PLAY", "card_name": "Search Card"}]},
+                        ],
+                    },
+                    {
+                        "indices": [2],
+                        "option_type": "END",
+                        "combined_score": 0.0,
+                        "tactical_score": 0.0,
+                        "end_state_fingerprint": "other-state",
+                        "end_board_fingerprint": "other-board",
+                        "rollout_multiset_fingerprint": "end-actions",
+                        "rollout_sequence_fingerprint": "end",
+                        "rollout_actions": [
+                            {"actions": [{"option_type": "END"}]},
+                        ],
+                    },
+                ],
+            }
+            trace.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+            diagnostics = diagnose_search_sequence_equivalence(trace)
+
+        self.assertEqual(diagnostics["records"], 1)
+        self.assertEqual(diagnostics["candidate_pairs"], 3)
+        self.assertEqual(diagnostics["exact_state_pairs"], 1)
+        self.assertEqual(diagnostics["reordered_action_multiset_pairs"], 1)
+        self.assertEqual(diagnostics["interchangeable_different_sequence_pairs"], 1)
+        self.assertEqual(diagnostics["exact_state_combined_score_disagreements"], 1)
+        self.assertEqual(len(diagnostics["examples"]), 1)
 
     def test_phase5_score_component_diagnostics_groups_by_outcome(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -8201,3 +8201,56 @@ Decision:
   small margin of the best raw tactical score and apply normalized prize value
   only inside that set. Compare it against raw tactical control on a fresh
   matched 1,000-game seed before considering any larger run.
+
+## 2026-08-11 - Top-4 Action-Sequence Equivalence Investigation Implemented
+
+Motivation and preliminary evidence:
+
+- A top-4 root choice is only the first action of a deterministic rule-policy
+  rollout to the end of the turn. Different roots may therefore represent
+  interchangeable orderings, such as attach-then-play versus play-then-attach,
+  rather than four materially different plans.
+- Reanalysis of the latest five-game raw-tactical trace found coarse duplicate
+  outcomes in 152 / 214 searched decisions (`71.0%`). Across 1,118 candidate
+  pairs, 335 (`30.0%`) matched on end turn/result, prize counts, damage deltas,
+  tactical score, terminal/turn-ended/truncated flags, and error state. All four
+  candidates were coarsely identical in 19 / 214 decisions.
+- This is evidence of redundancy, not proof of interchangeability. Schema-v1
+  traces did not record rollout actions, hand/deck composition, board identity,
+  or a final-state fingerprint. Candidates with equal tactical totals can still
+  differ in future value.
+
+Implementation:
+
+- Raised the search trace schema to version 2. Each candidate now records every
+  simulated decision from its root action to turn end, including action type,
+  card, attack, target, context, acting player, and turn.
+- Added four stable hashes per candidate: order-sensitive rollout sequence,
+  order-insensitive action multiset, visible summarized board, and a stricter
+  modeled search state. The modeled state includes exposed deck order when
+  available, hand/prize/discard identities, active/bench Pokemon and
+  attachments, status/ability flags, stadium/looking zones, and turn-level
+  action flags.
+- Added `rl-diagnose-search-sequence-equivalence`. It reports exact-state and
+  visible-board equivalence rates, reordered identical-action paths, different
+  action multisets converging to one state, equivalence-class sizes, root action
+  type pairs, score disagreements within equivalent classes, and readable
+  sequence examples. It remains backward compatible by reporting coarse-only
+  equivalence and missing schema-v2 fields for old traces.
+- Added `scripts/slurm/phase5_search_sequence_equivalence_conda.sbatch` for
+  ERAWAN analysis. Focused validation passes 68 tests with two expected
+  Torch-dependent skips; `git diff --check` passes.
+
+Experiment design:
+
+- Collect two independent 100-game raw-tactical top-4 trace shards with
+  schema-v2 sequence tracing enabled for every game. Keep the prize head loaded
+  but leaf weight at `0.0`, preserving the current best playable behavior.
+- Analyze each shard independently and merged. The primary quantities are the
+  fraction of root decisions containing an exact-state-equivalent candidate
+  class and the fraction of candidate pairs that are different action sequences
+  reaching the same modeled turn-end state. Compare reordered identical-action
+  paths against different-action convergence, root-type pairs, and score spread.
+- If redundancy is common and replicates, future search/distillation should
+  collapse equivalent plans or train a sequence/set objective instead of
+  treating arbitrary first-action order as a contradictory label.

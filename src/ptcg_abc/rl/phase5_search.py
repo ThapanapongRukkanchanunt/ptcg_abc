@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import glob
+import hashlib
 import io
 import json
 import sys
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -23,7 +24,7 @@ from ptcg_abc.rl.records import DecisionFrame
 from ptcg_abc.simulator import BattleResult, _with_sample_submission_on_path, load_engine_metadata, run_battle
 
 
-PHASE5_SEARCH_SCHEMA_VERSION = 1
+PHASE5_SEARCH_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,11 @@ class CandidateEvaluation:
     end_prize_counts: list[int] | None = None
     damage_delta: float = 0.0
     self_damage_delta: float = 0.0
+    rollout_actions: list[dict[str, Any]] = field(default_factory=list)
+    rollout_sequence_fingerprint: str | None = None
+    rollout_multiset_fingerprint: str | None = None
+    end_board_fingerprint: str | None = None
+    end_state_fingerprint: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -361,6 +367,14 @@ class OneTurnRootSearchAgent:
         root_metrics = _board_metrics(root_frame.board, player_index=root_player)
         state = None
         try:
+            candidate.rollout_actions.append(
+                _rollout_action_record(
+                    root_frame,
+                    candidate.indices,
+                    player_index=root_player,
+                    turn=root_turn,
+                )
+            )
             state = self._search_step(root_search_id, candidate.indices)
             candidate.rollout_steps = 1
             final_observation = _get(state, "observation")
@@ -384,6 +398,21 @@ class OneTurnRootSearchAgent:
                     attack_by_id=self.attack_by_id,
                     deck_ids=deck_ids,
                 )
+                rollout_frame = make_decision_frame(
+                    final_observation,
+                    deck_ids=deck_ids,
+                    card_by_id=self.card_by_id,
+                    attack_by_id=self.attack_by_id,
+                    selected_indices=choice,
+                )
+                candidate.rollout_actions.append(
+                    _rollout_action_record(
+                        rollout_frame,
+                        choice,
+                        player_index=acting_player,
+                        turn=int(_get(current, "turn", root_turn) or root_turn),
+                    )
+                )
                 state = self._search_step(int(_get(state, "searchId", 0) or 0), list(choice))
                 candidate.rollout_steps += 1
                 final_observation = _get(state, "observation")
@@ -398,6 +427,16 @@ class OneTurnRootSearchAgent:
                 final_current,
                 player_index=root_player,
                 card_by_id=self.card_by_id,
+            )
+            candidate.rollout_sequence_fingerprint = _fingerprint_payload(
+                candidate.rollout_actions
+            )
+            candidate.rollout_multiset_fingerprint = _fingerprint_payload(
+                _rollout_action_multiset(candidate.rollout_actions)
+            )
+            candidate.end_board_fingerprint = _fingerprint_payload(end_board)
+            candidate.end_state_fingerprint = _fingerprint_payload(
+                _search_state_snapshot(final_current, player_index=root_player)
             )
             end_metrics = _board_metrics(end_board, player_index=root_player)
             candidate.tactical_score = _tactical_score(
@@ -1075,6 +1114,169 @@ def _summarize_board_for_player(
         _PerspectiveCurrent(current, player_index),
         card_by_id=card_by_id,
     )
+
+
+def _rollout_action_record(
+    frame: DecisionFrame | None,
+    indices: Sequence[int],
+    *,
+    player_index: int,
+    turn: int,
+) -> dict[str, Any]:
+    selected = {int(index) for index in indices}
+    actions: list[dict[str, Any]] = []
+    if frame is not None:
+        for action in frame.legal_options:
+            if int(action.index) not in selected:
+                continue
+            actions.append(
+                {
+                    "option_type": action.option_type,
+                    "card_id": action.card_id,
+                    "card_name": action.card_name,
+                    "area": action.area,
+                    "area_index": action.area_index,
+                    "attack_id": action.attack_id,
+                    "target_card_id": action.target_card_id,
+                    "target_name": action.target_name,
+                    "target_area": action.target_area,
+                    "target_index": action.target_index,
+                }
+            )
+    return {
+        "turn": int(turn),
+        "player_index": int(player_index),
+        "select_type": frame.select_type if frame is not None else "",
+        "context": frame.context if frame is not None else "",
+        "indices": [int(index) for index in indices],
+        "actions": actions,
+    }
+
+
+def _rollout_action_multiset(actions: Sequence[dict[str, Any]]) -> list[str]:
+    tokens: list[str] = []
+    for decision in actions:
+        common = {
+            "player_index": decision.get("player_index"),
+            "select_type": decision.get("select_type"),
+            "context": decision.get("context"),
+        }
+        selected = list(decision.get("actions", []) or [])
+        if not selected:
+            tokens.append(json.dumps(common | {"actions": []}, sort_keys=True))
+            continue
+        for action in selected:
+            tokens.append(
+                json.dumps(common | {"action": action}, sort_keys=True, separators=(",", ":"))
+            )
+    return sorted(tokens)
+
+
+def _fingerprint_payload(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _search_state_snapshot(current: Any, *, player_index: int) -> dict[str, Any]:
+    players = list(_get(current, "players", []) or [])
+    return {
+        "turn": int(_get(current, "turn", 0) or 0),
+        "result": _int_or_none(_get(current, "result", None)),
+        "perspective_player": int(player_index),
+        "energy_attached": bool(_get(current, "energyAttached", False)),
+        "supporter_played": bool(_get(current, "supporterPlayed", False)),
+        "retreated": bool(_get(current, "retreated", False)),
+        "attack_used": bool(_get(current, "attackUsed", False)),
+        "stadium": _zone_snapshot(_get(current, "stadium", []), ordered=False),
+        "looking": _zone_snapshot(_get(current, "looking", []), ordered=True),
+        "players": [
+            _search_player_snapshot(player)
+            for player in players
+        ],
+    }
+
+
+def _search_player_snapshot(player: Any) -> dict[str, Any]:
+    if player is None:
+        return {}
+    return {
+        "deck_count": int(_get(player, "deckCount", 0) or 0),
+        "deck": _zone_snapshot(_get(player, "deck", []), ordered=True),
+        "hand_count": int(_get(player, "handCount", 0) or 0),
+        "hand": _zone_snapshot(_get(player, "hand", []), ordered=False),
+        "prize": _zone_snapshot(_get(player, "prize", []), ordered=False),
+        "discard": _zone_snapshot(_get(player, "discard", []), ordered=False),
+        "active": [
+            _search_pokemon_snapshot(card)
+            for card in list(_get(player, "active", []) or [])
+        ],
+        "bench": [
+            _search_pokemon_snapshot(card)
+            for card in list(_get(player, "bench", []) or [])
+        ],
+        "poisoned": bool(_get(player, "poisoned", False)),
+        "burned": bool(_get(player, "burned", False)),
+        "asleep": bool(_get(player, "asleep", False)),
+        "paralyzed": bool(_get(player, "paralyzed", False)),
+        "confused": bool(_get(player, "confused", False)),
+    }
+
+
+def _search_pokemon_snapshot(card: Any) -> dict[str, Any] | None:
+    if card is None:
+        return None
+    return {
+        "card_ids": _zone_snapshot([card], ordered=True),
+        "hp": int(_get(card, "hp", 0) or 0),
+        "max_hp": int(_get(card, "maxHp", 0) or 0),
+        "energy_cards": _zone_snapshot(_get(card, "energyCards", []), ordered=False),
+        "energies": sorted(str(value) for value in list(_get(card, "energies", []) or [])),
+        "tools": _zone_snapshot(_get(card, "tools", []), ordered=False),
+        "pre_evolution": _zone_snapshot(_get(card, "preEvolution", []), ordered=True),
+        "ability_used": bool(_get(card, "abilityUsed", False)),
+        "skill_used": bool(_get(card, "skillUsed", False)),
+        "poisoned": bool(_get(card, "poisoned", False)),
+        "burned": bool(_get(card, "burned", False)),
+        "asleep": bool(_get(card, "asleep", False)),
+        "paralyzed": bool(_get(card, "paralyzed", False)),
+        "confused": bool(_get(card, "confused", False)),
+    }
+
+
+def _zone_snapshot(values: Any, *, ordered: bool) -> list[int | str]:
+    output: list[int | str] = []
+    for value in list(values or []):
+        card_id = _get(value, "id", None)
+        if card_id is None:
+            card_id = _get(value, "cardId", None)
+        if card_id is None:
+            card_id = _get(value, "cardID", None)
+        if card_id is None:
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                output.append(str(value))
+            elif hasattr(value, "value"):
+                output.append(str(value.value))
+            elif hasattr(value, "name"):
+                output.append(str(value.name))
+            else:
+                output.append(type(value).__name__)
+        else:
+            output.append(int(card_id))
+    return output if ordered else sorted(output, key=str)
+
+
+def _int_or_none(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class _PerspectiveCurrent:
