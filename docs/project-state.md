@@ -57,6 +57,20 @@ This is the resume point for the project. Start here after switching machines, c
   every simulated choice plus order-sensitive sequence, order-insensitive
   action-multiset, visible-board, and stricter modeled-state fingerprints. A new
   diagnostic measures reordered-equivalent and convergent action paths.
+- Real-engine smoke jobs `76322 / 76323` validated schema-v2 collection and
+  diagnostics with zero missing sequence/state fields. In two games, 28 / 85
+  decisions contained exact-state-equivalent top-4 choices and 42 / 466 pairs
+  converged to the same modeled state; all exact pairs had identical tactical
+  score but differing combined score because of root priors. After removing
+  transient option indices from sequence identity, independent 100-game raw-
+  tactical trace jobs `76325 / 76326` are running with all-game tracing.
+- Real-engine smoke jobs `76322 / 76323` validated schema-v2 collection and
+  diagnostics with zero missing sequence/state fields. In two games, 28 / 85
+  decisions contained exact-state-equivalent top-4 choices and 42 / 466 pairs
+  converged to the same modeled state; all exact pairs had identical tactical
+  score but differing combined score because of root priors. After removing
+  transient option indices from sequence identity, independent 100-game raw-
+  tactical trace jobs `76325 / 76326` are running with all-game tracing.
 - Active search-sequence investigation: legacy five-game raw-tactical traces
   show that 152 / 214 root decisions (`71.0%`) had at least two top-4 choices
   with the same recorded coarse turn-end outcome; 335 / 1,118 candidate pairs

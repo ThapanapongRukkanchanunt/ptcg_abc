@@ -8254,3 +8254,32 @@ Experiment design:
 - If redundancy is common and replicates, future search/distillation should
   collapse equivalent plans or train a sequence/set objective instead of
   treating arbitrary first-action order as a contradictory label.
+
+ERAWAN validation and launch:
+
+- Fast-forwarded ERAWAN to `b475741`; both SLURM scripts pass native Bash
+  validation and the focused 68-test suite passes there with one expected
+  Torch-dependent skip.
+- Two-game trace smoke `76322` completed in 28 seconds with exit code `0`.
+  Diagnostic smoke `76323` completed in eight seconds. The trace contained 85
+  search decisions, 466 candidate pairs, zero missing sequences, zero missing
+  modeled-state fingerprints, and zero candidate errors.
+- Even this tiny smoke found exact-state-equivalent candidates in 28 / 85
+  decisions (`0.3294`) and 42 / 466 pairs (`0.0901`). Seven pairs used the same
+  action multiset in different order; 35 used different action multisets that
+  converged to the same modeled state. All 42 exact-state pairs had identical
+  tactical scores, yet all had different combined scores with mean absolute
+  difference `0.0503`, showing that root priors currently rank equivalent ends.
+- Smoke examples included ability-before-item versus item-before-ability paths
+  that ended identically, as well as attack-now versus retreat-then-attack and
+  play-now versus retreat-then-play paths that converged after deterministic
+  rollout. This confirms that coarse equality was not merely a metric artifact.
+- The smoke also revealed that local option indices can differ for semantically
+  identical actions. Commit `d5afee8` removes those transient decision indices
+  from the order-sensitive sequence hash while retaining card/area/target
+  identity. The focused suite now passes 69 tests locally and 40 targeted tests
+  on ERAWAN.
+- Submitted independent 100-game replication jobs `76325` (seed `20260813`)
+  and `76326` (seed `20260814`). Both entered `RUNNING` with raw tactical
+  weight `1.0`, leaf weight `0.0`, top-4 search, and schema-v2 tracing enabled
+  for all 100 games. Analyze shards separately and merged after completion.
