@@ -20,6 +20,7 @@ from ptcg_abc.rl.phase5_search import (
     RootSearchConfig,
     _fingerprint_payload,
     _rollout_action_multiset,
+    _rollout_action_sequence,
     _score_candidates,
     _search_state_snapshot,
 )
@@ -70,6 +71,22 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertEqual(
             _rollout_action_multiset([play, attach]),
             _rollout_action_multiset([attach, play]),
+        )
+
+    def test_rollout_sequence_ignores_transient_option_indices(self):
+        first = {
+            "turn": 2,
+            "player_index": 0,
+            "select_type": "MAIN",
+            "context": "MAIN",
+            "indices": [1],
+            "actions": [{"option_type": "EVOLVE", "card_name": "Dragapult ex"}],
+        }
+        second = dict(first) | {"indices": [3]}
+
+        self.assertEqual(
+            _rollout_action_sequence([first]),
+            _rollout_action_sequence([second]),
         )
 
     def test_opponent_prior_infers_visible_league_deck(self):

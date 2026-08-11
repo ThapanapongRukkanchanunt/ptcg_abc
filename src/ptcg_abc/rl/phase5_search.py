@@ -429,7 +429,7 @@ class OneTurnRootSearchAgent:
                 card_by_id=self.card_by_id,
             )
             candidate.rollout_sequence_fingerprint = _fingerprint_payload(
-                candidate.rollout_actions
+                _rollout_action_sequence(candidate.rollout_actions)
             )
             candidate.rollout_multiset_fingerprint = _fingerprint_payload(
                 _rollout_action_multiset(candidate.rollout_actions)
@@ -1170,6 +1170,18 @@ def _rollout_action_multiset(actions: Sequence[dict[str, Any]]) -> list[str]:
                 json.dumps(common | {"action": action}, sort_keys=True, separators=(",", ":"))
             )
     return sorted(tokens)
+
+
+def _rollout_action_sequence(actions: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "player_index": decision.get("player_index"),
+            "select_type": decision.get("select_type"),
+            "context": decision.get("context"),
+            "actions": list(decision.get("actions", []) or []),
+        }
+        for decision in actions
+    ]
 
 
 def _fingerprint_payload(payload: Any) -> str:
