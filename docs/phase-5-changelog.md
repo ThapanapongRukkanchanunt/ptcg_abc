@@ -8529,3 +8529,17 @@ Next improvement: equivalence-aware distillation
   decisions per game. This yields up to 80,000 compact rows without recording
   every action. Merge only after both shards pass integrity checks, then train
   single-label and equivalence-set heads from the identical merged corpus.
+
+ERAWAN collection launch:
+
+- Pushed implementation commit `3d53eab`, fast-forwarded ERAWAN to that commit,
+  and passed the focused exact-equivalence metadata, target construction, and
+  multi-positive loss tests there.
+- Submitted sampled trajectory shards `76474 / 76475`. Each requests 5,000
+  fixed-top-4 Dragapult-vs-Lucario games and at most eight deterministic random
+  decisions per game, using discounted turn-prize reward with gamma `0.97`.
+  Shard offsets are `0 / 5000` and sampling seeds `20260817 / 20260818`; raw
+  outputs are independent project-storage JSONLs.
+- Job `76474` entered `RUNNING`. Job `76475` is queued because the other
+  suitable node is drained or reserved; leave it queued rather than changing
+  the predeclared design. Inspect both only after completion.

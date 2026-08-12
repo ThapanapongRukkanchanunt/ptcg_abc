@@ -4832,7 +4832,7 @@ decisions per game. Keep outputs under project storage until successful
 consumption and cleanup.
 
 ```bash
-COMMON_EQ='PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents,PUBLIC_AGENT_KEYS=sample_lucario,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,CONTROLLED_DECK_INDEX=101,SPECIALIST_MODEL_DIR=models/rl/phase5_turn_prize_20k_v2/specialists,AGENT=phase5-search,SEARCH_TOP_K=4,GAMES_PER_MATCHUP=5000,MAX_STEPS=600,TRAJECTORY_SAMPLES_PER_GAME=8,REWARD_OBJECTIVE=turn-prize,TURN_PRIZE_DISCOUNT_GAMMA=0.97,OVERWRITE_FLAG=1'
+COMMON_EQ='PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents,PUBLIC_AGENT_KEYS=sample_lucario,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,CONTROLLED_DECK_INDEX=101,SPECIALIST_MODEL_DIR=models/rl/phase5_turn_prize_20k_v2/specialists,AGENT=phase5-search,SEARCH_TOP_K=4,GAMES_PER_MATCHUP=5000,MAX_STEPS=600,TRAJECTORY_SAMPLES_PER_GAME=8,REWARD_OBJECTIVE=discounted-turn-prizes,TURN_PRIZE_DISCOUNT_GAMMA=0.97,OVERWRITE_FLAG=1'
 
 JOB_EQ_SHARD_A=$(sbatch --parsable --export=ALL,$COMMON_EQ,GAME_OFFSET=0,TRAJECTORY_SAMPLE_SEED=20260817,OUTPUT=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_equivalent_distill/shard_a_5k.jsonl,REPORT_JSON=reports/phase5_equivalent_distill_shard_a_5k.json scripts/slurm/phase5_public_agent_trajectories.sbatch)
 
@@ -4843,3 +4843,9 @@ After completion, require exactly 5,000 finished games per shard, no errors or
 timeouts, no malformed JSONL, and nonzero multi-target rows. Train the control
 with `TARGET_SOURCE=search` and challenger with
 `TARGET_SOURCE=search-equivalent` from the same merged data and identical seed.
+
+Execution status (August 12, 2026): jobs `76474 / 76475` were submitted with
+offsets `0 / 5000`, sampling seeds `20260817 / 20260818`, eight sampled
+decisions per game, and discounted-turn-prize gamma `0.97`. Shard A entered
+`RUNNING`; shard B is pending for a suitable node because available nodes are
+drained or reserved.

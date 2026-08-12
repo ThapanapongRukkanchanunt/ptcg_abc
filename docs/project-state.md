@@ -84,6 +84,10 @@ This is the resume point for the project. Start here after switching machines, c
   `search-equivalent` objective maximizes total probability over that accepted
   set rather than forcing one arbitrary ordering. The default single-label
   objective remains available for a matched comparison.
+- New sampled collection jobs `76474 / 76475` request 5,000 games each and at
+  most eight random decisions per game. Shard A is running and shard B is
+  queued for a suitable node. After both complete, verify nonzero equivalence-
+  set rows, merge the corpus, and train matched single-label/set-label heads.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
