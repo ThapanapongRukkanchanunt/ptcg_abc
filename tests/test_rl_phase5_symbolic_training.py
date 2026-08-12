@@ -9,6 +9,7 @@ from ptcg_abc.rl.phase5_encoder import Phase5SymbolicEncoder
 from ptcg_abc.rl.phase5_policy import TORCH_AVAILABLE
 from ptcg_abc.rl.phase5_symbolic_training import (
     Phase5TurnContext,
+    _multi_positive_policy_loss,
     _iter_phase5_game_shuffled_records,
     build_phase5_symbolic_dataset,
     decision_frame_to_legal_actions,
@@ -113,6 +114,38 @@ def _phase5_frame(
 
 
 class Phase5SymbolicTrainingTests(unittest.TestCase):
+    def test_search_equivalent_target_keeps_every_acceptable_action(self):
+        frame = _phase5_frame(step_index=1, selected=[1], search=[1], baseline=[0])
+        frame.reward_metadata["phase5_search_equivalent_indices"] = [0, 1]
+
+        record = phase5_symbolic_record_from_decision(
+            frame,
+            encoder=Phase5SymbolicEncoder(max_entities=8, max_actions=4),
+            target_source="search-equivalent",
+        )
+
+        self.assertIsNotNone(record)
+        assert record is not None
+        self.assertEqual(record.target_indices, [0, 1])
+        self.assertEqual(record.target_positions, [0, 1])
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+    def test_multi_positive_loss_uses_total_probability_of_equivalent_actions(self):
+        import torch
+
+        frame = _phase5_frame(step_index=1, selected=[1])
+        record = phase5_symbolic_record_from_decision(
+            frame,
+            encoder=Phase5SymbolicEncoder(max_entities=8, max_actions=4),
+            target_indices_override=[0, 1],
+        )
+        assert record is not None
+        logits = torch.tensor([[2.0, 1.0, 0.0, -100.0]])
+
+        loss = _multi_positive_policy_loss([record], logits=logits, torch=torch)
+        expected = torch.logsumexp(logits[0], dim=0) - torch.logsumexp(logits[0, :2], dim=0)
+        self.assertAlmostEqual(float(loss[0]), float(expected), places=6)
+
     def test_decision_frame_bridge_emits_state_actions_and_record(self):
         frame = _phase5_frame(
             step_index=1,

@@ -26,6 +26,7 @@ from ptcg_abc.rl.phase5_search import (
     _candidate_evaluations,
     _candidate_probe_limit,
     _candidate_search_is_complete,
+    _equivalent_candidate_indices,
     _replace_frame_selection,
     _score_candidates,
     merge_search_data,
@@ -812,6 +813,24 @@ class Phase4RlTests(unittest.TestCase):
         self.assertFalse(_candidate_search_is_complete(candidates[:4], config))
         self.assertTrue(_candidate_search_is_complete(candidates, config))
         self.assertEqual(_candidate_probe_limit(RootSearchConfig(top_k=4)), 4)
+
+    def test_exact_state_equivalence_returns_all_acceptable_root_indices(self):
+        candidates = [
+            CandidateEvaluation(
+                indices=[index],
+                option_index=index,
+                option_type="PLAY",
+                card_name=str(index),
+                attack_id=None,
+                rule_score=0.0,
+                rule_rank=index + 1,
+                end_state_fingerprint=fingerprint,
+            )
+            for index, fingerprint in enumerate(["same", "other", "same"])
+        ]
+
+        self.assertEqual(_equivalent_candidate_indices(candidates, [2]), [0, 2])
+        self.assertEqual(_equivalent_candidate_indices(candidates, [9]), [9])
 
     def test_phase5_hidden_state_sampler_matches_visible_counts(self):
         own_deck = list(range(1, 61))

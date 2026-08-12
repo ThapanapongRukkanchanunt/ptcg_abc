@@ -8466,3 +8466,66 @@ Confirmation launch:
 - The confirmation retains only five traced games plus one win/loss replay per
   arm. After completion, inspect prize distributions and operational telemetry
   before deciding promotion. Do not launch another scale run for this mechanism.
+
+## 2026-08-12 - Runtime Unique-State Expansion Rejected at 10,000 Games
+
+Matched confirmation:
+
+| Metric | Fixed top-4 `76355` | Unique-state cap-8 `76356` | Adaptive delta |
+| --- | ---: | ---: | ---: |
+| Discounted prize score | 2.730060 | 2.721447 | -0.008613 (-0.32%) |
+| Average prizes | 3.3228 | 3.3088 | -0.0140 |
+| Six-prize games / rate | 3,521 / 0.3521 | 3,545 / 0.3545 | +24 / +0.0024 |
+| Average turns to six | 9.5757 | 9.5049 | -0.0708 |
+| Average controlled turns | 9.6508 | 9.6508 | 0.0000 |
+| Wins / losses / draws | 4,643 / 5,341 / 16 | 4,629 / 5,348 / 23 | -14 wins |
+
+- Jobs `76355 / 76356` completed with exit code `0` in `26:26:17 /
+  29:27:53`. Both had zero battle errors, timeouts, search errors, and candidate
+  errors. Peak batch RSS was 282,328 / 286,476 KB; stderr contains only the
+  known PyTorch nested-tensor warning.
+- The positive 1,000-game screen did not survive scale. Both primary metrics
+  are slightly negative. Average-prize delta `-0.0140` has approximate 95% CI
+  `[-0.0812, +0.0532]`, `z = -0.408`, `p = 0.683`. Six-prize-rate delta
+  `+0.0024` has approximate 95% CI `[-0.0108, +0.0156]`, `p = 0.723`.
+  Diagnostic win-rate delta `-0.0014` has `p = 0.843`.
+- Pooled with the screen, average prizes are `3.3112 / 3.3061` and discounted
+  prize scores approximately `2.7201 / 2.7188` for fixed/adaptive. More runtime
+  probes have no demonstrated payoff. Reject adaptive expansion and retain
+  fixed raw-tactical top-4 as the best playable agent.
+- Adaptive search used 1,748,831 probes over 430,455 decisions (`4.0627` per
+  decision), versus 1,583,536 over 430,821 (`3.6756`) for fixed search. Mean
+  search time rose 14.67% (`0.1611` to `0.1848` seconds). The five-game trace
+  again verified mechanism fidelity: adaptive restored four unique states in
+  136 / 147 eligible decisions versus 114 / 198 for fixed, with zero missing
+  sequence/state fields, errors, or truncations. Breadth increased; playing
+  strength did not.
+- Adaptive finished at 4,629 / 10,000 (`0.4629`), 371 wins and 3.71 percentage
+  points short of tying the 50% Dragapult-vs-Lucario diagnostic gate. Fixed
+  top-4 finished at `0.4643`, 357 wins and 3.57 points short.
+- No raw training JSONL was generated, so cleanup is vacuously complete.
+  Securely downloaded reports, statuses, logs, five-game traces, and one
+  win/loss replay per arm. The verified archive has SHA-256
+  `18271e22b7765331ef31bf04d8f6533820ae3424abfea1ad8d601ca7593a0680`;
+  the temporary ERAWAN transfer archive was removed.
+
+Next improvement: equivalence-aware distillation
+
+- Do not spend extra probes during deployment. Instead, use the established
+  exact-state equivalence signal to prevent contradictory imitation targets.
+  Search collection now records every root index that reaches the selected
+  exact modeled state as `phase5_search_equivalent_indices`.
+- Added an opt-in `search-equivalent` target source. Its policy loss is the
+  negative log of total probability assigned to the accepted action set. For a
+  singleton target it is exactly ordinary cross-entropy; for interchangeable
+  roots it does not punish probability assigned to another valid ordering.
+  Pairwise accuracy already treats any target position as correct.
+- The default `search` target remains unchanged, allowing a matched single-
+  label versus equivalence-set training comparison from the same collected
+  games. Focused validation passes 68 tests with one expected Torch-dependent
+  skip; `git diff --check` passes.
+- Next collect two independent 5,000-game Dragapult-vs-Lucario trajectory
+  shards from fixed top-4, retaining a deterministic random sample of eight
+  decisions per game. This yields up to 80,000 compact rows without recording
+  every action. Merge only after both shards pass integrity checks, then train
+  single-label and equivalence-set heads from the identical merged corpus.

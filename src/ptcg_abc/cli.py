@@ -2307,7 +2307,7 @@ def build_parser() -> argparse.ArgumentParser:
     rl_build_phase5_symbolic.add_argument("--max-previous-actions", type=int, default=16)
     rl_build_phase5_symbolic.add_argument(
         "--target-source",
-        choices=["search", "baseline", "rule"],
+        choices=["search", "search-equivalent", "baseline", "rule"],
         default="search",
     )
     rl_build_phase5_symbolic.add_argument("--changed-weight", type=float, default=1.0)
@@ -2342,7 +2342,7 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_phase5_symbolic.add_argument("--max-previous-actions", type=int, default=16)
     rl_train_phase5_symbolic.add_argument(
         "--target-source",
-        choices=["search", "baseline", "rule"],
+        choices=["search", "search-equivalent", "baseline", "rule"],
         default="search",
     )
     rl_train_phase5_symbolic.add_argument("--changed-weight", type=float, default=1.0)
@@ -2423,7 +2423,7 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_phase5_generalist.add_argument("--max-previous-actions", type=int, default=16)
     rl_train_phase5_generalist.add_argument(
         "--target-source",
-        choices=["search", "baseline", "rule"],
+        choices=["search", "search-equivalent", "baseline", "rule"],
         default="search",
     )
     rl_train_phase5_generalist.add_argument(
@@ -3028,7 +3028,7 @@ def build_parser() -> argparse.ArgumentParser:
     rl_train_specialists.add_argument("--max-previous-actions", type=int, default=16)
     rl_train_specialists.add_argument(
         "--target-source",
-        choices=["search", "baseline", "rule"],
+        choices=["search", "search-equivalent", "baseline", "rule"],
         default="search",
     )
     rl_train_specialists.add_argument(

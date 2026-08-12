@@ -4819,3 +4819,27 @@ Execution status (August 11, 2026): confirmation jobs `76355` (fixed) and
 `76356` (adaptive) entered `RUNNING` together. Scheduler and startup logs verify
 the 48-hour limit, 10,000 games, common seed `20260816`, and intended target
 `0 / 4` with adaptive cap `8`.
+
+Confirmation result (August 12, 2026): fixed/adaptive discounted prize score
+was `2.730060 / 2.721447`, average prizes `3.3228 / 3.3088`, six-prize rate
+`0.3521 / 0.3545`, and diagnostic win rate `0.4643 / 0.4629`. Reject runtime
+expansion; it increased mean search time 14.67% without improving primary prize
+metrics.
+
+The next pipeline uses equivalence only as a training label. Collect two
+independent 5,000-game fixed-top-4 trajectory shards with eight randomly sampled
+decisions per game. Keep outputs under project storage until successful
+consumption and cleanup.
+
+```bash
+COMMON_EQ='PUBLIC_AGENT_ROOTS=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_public_agents,PUBLIC_AGENT_KEYS=sample_lucario,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,CONTROLLED_DECK_INDEX=101,SPECIALIST_MODEL_DIR=models/rl/phase5_turn_prize_20k_v2/specialists,AGENT=phase5-search,SEARCH_TOP_K=4,GAMES_PER_MATCHUP=5000,MAX_STEPS=600,TRAJECTORY_SAMPLES_PER_GAME=8,REWARD_OBJECTIVE=turn-prize,TURN_PRIZE_DISCOUNT_GAMMA=0.97,OVERWRITE_FLAG=1'
+
+JOB_EQ_SHARD_A=$(sbatch --parsable --export=ALL,$COMMON_EQ,GAME_OFFSET=0,TRAJECTORY_SAMPLE_SEED=20260817,OUTPUT=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_equivalent_distill/shard_a_5k.jsonl,REPORT_JSON=reports/phase5_equivalent_distill_shard_a_5k.json scripts/slurm/phase5_public_agent_trajectories.sbatch)
+
+JOB_EQ_SHARD_B=$(sbatch --parsable --export=ALL,$COMMON_EQ,GAME_OFFSET=5000,TRAJECTORY_SAMPLE_SEED=20260818,OUTPUT=/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_equivalent_distill/shard_b_5k.jsonl,REPORT_JSON=reports/phase5_equivalent_distill_shard_b_5k.json scripts/slurm/phase5_public_agent_trajectories.sbatch)
+```
+
+After completion, require exactly 5,000 finished games per shard, no errors or
+timeouts, no malformed JSONL, and nonzero multi-target rows. Train the control
+with `TARGET_SOURCE=search` and challenger with
+`TARGET_SOURCE=search-equivalent` from the same merged data and identical seed.

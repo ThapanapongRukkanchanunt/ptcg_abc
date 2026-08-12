@@ -73,14 +73,26 @@ This is the resume point for the project. Start here after switching machines, c
   least four candidates, versus 81 / 140 in the fixed trace. Full evaluation
   cost was +10.41% probes per decision and +12.81% mean search time, with zero
   errors or timeouts.
+- Final 10,000-game jobs `76355 / 76356` reject runtime adaptive expansion.
+  Adaptive reduced discounted prize score from `2.73006` to `2.72145` and
+  average prizes from `3.3228` to `3.3088`; six-prize rate moved only from
+  `0.3521` to `0.3545`. It cost 14.67% more mean search time. Retain fixed raw-
+  tactical top-4 as the best playable agent and do not run another expansion
+  confirmation.
+- Equivalence is now redirected into training. Search records include all root
+  actions that reach the selected exact state, and the opt-in
+  `search-equivalent` objective maximizes total probability over that accepted
+  set rather than forcing one arbitrary ordering. The default single-label
+  objective remains available for a matched comparison.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
   average prizes `3.390`, discounted prize score `2.77446`, and six-prize rate
   `0.350`; the sample is diagnostic, not a promotion result.
-- Latest gate distance: adaptive job `76334` scored 458 / 1,000 (`0.458`), 42
-  wins and 4.2 percentage points short of tying the 50% Dragapult-vs-Lucario
-  diagnostic gate. Prize return remains the promotion objective.
+- Latest gate distance: confirmation adaptive job `76356` scored 4,629 /
+  10,000 (`0.4629`), 371 wins and 3.71 percentage points short of tying the 50%
+  Dragapult-vs-Lucario diagnostic gate. Fixed `76355` scored `0.4643`. Prize
+  return remains the promotion objective.
 - Historical win-gate diagnostic for the confirmed prize arm is 4,157 / 10,000
   (`0.4157`), which is 843 wins and 8.43 percentage points short of tying the
   50% Dragapult-vs-Lucario gate. Win/loss remains secondary to prize return.

@@ -543,6 +543,11 @@ def decision_frame_to_legal_actions(frame: DecisionFrame) -> list[LegalAction]:
 def phase5_target_indices(frame: DecisionFrame, *, target_source: str = "search") -> list[int]:
     if target_source == "search":
         raw = frame.reward_metadata.get("phase5_search_indices", frame.rule_selected_indices)
+    elif target_source == "search-equivalent":
+        raw = frame.reward_metadata.get(
+            "phase5_search_equivalent_indices",
+            frame.reward_metadata.get("phase5_search_indices", frame.rule_selected_indices),
+        )
     elif target_source == "baseline":
         raw = frame.reward_metadata.get("phase5_baseline_indices", frame.rule_selected_indices)
     elif target_source == "rule":
@@ -2622,6 +2627,33 @@ def phase5_symbolic_pairwise_positions(
     return pairs
 
 
+def _multi_positive_policy_loss(
+    records: Sequence[Phase5SymbolicDecisionRecord],
+    *,
+    logits: Any,
+    torch: Any,
+) -> Any:
+    """Negative log probability assigned to any accepted target action."""
+
+    losses: list[Any] = []
+    for row_index, record in enumerate(records):
+        positions = sorted(
+            {
+                int(position)
+                for position in record.target_positions
+                if 0 <= int(position) < int(logits.shape[1])
+            }
+        )
+        if not positions:
+            raise ValueError("Phase 5 symbolic record has no valid target positions.")
+        positive = torch.tensor(positions, dtype=torch.long, device=logits.device)
+        losses.append(
+            torch.logsumexp(logits[row_index], dim=0)
+            - torch.logsumexp(logits[row_index].index_select(0, positive), dim=0)
+        )
+    return torch.stack(losses)
+
+
 def _train_symbolic_batch(
     records: Sequence[Phase5SymbolicDecisionRecord],
     *,
@@ -2673,11 +2705,6 @@ def _train_symbolic_batch(
         dtype=torch.float32,
         device=device,
     )
-    targets = torch.tensor(
-        [record.target_positions[0] for record in records],
-        dtype=torch.long,
-        device=device,
-    )
     weights = torch.tensor(
         [record.weight for record in records],
         dtype=torch.float32,
@@ -2693,7 +2720,7 @@ def _train_symbolic_batch(
         previous_action_mask,
     )
     logits = output["action_logits"]
-    actor_loss = nn.functional.cross_entropy(logits, targets, reduction="none")
+    actor_loss = _multi_positive_policy_loss(records, logits=logits, torch=torch)
     loss = (actor_loss * weights).mean()
     if pairwise_changed and pairwise_weight > 0.0:
         pairwise_loss = _changed_pairwise_loss(
@@ -2796,7 +2823,10 @@ def _train_symbolic_batch(
     loss.backward()
     optimizer.step()
     predictions = logits.detach().argmax(dim=1)
-    correct = int((predictions == targets).sum().item())
+    correct = sum(
+        int(int(predictions[row_index].item()) in set(record.target_positions))
+        for row_index, record in enumerate(records)
+    )
     return float(loss.detach().item()), correct
 
 

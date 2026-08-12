@@ -19,6 +19,7 @@ from ptcg_abc.rl.phase5_search import (
     _best_candidate_indices,
     _candidate_probe_limit,
     _candidate_search_is_complete,
+    _equivalent_candidate_indices,
     _hidden_counts,
     _load_search_api,
     _score_candidates,
@@ -173,6 +174,10 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
             "phase5_search_baseline_score": baseline_score,
             "phase5_search_selected_score": selected_score,
             "phase5_search_score_margin": score_margin,
+            "phase5_search_equivalent_indices": _equivalent_candidate_indices(
+                trace.candidates if trace is not None else (),
+                selected,
+            ),
         }
         selected_positions = self._positions_for_indices(encoded, selected)
         self._observe_selected_actions(encoded.legal_action_features, selected_positions)

@@ -266,12 +266,17 @@ class OneTurnRootSearchAgent:
             self.traces.append(trace)
 
         changed = selected != baseline
+        equivalent = _equivalent_candidate_indices(
+            trace.candidates if trace is not None else (),
+            selected,
+        )
         metadata = self._base_metadata(
             applied=trace is not None and trace.search_started,
             baseline=baseline,
             search=selected,
             changed=changed,
             search_error=trace.search_error if trace is not None else None,
+            equivalent=equivalent,
         )
         improved_frame = _replace_frame_selection(frame, selected, metadata)
         self.frames.append(improved_frame)
@@ -493,6 +498,7 @@ class OneTurnRootSearchAgent:
         search: Sequence[int],
         changed: bool = False,
         search_error: str | None = None,
+        equivalent: Sequence[int] = (),
     ) -> dict[str, Any]:
         return self.reward_metadata | {
             "collector": "phase5_search",
@@ -501,6 +507,7 @@ class OneTurnRootSearchAgent:
             "phase5_search_indices": list(search),
             "phase5_search_changed": changed,
             "phase5_search_error": search_error,
+            "phase5_search_equivalent_indices": list(equivalent or search),
         }
 
 
@@ -860,6 +867,37 @@ def _candidate_search_is_complete(
         if candidate.error is None and candidate.end_state_fingerprint
     }
     return len(unique_states) >= int(config.unique_state_target)
+
+
+def _equivalent_candidate_indices(
+    candidates: Sequence[CandidateEvaluation],
+    selected_indices: Sequence[int],
+) -> list[int]:
+    """Return every probed root that reaches the selected root's exact state."""
+
+    selected = next(
+        (
+            candidate
+            for candidate in candidates
+            if list(candidate.indices) == [int(value) for value in selected_indices]
+        ),
+        None,
+    )
+    fingerprint = getattr(selected, "end_state_fingerprint", None)
+    if not fingerprint:
+        return [int(value) for value in selected_indices]
+    output: list[int] = []
+    for candidate in candidates:
+        if (
+            getattr(candidate, "error", None) is not None
+            or getattr(candidate, "end_state_fingerprint", None) != fingerprint
+        ):
+            continue
+        for value in candidate.indices:
+            index = int(value)
+            if index not in output:
+                output.append(index)
+    return output or [int(value) for value in selected_indices]
 
 
 def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSearchConfig) -> None:
