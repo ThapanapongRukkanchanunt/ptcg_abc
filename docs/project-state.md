@@ -92,8 +92,9 @@ This is the resume point for the project. Start here after switching machines, c
   zero malformed JSONL, but an omitted recorder allowlist field left all rows
   singleton-target. Retain them as behavior anchors; commit `6511bca` fixes
   equivalence metadata for future collection.
-- Deadline training is now active for two specialists. Jobs `76560` (official
-  sample Dragapult, deck 101) and `76561` (Alakazam Dudunsparce, deck 1) each
+- Deadline training is now active for two specialists. Clean relaunch jobs
+  `76563` (official sample Dragapult, deck 101) and `76564` (Alakazam
+  Dudunsparce, deck 1) each
   run five 1,000-game update windows in parallel against explicit built-in
   rule agents on all 13 recorded league decks. Every update contains exactly
   1,000 games, balanced as 76 or 77 games per opponent with the remainder

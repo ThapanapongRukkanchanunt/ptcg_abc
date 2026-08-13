@@ -4866,9 +4866,9 @@ is removed.
 
 Active corrected jobs:
 
-- `76560`: official sample Dragapult (`deck 101`), initialized from
+- `76563`: official sample Dragapult (`deck 101`), initialized from
   `phase5_turn_prize_20k_v2`;
-- `76561`: Alakazam Dudunsparce (`deck 1`), initialized from Alpha iteration 5.
+- `76564`: Alakazam Dudunsparce (`deck 1`), initialized from Alpha iteration 5.
 
 Both train against explicit built-in rule agents for all 13 recorded league
 decks. Each 1,000-game update assigns 76 or 77 games to every opponent and

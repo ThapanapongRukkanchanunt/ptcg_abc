@@ -8639,3 +8639,9 @@ First-generation startup correction:
   game/error/timeout summaries. This is the correct semantics because no prize-
   bearing controlled turn exists in such a game. Focused validation now passes
   24 tests. Relaunch first generation from the unchanged generation-0 sources.
+- Pushed the fix as commit `95ab75a`; the same 24 focused tests passed on
+  ERAWAN. Clean generation-1 jobs `76563` (Dragapult) and `76564` (Alakazam)
+  are running concurrently on `compute2 / compute1` from fresh `*_v2` run and
+  storage roots. Both request the 13-deck `league-rule` pool, 1,000 games,
+  epsilon `1.0`, and the unchanged generation-0 checkpoints. No failed-job raw
+  data or updated checkpoint is reused.
