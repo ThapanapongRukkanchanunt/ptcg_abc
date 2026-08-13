@@ -46,6 +46,8 @@ TURN_PRIZE_DISCOUNT_GAMMA="${TURN_PRIZE_DISCOUNT_GAMMA:-0.97}"
 MODEL_ROOT="${MODEL_ROOT:-models/rl/phase5_deadline_specialists/${RUN_NAME}}"
 REPORT_ROOT="${REPORT_ROOT:-experiments/rl/phase5_deadline_specialists/${RUN_NAME}}"
 RAW_ROOT="${RAW_ROOT:-${GAME_DATA_ROOT}/phase5_deadline_specialists/${RUN_NAME}}"
+AUTO_CONTINUE="${AUTO_CONTINUE:-1}"
+MAX_GENERATION="${MAX_GENERATION:-20}"
 
 if (( START_GENERATION < 0 )); then
   echo "START_GENERATION must be non-negative" >&2
@@ -117,6 +119,8 @@ echo "TURN_PRIZE_DISCOUNT_GAMMA=$TURN_PRIZE_DISCOUNT_GAMMA"
 echo "MODEL_ROOT=$MODEL_ROOT"
 echo "REPORT_ROOT=$REPORT_ROOT"
 echo "RAW_ROOT=$RAW_ROOT"
+echo "AUTO_CONTINUE=$AUTO_CONTINUE"
+echo "MAX_GENERATION=$MAX_GENERATION"
 
 START_CHECKPOINT="$(checkpoint_path "$START_GENERATION")"
 mkdir -p "$(dirname "$START_CHECKPOINT")" "$(report_generation_dir "$START_GENERATION")"
@@ -207,3 +211,25 @@ for local_generation in $(seq 1 "$GENERATIONS_PER_JOB"); do
       --status-json "$STATUS_JSON"
   fi
 done
+
+end_generation="$((START_GENERATION + GENERATIONS_PER_JOB))"
+if [[ "$AUTO_CONTINUE" != "0" ]] && (( end_generation < MAX_GENERATION )); then
+  next_job_name="p5-$(echo "$RUN_NAME" | tr -cd '[:alnum:]-' | cut -c1-20)-${end_generation}"
+  export_values="RUN_NAME=${RUN_NAME},CONTROLLED_DECK_INDEX=${CONTROLLED_DECK_INDEX},OPPONENT_PUBLIC_AGENT_KEY=${OPPONENT_PUBLIC_AGENT_KEY},START_GENERATION=${end_generation},GENERATIONS_PER_JOB=${GENERATIONS_PER_JOB},TRAIN_GAMES_PER_GENERATION=${TRAIN_GAMES_PER_GENERATION},EVAL_GAMES_PER_GENERATION=${EVAL_GAMES_PER_GENERATION},EPSILON_START=0.10,EPSILON_END=0.10,POLICY_SEED=${POLICY_SEED},MAX_STEPS=${MAX_STEPS},EPOCHS=${EPOCHS},BATCH_SIZE=${BATCH_SIZE},LEARNING_RATE=${LEARNING_RATE},CLIP_EPSILON=${CLIP_EPSILON},POLICY_LOSS_WEIGHT=${POLICY_LOSS_WEIGHT},VALUE_LOSS_WEIGHT=${VALUE_LOSS_WEIGHT},VALUE_BACKPROP_SCOPE=${VALUE_BACKPROP_SCOPE},ENTROPY_WEIGHT=${ENTROPY_WEIGHT},REWARD_OBJECTIVE=${REWARD_OBJECTIVE},TURN_PRIZE_DISCOUNT_GAMMA=${TURN_PRIZE_DISCOUNT_GAMMA},MODEL_ROOT=${MODEL_ROOT},REPORT_ROOT=${REPORT_ROOT},RAW_ROOT=${RAW_ROOT},AUTO_CONTINUE=${AUTO_CONTINUE},MAX_GENERATION=${MAX_GENERATION}"
+  if [[ -n "$CONTROLLED_PUBLIC_AGENT_KEY" ]]; then
+    export_values="${export_values},CONTROLLED_PUBLIC_AGENT_KEY=${CONTROLLED_PUBLIC_AGENT_KEY}"
+  fi
+  next_job=""
+  for attempt in $(seq 1 20); do
+    if next_job="$(sbatch --parsable --job-name="$next_job_name" --export="ALL,${export_values}" scripts/slurm/phase5_deadline_specialist_curriculum.sbatch)"; then
+      break
+    fi
+    echo "Continuation submission attempt $attempt failed; retrying in 30 seconds"
+    sleep 30
+  done
+  if [[ -z "$next_job" ]]; then
+    echo "Unable to submit continuation after 20 attempts" >&2
+    exit 3
+  fi
+  echo "Submitted continuation job $next_job at generation $end_generation"
+fi
