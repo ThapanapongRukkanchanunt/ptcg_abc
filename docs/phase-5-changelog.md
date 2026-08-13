@@ -8595,3 +8595,33 @@ User-selected deadline strategy:
   `RUNNING` on separate nodes. Startup verifies 1,000 games/update, five updates
   per job, the first-job 1.0-to-0.1 schedule, prize objective/gamma, conservative
   optimizer settings, correct source checkpoints, and self-continuation.
+
+## 2026-08-13 - Deadline Curriculum Corrected to the Full Rule Deck Roster
+
+Opponent requirement correction:
+
+- The intended enemy distribution is not one sample Lucario matchup. Every
+  training enemy must be the built-in `RuleBasedAgent`, using each of the 13
+  recorded Phase 5 league decks (nine tournament decks plus four required
+  sample/benchmark decks). Canceled jobs `76558 / 76559` after `00:03:45`,
+  before either could finish the first 1,000-game window or update a model.
+  Their partial run roots remain isolated and are not inputs to corrected jobs.
+- Added a `league-rule` opponent pool to trajectory generation and evaluation.
+  It constructs the rule policy directly for every recorded deck instead of
+  loading a public agent implementation. Reports identify the pool and each
+  trajectory records `opponent_agent_kind=rule`, providing auditable provenance.
+- Added an exact total-game budget. A 1,000-game generation distributes 76 or
+  77 games across all 13 matchups; the seven remainder games rotate according
+  to the generation offset. Thus each 5,000-game job still contains five exact
+  1,000-game PPO updates without over- or under-counting the roster.
+- Updated the deadline script to train with `OPPONENT_POOL=league-rule` and to
+  evaluate fixed top-4 for eight games per opponent (104 games total) after
+  every update. Exploration, initialization, prize-return gamma `0.97`, learning
+  rate `1e-5`, one epoch, head-only critic updates, raw cleanup-after-success,
+  checkpoint retention, and self-chaining are otherwise unchanged.
+- Commit `e011f15` passed 23 focused tests locally and on ERAWAN. Corrected jobs
+  `76560` (Dragapult) and `76561` (Alakazam) are running concurrently on
+  `compute2 / compute1`, respectively, with fresh run names and storage roots.
+  Startup logs confirm the full `league-rule` pool, exact 1,000 games/update,
+  epsilon `1.0` for generation 1, intended source checkpoints, prize objective,
+  and empty stderr files.
