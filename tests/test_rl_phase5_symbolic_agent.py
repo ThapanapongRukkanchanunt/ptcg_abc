@@ -165,6 +165,7 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
         self.assertEqual(selected, [1])
         self.assertEqual(agent.last_policy_metadata["phase5_baseline_indices"], [0])
         self.assertEqual(agent.last_policy_metadata["phase5_search_indices"], [1])
+        self.assertEqual(agent.last_policy_metadata["phase5_search_equivalent_indices"], [1])
         self.assertTrue(agent.last_policy_metadata["phase5_search_changed"])
         self.assertAlmostEqual(
             agent.last_policy_metadata["phase5_search_score_margin"],
