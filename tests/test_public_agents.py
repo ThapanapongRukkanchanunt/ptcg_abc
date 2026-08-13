@@ -16,6 +16,7 @@ from ptcg_abc.evaluation import Phase3RequiredBenchmarkRow
 from ptcg_abc.rl.records import ActionFrame, DecisionFrame
 from ptcg_abc.rl.public_opponents import (
     PublicAgentTacticalRewardConfig,
+    _balanced_matchup_game_counts,
     _filter_public_opponents,
     _summarize_turn_prize_games,
     _tactical_reward_for_frame,
@@ -85,6 +86,43 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(args.reward_objective, "discounted-turn-prizes")
         self.assertAlmostEqual(args.turn_prize_discount_gamma, 0.95)
         self.assertAlmostEqual(eval_args.prize_discount_gamma, 0.97)
+
+    def test_rule_roster_cli_and_exact_balanced_game_budget(self):
+        args = build_parser().parse_args(
+            [
+                "rl-generate-phase5-public-agent-trajectories",
+                "--opponent-pool",
+                "league-rule",
+                "--games-total",
+                "1000",
+            ]
+        )
+        eval_args = build_parser().parse_args(
+            [
+                "rl-evaluate-phase5-public-agents",
+                "--opponent-pool",
+                "league-rule",
+            ]
+        )
+
+        first = _balanced_matchup_game_counts(
+            games_total=1000,
+            matchup_count=13,
+            game_offset=0,
+        )
+        second = _balanced_matchup_game_counts(
+            games_total=1000,
+            matchup_count=13,
+            game_offset=1000,
+        )
+
+        self.assertEqual(args.opponent_pool, "league-rule")
+        self.assertEqual(args.games_total, 1000)
+        self.assertEqual(eval_args.opponent_pool, "league-rule")
+        self.assertEqual(sum(first), 1000)
+        self.assertEqual(set(first), {76, 77})
+        self.assertEqual(sum(second), 1000)
+        self.assertNotEqual(first, second)
 
     def test_policy_metadata_preserves_search_correction_markers(self):
         agent = SimpleNamespace(

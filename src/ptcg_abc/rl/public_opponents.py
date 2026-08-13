@@ -20,6 +20,7 @@ from ptcg_abc.evaluation import (
 )
 from ptcg_abc.public_agents import (
     LoadedPublicAgent,
+    PublicAgentSource,
     PublicAgentStatus,
     discover_public_agents,
 )
@@ -81,6 +82,7 @@ class PublicAgentTrajectorySummary:
     reward_objective: str = "legacy"
     turn_prize_discount_gamma: float = 0.97
     turn_prize_summary: dict[str, Any] | None = None
+    opponent_pool: str = "public"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -277,6 +279,99 @@ def discover_phase5_public_opponents(
     return _filter_public_opponents(opponents, statuses, public_agent_keys)
 
 
+def phase5_rule_deck_opponents(
+    *,
+    card_data: Sequence[Any],
+    attack_data: Sequence[Any],
+    deck_indices: Sequence[int] | None = None,
+) -> tuple[list[LoadedPublicAgent], list[PublicAgentStatus]]:
+    """Build explicit RuleBasedAgent opponents for the recorded 13-deck league."""
+    decks = _selected_phase5_decks(deck_indices)
+    opponents: list[LoadedPublicAgent] = []
+    statuses: list[PublicAgentStatus] = []
+    for deck in decks:
+        source = PublicAgentSource(
+            key=f"rule_deck_{deck.index:02d}",
+            label=f"Rule-based {deck.label}",
+            source_ref=f"phase5-league-deck-{deck.index:02d}",
+            url=deck.deck.source_url,
+        )
+        card_ids = list(deck.card_ids)
+        opponent = LoadedPublicAgent(
+            source=source,
+            path=None,
+            deck_ids=card_ids,
+            make_agent=lambda ids=card_ids: _make_agent(
+                "rule",
+                ids,
+                card_data,
+                attack_data,
+            ),
+            built_in=True,
+        )
+        opponents.append(opponent)
+        statuses.append(opponent.to_status())
+    return opponents, statuses
+
+
+def _selected_phase5_opponents(
+    *,
+    opponent_pool: str,
+    card_data: Sequence[Any],
+    attack_data: Sequence[Any],
+    sample_dir: Path,
+    public_agent_roots: Sequence[Path],
+    roster_notebook: Path | None,
+    include_public: bool,
+    include_samples: bool,
+    include_builtin_samples: bool,
+    public_agent_keys: Sequence[str] | None,
+    rule_deck_indices: Sequence[int] | None,
+) -> tuple[list[LoadedPublicAgent], list[PublicAgentStatus]]:
+    if opponent_pool == "league-rule":
+        if public_agent_keys:
+            raise ValueError(
+                "--public-agent-key cannot be combined with the league-rule opponent pool."
+            )
+        return phase5_rule_deck_opponents(
+            card_data=card_data,
+            attack_data=attack_data,
+            deck_indices=rule_deck_indices,
+        )
+    if opponent_pool != "public":
+        raise ValueError(f"Unsupported opponent pool: {opponent_pool}.")
+    if rule_deck_indices:
+        raise ValueError(
+            "Rule opponent deck indices require the league-rule opponent pool."
+        )
+    return discover_phase5_public_opponents(
+        sample_dir=sample_dir,
+        public_agent_roots=public_agent_roots,
+        roster_notebook=roster_notebook,
+        include_public=include_public,
+        include_samples=include_samples,
+        include_builtin_samples=include_builtin_samples,
+        public_agent_keys=public_agent_keys,
+    )
+
+
+def _balanced_matchup_game_counts(
+    *,
+    games_total: int,
+    matchup_count: int,
+    game_offset: int,
+) -> list[int]:
+    if games_total <= 0:
+        raise ValueError("games_total must be positive.")
+    if matchup_count <= 0:
+        raise ValueError("matchup_count must be positive.")
+    base, extra = divmod(games_total, matchup_count)
+    counts = [base] * matchup_count
+    for offset in range(extra):
+        counts[(game_offset + offset) % matchup_count] += 1
+    return counts
+
+
 def run_phase5_public_agent_benchmark(
     *,
     sample_dir: Path,
@@ -286,6 +381,8 @@ def run_phase5_public_agent_benchmark(
     include_samples: bool = True,
     include_builtin_samples: bool = True,
     public_agent_keys: Sequence[str] | None = None,
+    opponent_pool: str = "public",
+    rule_deck_indices: Sequence[int] | None = None,
     require_min_opponents: int = 1,
     controlled_public_agent_key: str | None = None,
     controlled_deck_index: int = 101,
@@ -323,7 +420,10 @@ def run_phase5_public_agent_benchmark(
         controlled_public_agent_key=controlled_public_agent_key,
         controlled_deck_index=controlled_deck_index,
     )
-    opponents, statuses = discover_phase5_public_opponents(
+    opponents, statuses = _selected_phase5_opponents(
+        opponent_pool=opponent_pool,
+        card_data=card_data,
+        attack_data=attack_data,
         sample_dir=sample_dir,
         public_agent_roots=public_agent_roots,
         roster_notebook=roster_notebook,
@@ -331,6 +431,7 @@ def run_phase5_public_agent_benchmark(
         include_samples=include_samples,
         include_builtin_samples=include_builtin_samples,
         public_agent_keys=public_agent_keys,
+        rule_deck_indices=rule_deck_indices,
     )
     if len(opponents) < require_min_opponents:
         raise ValueError(
@@ -378,6 +479,9 @@ def run_phase5_public_agent_benchmark(
                     "opponent_agent_label": opponent.label,
                     "opponent_source_ref": opponent.source.source_ref,
                     "opponent_deck_label": _public_opponent_label(opponent),
+                    "opponent_agent_kind": (
+                        "rule" if opponent_pool == "league-rule" else "public-adapter"
+                    ),
                     "collector": "phase5_public_rule_opponents_eval",
                     "agent": agent_kind,
                     "specialist_model_dir": (
@@ -514,6 +618,8 @@ def generate_phase5_public_agent_trajectories(
     include_samples: bool = True,
     include_builtin_samples: bool = True,
     public_agent_keys: Sequence[str] | None = None,
+    opponent_pool: str = "public",
+    rule_deck_indices: Sequence[int] | None = None,
     require_min_opponents: int = 1,
     controlled_public_agent_key: str | None = None,
     controlled_deck_index: int = 101,
@@ -522,6 +628,7 @@ def generate_phase5_public_agent_trajectories(
     specialist_model_dir: Path | None = None,
     deck_indices: Sequence[int] | None = None,
     games_per_matchup: int = 2,
+    games_total: int | None = None,
     max_steps: int = 600,
     game_offset: int = 0,
     search_config: Any | None = None,
@@ -539,6 +646,10 @@ def generate_phase5_public_agent_trajectories(
 ) -> PublicAgentTrajectorySummary:
     if output_path.exists() and output_path.stat().st_size > 0 and not overwrite:
         raise ValueError(f"Trajectory output already exists at {output_path}.")
+    if games_per_matchup <= 0:
+        raise ValueError("games_per_matchup must be positive.")
+    if games_total is not None and games_total <= 0:
+        raise ValueError("games_total must be positive when provided.")
     if teacher_agent_kind is not None and teacher_agent_kind != "rule":
         raise ValueError(f"Unsupported trajectory teacher agent: {teacher_agent_kind}.")
     if outcome_reward_assignment not in {"broadcast", "terminal"}:
@@ -565,7 +676,10 @@ def generate_phase5_public_agent_trajectories(
         controlled_public_agent_key=controlled_public_agent_key,
         controlled_deck_index=controlled_deck_index,
     )
-    opponents, statuses = discover_phase5_public_opponents(
+    opponents, statuses = _selected_phase5_opponents(
+        opponent_pool=opponent_pool,
+        card_data=card_data,
+        attack_data=attack_data,
         sample_dir=sample_dir,
         public_agent_roots=public_agent_roots,
         roster_notebook=roster_notebook,
@@ -573,6 +687,7 @@ def generate_phase5_public_agent_trajectories(
         include_samples=include_samples,
         include_builtin_samples=include_builtin_samples,
         public_agent_keys=public_agent_keys,
+        rule_deck_indices=rule_deck_indices,
     )
     if len(opponents) < require_min_opponents:
         raise ValueError(
@@ -582,7 +697,17 @@ def generate_phase5_public_agent_trajectories(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("", encoding="utf-8")
 
-    games_requested = len(our_decks) * len(opponents) * games_per_matchup
+    matchup_count = len(our_decks) * len(opponents)
+    games_requested = (
+        int(games_total)
+        if games_total is not None
+        else matchup_count * games_per_matchup
+    )
+    matchup_game_counts = _balanced_matchup_game_counts(
+        games_total=games_requested,
+        matchup_count=matchup_count,
+        game_offset=game_offset,
+    )
     games_started = steps_written = wins = losses = draws = errors = timeouts = 0
     deck_games = {str(_controlled_deck_index(deck)): 0 for deck in our_decks}
     deck_wins = {str(_controlled_deck_index(deck)): 0 for deck in our_decks}
@@ -599,6 +724,7 @@ def generate_phase5_public_agent_trajectories(
     turn_prize_games: list[dict[str, Any]] = []
 
     local_game_index = 0
+    matchup_index = 0
     for our_deck in our_decks:
         deck_index = _controlled_deck_index(our_deck)
         deck_label = _controlled_deck_label(our_deck)
@@ -607,6 +733,8 @@ def generate_phase5_public_agent_trajectories(
         if our_model_path is None:
             our_model_path = model_path
         for opponent in opponents:
+            matchup_games = matchup_game_counts[matchup_index]
+            matchup_index += 1
             pair_key = f"{deck_index}-vs-{opponent.key}"
             matchup = matchups.setdefault(
                 pair_key,
@@ -621,7 +749,7 @@ def generate_phase5_public_agent_trajectories(
                     "timeouts": 0,
                 },
             )
-            for _ in range(games_per_matchup):
+            for _ in range(matchup_games):
                 absolute_game_index = game_offset + local_game_index
                 local_game_index += 1
                 our_is_player0 = absolute_game_index % 2 == 0
@@ -634,6 +762,9 @@ def generate_phase5_public_agent_trajectories(
                     "opponent_agent_label": opponent.label,
                     "opponent_source_ref": opponent.source.source_ref,
                     "opponent_deck_label": _public_opponent_label(opponent),
+                    "opponent_agent_kind": (
+                        "rule" if opponent_pool == "league-rule" else "public-adapter"
+                    ),
                     "collector": "phase5_public_rule_opponents",
                     "agent": agent_kind,
                     "teacher_agent": teacher_agent_kind,
@@ -936,6 +1067,7 @@ def generate_phase5_public_agent_trajectories(
             if reward_objective == "discounted-turn-prizes"
             else None
         ),
+        opponent_pool=opponent_pool,
     )
 
 

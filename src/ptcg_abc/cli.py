@@ -1449,6 +1449,8 @@ def command_rl_evaluate_phase5_public_agents(args: argparse.Namespace) -> int:
             include_samples=not args.public_only,
             include_builtin_samples=not args.no_builtin_samples,
             public_agent_keys=args.public_agent_key or None,
+            opponent_pool=args.opponent_pool,
+            rule_deck_indices=args.rule_opponent_deck_index or None,
             require_min_opponents=args.require_min_opponents,
             controlled_public_agent_key=args.controlled_public_agent_key,
             controlled_deck_index=args.controlled_deck_index,
@@ -1550,6 +1552,8 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             include_samples=not args.public_only,
             include_builtin_samples=not args.no_builtin_samples,
             public_agent_keys=args.public_agent_key or None,
+            opponent_pool=args.opponent_pool,
+            rule_deck_indices=args.rule_opponent_deck_index or None,
             require_min_opponents=args.require_min_opponents,
             controlled_public_agent_key=args.controlled_public_agent_key,
             controlled_deck_index=args.controlled_deck_index,
@@ -1558,6 +1562,7 @@ def command_rl_generate_phase5_public_agent_trajectories(args: argparse.Namespac
             specialist_model_dir=specialist_model_dir,
             deck_indices=args.deck_index or None,
             games_per_matchup=args.games_per_matchup,
+            games_total=args.games_total,
             max_steps=args.max_steps,
             game_offset=args.game_offset,
             search_config=_root_search_config_from_args(args),
@@ -2796,6 +2801,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Restrict trajectory generation to a specific public-agent key. Repeatable.",
     )
     rl_public_trajectories.add_argument(
+        "--opponent-pool",
+        choices=["public", "league-rule"],
+        default="public",
+        help="Use discovered public agents or explicit rule agents on recorded league decks.",
+    )
+    rl_public_trajectories.add_argument(
+        "--rule-opponent-deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Recorded league deck used by a rule opponent. Repeat; defaults to all 13.",
+    )
+    rl_public_trajectories.add_argument(
         "--controlled-public-agent-key",
         default=None,
         help="Use this public/sample agent's deck as the model-controlled deck.",
@@ -2863,6 +2881,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Phase 5 league deck index to include. Repeat; defaults to all 13.",
     )
     rl_public_trajectories.add_argument("--games-per-matchup", type=int, default=2)
+    rl_public_trajectories.add_argument(
+        "--games-total",
+        type=int,
+        default=None,
+        help="Exact total games, balanced across matchups with rotating remainder games.",
+    )
     rl_public_trajectories.add_argument("--game-offset", type=int, default=0)
     rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
     rl_public_trajectories.add_argument(
@@ -3806,6 +3830,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Restrict evaluation to a specific public-agent key. Repeatable.",
+    )
+    rl_evaluate_public.add_argument(
+        "--opponent-pool",
+        choices=["public", "league-rule"],
+        default="public",
+        help="Use discovered public agents or explicit rule agents on recorded league decks.",
+    )
+    rl_evaluate_public.add_argument(
+        "--rule-opponent-deck-index",
+        type=int,
+        action="append",
+        default=[],
+        help="Recorded league deck used by a rule opponent. Repeat; defaults to all 13.",
     )
     rl_evaluate_public.add_argument(
         "--controlled-public-agent-key",
