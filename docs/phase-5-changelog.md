@@ -8645,3 +8645,29 @@ First-generation startup correction:
   storage roots. Both request the 13-deck `league-rule` pool, 1,000 games,
   epsilon `1.0`, and the unchanged generation-0 checkpoints. No failed-job raw
   data or updated checkpoint is reused.
+
+## 2026-08-13 - Deadline Curriculum Intermediate Inspection
+
+- Self-chaining is operating correctly. The initial clean jobs `76563 / 76564`
+  completed generations 1-5 and submitted subsequent five-generation blocks.
+  Active jobs `76638` (Dragapult) and `76634` (Alakazam) are the final planned
+  generation-16-through-20 blocks. `MAX_GENERATION=20` prevents submission
+  beyond generation 20, for 20,000 training games and 20 PPO updates per deck.
+- Dragapult has completed evaluation through generation 15. Generation 6 is
+  the current retained leader on both primary metrics: `4.39423` average prizes
+  and `3.61668` average discounted prize score over 104 rule-roster games, with
+  six-prize rate `0.5673`, 67 diagnostic wins, zero errors, and one timeout.
+  Generation 15 fell to `3.71154 / 3.05143 / 0.4712`, confirming that the final
+  checkpoint must not be promoted automatically.
+- Alakazam has completed evaluation through generation 16. Generation 16 is
+  its current primary-metric leader at `0.60577` average prizes and `0.49195`
+  discounted prize score, with six-prize rate `0.0096`, 15 diagnostic wins,
+  zero errors, and two timeouts. This improves on generation 1 (`0.25000 /
+  0.20099`) but remains weak in absolute terms.
+- PPO reports retain every checkpoint, accept all on-policy rows, skip zero
+  missing/off-policy targets, and use one epoch with head-only value backprop.
+  Consumed raw JSONL is deleted after successful updates; only the currently
+  collecting generation remains. Training timeouts, especially for Alakazam,
+  remain a diagnostic concern. Let the already-running final block finish, then
+  compare all 20 retained generations and independently confirm the selected
+  best checkpoint for each deck on a larger evaluation.

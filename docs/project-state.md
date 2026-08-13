@@ -108,6 +108,13 @@ This is the resume point for the project. Start here after switching machines, c
   case after 76 games and stopped before PPO. The collector now skips games
   with no numbered, prize-bearing turn instead of aborting; generation-0
   checkpoints were unchanged and are the sources for the clean relaunch.
+- The clean curriculum has self-chained into its final generation-16-to-20
+  block (`76638` Dragapult, `76634` Alakazam); it stops at 20 generations, or
+  20,000 games per deck. Intermediate leader is Dragapult generation 6
+  (`4.3942` average prizes, `3.61668` discounted score over 104 games).
+  Alakazam generation 16 leads its own weak track (`0.6058 / 0.49195`). Keep
+  all checkpoints and select by prize metrics; never promote the last one by
+  position alone.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
