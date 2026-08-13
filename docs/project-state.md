@@ -88,6 +88,16 @@ This is the resume point for the project. Start here after switching machines, c
   most eight random decisions per game. Shard A is running and shard B is
   queued for a suitable node. After both complete, verify nonzero equivalence-
   set rows, merge the corpus, and train matched single-label/set-label heads.
+- Sampled jobs `76474 / 76475` completed cleanly with 37,688 / 37,706 rows and
+  zero malformed JSONL, but an omitted recorder allowlist field left all rows
+  singleton-target. Retain them as behavior anchors; commit `6511bca` fixes
+  equivalence metadata for future collection.
+- Deadline training is now active for two specialists. Jobs `76558` (official
+  sample Dragapult, deck 101) and `76559` (Alakazam Dudunsparce, deck 1) each
+  run five 1,000-game update windows in parallel. Exploration decays
+  `1.0 -> 0.775 -> 0.55 -> 0.325 -> 0.10` in the first 5,000-game job and
+  self-chained jobs remain at `0.10`. Fixed raw-tactical top-4 behavior remains
+  the evaluation/deployment policy; every generation is retained for selection.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

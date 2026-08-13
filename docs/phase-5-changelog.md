@@ -8543,3 +8543,55 @@ ERAWAN collection launch:
 - Job `76474` entered `RUNNING`. Job `76475` is queued because the other
   suitable node is drained or reserved; leave it queued rather than changing
   the predeclared design. Inspect both only after completion.
+
+## 2026-08-13 - Deadline Specialist Curriculum Started for Dragapult and Alakazam
+
+Completed sampled-trajectory inspection:
+
+- Jobs `76474 / 76475` completed cleanly in `12:10:33 / 13:45:04`, exactly
+  5,000 games each with zero errors/timeouts. Shard A/B retained `37,688 /
+  37,706` sampled rows from all 5,000 games, maximum eight rows per game, and
+  zero malformed JSONL. Raw sizes are approximately 1.6 GB each and remain in
+  project storage pending later consumption.
+- Prize behavior was stable with fixed top-4: shard A/B average prizes
+  `3.3210 / 3.2644`, discounted prize score `2.72964 / 2.68353`, and six-prize
+  rate `0.3506 / 0.3482`. Both stderr files contain only the known PyTorch
+  nested-tensor warning.
+- Integrity jobs `76553 / 76554` correctly failed the equivalence-set gate:
+  all rows lacked `phase5_search_equivalent_indices`, because the trajectory
+  recorder's metadata allowlist omitted the new field. The raw datasets remain
+  valid singleton-target behavior anchors, but cannot test multi-positive
+  distillation. Fixed the recorder allowlist in commit `6511bca`; future
+  collection will preserve equivalence sets.
+- Securely downloaded compact reports, audits, and logs. The 12,205-byte
+  archive has SHA-256
+  `3c9bfa3db626896d4ddc971d6286c84248be8eeb7bdb80d68fa3a48e7f86a18a`.
+  The verified temporary ERAWAN archive was removed.
+
+User-selected deadline strategy:
+
+- Freeze playable behavior as fixed raw-tactical top-4 search. Runtime adaptive
+  expansion remains rejected. Start two simultaneous specialists: official
+  sample Dragapult (`deck 101`) from the proven exact-prize checkpoint and
+  tournament Alakazam Dudunsparce (`deck 1`) from the best retained iteration-5
+  specialist. Both train against the fixed sample Lucario rule opponent while
+  evaluation continues to use fixed top-4 search.
+- Added `phase5_deadline_specialist_curriculum.sbatch`. Each job spans 5,000
+  games as five sequential 1,000-game on-policy windows, updating and retaining
+  a checkpoint after every window. The first job uses epsilon mixture
+  `1.000 / 0.775 / 0.550 / 0.325 / 0.100`; every continuation holds epsilon at
+  `0.10`. Raw JSONL is deleted only after its successful PPO update.
+- To protect current behavior, updates use learning rate `1e-5`, one epoch,
+  value-head-only backpropagation, discounted turn-prize targets with gamma
+  `0.97`, and separate checkpoint directories. Every generation receives a
+  100-game fixed-top-4 prize evaluation; later analysis can select the best
+  retained generation rather than blindly accepting the latest.
+- ERAWAN permits only three submitted jobs per user, so a long dependency chain
+  was rejected. Added scheduler-compatible self-chaining: each completed
+  5,000-game job submits its own next 5,000-game job at epsilon `0.10`, retrying
+  boundedly if the submission quota has not yet cleared. Maximum configured
+  generation is 20 per deck; the deadline or user can stop earlier.
+- Clean simultaneous jobs `76558` (Dragapult) and `76559` (Alakazam) are
+  `RUNNING` on separate nodes. Startup verifies 1,000 games/update, five updates
+  per job, the first-job 1.0-to-0.1 schedule, prize objective/gamma, conservative
+  optimizer settings, correct source checkpoints, and self-continuation.

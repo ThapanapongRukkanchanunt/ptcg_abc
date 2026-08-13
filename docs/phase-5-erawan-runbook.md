@@ -4849,3 +4849,44 @@ offsets `0 / 5000`, sampling seeds `20260817 / 20260818`, eight sampled
 decisions per game, and discounted-turn-prize gamma `0.97`. Shard A entered
 `RUNNING`; shard B is pending for a suitable node because available nodes are
 drained or reserved.
+
+Completed result (August 13, 2026): both jobs completed 5,000 games with zero
+errors/timeouts and wrote 37,688 / 37,706 sampled rows. Streaming audits found
+zero malformed JSONL but zero equivalence-set rows because the trajectory
+metadata allowlist omitted the new key. Commit `6511bca` fixes future
+collection; retain these shards as singleton behavior anchors.
+
+## 25. Deadline Dragapult + Alakazam Specialist Chain
+
+The deadline curriculum runs two simultaneous specialists, five updates per
+job and 1,000 games per update. The first job decays epsilon from 1.0 to 0.1;
+self-submitted continuation jobs stay at 0.1. Checkpoints and 100-game fixed-
+top-4 evals are retained every generation, while consumed raw JSONL is removed.
+
+Active jobs:
+
+- `76558`: official sample Dragapult (`deck 101`), initialized from
+  `phase5_turn_prize_20k_v2`;
+- `76559`: Alakazam Dudunsparce (`deck 1`), initialized from Alpha iteration 5.
+
+Both train against `sample_lucario`, use discounted turn-prize gamma `0.97`,
+learning rate `1e-5`, one PPO epoch, and value-head-only critic backpropagation.
+The script self-submits the next 5,000-game job after success with epsilon fixed
+at `0.10`, up to generation 20.
+
+```bash
+# Dragapult
+sbatch --parsable --job-name=p5-drag-00-05 \
+  --export=ALL,RUN_NAME=deadline_dragapult_prize,CONTROLLED_DECK_INDEX=101,CONTROLLED_PUBLIC_AGENT_KEY=sample_dragapult,OPPONENT_PUBLIC_AGENT_KEY=sample_lucario,INITIAL_CHECKPOINT=models/rl/phase5_turn_prize_20k_v2/specialists/deck-101.pt,START_GENERATION=0,GENERATIONS_PER_JOB=5,TRAIN_GAMES_PER_GENERATION=1000,EVAL_GAMES_PER_GENERATION=100,EPSILON_START=1.0,EPSILON_END=0.10,POLICY_SEED=20260830,REWARD_OBJECTIVE=discounted-turn-prizes,TURN_PRIZE_DISCOUNT_GAMMA=0.97,LEARNING_RATE=0.00001,VALUE_BACKPROP_SCOPE=head-only,AUTO_CONTINUE=1,MAX_GENERATION=20 \
+  scripts/slurm/phase5_deadline_specialist_curriculum.sbatch
+
+# Alakazam Dudunsparce
+sbatch --parsable --job-name=p5-alak-00-05 \
+  --export=ALL,RUN_NAME=deadline_alakazam_prize,CONTROLLED_DECK_INDEX=1,OPPONENT_PUBLIC_AGENT_KEY=sample_lucario,INITIAL_CHECKPOINT=models/rl/phase5_league_alpha/iter-0005/specialists/deck-01.pt,START_GENERATION=0,GENERATIONS_PER_JOB=5,TRAIN_GAMES_PER_GENERATION=1000,EVAL_GAMES_PER_GENERATION=100,EPSILON_START=1.0,EPSILON_END=0.10,POLICY_SEED=20260840,REWARD_OBJECTIVE=discounted-turn-prizes,TURN_PRIZE_DISCOUNT_GAMMA=0.97,LEARNING_RATE=0.00001,VALUE_BACKPROP_SCOPE=head-only,AUTO_CONTINUE=1,MAX_GENERATION=20 \
+  scripts/slurm/phase5_deadline_specialist_curriculum.sbatch
+```
+
+Do not promote the final generation automatically. After each job, compare all
+five retained generation evals on discounted prize score, average prizes,
+six-prize completion, errors/timeouts, and PPO diagnostics. Keep the best
+generation independently for each deck.
