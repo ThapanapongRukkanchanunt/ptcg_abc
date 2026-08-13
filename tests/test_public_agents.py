@@ -42,6 +42,17 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertAlmostEqual(targets[0]["return"], 3.7)
         self.assertAlmostEqual(targets[1]["return"], 3.0)
 
+    def test_discounted_turn_prizes_skip_setup_only_decisions(self):
+        setup = _recorded_turn(turn=0, prizes=6)
+
+        targets = _turn_prize_targets(
+            [setup],
+            final_prize_count=6,
+            gamma=0.97,
+        )
+
+        self.assertEqual(targets, [])
+
     def test_turn_prize_summary_reports_primary_progress_metrics(self):
         fast = _turn_prize_game_summary(
             _turn_prize_targets(

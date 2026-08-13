@@ -1111,11 +1111,11 @@ def _turn_prize_targets(
             }
         )
         previous_turn = turn
+    # A battle can end during setup before the first numbered turn. Those
+    # decisions have no prize-bearing turn target, so retain the game in
+    # operational summaries but emit no training rows for it.
     if records and not turn_starts:
-        raise ValueError(
-            "Recorded decisions contain no turn/my_prizes board fields; "
-            "cannot construct discounted turn-prize targets."
-        )
+        return []
 
     returns = [0.0] * len(turn_starts)
     running_return = 0.0

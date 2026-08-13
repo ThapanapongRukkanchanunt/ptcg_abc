@@ -103,6 +103,10 @@ This is the resume point for the project. Start here after switching machines, c
   the evaluation/deployment policy; every generation is retained for selection.
   The earlier Lucario-only jobs `76558 / 76559` were canceled after 3:45,
   before their first 1,000-game update, and their run roots are not reused.
+  Initial rule-roster jobs `76560 / 76561` exposed a setup-only trajectory edge
+  case after 76 games and stopped before PPO. The collector now skips games
+  with no numbered, prize-bearing turn instead of aborting; generation-0
+  checkpoints were unchanged and are the sources for the clean relaunch.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

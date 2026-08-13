@@ -8625,3 +8625,17 @@ Opponent requirement correction:
   Startup logs confirm the full `league-rule` pool, exact 1,000 games/update,
   epsilon `1.0` for generation 1, intended source checkpoints, prize objective,
   and empty stderr files.
+
+First-generation startup correction:
+
+- Jobs `76560 / 76561` stopped with exit code `2` after completing all 76
+  games against rule deck 1. The first game in the rule-deck-2 block ended
+  during setup and contained recorded decisions with `turn=0`; the prize-target
+  helper incorrectly raised when a nonempty game had no numbered turn. No PPO
+  update occurred, and generation-0 checkpoints remain unchanged.
+- Verified the emitted JSONL schema directly: completed rows contain both
+  `turn` and `my_prizes`, prize targets, and `opponent_agent_kind=rule`. Changed
+  setup-only games to contribute zero training rows while remaining visible in
+  game/error/timeout summaries. This is the correct semantics because no prize-
+  bearing controlled turn exists in such a game. Focused validation now passes
+  24 tests. Relaunch first generation from the unchanged generation-0 sources.
