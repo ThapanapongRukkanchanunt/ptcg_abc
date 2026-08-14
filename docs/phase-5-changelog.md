@@ -8816,3 +8816,52 @@ Alakazam continuation recovery:
   remain under the active `*_v2` run roots. Let both chains finish generation
   40, then compare all retained checkpoints and run a larger independent
   confirmation only for any numerical leader before changing a submission.
+
+## 2026-08-14 - Deadline Curriculum Complete Through Generation 40
+
+- Final jobs `76763` (Dragapult) and `76757` (Alakazam) completed cleanly in
+  `03:53:37` and `03:12:34`, exit code `0`. Both tracks now contain all 40
+  requested 1,000-game updates and 104-game evaluations. `MAX_GENERATION=40`
+  stopped both chains, the ERAWAN queue is empty, and no new job was submitted.
+- Dragapult generation 39 is the new numerical leader across all 40 retained
+  checkpoints: `4.50962` average prizes, `3.68337` discounted prize score,
+  `61.54%` six-prize rate, 72 / 104 diagnostic wins, one timeout, and zero
+  errors. Relative to frozen generation 6 (`4.39423 / 3.61668`), the gains are
+  `+0.11538` average prizes and `+0.06669` discounted score. The prize gain is
+  not statistically resolved by this screen (approximate 95% interval
+  `[-0.471, +0.702]`, `p ~= 0.700`), so generation 39 is a confirmation
+  candidate rather than a proven replacement. Generation 40 fell back to
+  `4.05769 / 3.34474` and must not be selected merely because it is latest.
+- Dragapult's generation-36-to-40 block recovered to `4.18077` average prizes
+  and `3.44239` discounted score after the generation-31-to-35 trough
+  (`3.80000 / 3.12476`). Generation 39 also reduced failing rule matchups from
+  three at generation 6 to two, but each matchup contains only eight games.
+  Its training trajectory selected attacks, attachments, and end turn at lower
+  rates (`0.2395 / 0.4222 / 0.0421`) than generation 6
+  (`0.2608 / 0.4832 / 0.0568`); neither had missed available attacks or
+  attachments. Search change rate remained similar (`0.1216` versus `0.1262`)
+  with zero search or candidate errors.
+- Alakazam generation 28 remains its numerical leader at `0.70192 / 0.55302`;
+  generations 36-40 produced no new leader. The final block averaged
+  `0.51346 / 0.40429`, and generation 40 scored only `0.47115 / 0.38609` with
+  14 diagnostic wins. The generation-28 advantage over frozen generation 18
+  remains unresolved (`p ~= 0.861` for average prizes), so no Alakazam
+  submission promotion is justified from these 104-game screens.
+- Across generations 21-40, Dragapult had 282 / 20,000 training timeouts and
+  23 evaluation timeouts; Alakazam had 2,620 / 20,000 training timeouts
+  (`13.1%`) and 15 evaluation timeouts. Both tracks recorded zero training or
+  evaluation errors, every PPO report accepted all on-policy examples, and
+  no report skipped a missing or off-policy target. Final stderr files contain
+  only the known PyTorch nested-tensor warning.
+- All generation-21-to-40 raw JSONLs were deleted after their successful PPO
+  updates; no JSONL remains under either active `*_v2` run root. Preserve
+  Dragapult generation 6 and Alakazam generation 18 as the frozen submissions
+  until independent confirmation is authorized. If evaluation resumes, the
+  scientifically useful comparison is Dragapult 6 versus 39 and Alakazam 18
+  versus 28 on larger fresh samples; no such jobs were queued here.
+- Downloaded a 57,206-byte compact final evidence archive containing the
+  numerical-leader and generation-40 evaluation reports/statuses, PPO and
+  trajectory summaries, and final job logs. Its SHA-256 is
+  `854f78726d8919ee36e46129e18caee67934e5531d84d96637f692788fb21346`.
+  The verified local copy is under the protected ERAWAN pull directory, and
+  the temporary ERAWAN transfer archive was removed.
