@@ -124,6 +124,10 @@ This is the resume point for the project. Start here after switching machines, c
   20, with epsilon fixed at `0.10`. They self-chain in five-generation blocks
   through generation 40 (40,000 games total per deck) and stop there. Frozen
   generation 6/18 submission selections are unaffected by continued training.
+- Attack-frequency audit job `76687` is queued for frozen Dragapult generation
+  6 against the 13 rule decks. Phantom Dive is engine attack ID `154`. Existing
+  summaries cannot recover historical attack counts because consumed raw JSONL
+  was deleted as designed; the audit will produce the first name-level counts.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

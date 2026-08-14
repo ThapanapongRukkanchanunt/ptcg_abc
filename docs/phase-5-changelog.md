@@ -8727,3 +8727,18 @@ Continuation:
   through `MAX_GENERATION=40`; no job will be submitted beyond generation 40.
   Keep generation 6 and 18 frozen as the current submission selections while
   later checkpoints train.
+
+Dragapult attack-name audit:
+
+- Retained generation summaries do not contain chosen action names, and raw PPO
+  JSONLs were correctly deleted after update, so attack frequencies cannot be
+  reconstructed from generations 1-20. Added a streaming attack-frequency
+  analyzer that maps chosen `ATTACK` options through engine attack metadata and
+  reports counts, shares, per-game rates, and per-opponent counts. Focused tests
+  pass (17 tests). Engine metadata identifies Phantom Dive as attack ID `154`.
+- Queued job `76687` to replay frozen Dragapult generation 6 for 104 games
+  across the same 13 rule decks using fixed top-4. It will report every attack
+  by name, explicitly count Phantom Dive, and delete raw JSONL after successful
+  analysis. The job is pending behind the two generation-21-to-25 jobs due the
+  ERAWAN running-job QoS limit; those jobs have reached generation 24 and are
+  left intact.
