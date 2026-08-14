@@ -1,0 +1,94 @@
+{
+  "trajectory_path": "/project/SIGGI/thapanapong.r@cmu.ac.th/phase5_attack_audit/dragapult_gen0006_rule13_104g.jsonl",
+  "games": 104,
+  "decisions": 1033,
+  "attack_decisions": 57,
+  "total_attack_commands": 57,
+  "attack_rate_per_game": 0.5480769230769231,
+  "phantom_dive_count": 26,
+  "attacks": [
+    {
+      "attack_id": 154,
+      "attack_name": "Phantom Dive",
+      "count": 26,
+      "share_of_attacks": 0.45614035087719296,
+      "per_game": 0.25,
+      "opponent_counts": {
+        "rule_deck_02": 3,
+        "rule_deck_03": 4,
+        "rule_deck_04": 2,
+        "rule_deck_06": 2,
+        "rule_deck_07": 1,
+        "rule_deck_08": 2,
+        "rule_deck_09": 2,
+        "rule_deck_10": 4,
+        "rule_deck_11": 3,
+        "rule_deck_12": 1,
+        "rule_deck_13": 2
+      }
+    },
+    {
+      "attack_id": 323,
+      "attack_name": "Itchy Pollen",
+      "count": 13,
+      "share_of_attacks": 0.22807017543859648,
+      "per_game": 0.125,
+      "opponent_counts": {
+        "rule_deck_01": 1,
+        "rule_deck_02": 3,
+        "rule_deck_05": 3,
+        "rule_deck_07": 1,
+        "rule_deck_08": 1,
+        "rule_deck_09": 1,
+        "rule_deck_12": 2,
+        "rule_deck_13": 1
+      }
+    },
+    {
+      "attack_id": 153,
+      "attack_name": "Jet Headbutt",
+      "count": 9,
+      "share_of_attacks": 0.15789473684210525,
+      "per_game": 0.08653846153846154,
+      "opponent_counts": {
+        "rule_deck_01": 3,
+        "rule_deck_04": 1,
+        "rule_deck_12": 1,
+        "rule_deck_13": 4
+      }
+    },
+    {
+      "attack_id": 150,
+      "attack_name": "Petty Grudge",
+      "count": 6,
+      "share_of_attacks": 0.10526315789473684,
+      "per_game": 0.057692307692307696,
+      "opponent_counts": {
+        "rule_deck_09": 2,
+        "rule_deck_10": 2,
+        "rule_deck_12": 1,
+        "rule_deck_13": 1
+      }
+    },
+    {
+      "attack_id": 183,
+      "attack_name": "Cruel Arrow",
+      "count": 2,
+      "share_of_attacks": 0.03508771929824561,
+      "per_game": 0.019230769230769232,
+      "opponent_counts": {
+        "rule_deck_01": 2
+      }
+    },
+    {
+      "attack_id": 243,
+      "attack_name": "Eon Blade",
+      "count": 1,
+      "share_of_attacks": 0.017543859649122806,
+      "per_game": 0.009615384615384616,
+      "opponent_counts": {
+        "rule_deck_10": 1
+      }
+    }
+  ]
+}
