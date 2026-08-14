@@ -115,6 +115,15 @@ This is the resume point for the project. Start here after switching machines, c
   Alakazam generation 16 leads its own weak track (`0.6058 / 0.49195`). Keep
   all checkpoints and select by prize metrics; never promote the last one by
   position alone.
+- Generations 1-20 are complete. Selected retained checkpoints are Dragapult
+  generation 6 (`4.39423` average prizes, `3.61668` discounted score) and
+  Alakazam generation 18 (`0.67308 / 0.51985`) from their 104-game rule-roster
+  screens. Validated direct Kaggle zips are stored under the protected local
+  ERAWAN pull directory; Alakazam remains weak despite being its track leader.
+- Continuation jobs `76671 / 76672` are running generation 21 from generation
+  20, with epsilon fixed at `0.10`. They self-chain in five-generation blocks
+  through generation 40 (40,000 games total per deck) and stop there. Frozen
+  generation 6/18 submission selections are unaffected by continued training.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

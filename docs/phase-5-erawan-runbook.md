@@ -4894,3 +4894,9 @@ Do not promote the final generation automatically. After each job, compare all
 five retained generation evals on discounted prize score, average prizes,
 six-prize completion, errors/timeouts, and PPO diagnostics. Keep the best
 generation independently for each deck.
+
+Generation-20 selection (August 14, 2026): use Dragapult generation 6 and
+Alakazam generation 18 for the current Kaggle packages. Continuation now runs
+from generation 20, not from those frozen package selections. Jobs `76671 /
+76672` cover generations 21-25 at epsilon `0.10` and self-chain through
+generation 40 with `MAX_GENERATION=40`.

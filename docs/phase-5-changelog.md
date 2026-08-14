@@ -8671,3 +8671,59 @@ First-generation startup correction:
   remain a diagnostic concern. Let the already-running final block finish, then
   compare all 20 retained generations and independently confirm the selected
   best checkpoint for each deck on a larger evaluation.
+
+## 2026-08-14 - Generation-20 Selection, Kaggle Packages, and Continuation
+
+Completed generation 1-20 inspection:
+
+- Both final jobs completed cleanly: `76638` Dragapult in `03:53:16` and
+  `76634` Alakazam in `03:14:58`, exit code `0`. Each track retains generation
+  0 plus all 20 updated checkpoints, 20 trajectory reports, and 20 PPO reports.
+  All consumed raw JSONLs are gone. Every generation requested and started
+  exactly 1,000 games, covered all 13 explicit rule decks with 76/77 games per
+  matchup, accepted all on-policy rows, skipped zero missing/off-policy targets,
+  used one PPO epoch, and retained head-only value backpropagation.
+- Select Dragapult generation 6. Across its 104-game rule-roster screen it led
+  all 20 generations on both primary metrics: `4.39423` average prizes and
+  `3.61668` discounted prize score. It reached six prizes in `56.73%`, had
+  67 diagnostic wins, zero errors, and one timeout. Generation 20 scored only
+  `4.00000 / 3.30141`, so latest-checkpoint promotion is rejected.
+- Select Alakazam generation 18. It led all 20 generations at `0.67308` average
+  prizes and `0.51985` discounted prize score, with `0.96%` six-prize rate,
+  17 diagnostic wins, zero errors, and one timeout. This is an improvement over
+  generation 1 (`0.25000 / 0.20099`) but remains weak in absolute terms;
+  packaging fulfills the selected-deck request and does not claim promotion.
+- Training-time behavior at generation 20 was much stronger for Dragapult
+  (`2.690` average prizes, `2.14625` discounted score, `26.7%` six-prize rate,
+  nine timeouts) than Alakazam (`0.233 / 0.17501 / 0.1%`, 141 timeouts).
+  The growing Alakazam timeout rate remains a material diagnostic concern.
+
+Kaggle submission artifacts:
+
+- Extended `phase5-package` to package a public/sample controlled deck using
+  its synthetic checkpoint index, enabling reproducible official sample
+  Dragapult packages. Focused parser/packaging tests pass (28 tests).
+- Built direct Kaggle zips from Dragapult generation 6 and Alakazam generation
+  18 using the current ERAWAN Kaggle sample engine. Both archives passed zip
+  integrity, contain root-level `main.py`, `deck.csv`, `model.pt`, `cg/`, and
+  `ptcg_abc/`, contain exactly 60 cards, expose a callable `agent`, execute
+  without a `__file__` global, and load five-key Torch checkpoint dictionaries.
+- Protected local copies:
+  - Dragapult, 3,275,176 bytes, SHA-256
+    `ddc69b77f3a6597d99c731eaeca4adfdcaebf7c25eb380946290df45fee4fdaa`;
+  - Alakazam, 3,275,768 bytes, SHA-256
+    `68edea84e038c5e23bb4a3f6c2f9d648e61587cbb418471541f47d3773c32905`.
+- Downloaded a 321,881-byte compact generation-1-to-20 evidence archive with
+  SHA-256 `3ff46a3c98178a5424dd3b20a588e0abfbab757c8690c76174e31e340973ada5`.
+  The temporary ERAWAN transfer archive was deleted after checksum verification.
+
+Continuation:
+
+- Queued another 20 generations per deck, continuing from generation 20 rather
+  than resetting from the selected submission checkpoints. Jobs `76671`
+  (Dragapult) and `76672` (Alakazam) are running generation 21 with epsilon
+  fixed at `0.10`, 1,000 games/update, the same 13-rule-deck roster, and fresh
+  generation-21 raw slots. Each job spans five generations and self-chains
+  through `MAX_GENERATION=40`; no job will be submitted beyond generation 40.
+  Keep generation 6 and 18 frozen as the current submission selections while
+  later checkpoints train.
