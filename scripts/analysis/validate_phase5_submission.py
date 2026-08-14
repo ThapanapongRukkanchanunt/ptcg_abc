@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -24,9 +25,11 @@ def validate_submission(path: Path) -> dict[str, Any]:
         raise ValueError(f"{path}: expected 60 deck cards, found {len(deck_ids)}")
 
     previous_cwd = Path.cwd()
+    previous_path = list(sys.path)
     namespace: dict[str, Any] = {}
     try:
         os.chdir(path)
+        sys.path.insert(0, str(Path.cwd()))
         exec(compile(Path("main.py").read_text(encoding="utf-8"), "main.py", "exec"), namespace)
         if not callable(namespace.get("agent")):
             raise ValueError(f"{path}: main.py does not expose callable agent")
@@ -36,6 +39,7 @@ def validate_submission(path: Path) -> dict[str, Any]:
 
         checkpoint = torch.load("model.pt", map_location="cpu", weights_only=False)
     finally:
+        sys.path[:] = previous_path
         os.chdir(previous_cwd)
 
     return {
