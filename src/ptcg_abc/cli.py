@@ -1891,6 +1891,77 @@ def command_phase5_package(args: argparse.Namespace) -> int:
     elif not args.model.exists():
         print(f"Phase 5 checkpoint not found at {args.model}.", file=sys.stderr)
         return 2
+    if args.controlled_public_agent_key:
+        if args.deck_index:
+            print(
+                "Use either --deck-index or --controlled-public-agent-key, not both.",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            controlled, statuses = discover_phase5_public_opponents(
+                sample_dir=args.sample_dir,
+                public_agent_roots=_public_agent_roots_from_args(args),
+                public_agent_keys=[args.controlled_public_agent_key],
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if len(controlled) != 1:
+            errors = [
+                status.error or status.status
+                for status in statuses
+                if status.source.key == args.controlled_public_agent_key
+            ]
+            detail = "; ".join(errors) if errors else "not available"
+            print(
+                f"Controlled public/sample deck "
+                f"{args.controlled_public_agent_key!r} is {detail}.",
+                file=sys.stderr,
+            )
+            return 2
+        source = controlled[0]
+        deck_index = int(args.controlled_deck_index)
+        model_path = (
+            args.model_dir / f"deck-{deck_index:02d}.pt"
+            if args.model_dir is not None
+            else args.model
+        )
+        if not model_path.exists():
+            print(f"Phase 5 checkpoint not found at {model_path}.", file=sys.stderr)
+            return 2
+        deck_dir = args.output_dir / f"deck-{deck_index:02d}-{_slug(source.label)}"
+        result = build_phase5_search_submission_bundle(
+            deck_ids=list(source.deck_ids),
+            sample_dir=args.sample_dir,
+            output_dir=deck_dir,
+            model_path=model_path,
+            tar_path=deck_dir / "submission.tar.gz",
+            zip_path=args.output_dir
+            / f"deck-{deck_index:02d}-{_slug(source.label)}-phase5-search-submission.zip",
+        )
+        print(
+            json.dumps(
+                {
+                    "packages": [
+                        {
+                            "deck_index": deck_index,
+                            "deck_pool": "public/sample",
+                            "deck_label": source.label,
+                            "controlled_public_agent_key": source.key,
+                            "agent": "phase5-search",
+                            "model": model_path.as_posix(),
+                            "tar_path": result.tar_path.as_posix(),
+                            "zip_path": (
+                                result.zip_path.as_posix() if result.zip_path else None
+                            ),
+                        }
+                    ]
+                },
+                indent=2,
+            )
+        )
+        return 0
     if args.deck_pool == "league-13":
         prepared_decks = phase5_league_prepared_decks()
         pool_label = "Phase 5 league"
@@ -4106,6 +4177,24 @@ def build_parser() -> argparse.ArgumentParser:
             "deck-XX.pt. When set, each packaged deck uses its matching "
             "specialist and --model is ignored."
         ),
+    )
+    phase5_package.add_argument(
+        "--public-agent-root",
+        type=_path,
+        action="append",
+        default=[],
+        help="Directory containing public/sample agents used to resolve a controlled deck.",
+    )
+    phase5_package.add_argument(
+        "--controlled-public-agent-key",
+        default=None,
+        help="Package this public/sample agent's deck instead of a prepared league deck.",
+    )
+    phase5_package.add_argument(
+        "--controlled-deck-index",
+        type=int,
+        default=101,
+        help="Synthetic checkpoint index for --controlled-public-agent-key.",
     )
     phase5_package.add_argument(
         "--output-dir",

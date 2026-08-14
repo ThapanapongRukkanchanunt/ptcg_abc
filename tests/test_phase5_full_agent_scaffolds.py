@@ -402,6 +402,17 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "models/rl/phase5_league_alpha/iter-0000/specialists",
             ]
         )
+        public_package_args = parser.parse_args(
+            [
+                "phase5-package",
+                "--controlled-public-agent-key",
+                "sample_dragapult",
+                "--controlled-deck-index",
+                "101",
+                "--model-dir",
+                "models/selected",
+            ]
+        )
 
         self.assertEqual(league_args.policy_prior_weight, 0.1)
         self.assertEqual(league_args.neural_action_value_weight, 0.2)
@@ -421,6 +432,12 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
             package_args.model_dir,
             Path("models/rl/phase5_league_alpha/iter-0000/specialists"),
         )
+        self.assertEqual(
+            public_package_args.controlled_public_agent_key,
+            "sample_dragapult",
+        )
+        self.assertEqual(public_package_args.controlled_deck_index, 101)
+        self.assertEqual(public_package_args.model_dir, Path("models/selected"))
 
 
 if __name__ == "__main__":
