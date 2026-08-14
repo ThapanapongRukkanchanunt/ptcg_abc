@@ -8742,3 +8742,40 @@ Dragapult attack-name audit:
   analysis. The job is pending behind the two generation-21-to-25 jobs due the
   ERAWAN running-job QoS limit; those jobs have reached generation 24 and are
   left intact.
+
+## 2026-08-14 - Attack Audit Completion and Alakazam Chain Recovery
+
+Dragapult attack-frequency result:
+
+- Audit job `76687` completed cleanly in `00:16:06` over 104 fixed-top-4
+  games using frozen Dragapult generation 6 against the same 13 rule decks.
+  It recorded 1,033 decisions and 57 attack commands. Phantom Dive (engine
+  attack ID `154`) was used 26 times: `45.61%` of all attacks and `0.250`
+  commands per game. The remaining attack counts were Itchy Pollen 13, Jet
+  Headbutt 9, Petty Grudge 6, Cruel Arrow 2, and Eon Blade 1. These are
+  selected attack commands, not damage or knockout counts.
+- The raw audit trajectory was deleted after successful streaming analysis.
+  Compact JSON and Markdown reports are tracked in `reports/`; their SHA-256
+  values are `04aee781c78eae4e0c7d0cf2a28f36320225c6196993025fe55ff2ef9bedfcfd`
+  and `15dd3c3ab0887cf7a8dcb85feb4b7dcdba80933cee80c3fd4d680ac92ab16813`.
+  Reports and job logs were also copied into the protected local ERAWAN pull
+  directory. Stderr contains only the known PyTorch nested-tensor warning.
+
+Alakazam continuation recovery:
+
+- Job `76672` completed all generation-25 training and evaluation work, wrote
+  the generation-25 checkpoint and reports, and cleaned the consumed JSONL.
+  Its batch status is nevertheless `FAILED (3:0)` because all 20 continuation
+  submission attempts encountered `QOSMaxSubmitJobPerUserLimit` while the
+  attack audit occupied the second permitted job slot. This is a scheduler
+  handoff failure, not a training failure, and no generation needs repeating.
+- Restored the chain manually as job `76695`, starting from
+  `START_GENERATION=25`. Startup confirms it is training generation 26 with
+  epsilon `0.10`, 1,000 games per update, the same 13-rule-deck pool, prize
+  objective, head-only critic, automatic continuation, and
+  `MAX_GENERATION=40`. Dragapult continuation job `76693` remains active.
+- Operational lesson: a two-track self-chain can lose a continuation race if
+  a diagnostic is submitted while both training jobs still occupy the user's
+  two-job submission allowance. Keep diagnostics out of the queue near chain
+  boundaries, or check and restore each deck from its last completed
+  checkpoint as done here.

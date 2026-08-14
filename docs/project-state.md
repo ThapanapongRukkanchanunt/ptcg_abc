@@ -120,14 +120,20 @@ This is the resume point for the project. Start here after switching machines, c
   Alakazam generation 18 (`0.67308 / 0.51985`) from their 104-game rule-roster
   screens. Validated direct Kaggle zips are stored under the protected local
   ERAWAN pull directory; Alakazam remains weak despite being its track leader.
-- Continuation jobs `76671 / 76672` are running generation 21 from generation
-  20, with epsilon fixed at `0.10`. They self-chain in five-generation blocks
-  through generation 40 (40,000 games total per deck) and stop there. Frozen
-  generation 6/18 submission selections are unaffected by continued training.
-- Attack-frequency audit job `76687` is queued for frozen Dragapult generation
-  6 against the 13 rule decks. Phantom Dive is engine attack ID `154`. Existing
-  summaries cannot recover historical attack counts because consumed raw JSONL
-  was deleted as designed; the audit will produce the first name-level counts.
+- Generation-21-to-25 jobs finished their training work. Dragapult job `76671`
+  self-submitted active generation-26-to-30 job `76693`. Alakazam job `76672`
+  completed generation 25 but its continuation submission exhausted 20 retries
+  against the two-job QoS limit while an audit occupied the other slot. Its
+  generation-25 checkpoint and reports are valid and its raw JSONL is cleaned.
+  Restored Alakazam as active job `76695`, which starts at generation 26 rather
+  than repeating generation 25. Both tracks retain epsilon `0.10`, 1,000 games
+  per update, five-generation job blocks, and `MAX_GENERATION=40`.
+- Attack-frequency audit job `76687` completed cleanly for frozen Dragapult
+  generation 6 over 104 games against the 13 rule decks. It observed 57 attack
+  commands: Phantom Dive 26 (`45.61%`, `0.250` per game), Itchy Pollen 13, Jet
+  Headbutt 9, Petty Grudge 6, Cruel Arrow 2, and Eon Blade 1. Raw JSONL was
+  deleted after analysis; compact reports are tracked under `reports/` and
+  copied with logs to the protected local evidence directory.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
