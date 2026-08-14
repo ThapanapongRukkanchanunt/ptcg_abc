@@ -8779,3 +8779,40 @@ Alakazam continuation recovery:
   two-job submission allowance. Keep diagnostics out of the queue near chain
   boundaries, or check and restore each deck from its last completed
   checkpoint as done here.
+
+## 2026-08-14 - Generation-35/36 Intermediate Inspection
+
+- The continuation chain is healthy after the Alakazam recovery. Dragapult has
+  completed evaluation through generation 35 and active job `76763` is
+  collecting generation 36. Alakazam has completed evaluation through
+  generation 36 and active job `76757` is collecting generation 37. Both jobs
+  retain epsilon `0.10`, 1,000 games per update, the 13-rule-deck roster, and
+  `MAX_GENERATION=40`.
+- Dragapult has no new leader. Generation 24 tied generation 6 at `4.39423`
+  average prizes but was slightly lower on the primary discounted score
+  (`3.60931` versus `3.61668`). Its 64 / 104 six-prize games and 71 / 104
+  diagnostic wins were numerically higher than generation 6's 59 and 67, but
+  neither proportion changed significantly. The prize-mean difference was
+  exactly zero with an approximate 95% interval of `[-0.611, +0.611]`.
+  Five-generation average prize scores declined from `4.03654` in generations
+  21-25 to `3.90000` in 26-30 and `3.80000` in 31-35. Retain generation 6.
+- Alakazam generation 28 is a new numerical, but unconfirmed, track leader:
+  `0.70192` average prizes and `0.55302` discounted score versus generation
+  18's `0.67308 / 0.51985`. It reached six prizes in 2 / 104 games versus
+  1 / 104 and had 23 versus 17 diagnostic wins. The average-prize gain was
+  only `+0.02885`, with approximate 95% interval `[-0.294, +0.352]` and
+  `p ~= 0.861`; the win difference also was not significant (`p ~= 0.291`).
+  Recent five-generation average prizes fell to `0.37885` in generations
+  31-35 from `0.47885` in 26-30. Treat generation 28 as a confirmation
+  candidate, not a promoted replacement for frozen generation 18.
+- All completed generation-21-plus evaluations have zero battle errors. PPO
+  updates remain finite, consume roughly 11,000-13,500 examples each, accept
+  every on-policy target, and skip zero missing/off-policy rows. Dragapult had
+  214 training timeouts across generations 21-35. Alakazam had 1,966 across
+  the same 15,000 games (`13.1%`), confirming that its weak learning signal is
+  still coupled to a severe training-timeout rate.
+- Consumed raw JSONL cleanup remains correct: only Dragapult generation 36 and
+  Alakazam generation 37, the two generations currently being collected,
+  remain under the active `*_v2` run roots. Let both chains finish generation
+  40, then compare all retained checkpoints and run a larger independent
+  confirmation only for any numerical leader before changing a submission.
