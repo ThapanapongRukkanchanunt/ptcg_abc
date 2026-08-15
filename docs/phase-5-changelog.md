@@ -8865,3 +8865,26 @@ Alakazam continuation recovery:
   `854f78726d8919ee36e46129e18caee67934e5531d84d96637f692788fb21346`.
   The verified local copy is under the protected ERAWAN pull directory, and
   the temporary ERAWAN transfer archive was removed.
+
+## 2026-08-15 - Numerical-Leader Kaggle Packages
+
+- Packaged the best numerical checkpoint from each completed 40-generation
+  track without replacing the earlier frozen generation-6/18 archives:
+  Dragapult generation 39 (`deck-101.pt`) and Alakazam generation 28
+  (`deck-01.pt`). Outputs use the current ERAWAN Kaggle sample engine and live
+  under `submissions/phase5_deadline_best_gen39_gen28_20260815` on ERAWAN.
+- Both unpacked bundles passed the repository validator: root-level `main.py`,
+  `deck.csv`, `model.pt`, `cg/`, and `ptcg_abc/` are present; each deck has
+  exactly 60 cards; `agent` is callable; import executes without a `__file__`
+  global; and each Torch checkpoint is a five-key dictionary. Both ZIPs also
+  passed archive-integrity testing.
+- Protected local Kaggle ZIPs:
+  - Alakazam generation 28: 3,275,703 bytes, SHA-256
+    `9befbd747d361e153ec6c908e501cf260120cc4bd2aa0087e799baed16d70fba`;
+  - Dragapult generation 39: 3,275,082 bytes, SHA-256
+    `2415747fcf5ffef658ea34dbc0ef8f790bd53b9be150af1f11702a25effc4851`.
+- Created a separate Codex task for the next round's design discussion. It will
+  hand-craft distinct Dragapult and Alakazam reward functions, including
+  measurable state signals, anti-exploitation safeguards, weighting, and an
+  ablation plan. It is explicitly discussion-only until reward definitions are
+  agreed; no new ERAWAN job or training run was queued here.

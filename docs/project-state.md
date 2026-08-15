@@ -158,6 +158,16 @@ This is the resume point for the project. Start here after switching machines, c
   directory as a 57,206-byte archive with SHA-256
   `854f78726d8919ee36e46129e18caee67934e5531d84d96637f692788fb21346`;
   the temporary remote transfer archive was deleted after verification.
+- Validated numerical-leader Kaggle packages are now available separately from
+  the frozen generation-6/18 packages: Dragapult generation 39 has SHA-256
+  `2415747fcf5ffef658ea34dbc0ef8f790bd53b9be150af1f11702a25effc4851`,
+  and Alakazam generation 28 has SHA-256
+  `9befbd747d361e153ec6c908e501cf260120cc4bd2aa0087e799baed16d70fba`.
+  Both passed deck, import, checkpoint, callable-agent, and ZIP-integrity
+  validation and are stored in the protected local ERAWAN pull directory.
+- The next round moves to a separate design task for deck-specific handcrafted
+  rewards. Do not implement or queue training until the Dragapult and Alakazam
+  reward definitions and ablation plan are agreed with the user.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
