@@ -8928,3 +8928,21 @@ Alakazam continuation recovery:
   skipped. Focused coverage checks every finalized weight and condition,
   binary/capped rewards, Meowth's exclusion, hidden-hand safety, potential
   differencing, terminal zeroing, and the one-time timeout penalty.
+- Published the implementation as commit `a2923cd`; the ERAWAN checkout was
+  fast-forwarded to that exact revision and its test suite passed before
+  submission. Both requested 40-generation self-chaining tracks use five
+  1,000-game updates per job, all 13 league decks as rule opponents, evaluation
+  over 8 games per matchup after every update, epsilon
+  `1.0 -> 0.775 -> 0.55 -> 0.325 -> 0.10` in the first job and `0.10`
+  thereafter, learning rate `1e-5`, head-only value backpropagation, and the
+  new reward with gamma `0.97`.
+- Submitted Alakazam job `76842`, initialized from frozen generation 18 at
+  `deadline_alakazam_rule13_prize_v2/gen-0018`. Startup confirms generation 1
+  is running on `compute1` with `REWARD_OBJECTIVE=deck-shaped-prizes` and the
+  expected separate model, report, and project-storage roots. Stderr contains
+  only the known PyTorch nested-tensor warning.
+- Submitted Dragapult Dusknoir job `76843`, initialized from the retained
+  league deck-3 iteration-5 specialist. It is accepted by SLURM and pending for
+  a GPU with reason `Resources`; there is no startup error. Its run root is
+  `phase5_dragapult_dusknoir_deck_reward_v1`, separate from the official sample
+  Dragapult history.

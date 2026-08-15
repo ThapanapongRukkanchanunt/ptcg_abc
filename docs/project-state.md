@@ -165,9 +165,18 @@ This is the resume point for the project. Start here after switching machines, c
   `9befbd747d361e153ec6c908e501cf260120cc4bd2aa0087e799baed16d70fba`.
   Both passed deck, import, checkpoint, callable-agent, and ZIP-integrity
   validation and are stored in the protected local ERAWAN pull directory.
-- The next round moves to a separate design task for deck-specific handcrafted
-  rewards. Do not implement or queue training until the Dragapult and Alakazam
-  reward definitions and ablation plan are agreed with the user.
+- Deck-specific handcrafted rewards are finalized and implemented in commit
+  `a2923cd` as `deck-shaped-prizes`. They use `10` per prize plus a gamma-`0.97`
+  potential difference and one terminal `-10` timeout penalty. Component
+  telemetry and the unscaled prize metric are retained for auditability; local
+  and ERAWAN validation passed.
+- New 40-generation tracks are submitted: Alakazam Dudunsparce job `76842`
+  starts from frozen generation 18 and is running; Dragapult Dusknoir job
+  `76843` starts from the league deck-3 iteration-5 specialist and is pending
+  for a GPU. Both use five 1,000-game updates per job, the 13-rule-deck roster,
+  first-job epsilon decay from `1.0` to `0.10`, subsequent epsilon `0.10`, and
+  separate run roots. Do not confuse deck-3 Dragapult Dusknoir with the earlier
+  official sample Dragapult deck-101 track.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
