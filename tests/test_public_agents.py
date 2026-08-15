@@ -14,9 +14,12 @@ from ptcg_abc.public_agents import (
 )
 from ptcg_abc.evaluation import Phase3RequiredBenchmarkRow
 from ptcg_abc.rl.records import ActionFrame, DecisionFrame
+from ptcg_abc.rl.featurizer import summarize_board
 from ptcg_abc.rl.public_opponents import (
     PublicAgentTacticalRewardConfig,
     _balanced_matchup_game_counts,
+    _deck_shaped_turn_targets,
+    _deck_reward_potential_components,
     _filter_public_opponents,
     _summarize_turn_prize_games,
     _tactical_reward_for_frame,
@@ -28,6 +31,199 @@ from ptcg_abc.rl.workflow import RecordedPolicyFrame, _policy_metadata
 
 
 class PublicAgentRosterTests(unittest.TestCase):
+    def test_board_summary_exposes_only_observable_reward_signals(self):
+        card_by_id = {
+            2: SimpleNamespace(cardType=2, energyType=1),
+            109: SimpleNamespace(cardType=1, hp=70),
+            500: SimpleNamespace(cardType=3, rarity="ACE SPEC"),
+            999: SimpleNamespace(cardType=1, hp=210, weakness=1, ex=True),
+        }
+        abra = SimpleNamespace(
+            id=109,
+            hp=70,
+            maxHp=70,
+            energies=[1],
+            energyCards=[SimpleNamespace(id=2)],
+            tools=[],
+        )
+        target = SimpleNamespace(
+            id=999,
+            hp=210,
+            maxHp=210,
+            energies=[],
+            energyCards=[],
+            tools=[],
+        )
+        mine = SimpleNamespace(
+            active=[abra],
+            bench=[],
+            hand=[SimpleNamespace(id=742)],
+            discard=[],
+            prize=[1] * 6,
+            deckCount=40,
+        )
+        opponent = SimpleNamespace(
+            active=[target],
+            bench=[],
+            hand=[SimpleNamespace(id=123)],
+            handCount=1,
+            discard=[SimpleNamespace(id=500)],
+            prize=[1] * 6,
+            deckCount=40,
+        )
+        current = SimpleNamespace(
+            yourIndex=0,
+            players=[mine, opponent],
+            turn=1,
+            stadium=[],
+        )
+
+        board = summarize_board(current, card_by_id=card_by_id)
+
+        self.assertEqual(board["my_hand_card_ids"], [742])
+        self.assertEqual(board["opponent_hand_card_ids"], [])
+        self.assertEqual(board["my_active_card"]["energy_card_ids"], [2])
+        self.assertTrue(board["opponent_active_card"]["weak_to_fire"])
+        self.assertTrue(board["opponent_ace_spec_seen"])
+
+    def test_alakazam_deck_potential_matches_finalized_reward(self):
+        board = {
+            "my_active_card": _card_state(109, energies=[5]),
+            "my_active_id": 109,
+            "my_bench_cards": [
+                _card_state(742),
+                _card_state(245),
+                _card_state(142, tools=1),
+                _card_state(858),
+                _card_state(66),
+            ],
+            "my_hand_card_ids": [742, 245, 1079],
+            "opponent_active_card": _card_state(132),
+            "opponent_bench_cards": [],
+            "opponent_ace_spec_seen": False,
+        }
+
+        components = _deck_reward_potential_components(board, deck_index=1)
+
+        self.assertEqual(components["abra_in_play"], 1.0)
+        self.assertEqual(components["kadabra_in_play"], 4.0)
+        self.assertEqual(components["alakazam_in_play_binary"], 10.0)
+        self.assertEqual(components["psychic_energy_on_alakazam_line"], 1.0)
+        self.assertEqual(components["kadabra_hand_abra_play_pairs"], 2.0)
+        self.assertEqual(components["alakazam_candy_abra_sets"], 3.0)
+        self.assertEqual(components["alakazam_hand_kadabra_play_pairs"], 4.0)
+        self.assertEqual(components["genesect_tool_before_opponent_ace_spec"], 1.0)
+        self.assertEqual(components["psyduck_into_dusknoir_line"], 1.0)
+        self.assertEqual(components["dudunsparce_or_fezandipiti"], 0.5)
+        self.assertEqual(sum(components.values()), 27.5)
+
+        board["opponent_ace_spec_seen"] = True
+        components = _deck_reward_potential_components(board, deck_index=1)
+        self.assertEqual(components["genesect_tool_before_opponent_ace_spec"], 0.0)
+
+    def test_alakazam_binary_and_capped_rewards_cannot_be_farmed_by_copies(self):
+        board = {
+            "my_active_card": _card_state(245),
+            "my_bench_cards": [
+                _card_state(245),
+                _card_state(66),
+                _card_state(66),
+                _card_state(140),
+                _card_state(140),
+                _card_state(140),
+            ],
+        }
+
+        components = _deck_reward_potential_components(board, deck_index=1)
+
+        self.assertEqual(components["alakazam_in_play_binary"], 10.0)
+        self.assertEqual(components["dudunsparce_or_fezandipiti"], 2.0)
+
+    def test_dragapult_deck_potential_matches_finalized_reward(self):
+        board = {
+            "my_active_id": 119,
+            "my_active_card": _card_state(119, energies=[2]),
+            "my_bench_cards": [
+                _card_state(120, energies=[5]),
+                _card_state(121, energies=[2, 5]),
+                _card_state(131),
+                _card_state(132),
+                _card_state(133),
+                _card_state(112, energies=[7]),
+                _card_state(140),
+                _card_state(791, energies=[2]),
+                _card_state(1071),
+            ],
+            "my_hand_card_ids": [120, 121],
+            "opponent_active_card": _card_state(
+                999,
+                hp=210,
+                is_ex=True,
+                weak_to_fire=True,
+            ),
+        }
+
+        components = _deck_reward_potential_components(board, deck_index=3)
+
+        self.assertEqual(components["dreepy_in_play"], 1.0)
+        self.assertEqual(components["drakloak_in_play"], 4.0)
+        self.assertEqual(components["dragapult_in_play_binary"], 10.0)
+        self.assertEqual(components["drakloak_hand_dreepy_play_pairs"], 2.0)
+        self.assertEqual(components["dragapult_hand_drakloak_play_pairs"], 4.0)
+        self.assertEqual(components["fire_psychic_on_dragapult_line"], 5.0)
+        self.assertEqual(components["dusknoir_line_in_play"], 1.5)
+        self.assertEqual(components["munkidori_with_darkness"], 0.5)
+        self.assertEqual(components["fezandipiti_in_play"], 0.5)
+        self.assertEqual(components["budew_active_before_powered_dragapult"], 0.0)
+        self.assertEqual(components["moltres_fire_ko_window"], 5.0)
+        self.assertNotIn("meowth", components)
+
+    def test_dragapult_budew_reward_stops_after_dragapult_is_powered(self):
+        board = {
+            "my_active_id": 235,
+            "my_active_card": _card_state(235),
+            "my_bench_cards": [_card_state(121, energies=[2])],
+        }
+        self.assertEqual(
+            _deck_reward_potential_components(board, deck_index=3)[
+                "budew_active_before_powered_dragapult"
+            ],
+            2.0,
+        )
+
+        board["my_bench_cards"] = [_card_state(121, energies=[2, 5])]
+        self.assertEqual(
+            _deck_reward_potential_components(board, deck_index=3)[
+                "budew_active_before_powered_dragapult"
+            ],
+            0.0,
+        )
+
+    def test_deck_shaping_uses_potential_difference_prizes_and_timeout_once(self):
+        first = _recorded_turn(turn=1, prizes=6)
+        first.frame.board.update(
+            {"my_active_id": 109, "my_active_card": _card_state(109)}
+        )
+        second = _recorded_turn(turn=2, prizes=5)
+        second.frame.board.update(
+            {"my_active_id": 742, "my_active_card": _card_state(742)}
+        )
+
+        targets = _deck_shaped_turn_targets(
+            [first, second],
+            final_prize_count=5,
+            gamma=0.9,
+            deck_index=1,
+            timed_out=True,
+        )
+
+        self.assertAlmostEqual(targets[0]["immediate_reward"], 12.6)
+        self.assertAlmostEqual(targets[1]["immediate_reward"], -14.0)
+        self.assertAlmostEqual(targets[0]["return"], 0.0)
+        self.assertEqual(targets[0]["timeout_penalty"], 0.0)
+        self.assertEqual(targets[1]["timeout_penalty"], -10.0)
+        self.assertAlmostEqual(targets[0]["discounted_prize_return"], 1.0)
+
     def test_discounted_turn_prizes_use_exact_prize_deltas(self):
         records = [
             _recorded_turn(turn=1, prizes=6),
@@ -97,6 +293,15 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(args.reward_objective, "discounted-turn-prizes")
         self.assertAlmostEqual(args.turn_prize_discount_gamma, 0.95)
         self.assertAlmostEqual(eval_args.prize_discount_gamma, 0.97)
+
+        shaped_args = build_parser().parse_args(
+            [
+                "rl-generate-phase5-public-agent-trajectories",
+                "--reward-objective",
+                "deck-shaped-prizes",
+            ]
+        )
+        self.assertEqual(shaped_args.reward_objective, "deck-shaped-prizes")
 
     def test_rule_roster_cli_and_exact_balanced_game_budget(self):
         args = build_parser().parse_args(
@@ -616,6 +821,25 @@ def _recorded_turn(*, turn: int, prizes: int) -> RecordedPolicyFrame:
         frame=_public_tactical_frame(board={"turn": turn, "my_prizes": prizes}),
         chosen_indices=[0],
     )
+
+
+def _card_state(
+    card_id: int,
+    *,
+    energies: list[int] | None = None,
+    tools: int = 0,
+    hp: int = 0,
+    is_ex: bool = False,
+    weak_to_fire: bool = False,
+) -> dict:
+    return {
+        "id": card_id,
+        "energy_card_ids": list(energies or []),
+        "tool_count": tools,
+        "hp": hp,
+        "is_ex": is_ex,
+        "weak_to_fire": weak_to_fire,
+    }
 
 
 if __name__ == "__main__":

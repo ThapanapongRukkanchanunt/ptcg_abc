@@ -516,7 +516,16 @@ def _player_summary(
         f"{prefix}_active_energy_count": len(list(_get(active, "energies", []) or [])),
         f"{prefix}_bench_count": len(bench),
         f"{prefix}_hand_count": hand_count,
+        f"{prefix}_hand_card_ids": [_card_id(card) for card in hand]
+        if prefix == "my"
+        else [],
         f"{prefix}_discard_count": len(discard),
+        f"{prefix}_ace_spec_seen": _ace_spec_seen(
+            active=active,
+            bench=bench,
+            discard=discard,
+            card_by_id=card_by_id,
+        ),
         f"{prefix}_prizes": len(prize),
         f"{prefix}_deck_count": int(_get(player, "deckCount", 0) or 0),
         f"{prefix}_active_is_ex": bool(_get(card_by_id.get(active_id), "ex", False)),
@@ -559,6 +568,7 @@ def _card_state(card: Any, *, card_by_id: dict[int, Any]) -> dict[str, Any]:
     if not energy_cards and energies:
         basic_energy = len(energies)
     card_type = _card_type_name(data) if data is not None else ""
+    fire_energy_type = _get(card_by_id.get(2), "energyType")
     stage = 0
     if bool(_get(data, "stage2", False)):
         stage = 2
@@ -574,12 +584,19 @@ def _card_state(card: Any, *, card_by_id: dict[int, Any]) -> dict[str, Any]:
         "hp_ratio": hp / max_hp if max_hp else 0.0,
         "damage_ratio": max(0, max_hp - hp) / max_hp if max_hp else 0.0,
         "energy_count": len(energies) or len(energy_cards),
+        "energy_card_ids": [_card_id(energy_card) for energy_card in energy_cards],
         "tool_count": len(tools),
+        "tool_card_ids": [_card_id(tool) for tool in tools],
         "special_energy_count": special_energy,
         "basic_energy_count": basic_energy,
         "other_energy_count": other_energy,
         "is_ex": bool(_get(data, "ex", False)),
         "is_mega_ex": bool(_get(data, "megaEx", False)),
+        "weakness": _get(data, "weakness"),
+        "weak_to_fire": (
+            fire_energy_type is not None
+            and _get(data, "weakness") == fire_energy_type
+        ),
         "stage": stage,
         "poisoned": bool(_get(card, "poisoned", False)),
         "burned": bool(_get(card, "burned", False)),
@@ -587,6 +604,35 @@ def _card_state(card: Any, *, card_by_id: dict[int, Any]) -> dict[str, Any]:
         "paralyzed": bool(_get(card, "paralyzed", False)),
         "confused": bool(_get(card, "confused", False)),
     }
+
+
+def _ace_spec_seen(
+    *,
+    active: Any,
+    bench: list[Any],
+    discard: list[Any],
+    card_by_id: dict[int, Any],
+) -> bool:
+    visible_cards = list(discard)
+    for pokemon in [active, *bench]:
+        if pokemon is None:
+            continue
+        visible_cards.extend(list(_get(pokemon, "tools", []) or []))
+        visible_cards.extend(list(_get(pokemon, "energyCards", []) or []))
+    return any(
+        _is_ace_spec(card_by_id.get(_card_id(card)))
+        for card in visible_cards
+    )
+
+
+def _is_ace_spec(card_data: Any) -> bool:
+    if card_data is None:
+        return False
+    for field in ("aceSpec", "ace_spec", "isAceSpec", "is_ace_spec"):
+        if bool(_get(card_data, field, False)):
+            return True
+    rarity = str(_get(card_data, "rarity", "") or "").upper().replace("_", " ")
+    return rarity == "ACE SPEC"
 
 
 def _active_condition_state(player: Any, card: Any) -> dict[str, bool]:

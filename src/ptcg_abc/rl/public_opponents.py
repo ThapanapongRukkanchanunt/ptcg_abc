@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+from collections import Counter
 from html import escape
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -658,9 +659,14 @@ def generate_phase5_public_agent_trajectories(
         )
     if trajectory_samples_per_game < 0:
         raise ValueError("trajectory_samples_per_game must be non-negative.")
-    if reward_objective not in {"legacy", "discounted-turn-prizes"}:
+    if reward_objective not in {
+        "legacy",
+        "discounted-turn-prizes",
+        "deck-shaped-prizes",
+    }:
         raise ValueError(
-            "reward_objective must be legacy or discounted-turn-prizes."
+            "reward_objective must be legacy, discounted-turn-prizes, or "
+            "deck-shaped-prizes."
         )
     if not 0.0 <= turn_prize_discount_gamma <= 1.0:
         raise ValueError("turn_prize_discount_gamma must be between 0 and 1.")
@@ -676,6 +682,13 @@ def generate_phase5_public_agent_trajectories(
         controlled_public_agent_key=controlled_public_agent_key,
         controlled_deck_index=controlled_deck_index,
     )
+    if reward_objective == "deck-shaped-prizes":
+        unsupported = sorted(deck.index for deck in our_decks if deck.index not in {1, 3})
+        if unsupported:
+            raise ValueError(
+                "deck-shaped-prizes is defined only for controlled deck indices "
+                f"1 and 3; got {unsupported}."
+            )
     opponents, statuses = _selected_phase5_opponents(
         opponent_pool=opponent_pool,
         card_data=card_data,
@@ -854,17 +867,29 @@ def generate_phase5_public_agent_trajectories(
                 records = list(recorder.frames)
                 our_player_index = 0 if our_is_player0 else 1
                 turn_target_by_record: dict[int, dict[str, Any]] = {}
-                if reward_objective == "discounted-turn-prizes":
+                if reward_objective in {
+                    "discounted-turn-prizes",
+                    "deck-shaped-prizes",
+                }:
                     final_prize_count = (
                         result.prize_counts[our_player_index]
                         if result.prize_counts is not None
                         else None
                     )
-                    turn_targets = _turn_prize_targets(
-                        records,
-                        final_prize_count=final_prize_count,
-                        gamma=turn_prize_discount_gamma,
-                    )
+                    if reward_objective == "deck-shaped-prizes":
+                        turn_targets = _deck_shaped_turn_targets(
+                            records,
+                            final_prize_count=final_prize_count,
+                            gamma=turn_prize_discount_gamma,
+                            deck_index=deck_index,
+                            timed_out=bool(timeout),
+                        )
+                    else:
+                        turn_targets = _turn_prize_targets(
+                            records,
+                            final_prize_count=final_prize_count,
+                            gamma=turn_prize_discount_gamma,
+                        )
                     turn_prize_games.append(
                         _turn_prize_game_summary(
                             turn_targets,
@@ -935,6 +960,29 @@ def generate_phase5_public_agent_trajectories(
                             "turns_in_game": turn_target["turns_in_game"],
                             "turn_prize_discount_gamma": turn_prize_discount_gamma,
                         }
+                        | (
+                            {
+                                "deck_reward_profile": turn_target["reward_profile"],
+                                "deck_state_potential": turn_target["potential"],
+                                "deck_next_state_potential": turn_target["next_potential"],
+                                "deck_potential_components": turn_target[
+                                    "potential_components"
+                                ],
+                                "deck_next_potential_components": turn_target[
+                                    "next_potential_components"
+                                ],
+                                "deck_potential_shaping_reward": turn_target[
+                                    "potential_shaping_reward"
+                                ],
+                                "deck_timeout_penalty": turn_target["timeout_penalty"],
+                                "deck_immediate_reward": turn_target["immediate_reward"],
+                                "discounted_unshaped_prize_return": turn_target[
+                                    "discounted_prize_return"
+                                ],
+                            }
+                            if reward_objective == "deck-shaped-prizes"
+                            else {}
+                        )
                         if turn_target is not None
                         else {
                             "reward_objective": reward_objective,
@@ -1064,7 +1112,7 @@ def generate_phase5_public_agent_trajectories(
         turn_prize_discount_gamma=turn_prize_discount_gamma,
         turn_prize_summary=(
             _summarize_turn_prize_games(turn_prize_games)
-            if reward_objective == "discounted-turn-prizes"
+            if reward_objective in {"discounted-turn-prizes", "deck-shaped-prizes"}
             else None
         ),
         opponent_pool=opponent_pool,
@@ -1137,6 +1185,221 @@ def _turn_prize_targets(
     return turn_starts
 
 
+def _deck_shaped_turn_targets(
+    records: Sequence[Any],
+    *,
+    final_prize_count: int | None,
+    gamma: float,
+    deck_index: int,
+    timed_out: bool,
+) -> list[dict[str, Any]]:
+    """Build prize-plus-potential rewards at each controlled turn boundary."""
+    targets = _turn_prize_targets(
+        records,
+        final_prize_count=final_prize_count,
+        gamma=gamma,
+    )
+    if not targets:
+        return []
+    if deck_index not in {1, 3}:
+        raise ValueError(
+            f"No deck-shaped prize reward is defined for deck index {deck_index}."
+        )
+
+    discounted_prize_returns = [float(target["return"]) for target in targets]
+    immediate_rewards = [0.0] * len(targets)
+    for index in range(len(targets) - 1, -1, -1):
+        target = targets[index]
+        current_components = _deck_reward_potential_components(
+            records[int(target["record_index"])].frame.board,
+            deck_index=deck_index,
+        )
+        if index + 1 < len(targets):
+            next_components = _deck_reward_potential_components(
+                records[int(targets[index + 1]["record_index"])].frame.board,
+                deck_index=deck_index,
+            )
+        else:
+            # Finished and truncated episodes both end this sampled trajectory.
+            # Zeroing terminal potential prevents farming a setup state forever.
+            next_components = {}
+        potential = sum(current_components.values())
+        next_potential = sum(next_components.values())
+        potential_reward = gamma * next_potential - potential
+        prize_reward = 10.0 * float(target["prize_reward"])
+        timeout_penalty = -10.0 if timed_out and index + 1 == len(targets) else 0.0
+        immediate_reward = prize_reward + potential_reward + timeout_penalty
+        immediate_rewards[index] = immediate_reward
+
+        target.update(
+            {
+                "reward_profile": (
+                    "alakazam-dudunsparce" if deck_index == 1 else "dragapult-dusknoir"
+                ),
+                "potential": potential,
+                "next_potential": next_potential,
+                "potential_components": current_components,
+                "next_potential_components": next_components,
+                "potential_shaping_reward": potential_reward,
+                "prize_reward": prize_reward,
+                "timeout_penalty": timeout_penalty,
+                "immediate_reward": immediate_reward,
+            }
+        )
+
+    running_return = 0.0
+    for index in range(len(targets) - 1, -1, -1):
+        running_return = immediate_rewards[index] + gamma * running_return
+        targets[index]["return"] = running_return
+        targets[index]["discounted_prize_return"] = discounted_prize_returns[index]
+    return targets
+
+
+def _deck_reward_potential_components(
+    board: dict[str, Any],
+    *,
+    deck_index: int,
+) -> dict[str, float]:
+    if deck_index == 1:
+        return _alakazam_reward_potential_components(board)
+    if deck_index == 3:
+        return _dragapult_reward_potential_components(board)
+    raise ValueError(f"No deck reward potential is defined for deck index {deck_index}.")
+
+
+def _in_play_card_states(board: dict[str, Any], *, prefix: str) -> list[dict[str, Any]]:
+    states: list[dict[str, Any]] = []
+    active = board.get(f"{prefix}_active_card")
+    if isinstance(active, dict) and active:
+        states.append(active)
+    states.extend(
+        state
+        for state in list(board.get(f"{prefix}_bench_cards", []) or [])
+        if isinstance(state, dict) and state
+    )
+    return states
+
+
+def _state_card_id(state: dict[str, Any]) -> int | None:
+    return _optional_board_int(state.get("id"))
+
+
+def _energy_ids(state: dict[str, Any]) -> set[int]:
+    return {
+        card_id
+        for value in list(state.get("energy_card_ids", []) or [])
+        if (card_id := _optional_board_int(value)) is not None
+    }
+
+
+def _alakazam_reward_potential_components(board: dict[str, Any]) -> dict[str, float]:
+    mine = _in_play_card_states(board, prefix="my")
+    opponent = _in_play_card_states(board, prefix="opponent")
+    play_counts = Counter(_state_card_id(state) for state in mine)
+    hand_counts = Counter(
+        card_id
+        for value in list(board.get("my_hand_card_ids", []) or [])
+        if (card_id := _optional_board_int(value)) is not None
+    )
+
+    abra_count = play_counts[109]
+    kadabra_count = play_counts[742]
+    line_energy_count = sum(
+        1
+        for state in mine
+        if _state_card_id(state) in {109, 742, 245}
+        and bool(_energy_ids(state) & {5, 19})
+    )
+    genesect_ready = any(
+        _state_card_id(state) == 142 and int(state.get("tool_count", 0) or 0) > 0
+        for state in mine
+    ) and not bool(board.get("opponent_ace_spec_seen", False))
+    psyduck_guard = play_counts[858] > 0 and any(
+        _state_card_id(state) in {131, 132, 133} for state in opponent
+    )
+
+    return {
+        "abra_in_play": float(abra_count),
+        "kadabra_in_play": 4.0 * kadabra_count,
+        "alakazam_in_play_binary": 10.0 if play_counts[245] else 0.0,
+        "psychic_energy_on_alakazam_line": float(line_energy_count),
+        "kadabra_hand_abra_play_pairs": 2.0 * min(hand_counts[742], abra_count),
+        "alakazam_candy_abra_sets": 3.0
+        * min(hand_counts[245], hand_counts[1079], abra_count),
+        "alakazam_hand_kadabra_play_pairs": 4.0
+        * min(hand_counts[245], kadabra_count),
+        "genesect_tool_before_opponent_ace_spec": 1.0 if genesect_ready else 0.0,
+        "psyduck_into_dusknoir_line": 1.0 if psyduck_guard else 0.0,
+        "dudunsparce_or_fezandipiti": min(
+            2.0,
+            0.5 * (play_counts[66] + play_counts[140]),
+        ),
+    }
+
+
+def _dragapult_reward_potential_components(board: dict[str, Any]) -> dict[str, float]:
+    mine = _in_play_card_states(board, prefix="my")
+    play_counts = Counter(_state_card_id(state) for state in mine)
+    hand_counts = Counter(
+        card_id
+        for value in list(board.get("my_hand_card_ids", []) or [])
+        if (card_id := _optional_board_int(value)) is not None
+    )
+
+    line_energy_value = 0.0
+    powered_dragapult = False
+    for state in mine:
+        if _state_card_id(state) not in {119, 120, 121}:
+            continue
+        energy_ids = _energy_ids(state)
+        has_fire = 2 in energy_ids
+        has_psychic = 5 in energy_ids
+        line_energy_value += (
+            3.0
+            if has_fire and has_psychic
+            else 1.0
+            if has_fire or has_psychic
+            else 0.0
+        )
+        powered_dragapult = powered_dragapult or (
+            _state_card_id(state) == 121 and has_fire and has_psychic
+        )
+
+    munkidori_ready = any(
+        _state_card_id(state) == 112 and 7 in _energy_ids(state) for state in mine
+    )
+    moltres_ready = any(
+        _state_card_id(state) == 791 and 2 in _energy_ids(state) for state in mine
+    )
+    opponent_active = board.get("opponent_active_card")
+    moltres_target = (
+        isinstance(opponent_active, dict)
+        and bool(opponent_active.get("is_ex", False))
+        and bool(opponent_active.get("weak_to_fire", False))
+        and int(opponent_active.get("hp", 0) or 0) <= 220
+    )
+    budew_active = _optional_board_int(board.get("my_active_id")) == 235
+
+    return {
+        "dreepy_in_play": float(play_counts[119]),
+        "drakloak_in_play": 4.0 * play_counts[120],
+        "dragapult_in_play_binary": 10.0 if play_counts[121] else 0.0,
+        "drakloak_hand_dreepy_play_pairs": 2.0
+        * min(hand_counts[120], play_counts[119]),
+        "dragapult_hand_drakloak_play_pairs": 4.0
+        * min(hand_counts[121], play_counts[120]),
+        "fire_psychic_on_dragapult_line": line_energy_value,
+        "dusknoir_line_in_play": 0.5
+        * (play_counts[131] + play_counts[132] + play_counts[133]),
+        "munkidori_with_darkness": 0.5 if munkidori_ready else 0.0,
+        "fezandipiti_in_play": 0.5 * play_counts[140],
+        "budew_active_before_powered_dragapult": 2.0
+        if budew_active and not powered_dragapult
+        else 0.0,
+        "moltres_fire_ko_window": 5.0 if moltres_ready and moltres_target else 0.0,
+    }
+
+
 def _optional_board_int(value: Any) -> int | None:
     try:
         return int(value) if value is not None else None
@@ -1157,7 +1420,16 @@ def _turn_prize_game_summary(
         "prizes_taken": prizes_taken,
         "reached_six_prizes": reached_six,
         "turns_to_six": len(targets) if reached_six else None,
-        "discounted_prize_score": float(targets[0]["return"]) if targets else 0.0,
+        "discounted_prize_score": (
+            float(
+                targets[0].get(
+                    "discounted_prize_return",
+                    targets[0]["return"],
+                )
+            )
+            if targets
+            else 0.0
+        ),
         "finished": bool(finished),
     }
 

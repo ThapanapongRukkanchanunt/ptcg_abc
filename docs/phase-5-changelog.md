@@ -8888,3 +8888,43 @@ Alakazam continuation recovery:
   measurable state signals, anti-exploitation safeguards, weighting, and an
   ablation plan. It is explicitly discussion-only until reward definitions are
   agreed; no new ERAWAN job or training run was queued here.
+
+## 2026-08-15 - Final Deck-Specific Rewards Implemented
+
+- Added the opt-in `deck-shaped-prizes` trajectory objective for league deck 1
+  (Alakazam Dudunsparce) and league deck 3 (Dragapult Dusknoir). Other deck
+  indices are rejected instead of silently receiving an undefined reward.
+- The immediate controlled-turn reward is
+  `10 * prizes_taken + 0.97 * next_potential - current_potential`, followed by
+  the same `0.97` discounted-return calculation used by the existing prize
+  curriculum. Terminal potential is zero. A training timeout adds `-10` once
+  on the last controlled turn; battle errors remain excluded. This potential-
+  difference form prevents repeated reward farming from merely retaining a
+  setup state. Reports continue to expose the original unscaled discounted
+  prize metric separately from the shaped training target.
+- Alakazam potential: `+1` per Abra, `+4` per Kadabra, binary `+10` for one or
+  more Alakazam, `+1` per Abra-line Pokemon carrying Basic or Telepathic
+  Psychic Energy, `+2` per Kadabra-in-hand/Abra-in-play pair, `+3` per
+  Alakazam-plus-Rare-Candy-in-hand/Abra-in-play set, `+4` per Alakazam-in-hand/
+  Kadabra-in-play pair, `+1` for Genesect with a Tool before the opponent's
+  ACE SPEC is observed, `+1` for Psyduck into an opposing Dusknoir line, and
+  `+0.5` per Dudunsparce or Fezandipiti ex capped at `+2` total.
+- Dragapult Dusknoir potential: `+1` per Dreepy, `+4` per Drakloak, binary
+  `+10` for one or more Dragapult ex, `+2` per Drakloak-in-hand/Dreepy-in-play
+  pair, `+4` per Dragapult-in-hand/Drakloak-in-play pair, and per Dreepy line
+  `+1` for Fire or Psychic Energy or `+3` total for both. Each Duskull,
+  Dusclops, or Dusknoir is `+0.5`; Munkidori with Darkness Energy is `+0.5`;
+  Fezandipiti ex is `+0.5`. Budew Active is `+2` only until a Dragapult ex in
+  play has both required Energy. Moltres with Fire Energy is `+5` when the
+  opposing Active is a Fire-weak Pokemon ex with at most 220 remaining HP.
+  Meowth ex receives no in-play reward because its search Ability triggers
+  when played from hand.
+- Extended observable trajectory state with own-hand card IDs, exact attached
+  Energy and Tool IDs, Fire-weakness detection, and whether an opponent ACE
+  SPEC is visible in public zones. Opponent hand identities remain hidden.
+  Component-level potentials, shaping deltas, prize rewards, timeout penalties,
+  and shaped returns are recorded for auditability.
+- Local validation passes all 153 tests, with eight simulator-dependent tests
+  skipped. Focused coverage checks every finalized weight and condition,
+  binary/capped rewards, Meowth's exclusion, hidden-hand safety, potential
+  differencing, terminal zeroing, and the one-time timeout penalty.

@@ -2962,18 +2962,18 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
     rl_public_trajectories.add_argument(
         "--reward-objective",
-        choices=["legacy", "discounted-turn-prizes"],
+        choices=["legacy", "discounted-turn-prizes", "deck-shaped-prizes"],
         default="legacy",
         help=(
-            "Use legacy outcome/tactical rewards or exact own prizes taken per "
-            "turn with a discounted future-prize return."
+            "Use legacy outcome/tactical rewards, exact own prizes taken per "
+            "turn, or the finalized deck-specific prize-plus-potential reward."
         ),
     )
     rl_public_trajectories.add_argument(
         "--turn-prize-discount-gamma",
         type=float,
         default=0.97,
-        help="Per-controlled-turn discount for discounted-turn-prizes targets.",
+        help="Per-controlled-turn discount for prize-based reward targets.",
     )
     rl_public_trajectories.add_argument(
         "--trajectory-samples-per-game",
