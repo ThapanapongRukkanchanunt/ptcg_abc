@@ -9100,3 +9100,10 @@ Alakazam continuation recovery:
   41-45 completed under the historical tactical-only evaluation before this
   implementation; preserve those reports and use separately suffixed reports
   for any 50/50 re-evaluation.
+- Added the explicit run-local evaluation profile `dragapult-reward50-v1`.
+  The deadline script reads only that exact profile name from
+  `${MODEL_ROOT}/evaluation-profile`, applies the agreed weights, terminal
+  guard, and `_reward50` report suffix, then carries the profile through later
+  self-chained jobs. This allows the already-running training chain to continue
+  without cancellation or checkpoint loss while switching future evaluations
+  at the next job boundary. Other runs retain historical defaults.
