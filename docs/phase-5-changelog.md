@@ -9157,3 +9157,22 @@ Alakazam continuation recovery:
   ZIP with no integrity errors. The protected local copy is 3,282,400 bytes
   with SHA-256
   `e0ce56e7e4df356d556c667f631204e8d4ae4a1f67ebdf0283e7b2e81d9aa3a8`.
+
+## 2026-08-16 - Dragapult Setup Meowth Protection
+
+- Added an opt-in hard setup safeguard for Meowth ex to the
+  `dragapult-reward50-v1` profile. Optional `SETUP_BENCH_POKEMON` selections
+  now keep Meowth in hand, and `SETUP_ACTIVE_POKEMON` search excludes Meowth
+  whenever another legal Basic exists. If the engine's minimum selection count
+  cannot be met without Meowth, the guard permits only the required fallback.
+- Applied the identical guard to actual submission decisions and controlled-
+  player setup rollout decisions. This prevents the setup Active search from
+  valuing a simulated line that wastes Meowth while the executed setup follows
+  a different rule. Ordinary-turn Meowth play remains available so its
+  hand-to-Bench Supporter-search Ability can activate.
+- The control defaults off outside the named Dragapult profile and changes only
+  evaluation/submission inference, not PPO collection or training. Focused
+  tests cover optional Bench exclusion, Active replacement, required-choice
+  fallback, CLI parsing, and package embedding. The full local suite passes
+  164 tests with eight simulator-dependent skips; both SLURM scripts pass shell
+  syntax validation.

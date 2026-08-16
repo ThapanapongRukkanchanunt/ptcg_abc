@@ -59,6 +59,7 @@ class RootSearchConfig:
     value_normalization_epsilon: float = 1.0e-6
     terminal_outcome_guard: bool = False
     search_setup_active: bool = False
+    protect_setup_meowth: bool = False
     root_select_types: tuple[str, ...] = ("MAIN",)
     root_contexts: tuple[str, ...] = ("MAIN",)
 
@@ -283,6 +284,21 @@ class OneTurnRootSearchAgent:
         if frame is None:
             return baseline if _get(observation, "select") is not None else list(self.deck_ids)
 
+        ranked_indices = [
+            action.index
+            for action in sorted(
+                frame.legal_options,
+                key=lambda action: (action.rule_score, -action.index),
+                reverse=True,
+            )
+        ]
+        baseline = _guard_setup_meowth_indices(
+            frame,
+            baseline,
+            ranked_indices=ranked_indices,
+            config=self.config,
+        )
+
         selected = list(baseline)
         trace: RootSearchDecisionTrace | None = None
         if self._should_search(frame):
@@ -333,6 +349,7 @@ class OneTurnRootSearchAgent:
             frame,
             baseline,
             top_k=_candidate_probe_limit(self.config),
+            config=self.config,
         )
         search_started = False
         search_error: str | None = None
@@ -453,6 +470,26 @@ class OneTurnRootSearchAgent:
                     attack_by_id=self.attack_by_id,
                     selected_indices=choice,
                 )
+                if acting_player == root_player and rollout_frame is not None:
+                    rollout_ranked = [
+                        action.index
+                        for action in sorted(
+                            rollout_frame.legal_options,
+                            key=lambda action: (action.rule_score, -action.index),
+                            reverse=True,
+                        )
+                    ]
+                    choice = _guard_setup_meowth_indices(
+                        rollout_frame,
+                        choice,
+                        ranked_indices=rollout_ranked,
+                        config=self.config,
+                    )
+                    rollout_frame = _replace_frame_selection(
+                        rollout_frame,
+                        choice,
+                        rollout_frame.reward_metadata,
+                    )
                 candidate.rollout_actions.append(
                     _rollout_action_record(
                         rollout_frame,
@@ -854,7 +891,9 @@ def _candidate_evaluations(
     baseline: Sequence[int],
     *,
     top_k: int,
+    config: RootSearchConfig | None = None,
 ) -> list[CandidateEvaluation]:
+    config = config or RootSearchConfig()
     ranked = sorted(
         frame.legal_options,
         key=lambda action: (action.rule_score, -action.index),
@@ -862,12 +901,19 @@ def _candidate_evaluations(
     )
     ordered_indices: list[int] = []
     for index in baseline:
-        if 0 <= index < len(frame.legal_options) and index not in ordered_indices:
+        if (
+            0 <= index < len(frame.legal_options)
+            and index not in ordered_indices
+            and _setup_active_candidate_allowed(frame, index, config=config)
+        ):
             ordered_indices.append(int(index))
     for action in ranked:
         if len(ordered_indices) >= top_k:
             break
-        if action.index not in ordered_indices:
+        if (
+            action.index not in ordered_indices
+            and _setup_active_candidate_allowed(frame, action.index, config=config)
+        ):
             ordered_indices.append(action.index)
 
     candidates: list[CandidateEvaluation] = []
@@ -885,6 +931,70 @@ def _candidate_evaluations(
             )
         )
     return candidates
+
+
+def _is_meowth_ex_action(action: Any) -> bool:
+    return str(getattr(action, "card_name", "") or "").strip().casefold() == "meowth ex"
+
+
+def _setup_active_candidate_allowed(
+    frame: DecisionFrame,
+    index: int,
+    *,
+    config: RootSearchConfig,
+) -> bool:
+    if not config.protect_setup_meowth or frame.context != "SETUP_ACTIVE_POKEMON":
+        return True
+    if not (0 <= index < len(frame.legal_options)):
+        return False
+    action = frame.legal_options[index]
+    if not _is_meowth_ex_action(action):
+        return True
+    return not any(not _is_meowth_ex_action(other) for other in frame.legal_options)
+
+
+def _guard_setup_meowth_indices(
+    frame: DecisionFrame,
+    selected_indices: Sequence[int],
+    *,
+    ranked_indices: Sequence[int],
+    config: RootSearchConfig,
+) -> list[int]:
+    if not config.protect_setup_meowth:
+        return [int(index) for index in selected_indices]
+    selected = _valid_indices(selected_indices, len(frame.legal_options))
+    if frame.context not in {
+        "SETUP_ACTIVE_POKEMON",
+        "SETUP_BENCH_POKEMON",
+    }:
+        return selected
+
+    ranked = _valid_indices(ranked_indices, len(frame.legal_options))
+    ranked.extend(index for index in range(len(frame.legal_options)) if index not in ranked)
+    non_meowth = [
+        index for index in ranked if not _is_meowth_ex_action(frame.legal_options[index])
+    ]
+    if frame.context == "SETUP_ACTIVE_POKEMON":
+        if not non_meowth:
+            return selected
+        selected_non_meowth = [index for index in selected if index in non_meowth]
+        return selected_non_meowth[:1] or non_meowth[:1]
+
+    desired_count = min(len(selected), max(0, frame.max_count))
+    guarded = [index for index in selected if index in non_meowth]
+    guarded.extend(
+        index
+        for index in non_meowth
+        if index not in guarded and len(guarded) < desired_count
+    )
+    min_count = max(0, frame.min_count)
+    if len(guarded) < min_count:
+        guarded.extend(
+            index
+            for index in ranked
+            if index not in guarded and len(guarded) < min_count
+        )
+    return guarded
 
 
 def _candidate_probe_limit(config: RootSearchConfig) -> int:

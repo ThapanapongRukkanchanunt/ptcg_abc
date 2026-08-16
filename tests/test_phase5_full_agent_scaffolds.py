@@ -20,16 +20,88 @@ from ptcg_abc.rl.phase5_search import (
     CandidateEvaluation,
     RootSearchConfig,
     _fingerprint_payload,
+    _guard_setup_meowth_indices,
     _rollout_action_multiset,
     _rollout_action_sequence,
     _score_candidates,
     _search_state_snapshot,
+    _setup_active_candidate_allowed,
 )
 from ptcg_abc.rl.workflow import _policy_pool_model_path
 from ptcg_abc.submission import PHASE5_SEARCH_MAIN_PY, build_phase5_search_submission_bundle
 
 
 class Phase5FullAgentScaffoldTests(unittest.TestCase):
+    def test_setup_meowth_guard_keeps_optional_meowth_in_hand(self):
+        frame = types.SimpleNamespace(
+            context="SETUP_BENCH_POKEMON",
+            min_count=0,
+            max_count=2,
+            legal_options=[
+                types.SimpleNamespace(card_name="Dreepy"),
+                types.SimpleNamespace(card_name="Meowth ex"),
+            ],
+        )
+
+        selected = _guard_setup_meowth_indices(
+            frame,
+            [0, 1],
+            ranked_indices=[1, 0],
+            config=RootSearchConfig(protect_setup_meowth=True),
+        )
+
+        self.assertEqual(selected, [0])
+
+    def test_setup_meowth_guard_avoids_active_when_another_basic_exists(self):
+        frame = types.SimpleNamespace(
+            context="SETUP_ACTIVE_POKEMON",
+            min_count=1,
+            max_count=1,
+            legal_options=[
+                types.SimpleNamespace(card_name="Meowth ex"),
+                types.SimpleNamespace(card_name="Budew"),
+            ],
+        )
+
+        selected = _guard_setup_meowth_indices(
+            frame,
+            [0],
+            ranked_indices=[0, 1],
+            config=RootSearchConfig(protect_setup_meowth=True),
+        )
+
+        self.assertEqual(selected, [1])
+
+    def test_setup_meowth_guard_preserves_required_only_legal_choice(self):
+        frame = types.SimpleNamespace(
+            context="SETUP_ACTIVE_POKEMON",
+            min_count=1,
+            max_count=1,
+            legal_options=[types.SimpleNamespace(card_name="Meowth ex")],
+        )
+
+        selected = _guard_setup_meowth_indices(
+            frame,
+            [0],
+            ranked_indices=[0],
+            config=RootSearchConfig(protect_setup_meowth=True),
+        )
+
+        self.assertEqual(selected, [0])
+
+    def test_setup_active_candidate_pool_excludes_meowth_when_possible(self):
+        frame = types.SimpleNamespace(
+            context="SETUP_ACTIVE_POKEMON",
+            legal_options=[
+                types.SimpleNamespace(card_name="Meowth ex"),
+                types.SimpleNamespace(card_name="Dreepy"),
+            ],
+        )
+        config = RootSearchConfig(protect_setup_meowth=True)
+
+        self.assertFalse(_setup_active_candidate_allowed(frame, 0, config=config))
+        self.assertTrue(_setup_active_candidate_allowed(frame, 1, config=config))
+
     def test_search_state_fingerprint_ignores_unordered_hand_order(self):
         first = {
             "turn": 3,
@@ -428,6 +500,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 handcrafted_reward_deck_index=3,
                 terminal_outcome_guard=True,
                 search_setup_active=True,
+                protect_setup_meowth=True,
             )
 
             result = build_phase5_search_submission_bundle(
@@ -444,6 +517,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertIn("handcrafted_reward_weight=0.5", main_text)
         self.assertIn("terminal_outcome_guard=True", main_text)
         self.assertIn("search_setup_active=True", main_text)
+        self.assertIn("protect_setup_meowth=True", main_text)
 
     def test_phase5_template_execs_without_file_global(self):
         fake_cg = types.ModuleType("cg")
@@ -505,6 +579,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "0.000001",
                 "--terminal-outcome-guard",
                 "--search-setup-active",
+                "--protect-setup-meowth",
                 "--specialist-model-dir",
                 "models/rl/phase5_league_alpha/iter-0000/specialists",
             ]
@@ -572,6 +647,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertEqual(league_args.value_normalization_epsilon, 0.000001)
         self.assertTrue(league_args.terminal_outcome_guard)
         self.assertTrue(league_args.search_setup_active)
+        self.assertTrue(league_args.protect_setup_meowth)
         self.assertEqual(
             league_args.specialist_model_dir,
             Path("models/rl/phase5_league_alpha/iter-0000/specialists"),

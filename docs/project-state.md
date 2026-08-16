@@ -225,6 +225,11 @@ This is the resume point for the project. Start here after switching machines, c
   retained separately in the protected local pull directory; it is 3,282,400
   bytes with SHA-256
   `e0ce56e7e4df356d556c667f631204e8d4ae4a1f67ebdf0283e7b2e81d9aa3a8`.
+- The Dragapult reward50 profile now hard-protects Meowth ex during setup. It is
+  excluded from optional setup Bench choices and from setup Active candidates
+  whenever another Basic is available, both in actual inference and simulated
+  setup rollouts. Meowth remains legal when it is required and no alternative
+  can satisfy the minimum selection count. Ordinary-turn play is unchanged.
 - Opt-in `dragapult-reward50-v1` inference is implemented and active for the
   next Dragapult self-chain boundary. It scores fixed top-4 candidates with
   `0.5` normalized learned end-state value plus `0.5` normalized exact

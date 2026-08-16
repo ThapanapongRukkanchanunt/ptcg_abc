@@ -20,9 +20,11 @@ from ptcg_abc.rl.phase5_search import (
     _candidate_probe_limit,
     _candidate_search_is_complete,
     _equivalent_candidate_indices,
+    _guard_setup_meowth_indices,
     _hidden_counts,
     _load_search_api,
     _score_candidates,
+    _setup_active_candidate_allowed,
     sample_hidden_state,
 )
 
@@ -97,11 +99,12 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
 
         model_outputs = self._score_model_outputs(encoded)
         scores = model_outputs["action_logits"]
-        baseline_positions = self._rank_policy_positions(
+        ranked_policy_positions = self._rank_policy_positions(
             encoded,
             legal_actions,
             scores,
-        )[:target_count]
+        )
+        baseline_positions = ranked_policy_positions[:target_count]
         baseline = _valid_indices(
             [
                 encoded.legal_action_indices[position]
@@ -124,6 +127,29 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
                 "phase5_policy_indices": list(baseline),
             },
         )
+        if frame is not None:
+            ranked_indices = [
+                encoded.legal_action_indices[position]
+                for position in ranked_policy_positions
+                if encoded.legal_action_indices[position] >= 0
+            ]
+            baseline = _guard_setup_meowth_indices(
+                frame,
+                baseline,
+                ranked_indices=ranked_indices,
+                config=getattr(self, "config", RootSearchConfig()),
+            )
+            frame = make_decision_frame(
+                observation,
+                deck_ids=self.deck_ids,
+                card_by_id=self.card_by_id,
+                attack_by_id=self.attack_by_id,
+                selected_indices=baseline,
+                reward_metadata={
+                    "collector": "phase5_search_eval",
+                    "phase5_policy_indices": list(baseline),
+                },
+            )
         selected = list(baseline)
         search_applied = False
         search_error: str | None = None
@@ -372,13 +398,21 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         limit = self.config.top_k if candidate_limit is None else max(0, int(candidate_limit))
         ordered_indices: list[int] = []
         for index in baseline:
-            if 0 <= index < len(frame.legal_options) and index not in ordered_indices:
+            if (
+                0 <= index < len(frame.legal_options)
+                and index not in ordered_indices
+                and _setup_active_candidate_allowed(frame, index, config=self.config)
+            ):
                 ordered_indices.append(int(index))
         for position in self._rank_policy_positions(encoded, legal_actions, scores):
             if len(ordered_indices) >= limit:
                 break
             index = int(encoded.legal_action_indices[position])
-            if 0 <= index < len(frame.legal_options) and index not in ordered_indices:
+            if (
+                0 <= index < len(frame.legal_options)
+                and index not in ordered_indices
+                and _setup_active_candidate_allowed(frame, index, config=self.config)
+            ):
                 ordered_indices.append(index)
 
         position_by_index = {

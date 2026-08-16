@@ -154,6 +154,9 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
         "search_setup_active": (
             True if getattr(args, "search_setup_active", False) else None
         ),
+        "protect_setup_meowth": (
+            True if getattr(args, "protect_setup_meowth", False) else None
+        ),
     }
     if all(value is None for value in fields.values()):
         return None
@@ -239,6 +242,11 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
             fields["search_setup_active"]
             if fields["search_setup_active"] is not None
             else base_config.search_setup_active
+        ),
+        protect_setup_meowth=(
+            fields["protect_setup_meowth"]
+            if fields["protect_setup_meowth"] is not None
+            else base_config.protect_setup_meowth
         ),
     )
 
@@ -352,6 +360,11 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         "--search-setup-active",
         action="store_true",
         help="Apply root search to the one-card initial Active Pokemon choice.",
+    )
+    parser.add_argument(
+        "--protect-setup-meowth",
+        action="store_true",
+        help="Keep Meowth ex in hand during optional setup Active/Bench choices.",
     )
 
 
