@@ -240,6 +240,8 @@ This is the resume point for the project. Start here after switching machines, c
   generations 39-48 and Alakazam generations 3-12, each using matched 104-game
   screens with normalized learned/handcrafted reward weights `0.5 / 0.5`, setup
   Active search, and terminal guarding. Only Dragapult enables Meowth protection.
+  Evaluation-only jobs `77089` (Dragapult) and `77090` (Alakazam) are running
+  concurrently; no training job remains.
 - Opt-in `dragapult-reward50-v1` inference is implemented and active for the
   next Dragapult self-chain boundary. It scores fixed top-4 candidates with
   `0.5` normalized learned end-state value plus `0.5` normalized exact

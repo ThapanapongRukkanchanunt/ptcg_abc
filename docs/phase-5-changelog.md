@@ -9204,3 +9204,8 @@ Alakazam continuation recovery:
 - Added a dedicated evaluation-only SLURM runner that validates every checkpoint
   before use and performs no trajectory collection, PPO update, checkpoint
   write, cleanup, or self-chaining.
+- Submitted evaluation-only jobs `77089` for Dragapult and `77090` for
+  Alakazam. Both entered `RUNNING` on separate compute nodes. Startup confirms
+  the intended model roots, generation windows `39-48 / 3-12`, eight games per
+  each of 13 matchups, common seed `20260827`, and Meowth protection enabled
+  only for Dragapult.
