@@ -9209,3 +9209,37 @@ Alakazam continuation recovery:
   the intended model roots, generation windows `39-48 / 3-12`, eight games per
   each of 13 matchups, common seed `20260827`, and Meowth protection enabled
   only for Dragapult.
+
+## 2026-08-17 - Final Reward50 Evaluation And Kaggle Packages
+
+- Evaluation-only jobs `77089` and `77090` completed successfully with zero
+  battle errors. Every expected 104-game report is present: Dragapult Dusknoir
+  generations 39-48 and Alakazam Dudunsparce post-KO generations 3-12.
+- Across its 1,040-game window, Dragapult averaged `2.66346` Prizes and
+  `2.15415` discounted Prize score, finished all six Prizes in 300 games
+  (`28.85%`), recorded 416 / 619 / 5 diagnostic wins/losses/draws, and timed
+  out in 11 games (`1.06%`). Generation 46 is the numerical leader on the
+  primary discounted-Prize metric: `3.15385` average Prizes, `2.55033`
+  discounted Prize score, 37 / 104 six-Prize finishes (`35.58%`), 47 / 57 / 0
+  diagnostic wins/losses/draws, one timeout, and zero battle errors.
+- Across its 1,040-game window, Alakazam averaged `0.33365` Prizes and
+  `0.26187` discounted Prize score, finished all six Prizes once (`0.10%`),
+  recorded 136 / 809 / 95 diagnostic wins/losses/draws, and timed out in 289
+  games (`27.79%`). Generation 11 is the numerical leader: `0.43269` average
+  Prizes, `0.33874` discounted Prize score, one six-Prize finish, 12 / 84 / 8
+  diagnostic wins/losses/draws, 28 timeouts (`26.92%`), and zero battle
+  errors. This remains a weak, timeout-heavy agent; selection is only the best
+  checkpoint in the requested final screen, not evidence of reliable deck play.
+- Root search changed the direct policy choice on `50.06%` of Dragapult and
+  `55.90%` of Alakazam searched decisions. Candidate simulation had zero
+  candidate-level errors. Root-level fallback errors were `0.74-0.75%` and
+  candidate truncation was `0.17%` for Dragapult versus `2.93%` for Alakazam.
+- Built final Kaggle packages from Dragapult generation 46 and Alakazam
+  generation 11 using the exact evaluated inference configuration. Both passed
+  60-card, callable-agent, raw-execution, checkpoint, embedded-configuration,
+  and ZIP-integrity checks. Dragapult's ZIP is 3,283,132 bytes with SHA-256
+  `5256dd6e478195805dc612b796901946611b40045d0ed4f39032967acc7dc227`.
+  Alakazam's ZIP is 3,283,321 bytes with SHA-256
+  `6cacfcb69a6d3c57b0d98cf62e2257c3e428e06764a325d438a573d9509c6a0d`.
+  Verified local copies are retained under
+  `D:\pokemon_rl\erawan_pull\phase5_final_reward50_best_gen46_gen11_20260817`.

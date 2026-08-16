@@ -240,32 +240,33 @@ This is the resume point for the project. Start here after switching machines, c
   generations 39-48 and Alakazam generations 3-12, each using matched 104-game
   screens with normalized learned/handcrafted reward weights `0.5 / 0.5`, setup
   Active search, and terminal guarding. Only Dragapult enables Meowth protection.
-  Evaluation-only jobs `77089` (Dragapult) and `77090` (Alakazam) are running
-  concurrently; no training job remains.
-- Opt-in `dragapult-reward50-v1` inference is implemented and active for the
-  next Dragapult self-chain boundary. It scores fixed top-4 candidates with
-  `0.5` normalized learned end-state value plus `0.5` normalized exact
-  deck-shaped transition value, treats value ranges at or below `1e-6` as
-  ties, and preserves terminal wins/losses. Raw tactical and legacy root-prior
-  weights are zero in this profile. Training remains unchanged. Generations
-  46-50 retain historical tactical-only evaluation because their job was
-  already active; generation 51 onward writes separately suffixed `_reward50`
-  reports. Re-evaluate generation 33 and 41-50 under the same profile when an
-  ERAWAN job slot becomes available.
-- A new generation-33 Kaggle ZIP embeds the 50/50 configuration and passed
-  deck, import, callable-agent, checkpoint, raw-exec, and ZIP-integrity checks.
-  It is 3,282,152 bytes with SHA-256
-  `bd6d42df1af913c2c59db490fcb35cdba2b1c5f87af2b2003386a0c886694879`
-  and is retained separately in the protected local ERAWAN pull directory.
+  Evaluation-only jobs `77089` (Dragapult) and `77090` (Alakazam) completed
+  successfully; no training or evaluation job remains.
+- The final 1,040-game Dragapult window averaged `2.66346` Prizes and `2.15415`
+  discounted Prize score, with a `28.85%` six-Prize rate, 416 / 619 / 5
+  diagnostic wins/losses/draws, `1.06%` timeouts, and zero battle errors.
+  Generation 46 is the numerical leader at `3.15385` average Prizes, `2.55033`
+  discounted Prize score, `35.58%` six-Prize rate, and 47 / 104 diagnostic
+  wins. Its validated Kaggle ZIP is 3,283,132 bytes with SHA-256
+  `5256dd6e478195805dc612b796901946611b40045d0ed4f39032967acc7dc227`.
+- The final 1,040-game Alakazam window averaged only `0.33365` Prizes and
+  `0.26187` discounted Prize score, with one six-Prize finish, 136 / 809 / 95
+  diagnostic wins/losses/draws, `27.79%` timeouts, and zero battle errors.
+  Generation 11 is the numerical leader at `0.43269` average Prizes, `0.33874`
+  discounted Prize score, one six-Prize finish, and 12 / 104 diagnostic wins.
+  It is still a weak, timeout-heavy agent. Its validated Kaggle ZIP is 3,283,321
+  bytes with SHA-256
+  `6cacfcb69a6d3c57b0d98cf62e2257c3e428e06764a325d438a573d9509c6a0d`.
+- Both final ZIPs are retained under protected local directory
+  `D:\pokemon_rl\erawan_pull\phase5_final_reward50_best_gen46_gen11_20260817`.
 - The Alakazam reward now also includes a one-time `+2` post-KO Kadabra
   promotion event: the opponent must have taken a Prize, the exact `TO_ACTIVE`
   choice must be Kadabra, Alakazam must be in hand, and Psychic or Telepathic
   Psychic Energy must be attached to that Kadabra or available in hand. The
-  full local suite passes. A separate Alakazam-only run is authorized for 20
-  generations from the completed track's numerical-leader generation 12.
-  ERAWAN job `77025` is running that continuation; `MAX_GENERATION=20`
-  prevents extension. Dragapult job `77004` completed its separate
-  40-generation run cleanly.
+  full local suite passes. The separate Alakazam-only continuation began from
+  the completed track's numerical-leader generation 12 and was stopped at
+  post-KO generation 12 at the user's deadline. Dragapult's continuation was
+  stopped after its generation-48 checkpoint completed.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined
