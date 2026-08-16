@@ -151,6 +151,9 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
         "terminal_outcome_guard": (
             True if getattr(args, "terminal_outcome_guard", False) else None
         ),
+        "search_setup_active": (
+            True if getattr(args, "search_setup_active", False) else None
+        ),
     }
     if all(value is None for value in fields.values()):
         return None
@@ -231,6 +234,11 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
             fields["terminal_outcome_guard"]
             if fields["terminal_outcome_guard"] is not None
             else base_config.terminal_outcome_guard
+        ),
+        search_setup_active=(
+            fields["search_setup_active"]
+            if fields["search_setup_active"] is not None
+            else base_config.search_setup_active
         ),
     )
 
@@ -339,6 +347,11 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         "--terminal-outcome-guard",
         action="store_true",
         help="Always prefer a terminal win and reject a terminal loss when possible.",
+    )
+    parser.add_argument(
+        "--search-setup-active",
+        action="store_true",
+        help="Apply root search to the one-card initial Active Pokemon choice.",
     )
 
 

@@ -58,6 +58,7 @@ class RootSearchConfig:
     handcrafted_reward_gamma: float = 0.97
     value_normalization_epsilon: float = 1.0e-6
     terminal_outcome_guard: bool = False
+    search_setup_active: bool = False
     root_select_types: tuple[str, ...] = ("MAIN",)
     root_contexts: tuple[str, ...] = ("MAIN",)
 
@@ -306,9 +307,17 @@ class OneTurnRootSearchAgent:
         return selected
 
     def _should_search(self, frame: DecisionFrame) -> bool:
-        return (
+        main_root = (
             frame.select_type in self.config.root_select_types
             and frame.context in self.config.root_contexts
+        )
+        setup_active_root = (
+            self.config.search_setup_active
+            and frame.select_type == "CARD"
+            and frame.context == "SETUP_ACTIVE_POKEMON"
+        )
+        return (
+            (main_root or setup_active_root)
             and frame.target_count == 1
             and len(frame.legal_options) >= self.config.min_candidates
             and self.config.top_k > 0

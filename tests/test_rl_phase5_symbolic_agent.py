@@ -16,6 +16,20 @@ class Phase5SymbolicAgentTests(unittest.TestCase):
     def test_search_config_default_uses_promoted_rollout_cap(self):
         self.assertEqual(RootSearchConfig().max_rollout_steps, 30)
 
+    def test_search_agent_setup_active_is_explicitly_opt_in(self):
+        agent = object.__new__(Phase5SearchPolicyAgent)
+        frame = SimpleNamespace(
+            select_type="CARD",
+            context="SETUP_ACTIVE_POKEMON",
+            target_count=1,
+            legal_options=[object(), object()],
+        )
+
+        agent.config = RootSearchConfig()
+        self.assertFalse(agent._should_search(frame))
+        agent.config = RootSearchConfig(search_setup_active=True)
+        self.assertTrue(agent._should_search(frame))
+
     def test_agent_requires_checkpoint_path(self):
         with self.assertRaises(ValueError):
             Phase5SymbolicPolicyAgent([1] * 60)

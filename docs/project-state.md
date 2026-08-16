@@ -213,6 +213,13 @@ This is the resume point for the project. Start here after switching machines, c
   It is 3,282,152 bytes with SHA-256
   `bd6d42df1af913c2c59db490fcb35cdba2b1c5f87af2b2003386a0c886694879`
   and is retained separately in the protected local ERAWAN pull directory.
+- The `dragapult-reward50-v1` profile now also applies the same normalized
+  learned-value/handcrafted-reward 50/50 root search to the one-card
+  `SETUP_ACTIVE_POKEMON` choice. It rolls each candidate through the remaining
+  setup and scores the resulting first-turn state. Setup Bench selection remains
+  on the direct rollout policy because multi-card root choices are outside the
+  current search contract. The switch is opt-in and does not affect PPO
+  trajectory collection or training.
 - Opt-in `dragapult-reward50-v1` inference is implemented and active for the
   next Dragapult self-chain boundary. It scores fixed top-4 candidates with
   `0.5` normalized learned end-state value plus `0.5` normalized exact

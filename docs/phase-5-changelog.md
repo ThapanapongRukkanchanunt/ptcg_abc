@@ -9127,3 +9127,20 @@ Alakazam continuation recovery:
 - The two-job ERAWAN allowance is occupied by the ongoing Dragapult and
   Alakazam chains. A separate 50/50 re-evaluation of generation 33 and
   generations 41-50 must wait for a slot; do not run it on the login node.
+
+## 2026-08-16 - 50/50 Search Extended To Setup Active
+
+- Added an opt-in `search_setup_active` root-search control for the one-card
+  `CARD / SETUP_ACTIVE_POKEMON` decision. Each legal Active candidate is
+  simulated through the remaining setup prompts until turn 1, then scored by
+  the same candidate-normalized `0.5` learned end-state value plus `0.5` exact
+  Dragapult deck-shaped transition value used during ordinary root search.
+- The control is enabled by `dragapult-reward50-v1` and is carried through
+  deadline self-chaining, public-evaluation SLURM, command-line configuration,
+  and Kaggle package generation. It remains off by default for every other
+  profile. Setup Bench selection remains direct because its multi-card choice
+  is not supported by the current `target_count == 1` root search.
+- Training remains unchanged: setup decisions are still excluded from PPO turn
+  rows, and this change affects only evaluation/submission inference. The full
+  local suite passes 160 tests with eight simulator-dependent skips; both
+  modified SLURM scripts pass shell syntax validation.

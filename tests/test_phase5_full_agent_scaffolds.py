@@ -427,6 +427,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 handcrafted_reward_weight=0.5,
                 handcrafted_reward_deck_index=3,
                 terminal_outcome_guard=True,
+                search_setup_active=True,
             )
 
             result = build_phase5_search_submission_bundle(
@@ -442,6 +443,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertIn("search_config=RootSearchConfig(", main_text)
         self.assertIn("handcrafted_reward_weight=0.5", main_text)
         self.assertIn("terminal_outcome_guard=True", main_text)
+        self.assertIn("search_setup_active=True", main_text)
 
     def test_phase5_template_execs_without_file_global(self):
         fake_cg = types.ModuleType("cg")
@@ -502,6 +504,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "--value-normalization-epsilon",
                 "0.000001",
                 "--terminal-outcome-guard",
+                "--search-setup-active",
                 "--specialist-model-dir",
                 "models/rl/phase5_league_alpha/iter-0000/specialists",
             ]
@@ -568,6 +571,7 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertEqual(league_args.handcrafted_reward_deck_index, 3)
         self.assertEqual(league_args.value_normalization_epsilon, 0.000001)
         self.assertTrue(league_args.terminal_outcome_guard)
+        self.assertTrue(league_args.search_setup_active)
         self.assertEqual(
             league_args.specialist_model_dir,
             Path("models/rl/phase5_league_alpha/iter-0000/specialists"),

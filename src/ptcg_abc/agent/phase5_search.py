@@ -253,9 +253,17 @@ class Phase5SearchPolicyAgent(Phase5SymbolicPolicyAgent):
         return positions
 
     def _should_search(self, frame: Any) -> bool:
-        return (
+        main_root = (
             frame.select_type in self.config.root_select_types
             and frame.context in self.config.root_contexts
+        )
+        setup_active_root = (
+            self.config.search_setup_active
+            and frame.select_type == "CARD"
+            and frame.context == "SETUP_ACTIVE_POKEMON"
+        )
+        return (
+            (main_root or setup_active_root)
             and frame.target_count == 1
             and len(frame.legal_options) >= self.config.min_candidates
             and self.config.top_k > 0
