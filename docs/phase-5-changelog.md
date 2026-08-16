@@ -9047,3 +9047,28 @@ Alakazam continuation recovery:
   4,160 timeouts (`1.08%`), with zero evaluation errors. Retain generation 33
   as the numerical candidate; require a larger fresh confirmation before any
   promotion or submission choice.
+
+## 2026-08-16 - Dragapult Generations 41-60 and Generation-33 Package
+
+- Submitted ERAWAN job `77043` to continue the existing
+  `phase5_dragapult_dusknoir_deck_reward_v1` chain from generation 40. It is
+  running generation 41 on `compute1` and will self-chain in five-generation
+  blocks through the hard cap `MAX_GENERATION=60`.
+- The continuation preserves the completed run's configuration: league deck 3,
+  all 13 rule opponents, 1,000 games per update, 104-game deterministic screen
+  after every update, epsilon `0.10`, policy seed base `20260822`, learning
+  rate `1e-5`, one PPO epoch, head-only critic backpropagation,
+  `deck-shaped-prizes`, and gamma `0.97`. It continues from generation 40; it
+  does not restart from the selected generation-33 checkpoint.
+- Built a separate direct Kaggle submission from generation 33 under
+  `submissions/phase5_dragapult_dusknoir_reward_gen33_20260816` on ERAWAN.
+  The package uses league deck 3 Dragapult Dusknoir and checkpoint
+  `gen-0033/specialists/deck-03.pt`.
+- Validation passed: the unpacked submission contains root-level `main.py`,
+  `deck.csv`, `model.pt`, `cg/`, and `ptcg_abc/`; the deck contains exactly 60
+  cards; `agent` is callable; raw execution succeeds without a `__file__`
+  global; and the model is a five-key Torch checkpoint. ZIP integrity also
+  passed.
+- The validated ZIP is 3,278,797 bytes with SHA-256
+  `5ee614028ca789dd0575598be5240c5d2eb047a1df4eca22ab39eee59dff4b60`.
+  A verified copy is retained under the protected local ERAWAN pull directory.

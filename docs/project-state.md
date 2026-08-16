@@ -191,7 +191,13 @@ This is the resume point for the project. Start here after switching machines, c
   32 / 104 wins. Training-game prizes improved strongly, but the much smaller
   fixed-roster gain is noisy; retain generation 33 as a selection candidate,
   not a confirmed promotion. Training recorded 483 / 40,000 timeouts (`1.21%`)
-  and evaluation 45 / 4,160 (`1.08%`), with zero evaluation errors.
+  and evaluation 45 / 4,160 (`1.08%`), with zero evaluation errors. Authorized
+  continuation job `77043` is now running generation 41 from generation 40 and
+  will self-chain in five-generation blocks through `MAX_GENERATION=60` with
+  the same reward and training settings. A separately frozen generation-33
+  Kaggle ZIP has been validated and copied to the protected local ERAWAN pull
+  directory; SHA-256 is
+  `5ee614028ca789dd0575598be5240c5d2eb047a1df4eca22ab39eee59dff4b60`.
 - The Alakazam reward now also includes a one-time `+2` post-KO Kadabra
   promotion event: the opponent must have taken a Prize, the exact `TO_ACTIVE`
   choice must be Kadabra, Alakazam must be in hand, and Psychic or Telepathic
