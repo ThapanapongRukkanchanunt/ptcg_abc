@@ -234,6 +234,12 @@ This is the resume point for the project. Start here after switching machines, c
   package embedding both setup Active search and Meowth protection is 3,283,308
   bytes with SHA-256
   `e66a7b81b19b532a508ff69b93982c288c4be97b1ce418ed6daba651d864eea8`.
+- Deadline training was stopped at the user's request. The latest completed
+  checkpoints are Dragapult Dusknoir generation 48 and Alakazam post-KO
+  generation 12. The final evaluation-only windows are therefore Dragapult
+  generations 39-48 and Alakazam generations 3-12, each using matched 104-game
+  screens with normalized learned/handcrafted reward weights `0.5 / 0.5`, setup
+  Active search, and terminal guarding. Only Dragapult enables Meowth protection.
 - Opt-in `dragapult-reward50-v1` inference is implemented and active for the
   next Dragapult self-chain boundary. It scores fixed top-4 candidates with
   `0.5` normalized learned end-state value plus `0.5` normalized exact

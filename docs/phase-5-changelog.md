@@ -9186,3 +9186,21 @@ Alakazam continuation recovery:
   `protect_setup_meowth=True`, and clean ZIP integrity. The protected local ZIP
   is 3,283,308 bytes with SHA-256
   `e66a7b81b19b532a508ff69b93982c288c4be97b1ce418ed6daba651d864eea8`.
+
+## 2026-08-16 - Training Stop And Final Last-10 Evaluation
+
+- At the user's deadline, canceled active Dragapult job `77058` and Alakazam
+  job `77073`. Both disappeared from the queue after cancellation; no training
+  continuation remains queued. Inventory found complete, consistently sized
+  checkpoints through Dragapult generation 48 and Alakazam post-KO generation
+  12. Partially completed work beyond those checkpoints is not used.
+- Defined the final evaluation windows as the latest ten completed checkpoints:
+  Dragapult generations 39-48 and Alakazam generations 3-12. Each generation
+  receives a matched 104-game screen against all 13 league rule decks with a
+  common seed, fixed top-4 root search, zero tactical/rule-prior weight,
+  normalized learned value `0.5`, normalized exact deck reward `0.5`, gamma
+  `0.97`, terminal guarding, and setup Active search. Dragapult additionally
+  enables the hard setup Meowth safeguard; Alakazam does not.
+- Added a dedicated evaluation-only SLURM runner that validates every checkpoint
+  before use and performs no trajectory collection, PPO update, checkpoint
+  write, cleanup, or self-chaining.
