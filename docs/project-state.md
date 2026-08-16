@@ -230,6 +230,10 @@ This is the resume point for the project. Start here after switching machines, c
   whenever another Basic is available, both in actual inference and simulated
   setup rollouts. Meowth remains legal when it is required and no alternative
   can satisfy the minimum selection count. Ordinary-turn play is unchanged.
+- Commit `90bb98c` is deployed on ERAWAN. The separately retained generation-33
+  package embedding both setup Active search and Meowth protection is 3,283,308
+  bytes with SHA-256
+  `e66a7b81b19b532a508ff69b93982c288c4be97b1ce418ed6daba651d864eea8`.
 - Opt-in `dragapult-reward50-v1` inference is implemented and active for the
   next Dragapult self-chain boundary. It scores fixed top-4 candidates with
   `0.5` normalized learned end-state value plus `0.5` normalized exact

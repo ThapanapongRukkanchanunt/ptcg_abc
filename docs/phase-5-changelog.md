@@ -9176,3 +9176,13 @@ Alakazam continuation recovery:
   fallback, CLI parsing, and package embedding. The full local suite passes
   164 tests with eight simulator-dependent skips; both SLURM scripts pass shell
   syntax validation.
+- Published commit `90bb98c` and fast-forwarded ERAWAN. Its focused 61-test
+  runtime/package suite passed with one simulator-dependent skip, and both
+  cluster scripts passed syntax validation there.
+- Built a new, separately retained generation-33 package under
+  `submissions/phase5_dragapult_dusknoir_reward50_setup_meowth_gen33_20260816`.
+  Validation confirms 60 cards, a callable agent, five checkpoint keys, raw
+  execution without `__file__`, embedded `search_setup_active=True` and
+  `protect_setup_meowth=True`, and clean ZIP integrity. The protected local ZIP
+  is 3,283,308 bytes with SHA-256
+  `e66a7b81b19b532a508ff69b93982c288c4be97b1ce418ed6daba651d864eea8`.
