@@ -188,6 +188,9 @@ This is the resume point for the project. Start here after switching machines, c
   Psychic Energy must be attached to that Kadabra or available in hand. The
   full local suite passes. A separate Alakazam-only run is authorized for 20
   generations from the completed track's numerical-leader generation 12.
+  ERAWAN job `77025` is submitted for that run and is pending for scheduler
+  priority; `MAX_GENERATION=20` prevents extension. Dragapult job `77004`
+  remains active.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

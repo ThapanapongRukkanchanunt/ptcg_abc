@@ -9000,3 +9000,16 @@ Alakazam continuation recovery:
   because of the remaining deadline. Use generation 12, the numerical leader
   from the completed handcrafted-reward track, as generation 0 in a separate
   run root. Do not extend it beyond 20 generations.
+- Published the implementation as commit `4c5ff0e` and fast-forwarded the
+  ERAWAN checkout to that exact revision. The focused ERAWAN pytest invocation
+  could not run because the retained `.conda_ptcg` environment does not include
+  pytest; bytecode compilation and reward-module import passed, while the full
+  local test suite is the validation authority for this change.
+- Submitted ERAWAN job `77025` for run
+  `phase5_alakazam_post_ko_reward_v2`. It initializes generation 0 from the
+  completed reward track's generation-12 checkpoint, uses the same 13 rule
+  opponents, five 1,000-game updates per job, 104-game evaluation after every
+  update, first-block epsilon `1.0 -> 0.10`, later epsilon `0.10`, learning rate
+  `1e-5`, head-only critic, gamma `0.97`, and `MAX_GENERATION=20`. The job is
+  accepted and pending with scheduler reason `Priority`; this is not a startup
+  error. Dragapult Dusknoir job `77004` remains active.
