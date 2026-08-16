@@ -974,6 +974,7 @@ def generate_phase5_public_agent_trajectories(
                                 "deck_potential_shaping_reward": turn_target[
                                     "potential_shaping_reward"
                                 ],
+                                "deck_event_reward": turn_target["event_reward"],
                                 "deck_timeout_penalty": turn_target["timeout_penalty"],
                                 "deck_immediate_reward": turn_target["immediate_reward"],
                                 "discounted_unshaped_prize_return": turn_target[
@@ -1226,9 +1227,17 @@ def _deck_shaped_turn_targets(
         potential = sum(current_components.values())
         next_potential = sum(next_components.values())
         potential_reward = gamma * next_potential - potential
+        event_reward = 0.0
+        if deck_index == 1 and index + 1 < len(targets):
+            event_reward = _alakazam_post_ko_kadabra_promotion_bonus(
+                records[int(target["record_index"])].frame.board,
+                records[int(targets[index + 1]["record_index"])],
+            )
         prize_reward = 10.0 * float(target["prize_reward"])
         timeout_penalty = -10.0 if timed_out and index + 1 == len(targets) else 0.0
-        immediate_reward = prize_reward + potential_reward + timeout_penalty
+        immediate_reward = (
+            prize_reward + potential_reward + event_reward + timeout_penalty
+        )
         immediate_rewards[index] = immediate_reward
 
         target.update(
@@ -1241,6 +1250,7 @@ def _deck_shaped_turn_targets(
                 "potential_components": current_components,
                 "next_potential_components": next_components,
                 "potential_shaping_reward": potential_reward,
+                "event_reward": event_reward,
                 "prize_reward": prize_reward,
                 "timeout_penalty": timeout_penalty,
                 "immediate_reward": immediate_reward,
@@ -1265,6 +1275,54 @@ def _deck_reward_potential_components(
     if deck_index == 3:
         return _dragapult_reward_potential_components(board)
     raise ValueError(f"No deck reward potential is defined for deck index {deck_index}.")
+
+
+def _alakazam_post_ko_kadabra_promotion_bonus(
+    current_board: dict[str, Any],
+    promotion_record: Any,
+) -> float:
+    """Reward a ready Kadabra promotion after the opponent takes a prize."""
+    frame = promotion_record.frame
+    next_board = frame.board
+    opponent_prizes_before = _optional_board_int(current_board.get("opponent_prizes"))
+    opponent_prizes_after = _optional_board_int(next_board.get("opponent_prizes"))
+    if (
+        opponent_prizes_before is None
+        or opponent_prizes_after is None
+        or opponent_prizes_after >= opponent_prizes_before
+        or frame.context != "TO_ACTIVE"
+    ):
+        return 0.0
+
+    chosen_indices = {int(index) for index in promotion_record.chosen_indices}
+    chosen_kadabra = next(
+        (
+            option
+            for option in frame.legal_options
+            if option.index in chosen_indices and option.card_id == 742
+        ),
+        None,
+    )
+    if chosen_kadabra is None:
+        return 0.0
+
+    hand_ids = {
+        card_id
+        for value in list(next_board.get("my_hand_card_ids", []) or [])
+        if (card_id := _optional_board_int(value)) is not None
+    }
+    if 245 not in hand_ids:
+        return 0.0
+
+    attached_energy_ids: set[int] = set()
+    bench_index = chosen_kadabra.area_index
+    bench = list(next_board.get("my_bench_cards", []) or [])
+    if bench_index is not None and 0 <= bench_index < len(bench):
+        chosen_state = bench[bench_index]
+        if isinstance(chosen_state, dict):
+            attached_energy_ids = _energy_ids(chosen_state)
+    has_psychic_energy = bool((attached_energy_ids | hand_ids) & {5, 19})
+    return 2.0 if has_psychic_energy else 0.0
 
 
 def _in_play_card_states(board: dict[str, Any], *, prefix: str) -> list[dict[str, Any]]:

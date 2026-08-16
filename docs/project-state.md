@@ -170,13 +170,24 @@ This is the resume point for the project. Start here after switching machines, c
   potential difference and one terminal `-10` timeout penalty. Component
   telemetry and the unscaled prize metric are retained for auditability; local
   and ERAWAN validation passed.
-- New 40-generation tracks are submitted: Alakazam Dudunsparce job `76842`
-  starts from frozen generation 18 and is running; Dragapult Dusknoir job
-  `76843` starts from the league deck-3 iteration-5 specialist and is pending
-  for a GPU. Both use five 1,000-game updates per job, the 13-rule-deck roster,
-  first-job epsilon decay from `1.0` to `0.10`, subsequent epsilon `0.10`, and
-  separate run roots. Do not confuse deck-3 Dragapult Dusknoir with the earlier
-  official sample Dragapult deck-101 track.
+- The handcrafted-reward Alakazam Dudunsparce track completed all 40
+  generations cleanly. Its evaluation trend is flat to slightly negative
+  (`-0.00083` average prizes/generation, `R^2 = 0.015`): generations 1-10 and
+  31-40 average `0.44615` and `0.44519`, respectively. Generation 12 is the
+  numerical leader at `0.73077` average prizes; generation 40 is only
+  `0.38462`. Training-time prizes and action activity improved modestly, but
+  this did not transfer to deterministic evaluation. The track accumulated
+  3,190 / 40,000 training timeouts (`7.98%`). Treat the result as limited
+  action-frequency learning, not evidence that the agent learned reliable
+  Alakazam deck play. Dragapult Dusknoir is still training and has evaluation
+  reports through generation 36. Do not confuse deck-3 Dragapult Dusknoir with
+  the earlier official sample Dragapult deck-101 track.
+- The Alakazam reward now also includes a one-time `+2` post-KO Kadabra
+  promotion event: the opponent must have taken a Prize, the exact `TO_ACTIVE`
+  choice must be Kadabra, Alakazam must be in hand, and Psychic or Telepathic
+  Psychic Energy must be attached to that Kadabra or available in hand. The
+  full local suite passes. A separate Alakazam-only run is authorized for 20
+  generations from the completed track's numerical-leader generation 12.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

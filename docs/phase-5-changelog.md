@@ -8946,3 +8946,57 @@ Alakazam continuation recovery:
   a GPU with reason `Resources`; there is no startup error. Its run root is
   `phase5_dragapult_dusknoir_deck_reward_v1`, separate from the official sample
   Dragapult history.
+
+## 2026-08-16 - Handcrafted-Reward Alakazam Completed
+
+- The Alakazam Dudunsparce self-chain completed all 40 requested generations.
+  Its generation-35 block job `76983` finished generations 36-40 cleanly in
+  `03:00:36`, exit code `0`. All 40 deterministic evaluations contain 104 games
+  across the 13-rule-deck roster and zero battle errors.
+- Deterministic prize performance did not improve across training. The linear
+  slope is `-0.00083` average prizes per generation (`R^2 = 0.015`, approximate
+  slope `t = -0.75`); generations 1-10 average `0.44615` and generations 31-40
+  average `0.44519`. Generation 12 is the numerical leader at `0.73077`
+  average prizes and `0.55834` discounted prize score, while generation 40
+  falls to `0.38462 / 0.29730`. The first and last five-generation means are
+  `0.44615` and `0.40769`.
+- On-policy training behavior became more active: mean prizes rose from
+  `0.1440` in generations 1-5 to `0.1664` in generations 36-40. Comparing
+  generation 1 with generation 40, attack selection rose from `19.49%` to
+  `29.47%`, attachment selection from `46.52%` to `52.90%`, and end-turn
+  selection fell from `11.97%` to `9.18%`. These changes did not transfer to
+  the fixed evaluation roster, so they are insufficient evidence of learning
+  the deck's intended Abra/Kadabra/Alakazam sequencing.
+- The track accumulated 3,190 training timeouts in 40,000 games (`7.98%`),
+  improved from the prior curriculum's `13.1%` but still material. The evidence
+  supports limited learning of generic action frequency, not reliable mastery
+  of Alakazam Dudunsparce. Do not promote generation 40. Generation 12 is only
+  a numerical selection candidate and would require fresh confirmation before
+  any packaging or submission decision.
+- Refreshed the conversation trend chart with all 40 Alakazam evaluations and
+  current Dragapult Dusknoir results through generation 36. Dragapult remains
+  active; no training or submission job was added by this inspection.
+
+## 2026-08-16 - Alakazam Post-KO Promotion Reward
+
+- Added a one-time `+2` event reward for the finalized Alakazam recovery line.
+  It triggers only when the opponent's remaining Prize count falls between
+  controlled turn boundaries, the resulting `TO_ACTIVE` decision selects
+  Kadabra, Alakazam is in hand, and Basic Psychic or Telepathic Psychic Energy
+  is either attached to that selected Kadabra or present in hand. A standing
+  Kadabra-in-Active reward was deliberately avoided, so the signal cannot be
+  farmed by leaving Kadabra exposed and does not encourage ordinary-turn
+  switching without the agreed post-KO window.
+- The event reward is recorded separately as `deck_event_reward` and added to
+  the existing `10 * prizes + potential difference + timeout penalty` immediate
+  reward. The original deck potential and unscaled prize-return telemetry are
+  unchanged. Exact `TO_ACTIVE` action inspection avoids mistaking an opposing
+  bench knockout for a Kadabra promotion.
+- Focused tests cover both hand-held and attached Energy cases plus missing
+  opponent Prize loss, wrong promoted Pokemon, missing Alakazam, and missing
+  Energy safeguards. The complete local suite passes: 147 tests plus four
+  subtests passed and eight simulator-dependent tests skipped.
+- The user authorized one new Alakazam-only curriculum capped at 20 generations
+  because of the remaining deadline. Use generation 12, the numerical leader
+  from the completed handcrafted-reward track, as generation 0 in a separate
+  run root. Do not extend it beyond 20 generations.

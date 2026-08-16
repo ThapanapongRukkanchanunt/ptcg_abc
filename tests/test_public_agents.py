@@ -224,6 +224,69 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(targets[1]["timeout_penalty"], -10.0)
         self.assertAlmostEqual(targets[0]["discounted_prize_return"], 1.0)
 
+    def test_alakazam_rewards_ready_kadabra_promotion_after_opponent_prize(self):
+        first = _recorded_turn(turn=1, prizes=6)
+        first.frame.board.update({"opponent_prizes": 6})
+        second = _recorded_promotion(
+            turn=2,
+            prizes=6,
+            opponent_prizes=5,
+            chosen_card_id=742,
+            chosen_state=_card_state(742),
+            hand_ids=[245, 5],
+        )
+
+        targets = _deck_shaped_turn_targets(
+            [first, second],
+            final_prize_count=6,
+            gamma=0.9,
+            deck_index=1,
+            timed_out=False,
+        )
+
+        self.assertEqual(targets[0]["event_reward"], 2.0)
+        self.assertAlmostEqual(targets[0]["immediate_reward"], 9.2)
+        self.assertEqual(targets[1]["event_reward"], 0.0)
+
+        second.frame.board["my_hand_card_ids"] = [245]
+        second.frame.board["my_bench_cards"] = [_card_state(742, energies=[19])]
+        targets = _deck_shaped_turn_targets(
+            [first, second],
+            final_prize_count=6,
+            gamma=0.9,
+            deck_index=1,
+            timed_out=False,
+        )
+        self.assertEqual(targets[0]["event_reward"], 2.0)
+
+    def test_alakazam_kadabra_promotion_bonus_requires_full_window(self):
+        first = _recorded_turn(turn=1, prizes=6)
+        first.frame.board.update({"opponent_prizes": 6})
+        cases = [
+            {"opponent_prizes": 6, "chosen_card_id": 742, "hand_ids": [245, 5]},
+            {"opponent_prizes": 5, "chosen_card_id": 109, "hand_ids": [245, 5]},
+            {"opponent_prizes": 5, "chosen_card_id": 742, "hand_ids": [5]},
+            {"opponent_prizes": 5, "chosen_card_id": 742, "hand_ids": [245]},
+        ]
+        for case in cases:
+            with self.subTest(case=case):
+                second = _recorded_promotion(
+                    turn=2,
+                    prizes=6,
+                    opponent_prizes=case["opponent_prizes"],
+                    chosen_card_id=case["chosen_card_id"],
+                    chosen_state=_card_state(case["chosen_card_id"]),
+                    hand_ids=case["hand_ids"],
+                )
+                targets = _deck_shaped_turn_targets(
+                    [first, second],
+                    final_prize_count=6,
+                    gamma=0.9,
+                    deck_index=1,
+                    timed_out=False,
+                )
+                self.assertEqual(targets[0]["event_reward"], 0.0)
+
     def test_discounted_turn_prizes_use_exact_prize_deltas(self):
         records = [
             _recorded_turn(turn=1, prizes=6),
@@ -819,6 +882,46 @@ def _public_tactical_frame(board: dict | None = None) -> DecisionFrame:
 def _recorded_turn(*, turn: int, prizes: int) -> RecordedPolicyFrame:
     return RecordedPolicyFrame(
         frame=_public_tactical_frame(board={"turn": turn, "my_prizes": prizes}),
+        chosen_indices=[0],
+    )
+
+
+def _recorded_promotion(
+    *,
+    turn: int,
+    prizes: int,
+    opponent_prizes: int,
+    chosen_card_id: int,
+    chosen_state: dict,
+    hand_ids: list[int],
+) -> RecordedPolicyFrame:
+    return RecordedPolicyFrame(
+        frame=DecisionFrame(
+            select_type="CARD",
+            context="TO_ACTIVE",
+            min_count=1,
+            max_count=1,
+            target_count=1,
+            legal_options=[
+                ActionFrame(
+                    index=0,
+                    option_type="CARD",
+                    features={},
+                    card_id=chosen_card_id,
+                    area="BENCH",
+                    area_index=0,
+                )
+            ],
+            rule_selected_indices=[0],
+            board={
+                "turn": turn,
+                "my_prizes": prizes,
+                "opponent_prizes": opponent_prizes,
+                "my_bench_cards": [chosen_state],
+                "my_hand_card_ids": list(hand_ids),
+            },
+            board_image=[],
+        ),
         chosen_indices=[0],
     )
 
