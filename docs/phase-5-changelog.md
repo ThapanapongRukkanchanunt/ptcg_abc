@@ -9107,3 +9107,23 @@ Alakazam continuation recovery:
   self-chained jobs. This allows the already-running training chain to continue
   without cancellation or checkpoint loss while switching future evaluations
   at the next job boundary. Other runs retain historical defaults.
+- Published the implementation in commits `84a550b` and `7ffc5b3`, then
+  fast-forwarded ERAWAN and passed module construction, exact two-Dreepy value,
+  and SLURM shell-syntax checks there. The active training processes retain
+  historical behavior because all new controls default off.
+- Activated `dragapult-reward50-v1` through the run-local profile file. Active
+  job `77058` had already entered the generation 46-50 block, so those original
+  evaluations remain tactical-only. Its self-submitted generation-51 block
+  will read the profile, preserve training settings, and write `_reward50`
+  reports. Historical reports are not overwritten.
+- Rebuilt generation 33 as a separate configured Kaggle package under
+  `submissions/phase5_dragapult_dusknoir_reward50_gen33_20260816` on ERAWAN.
+  Validation confirms 60 cards, callable agent, raw execution without
+  `__file__`, a five-key Torch checkpoint, embedded 50/50 and terminal-guard
+  settings, and valid ZIP integrity. The ZIP is 3,282,152 bytes with SHA-256
+  `bd6d42df1af913c2c59db490fcb35cdba2b1c5f87af2b2003386a0c886694879`;
+  a verified protected local copy is retained separately from the original
+  tactical-only generation-33 ZIP.
+- The two-job ERAWAN allowance is occupied by the ongoing Dragapult and
+  Alakazam chains. A separate 50/50 re-evaluation of generation 33 and
+  generations 41-50 must wait for a slot; do not run it on the login node.

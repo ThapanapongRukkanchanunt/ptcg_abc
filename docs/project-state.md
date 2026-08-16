@@ -198,6 +198,36 @@ This is the resume point for the project. Start here after switching machines, c
   Kaggle ZIP has been validated and copied to the protected local ERAWAN pull
   directory; SHA-256 is
   `5ee614028ca789dd0575598be5240c5d2eb047a1df4eca22ab39eee59dff4b60`.
+- Opt-in `dragapult-reward50-v1` inference is implemented and active for the
+  next Dragapult self-chain boundary. It scores fixed top-4 candidates with
+  `0.5` normalized learned end-state value plus `0.5` normalized exact
+  deck-shaped transition value, treats value ranges at or below `1e-6` as
+  ties, and preserves terminal wins/losses. Raw tactical and legacy root-prior
+  weights are zero in this profile. Training remains unchanged. Generations
+  46-50 retain historical tactical-only evaluation because their job was
+  already active; generation 51 onward writes separately suffixed `_reward50`
+  reports. Re-evaluate generation 33 and 41-50 under the same profile when an
+  ERAWAN job slot becomes available.
+- A new generation-33 Kaggle ZIP embeds the 50/50 configuration and passed
+  deck, import, callable-agent, checkpoint, raw-exec, and ZIP-integrity checks.
+  It is 3,282,152 bytes with SHA-256
+  `bd6d42df1af913c2c59db490fcb35cdba2b1c5f87af2b2003386a0c886694879`
+  and is retained separately in the protected local ERAWAN pull directory.
+- Opt-in `dragapult-reward50-v1` inference is implemented and active for the
+  next Dragapult self-chain boundary. It scores fixed top-4 candidates with
+  `0.5` normalized learned end-state value plus `0.5` normalized exact
+  deck-shaped transition value, treats value ranges at or below `1e-6` as
+  ties, and preserves terminal wins/losses. Raw tactical and legacy root-prior
+  weights are zero in this profile. Training remains unchanged. Generations
+  46-50 retain historical tactical-only evaluation because their job was
+  already active; generation 51 onward writes separately suffixed `_reward50`
+  reports. Re-evaluate generation 33 and 41-50 under the same profile when an
+  ERAWAN job slot becomes available.
+- A new generation-33 Kaggle ZIP embeds the 50/50 configuration and passed
+  deck, import, callable-agent, checkpoint, raw-exec, and ZIP-integrity checks.
+  It is 3,282,152 bytes with SHA-256
+  `bd6d42df1af913c2c59db490fcb35cdba2b1c5f87af2b2003386a0c886694879`
+  and is retained separately in the protected local ERAWAN pull directory.
 - The Alakazam reward now also includes a one-time `+2` post-KO Kadabra
   promotion event: the opponent must have taken a Prize, the exact `TO_ACTIVE`
   choice must be Kadabra, Alakazam must be in hand, and Psychic or Telepathic
