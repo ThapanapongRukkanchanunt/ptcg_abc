@@ -19,6 +19,7 @@ from ptcg_abc.agent.rule_based import (
 )
 from ptcg_abc.evaluation import phase3_tournament_559_prepared_decks, required_phase3_prepared_decks
 from ptcg_abc.rl.dataset import append_decision_jsonl
+from ptcg_abc.rl.deck_rewards import deck_shaped_transition_value
 from ptcg_abc.rl.featurizer import attack_lookup, card_lookup, make_decision_frame, summarize_board
 from ptcg_abc.rl.records import DecisionFrame
 from ptcg_abc.simulator import BattleResult, _with_sample_submission_on_path, load_engine_metadata, run_battle
@@ -52,8 +53,26 @@ class RootSearchConfig:
     neural_action_value_weight: float = 0.0
     neural_tactical_weight: float = 0.0
     leaf_state_value_weight: float = 0.0
+    handcrafted_reward_weight: float = 0.0
+    handcrafted_reward_deck_index: int = 0
+    handcrafted_reward_gamma: float = 0.97
+    value_normalization_epsilon: float = 1.0e-6
+    terminal_outcome_guard: bool = False
     root_select_types: tuple[str, ...] = ("MAIN",)
     root_contexts: tuple[str, ...] = ("MAIN",)
+
+    def __post_init__(self) -> None:
+        if self.handcrafted_reward_weight != 0.0 and self.handcrafted_reward_deck_index not in {
+            1,
+            3,
+        }:
+            raise ValueError(
+                "A nonzero handcrafted reward weight requires deck index 1 or 3."
+            )
+        if not 0.0 <= self.handcrafted_reward_gamma <= 1.0:
+            raise ValueError("Handcrafted reward gamma must be in [0, 1].")
+        if self.value_normalization_epsilon < 0.0:
+            raise ValueError("Value normalization epsilon must be non-negative.")
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -95,6 +114,9 @@ class CandidateEvaluation:
     leaf_state_value: float = 0.0
     leaf_state_value_prior: float = 0.0
     leaf_state_value_score: float = 0.0
+    handcrafted_reward_value: float = 0.0
+    handcrafted_reward_prior: float = 0.0
+    handcrafted_reward_score: float = 0.0
     rule_prior: float = 0.0
     policy_score: float = 0.0
     policy_prior: float = 0.0
@@ -106,6 +128,7 @@ class CandidateEvaluation:
     combined_score: float = 0.0
     end_turn: int | None = None
     end_result: int | None = None
+    terminal_outcome: int = 0
     end_prize_counts: list[int] | None = None
     damage_delta: float = 0.0
     self_damage_delta: float = 0.0
@@ -463,6 +486,14 @@ class OneTurnRootSearchAgent:
                 config=self.config,
                 truncated=candidate.truncated,
             )
+            if self.config.handcrafted_reward_weight != 0.0:
+                candidate.handcrafted_reward_value = deck_shaped_transition_value(
+                    root_frame.board,
+                    end_board,
+                    deck_index=self.config.handcrafted_reward_deck_index,
+                    gamma=self.config.handcrafted_reward_gamma,
+                    terminal=candidate.terminal,
+                )
             leaf_value = self._candidate_leaf_state_value(
                 final_observation,
                 root_player=root_player,
@@ -472,6 +503,10 @@ class OneTurnRootSearchAgent:
             candidate.end_turn = int(_get(final_current, "turn", 0) or 0)
             result = _get(final_current, "result", None)
             candidate.end_result = int(result) if result is not None else None
+            if candidate.end_result in {0, 1}:
+                candidate.terminal_outcome = (
+                    1 if candidate.end_result == root_player else -1
+                )
             candidate.end_prize_counts = [
                 int(end_metrics["my_prizes"]),
                 int(end_metrics["opponent_prizes"]),
@@ -903,7 +938,16 @@ def _equivalent_candidate_indices(
 def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSearchConfig) -> None:
     successful = [candidate for candidate in candidates if candidate.error is None]
     tactical_score_norm = _normalized_candidate_values(successful, "tactical_score")
-    leaf_value_norm = _normalized_candidate_values(successful, "leaf_state_value")
+    leaf_value_norm = _normalized_candidate_values(
+        successful,
+        "leaf_state_value",
+        min_range=config.value_normalization_epsilon,
+    )
+    handcrafted_reward_norm = _normalized_candidate_values(
+        successful,
+        "handcrafted_reward_value",
+        min_range=config.value_normalization_epsilon,
+    )
     rule_norm = _normalized_candidate_values(successful, "rule_score")
     policy_norm = _normalized_candidate_values(successful, "policy_score")
     q_norm = _normalized_candidate_values(successful, "neural_action_value")
@@ -914,6 +958,8 @@ def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSea
             candidate.tactical_score_component = candidate.tactical_score
             candidate.leaf_state_value_prior = 0.0
             candidate.leaf_state_value_score = 0.0
+            candidate.handcrafted_reward_prior = 0.0
+            candidate.handcrafted_reward_score = 0.0
             candidate.rule_prior = 0.0
             candidate.policy_prior = 0.0
             candidate.neural_action_value_prior = 0.0
@@ -923,6 +969,9 @@ def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSea
             continue
         candidate.tactical_score_prior = tactical_score_norm.get(id(candidate), 0.0)
         candidate.leaf_state_value_prior = leaf_value_norm.get(id(candidate), 0.0)
+        candidate.handcrafted_reward_prior = handcrafted_reward_norm.get(
+            id(candidate), 0.0
+        )
         candidate.rule_prior = rule_norm.get(id(candidate), 0.0)
         candidate.policy_prior = policy_norm.get(id(candidate), 0.0)
         candidate.neural_action_value_prior = q_norm.get(id(candidate), 0.0)
@@ -938,6 +987,9 @@ def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSea
         candidate.leaf_state_value_score = (
             config.leaf_state_value_weight * candidate.leaf_state_value_prior
         )
+        candidate.handcrafted_reward_score = (
+            config.handcrafted_reward_weight * candidate.handcrafted_reward_prior
+        )
         candidate.prior_score = (
             config.rule_prior_weight * candidate.rule_prior
             + config.policy_prior_weight * candidate.policy_prior
@@ -947,20 +999,29 @@ def _score_candidates(candidates: Sequence[CandidateEvaluation], config: RootSea
         candidate.combined_score = (
             candidate.tactical_score_component
             + candidate.leaf_state_value_score
+            + candidate.handcrafted_reward_score
             + candidate.prior_score
         )
+        if config.terminal_outcome_guard and candidate.terminal_outcome != 0:
+            candidate.combined_score = (
+                config.terminal_win_score
+                if candidate.terminal_outcome > 0
+                else config.terminal_loss_score
+            )
 
 
 def _normalized_candidate_values(
     candidates: Sequence[CandidateEvaluation],
     field_name: str,
+    *,
+    min_range: float = 0.0,
 ) -> dict[int, float]:
     values = [float(getattr(candidate, field_name, 0.0) or 0.0) for candidate in candidates]
     if not values:
         return {}
     low = min(values)
     high = max(values)
-    if high == low:
+    if high - low <= max(0.0, float(min_range)):
         return {id(candidate): 0.0 for candidate in candidates}
     return {
         id(candidate): (float(getattr(candidate, field_name, 0.0) or 0.0) - low) / (high - low)

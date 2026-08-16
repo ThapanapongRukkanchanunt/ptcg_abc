@@ -84,13 +84,14 @@ def agent(obs_dict: dict) -> list[int]:
     return _AGENT.act(obs)
 '''
 
-PHASE5_SEARCH_MAIN_PY = '''from __future__ import annotations
+_PHASE5_SEARCH_MAIN_TEMPLATE = '''from __future__ import annotations
 
 import os
 
 from cg.api import all_attack, all_card_data, to_observation_class
 from ptcg_abc.agent import Phase5SearchPolicyAgent
 from ptcg_abc.rl.phase5_belief import infer_opponent_deck, phase5_league_opponent_priors
+__ROOT_SEARCH_CONFIG_IMPORT__
 
 
 _AGENT = None
@@ -149,10 +150,28 @@ def agent(obs_dict: dict) -> list[int]:
             card_data=all_card_data(),
             attack_data=all_attack(),
             checkpoint_path=model_path(),
+__ROOT_SEARCH_CONFIG_ARGUMENT__
         )
     _AGENT.opponent_deck_ids = choose_opponent_deck(obs)
     return _AGENT.act(obs)
 '''
+
+
+def _phase5_search_main_py(search_config: object | None = None) -> str:
+    if search_config is None:
+        config_import = ""
+        config_argument = ""
+    else:
+        config_import = "from ptcg_abc.rl.phase5_search import RootSearchConfig"
+        config_argument = f"            search_config={search_config!r},"
+    return (
+        _PHASE5_SEARCH_MAIN_TEMPLATE.replace(
+            "__ROOT_SEARCH_CONFIG_IMPORT__", config_import
+        ).replace("__ROOT_SEARCH_CONFIG_ARGUMENT__", config_argument)
+    )
+
+
+PHASE5_SEARCH_MAIN_PY = _phase5_search_main_py()
 
 
 @dataclass(frozen=True)
@@ -304,6 +323,7 @@ def build_phase5_search_submission_bundle(
     tar_path: Path | None = None,
     zip_path: Path | None = None,
     src_root: Path = Path("src"),
+    search_config: object | None = None,
 ) -> SubmissionBuildResult:
     if not (sample_dir / "cg").exists():
         raise FileNotFoundError(f"Kaggle sample cg package not found at {sample_dir}.")
@@ -312,7 +332,7 @@ def build_phase5_search_submission_bundle(
     output_dir.mkdir(parents=True, exist_ok=True)
     main_path = output_dir / "main.py"
     deck_path = output_dir / "deck.csv"
-    main_path.write_text(PHASE5_SEARCH_MAIN_PY, encoding="utf-8")
+    main_path.write_text(_phase5_search_main_py(search_config), encoding="utf-8")
     write_deck_csv(deck_ids, deck_path)
     shutil.copy2(model_path, output_dir / "model.pt")
 

@@ -26,6 +26,9 @@ from ptcg_abc.public_agents import (
     discover_public_agents,
 )
 from ptcg_abc.rl.dataset import append_trajectory_jsonl
+from ptcg_abc.rl.deck_rewards import (
+    deck_reward_potential_components as _shared_deck_reward_potential_components,
+)
 from ptcg_abc.rl.records import DecisionFrame, TrajectoryStep
 from ptcg_abc.rl.rewards import reward_from_result_metadata
 from ptcg_abc.rl.workflow import (
@@ -1270,11 +1273,7 @@ def _deck_reward_potential_components(
     *,
     deck_index: int,
 ) -> dict[str, float]:
-    if deck_index == 1:
-        return _alakazam_reward_potential_components(board)
-    if deck_index == 3:
-        return _dragapult_reward_potential_components(board)
-    raise ValueError(f"No deck reward potential is defined for deck index {deck_index}.")
+    return _shared_deck_reward_potential_components(board, deck_index=deck_index)
 
 
 def _alakazam_post_ko_kadabra_promotion_bonus(

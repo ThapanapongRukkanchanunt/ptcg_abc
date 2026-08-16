@@ -135,10 +135,22 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
         "normalize_tactical_score": (
             True if getattr(args, "normalize_tactical_score", False) else None
         ),
+        "rule_prior_weight": getattr(args, "rule_prior_weight", None),
         "policy_prior_weight": getattr(args, "policy_prior_weight", None),
         "neural_action_value_weight": getattr(args, "neural_action_value_weight", None),
         "neural_tactical_weight": getattr(args, "neural_tactical_weight", None),
         "leaf_state_value_weight": getattr(args, "leaf_state_value_weight", None),
+        "handcrafted_reward_weight": getattr(args, "handcrafted_reward_weight", None),
+        "handcrafted_reward_deck_index": getattr(
+            args, "handcrafted_reward_deck_index", None
+        ),
+        "handcrafted_reward_gamma": getattr(args, "handcrafted_reward_gamma", None),
+        "value_normalization_epsilon": getattr(
+            args, "value_normalization_epsilon", None
+        ),
+        "terminal_outcome_guard": (
+            True if getattr(args, "terminal_outcome_guard", False) else None
+        ),
     }
     if all(value is None for value in fields.values()):
         return None
@@ -170,6 +182,11 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
             if fields["normalize_tactical_score"] is not None
             else base_config.normalize_tactical_score
         ),
+        rule_prior_weight=(
+            fields["rule_prior_weight"]
+            if fields["rule_prior_weight"] is not None
+            else base_config.rule_prior_weight
+        ),
         policy_prior_weight=(
             fields["policy_prior_weight"]
             if fields["policy_prior_weight"] is not None
@@ -189,6 +206,31 @@ def _root_search_config_from_args(args: argparse.Namespace) -> RootSearchConfig 
             fields["leaf_state_value_weight"]
             if fields["leaf_state_value_weight"] is not None
             else base_config.leaf_state_value_weight
+        ),
+        handcrafted_reward_weight=(
+            fields["handcrafted_reward_weight"]
+            if fields["handcrafted_reward_weight"] is not None
+            else base_config.handcrafted_reward_weight
+        ),
+        handcrafted_reward_deck_index=(
+            fields["handcrafted_reward_deck_index"]
+            if fields["handcrafted_reward_deck_index"] is not None
+            else base_config.handcrafted_reward_deck_index
+        ),
+        handcrafted_reward_gamma=(
+            fields["handcrafted_reward_gamma"]
+            if fields["handcrafted_reward_gamma"] is not None
+            else base_config.handcrafted_reward_gamma
+        ),
+        value_normalization_epsilon=(
+            fields["value_normalization_epsilon"]
+            if fields["value_normalization_epsilon"] is not None
+            else base_config.value_normalization_epsilon
+        ),
+        terminal_outcome_guard=(
+            fields["terminal_outcome_guard"]
+            if fields["terminal_outcome_guard"] is not None
+            else base_config.terminal_outcome_guard
         ),
     )
 
@@ -229,6 +271,12 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         help="Hard root-probe cap for unique-state expansion.",
     )
     parser.add_argument(
+        "--rule-prior-weight",
+        type=float,
+        default=None,
+        help="Optional normalized root-prior weight inside root-search scoring.",
+    )
+    parser.add_argument(
         "--policy-prior-weight",
         type=float,
         default=None,
@@ -262,6 +310,35 @@ def _add_phase5_search_config_args(parser: argparse.ArgumentParser) -> None:
         type=float,
         default=None,
         help="Optional normalized leaf state-value weight inside root-search scoring.",
+    )
+    parser.add_argument(
+        "--handcrafted-reward-weight",
+        type=float,
+        default=None,
+        help="Optional normalized deck-shaped transition-value weight in root search.",
+    )
+    parser.add_argument(
+        "--handcrafted-reward-deck-index",
+        type=int,
+        default=None,
+        help="Deck reward profile used by --handcrafted-reward-weight.",
+    )
+    parser.add_argument(
+        "--handcrafted-reward-gamma",
+        type=float,
+        default=None,
+        help="Potential discount used by the handcrafted root-to-leaf value.",
+    )
+    parser.add_argument(
+        "--value-normalization-epsilon",
+        type=float,
+        default=None,
+        help="Treat smaller learned/handcrafted candidate ranges as ties.",
+    )
+    parser.add_argument(
+        "--terminal-outcome-guard",
+        action="store_true",
+        help="Always prefer a terminal win and reject a terminal loss when possible.",
     )
 
 
@@ -1874,6 +1951,7 @@ def command_rl_package(args: argparse.Namespace) -> int:
 
 
 def command_phase5_package(args: argparse.Namespace) -> int:
+    search_config = _root_search_config_from_args(args)
     if not args.sample_dir.exists():
         print(
             f"Kaggle sample submission not found at {args.sample_dir}. "
@@ -1939,6 +2017,7 @@ def command_phase5_package(args: argparse.Namespace) -> int:
             tar_path=deck_dir / "submission.tar.gz",
             zip_path=args.output_dir
             / f"deck-{deck_index:02d}-{_slug(source.label)}-phase5-search-submission.zip",
+            search_config=search_config,
         )
         print(
             json.dumps(
@@ -1994,6 +2073,7 @@ def command_phase5_package(args: argparse.Namespace) -> int:
             model_path=model_path,
             tar_path=tar_path,
             zip_path=zip_path,
+            search_config=search_config,
         )
         outputs.append(
             {
@@ -4219,6 +4299,7 @@ def build_parser() -> argparse.ArgumentParser:
             "decks 2 and 8."
         ),
     )
+    _add_phase5_search_config_args(phase5_package)
     phase5_package.set_defaults(func=command_phase5_package)
 
     phase5_compare = subparsers.add_parser(

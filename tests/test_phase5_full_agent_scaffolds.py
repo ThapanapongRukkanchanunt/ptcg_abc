@@ -15,6 +15,7 @@ from ptcg_abc.rl.phase5_belief import (
     visible_opponent_card_ids,
 )
 from ptcg_abc.rl.phase5_reports import compare_benchmark_reports
+from ptcg_abc.rl.deck_rewards import deck_shaped_transition_value
 from ptcg_abc.rl.phase5_search import (
     CandidateEvaluation,
     RootSearchConfig,
@@ -214,6 +215,107 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertAlmostEqual(candidates[0].combined_score, 0.25)
         self.assertAlmostEqual(candidates[1].combined_score, 0.75)
 
+    def test_search_candidate_scoring_blends_guarded_learned_and_handcrafted_values(self):
+        candidates = [
+            CandidateEvaluation(
+                indices=[0],
+                option_index=0,
+                option_type="PLAY",
+                card_name="Buddy-Buddy Poffin",
+                attack_id=None,
+                rule_score=0.0,
+                rule_rank=1,
+                leaf_state_value=0.25,
+                handcrafted_reward_value=1.94,
+            ),
+            CandidateEvaluation(
+                indices=[1],
+                option_index=1,
+                option_type="PLAY",
+                card_name="Lillie's Determination",
+                attack_id=None,
+                rule_score=0.0,
+                rule_rank=2,
+                leaf_state_value=0.2500001,
+                handcrafted_reward_value=0.0,
+            ),
+        ]
+
+        _score_candidates(
+            candidates,
+            RootSearchConfig(
+                rule_prior_weight=0.0,
+                tactical_score_weight=0.0,
+                leaf_state_value_weight=0.5,
+                handcrafted_reward_weight=0.5,
+                handcrafted_reward_deck_index=3,
+                value_normalization_epsilon=1.0e-6,
+            ),
+        )
+
+        self.assertEqual(candidates[0].leaf_state_value_prior, 0.0)
+        self.assertEqual(candidates[1].leaf_state_value_prior, 0.0)
+        self.assertEqual(candidates[0].handcrafted_reward_prior, 1.0)
+        self.assertAlmostEqual(candidates[0].combined_score, 0.5)
+        self.assertEqual(candidates[1].combined_score, 0.0)
+
+    def test_terminal_guard_overrides_blended_leaf_scores(self):
+        winning = CandidateEvaluation(
+            indices=[0],
+            option_index=0,
+            option_type="ATTACK",
+            card_name="",
+            attack_id=1,
+            rule_score=0.0,
+            rule_rank=1,
+            leaf_state_value=-10.0,
+            handcrafted_reward_value=-10.0,
+            terminal_outcome=1,
+        )
+        setup = CandidateEvaluation(
+            indices=[1],
+            option_index=1,
+            option_type="PLAY",
+            card_name="Buddy-Buddy Poffin",
+            attack_id=None,
+            rule_score=0.0,
+            rule_rank=2,
+            leaf_state_value=10.0,
+            handcrafted_reward_value=10.0,
+        )
+
+        _score_candidates(
+            [winning, setup],
+            RootSearchConfig(
+                rule_prior_weight=0.0,
+                tactical_score_weight=0.0,
+                leaf_state_value_weight=0.5,
+                handcrafted_reward_weight=0.5,
+                handcrafted_reward_deck_index=3,
+                terminal_outcome_guard=True,
+            ),
+        )
+
+        self.assertEqual(winning.combined_score, 100.0)
+        self.assertEqual(setup.combined_score, 1.0)
+
+    def test_dragapult_transition_value_rewards_two_dreepy(self):
+        root = {"my_prizes": 6, "my_bench_cards": []}
+        end = {
+            "my_prizes": 6,
+            "my_bench_cards": [{"id": 119}, {"id": 119}],
+        }
+
+        self.assertAlmostEqual(
+            deck_shaped_transition_value(
+                root,
+                end,
+                deck_index=3,
+                gamma=0.97,
+            ),
+            1.94,
+        )
+
     def test_policy_pool_rotation_is_deterministic(self):
         paths = [Path("a.pt"), Path("b.pt"), Path("c.pt")]
 
@@ -308,6 +410,39 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         self.assertIn("cg/__init__.py", names)
         self.assertIn("ptcg_abc/__init__.py", names)
 
+    def test_phase5_package_embeds_opt_in_search_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sample_dir = root / "sample"
+            sample_dir.joinpath("cg").mkdir(parents=True)
+            sample_dir.joinpath("cg", "__init__.py").write_text("", encoding="utf-8")
+            model_path = root / "model.pt"
+            model_path.write_bytes(b"checkpoint")
+            src_root = root / "src"
+            src_root.joinpath("ptcg_abc").mkdir(parents=True)
+            src_root.joinpath("ptcg_abc", "__init__.py").write_text("", encoding="utf-8")
+            config = RootSearchConfig(
+                tactical_score_weight=0.0,
+                leaf_state_value_weight=0.5,
+                handcrafted_reward_weight=0.5,
+                handcrafted_reward_deck_index=3,
+                terminal_outcome_guard=True,
+            )
+
+            result = build_phase5_search_submission_bundle(
+                deck_ids=[1] * 60,
+                sample_dir=sample_dir,
+                output_dir=root / "out",
+                model_path=model_path,
+                src_root=src_root,
+                search_config=config,
+            )
+            main_text = result.main_path.read_text(encoding="utf-8")
+
+        self.assertIn("search_config=RootSearchConfig(", main_text)
+        self.assertIn("handcrafted_reward_weight=0.5", main_text)
+        self.assertIn("terminal_outcome_guard=True", main_text)
+
     def test_phase5_template_execs_without_file_global(self):
         fake_cg = types.ModuleType("cg")
         fake_api = types.ModuleType("cg.api")
@@ -351,6 +486,8 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "phase5-search",
                 "--policy-prior-weight",
                 "0.1",
+                "--rule-prior-weight",
+                "0.0",
                 "--neural-action-value-weight",
                 "0.2",
                 "--normalize-tactical-score",
@@ -358,6 +495,13 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
                 "0.5",
                 "--leaf-state-value-weight",
                 "0.75",
+                "--handcrafted-reward-weight",
+                "0.5",
+                "--handcrafted-reward-deck-index",
+                "3",
+                "--value-normalization-epsilon",
+                "0.000001",
+                "--terminal-outcome-guard",
                 "--specialist-model-dir",
                 "models/rl/phase5_league_alpha/iter-0000/specialists",
             ]
@@ -415,10 +559,15 @@ class Phase5FullAgentScaffoldTests(unittest.TestCase):
         )
 
         self.assertEqual(league_args.policy_prior_weight, 0.1)
+        self.assertEqual(league_args.rule_prior_weight, 0.0)
         self.assertEqual(league_args.neural_action_value_weight, 0.2)
         self.assertTrue(league_args.normalize_tactical_score)
         self.assertEqual(league_args.tactical_score_weight, 0.5)
         self.assertEqual(league_args.leaf_state_value_weight, 0.75)
+        self.assertEqual(league_args.handcrafted_reward_weight, 0.5)
+        self.assertEqual(league_args.handcrafted_reward_deck_index, 3)
+        self.assertEqual(league_args.value_normalization_epsilon, 0.000001)
+        self.assertTrue(league_args.terminal_outcome_guard)
         self.assertEqual(
             league_args.specialist_model_dir,
             Path("models/rl/phase5_league_alpha/iter-0000/specialists"),

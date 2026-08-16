@@ -9072,3 +9072,31 @@ Alakazam continuation recovery:
 - The validated ZIP is 3,278,797 bytes with SHA-256
   `5ee614028ca789dd0575598be5240c5d2eb047a1df4eca22ab39eee59dff4b60`.
   A verified copy is retained under the protected local ERAWAN pull directory.
+
+## 2026-08-16 - Opt-In 50/50 Dragapult Leaf Scoring
+
+- Implemented an opt-in root-search score that replaces raw tactical scoring
+  with `0.5` candidate-normalized learned end-state value plus `0.5`
+  candidate-normalized exact deck-shaped transition value. The handcrafted
+  term is `10 * prizes_taken + 0.97 * potential(end) - potential(root)`, with
+  terminal potential zero, so it shares the finalized training semantics.
+- Both value components use the same guarded min-max normalization. Candidate
+  ranges at or below `1e-6` are treated as ties rather than stretching tiny
+  numerical noise across `[0, 1]`. A terminal guard forces an available win
+  above nonterminal choices and a terminal loss below viable alternatives.
+- The new controls default off. Training trajectory generation, PPO updates,
+  existing checkpoints, and historical evaluation behavior are unchanged.
+  CLI, submission packaging, public-evaluation SLURM, and deadline-curriculum
+  evaluation wiring can enable the scorer explicitly. Exact 50/50 mode also
+  sets raw tactical and the legacy `0.08` root prior to zero; policy logits
+  still define which candidates enter fixed top-4 search.
+- Shared deck-potential code now supplies both the training reward collector
+  and the inference-time handcrafted transition value, preventing reward-weight
+  drift. Focused tests cover the two-Dreepy Poffin transition (`1.94` at gamma
+  `0.97`), guarded normalization, terminal priority, CLI parsing, and embedding
+  the opt-in configuration in a Kaggle package.
+- Local validation passes all 159 tests with eight simulator-dependent skips.
+  Both modified SLURM scripts also pass shell syntax validation. Generation
+  41-45 completed under the historical tactical-only evaluation before this
+  implementation; preserve those reports and use separately suffixed reports
+  for any 50/50 re-evaluation.
