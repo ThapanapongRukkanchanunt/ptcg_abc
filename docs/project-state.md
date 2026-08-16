@@ -179,18 +179,28 @@ This is the resume point for the project. Start here after switching machines, c
   this did not transfer to deterministic evaluation. The track accumulated
   3,190 / 40,000 training timeouts (`7.98%`). Treat the result as limited
   action-frequency learning, not evidence that the agent learned reliable
-  Alakazam deck play. Dragapult Dusknoir is still training and has evaluation
-  reports through generation 36. Do not confuse deck-3 Dragapult Dusknoir with
-  the earlier official sample Dragapult deck-101 track.
+  Alakazam deck play. Do not confuse deck-3 Dragapult Dusknoir with the earlier
+  official sample Dragapult deck-101 track.
+- The handcrafted-reward Dragapult Dusknoir track completed all 40 generations
+  cleanly. Deterministic evaluation improved only weakly across generations:
+  the slope is `+0.00427` average prizes/generation (`R^2 = 0.034`, approximate
+  slope `t = 1.15`), and generations 1-10 versus 31-40 average `2.21442` versus
+  `2.30673`. Generation 33 is the numerical leader at `2.85577` average prizes,
+  `2.27487` discounted prize score, `35.58%` six-prize rate, and 45 / 104 wins.
+  Generation 40 regressed to `2.42308 / 1.90630`, `26.92%` six-prize rate, and
+  32 / 104 wins. Training-game prizes improved strongly, but the much smaller
+  fixed-roster gain is noisy; retain generation 33 as a selection candidate,
+  not a confirmed promotion. Training recorded 483 / 40,000 timeouts (`1.21%`)
+  and evaluation 45 / 4,160 (`1.08%`), with zero evaluation errors.
 - The Alakazam reward now also includes a one-time `+2` post-KO Kadabra
   promotion event: the opponent must have taken a Prize, the exact `TO_ACTIVE`
   choice must be Kadabra, Alakazam must be in hand, and Psychic or Telepathic
   Psychic Energy must be attached to that Kadabra or available in hand. The
   full local suite passes. A separate Alakazam-only run is authorized for 20
   generations from the completed track's numerical-leader generation 12.
-  ERAWAN job `77025` is submitted for that run and is pending for scheduler
-  priority; `MAX_GENERATION=20` prevents extension. Dragapult job `77004`
-  remains active.
+  ERAWAN job `77025` is running that continuation; `MAX_GENERATION=20`
+  prevents extension. Dragapult job `77004` completed its separate
+  40-generation run cleanly.
 - The diagnostic evaluations combined to `90 / 200 = 0.450`, five points and
   ten wins short of the historical 50% Dragapult-vs-Lucario gate (Wilson 95%
   approximately `0.383-0.519`). They had zero errors/timeouts and combined

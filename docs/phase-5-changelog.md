@@ -9013,3 +9013,37 @@ Alakazam continuation recovery:
   `1e-5`, head-only critic, gamma `0.97`, and `MAX_GENERATION=20`. The job is
   accepted and pending with scheduler reason `Priority`; this is not a startup
   error. Dragapult Dusknoir job `77004` remains active.
+
+## 2026-08-16 - Handcrafted-Reward Dragapult Dusknoir Completed
+
+- Final job `77004` completed generations 36-40 cleanly in `03:20:36` with
+  exit code `0`, bringing the separate league deck-3 Dragapult Dusknoir track
+  to all 40 requested generations. This is not the earlier official sample
+  Dragapult deck-101 curriculum.
+- Fixed-roster evaluation shows only a weak positive trend: `+0.00427` average
+  prizes per generation (`R^2 = 0.0336`, approximate slope `t = 1.15`). Mean
+  prizes rose from `2.21442` over generations 1-10 to `2.30673` over
+  generations 31-40; the first and last 20-generation means are `2.22596` and
+  `2.33942`. This is directional improvement, but not convincing evidence of a
+  stable generational effect.
+- Generation 33 is the numerical leader over its 104-game evaluation:
+  `2.85577` average prizes, `2.27487` discounted prize score, `35.58%`
+  six-prize rate, 45 wins, zero timeouts, and zero errors. It improved several
+  matchups relative to generation 1, but still failed the aggregate 50% gate
+  at 45 / 104 (`43.27%`) and remained 0 / 8 into Mega Abomasnow ex.
+- The final generation is not the checkpoint to retain: generation 40 scored
+  `2.42308` average prizes, `1.90630` discounted score, `26.92%` six-prize
+  rate, and 32 / 104 wins, equal to generation 1's diagnostic win total and
+  below generation 33 on every prize headline metric.
+- On-policy training prizes rose much more strongly than deterministic
+  evaluation: generations 1-5 averaged `0.3890` prizes and generations 36-40
+  averaged `0.7648`; the training regression slope is `+0.00846` prizes per
+  generation (`R^2 = 0.471`). Attack selection increased from `18.03%` in
+  generation 1 to `30.89%` in generation 40, while end-turn selection fell
+  from `16.11%` to `10.35%`. The gap between training and evaluation gains
+  indicates real behavior change but only limited, noisy transfer.
+- Reliability was substantially better than the Alakazam track: 483 / 40,000
+  training games timed out (`1.21%`), and the 40 evaluations accumulated 45 /
+  4,160 timeouts (`1.08%`), with zero evaluation errors. Retain generation 33
+  as the numerical candidate; require a larger fresh confirmation before any
+  promotion or submission choice.
