@@ -9144,3 +9144,16 @@ Alakazam continuation recovery:
   rows, and this change affects only evaluation/submission inference. The full
   local suite passes 160 tests with eight simulator-dependent skips; both
   modified SLURM scripts pass shell syntax validation.
+- Published commit `aedc8f2`, fast-forwarded the ERAWAN checkout, and passed
+  the focused 27-test runtime/package suite plus both shell syntax checks there.
+  The active run-local profile is still `dragapult-reward50-v1`; active job
+  `77058` was already in its generation-46-to-50 block, so the setup-aware
+  evaluator begins at the next self-chain boundary together with the existing
+  reward50 profile.
+- Built and validated a distinct setup-aware generation-33 Kaggle package under
+  `submissions/phase5_dragapult_dusknoir_reward50_setup_gen33_20260816` on
+  ERAWAN. It contains 60 cards, a callable agent, a five-key checkpoint, raw
+  execution without `__file__`, embedded `search_setup_active=True`, and a
+  ZIP with no integrity errors. The protected local copy is 3,282,400 bytes
+  with SHA-256
+  `e0ce56e7e4df356d556c667f631204e8d4ae4a1f67ebdf0283e7b2e81d9aa3a8`.
