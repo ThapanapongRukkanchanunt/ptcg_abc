@@ -9243,3 +9243,33 @@ Alakazam continuation recovery:
   `6cacfcb69a6d3c57b0d98cf62e2257c3e428e06764a325d438a573d9509c6a0d`.
   Verified local copies are retained under
   `D:\pokemon_rl\erawan_pull\phase5_final_reward50_best_gen46_gen11_20260817`.
+
+## 2026-08-17 - Factorized Macro-Action PPO Pilot
+
+- Replaced the new pilot's one-row-per-turn credit assignment with an opt-in
+  factorized macro-action objective. A numbered-turn `MAIN` decision starts a
+  macro, and every following non-`MAIN` effect prompt in the same turn belongs
+  to that macro until the next independent `MAIN` decision or turn change.
+  Thus playing Buddy-Buddy Poffin and selecting its two Basic Pokemon form one
+  joint action while remaining two legal engine calls.
+- Each macro records the product policy as a sum of conditional behavior log
+  probabilities, one root value, one joint return, its complete record-index
+  sequence, and whether every component decision was on-policy. PPO computes
+  one clipped ratio and one advantage per macro, while the joint new log
+  probability backpropagates through both the root action and all conditional
+  micro-decisions. Incomplete or partly off-policy macros are rejected.
+- Deck potential is now measured at macro boundaries. Same-turn transitions
+  use discount `1.0`; only transitions to the next controlled turn use `0.97`.
+  This avoids penalizing decks for taking more actions and makes potential
+  shaping telescope across a turn. Prize reward, Alakazam's post-KO promotion
+  event, terminal potential zeroing, and the one-time timeout penalty remain.
+  Setup decisions remain excluded from this pilot, matching prior training.
+- Added the opt-in trajectory objective `deck-shaped-macro-actions`, the PPO
+  switch `--macro-actions`, and self-chain propagation through the deadline
+  curriculum. Existing objectives and trainers remain unchanged by default.
+- Focused tests verify Poffin plus a two-Basic selection is one macro, joint
+  behavior log probability, no same-turn discount, turn-boundary discounting,
+  CLI wiring, and the Torch joint-PPO path when Torch is available. The full
+  local suite passes: 158 tests and four subtests passed; nine environment- or
+  simulator-dependent tests skipped. ERAWAN Torch and shell validation are the
+  remaining gates before launching the requested capped ten-generation pilot.

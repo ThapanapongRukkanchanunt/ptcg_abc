@@ -1232,6 +1232,7 @@ def command_rl_train_phase5_ppo(args: argparse.Namespace) -> int:
             selfplay_limit=selfplay_limit,
             deck_index_filter=args.deck_index_filter,
             require_on_policy=args.require_on_policy,
+            macro_actions=args.macro_actions,
         )
     except (Phase5PolicyUnavailable, ValueError) as exc:
         print(str(exc), file=sys.stderr)
@@ -3068,11 +3069,17 @@ def build_parser() -> argparse.ArgumentParser:
     rl_public_trajectories.add_argument("--max-steps", type=int, default=600)
     rl_public_trajectories.add_argument(
         "--reward-objective",
-        choices=["legacy", "discounted-turn-prizes", "deck-shaped-prizes"],
+        choices=[
+            "legacy",
+            "discounted-turn-prizes",
+            "deck-shaped-prizes",
+            "deck-shaped-macro-actions",
+        ],
         default="legacy",
         help=(
             "Use legacy outcome/tactical rewards, exact own prizes taken per "
-            "turn, or the finalized deck-specific prize-plus-potential reward."
+            "turn, the finalized deck-specific turn reward, or a joint "
+            "root-plus-effect-continuation macro-action reward."
         ),
     )
     rl_public_trajectories.add_argument(
@@ -3682,6 +3689,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--require-on-policy",
         action="store_true",
         help="Skip trajectories without policy_on_policy=true metadata.",
+    )
+    rl_train_phase5_ppo.add_argument(
+        "--macro-actions",
+        action="store_true",
+        help=(
+            "Group each MAIN root and its conditional effect prompts into one "
+            "factorized PPO action using joint behavior probability and one return."
+        ),
     )
     rl_train_phase5_ppo.add_argument(
         "--selfplay-limit",

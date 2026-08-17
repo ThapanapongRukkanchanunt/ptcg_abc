@@ -1,6 +1,7 @@
 import math
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from ptcg_abc.cli import build_parser
@@ -23,6 +24,7 @@ from ptcg_abc.rl.phase5_symbolic_training import (
     train_phase5_bc_policy_from_trajectories,
     train_phase5_bc_ppo_policy_from_trajectories,
     train_phase5_generalist_policy,
+    train_phase5_ppo_policy_from_trajectories,
     train_phase5_symbolic_policy_from_decisions,
 )
 from ptcg_abc.rl.records import ActionFrame, DecisionFrame, TrajectoryStep
@@ -114,6 +116,79 @@ def _phase5_frame(
 
 
 class Phase5SymbolicTrainingTests(unittest.TestCase):
+    @unittest.skipUnless(TORCH_AVAILABLE, "PyTorch is not installed.")
+    def test_macro_ppo_trains_one_joint_example_from_two_decisions(self):
+        root = _phase5_frame(step_index=1, selected=[0], turn=1)
+        continuation = replace(
+            _phase5_frame(step_index=2, selected=[1], turn=1),
+            context="SEARCH_DECK",
+        )
+        for index, frame in enumerate((root, continuation)):
+            frame.reward_metadata.update(
+                {
+                    "macro_action_id": "game-1:macro-0",
+                    "macro_step_index": index,
+                    "macro_step_count": 2,
+                    "macro_behavior_logprob": -2.0,
+                    "macro_root_value": 0.0,
+                    "macro_return": 1.5,
+                    "macro_on_policy": True,
+                    "policy_on_policy": True,
+                    "policy_mode": "epsilon_mixture",
+                    "policy_epsilon": 0.1,
+                    "policy_temperature": 1.0,
+                }
+            )
+        with tempfile.TemporaryDirectory() as tmp:
+            root_path = Path(tmp)
+            checkpoint = root_path / "source.pt"
+            output = root_path / "trained.pt"
+            trajectory = root_path / "macro.jsonl"
+            initialize_phase5_policy_checkpoint(
+                checkpoint_path=checkpoint,
+                max_entities=8,
+                max_actions=4,
+                max_previous_actions=3,
+                d_model=16,
+            )
+            append_trajectory_jsonl(
+                TrajectoryStep(
+                    decision=root,
+                    chosen_indices=[0],
+                    logprob=-1.0,
+                    value=0.0,
+                    reward=1.5,
+                ),
+                trajectory,
+            )
+            append_trajectory_jsonl(
+                TrajectoryStep(
+                    decision=continuation,
+                    chosen_indices=[1],
+                    logprob=-1.0,
+                    value=0.0,
+                    reward=0.0,
+                ),
+                trajectory,
+            )
+
+            summary = train_phase5_ppo_policy_from_trajectories(
+                trajectory_dataset_paths=[trajectory],
+                checkpoint_path=checkpoint,
+                output_checkpoint_path=output,
+                epochs=1,
+                batch_size=2,
+                learning_rate=1.0e-5,
+                require_on_policy=True,
+                macro_actions=True,
+            )
+
+        self.assertEqual(summary.steps_seen, 2)
+        self.assertEqual(summary.examples, 1)
+        self.assertEqual(summary.skipped_off_policy, 0)
+        self.assertTrue(summary.macro_actions)
+        self.assertEqual(summary.macro_decisions, 2)
+
     def test_search_equivalent_target_keeps_every_acceptable_action(self):
         frame = _phase5_frame(step_index=1, selected=[1], search=[1], baseline=[0])
         frame.reward_metadata["phase5_search_equivalent_indices"] = [0, 1]

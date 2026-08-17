@@ -666,10 +666,11 @@ def generate_phase5_public_agent_trajectories(
         "legacy",
         "discounted-turn-prizes",
         "deck-shaped-prizes",
+        "deck-shaped-macro-actions",
     }:
         raise ValueError(
-            "reward_objective must be legacy, discounted-turn-prizes, or "
-            "deck-shaped-prizes."
+            "reward_objective must be legacy, discounted-turn-prizes, "
+            "deck-shaped-prizes, or deck-shaped-macro-actions."
         )
     if not 0.0 <= turn_prize_discount_gamma <= 1.0:
         raise ValueError("turn_prize_discount_gamma must be between 0 and 1.")
@@ -685,11 +686,11 @@ def generate_phase5_public_agent_trajectories(
         controlled_public_agent_key=controlled_public_agent_key,
         controlled_deck_index=controlled_deck_index,
     )
-    if reward_objective == "deck-shaped-prizes":
+    if reward_objective in {"deck-shaped-prizes", "deck-shaped-macro-actions"}:
         unsupported = sorted(deck.index for deck in our_decks if deck.index not in {1, 3})
         if unsupported:
             raise ValueError(
-                "deck-shaped-prizes is defined only for controlled deck indices "
+                "Deck-shaped rewards are defined only for controlled deck indices "
                 f"1 and 3; got {unsupported}."
             )
     opponents, statuses = _selected_phase5_opponents(
@@ -873,13 +874,22 @@ def generate_phase5_public_agent_trajectories(
                 if reward_objective in {
                     "discounted-turn-prizes",
                     "deck-shaped-prizes",
+                    "deck-shaped-macro-actions",
                 }:
                     final_prize_count = (
                         result.prize_counts[our_player_index]
                         if result.prize_counts is not None
                         else None
                     )
-                    if reward_objective == "deck-shaped-prizes":
+                    if reward_objective == "deck-shaped-macro-actions":
+                        turn_targets = _deck_shaped_macro_action_targets(
+                            records,
+                            final_prize_count=final_prize_count,
+                            gamma=turn_prize_discount_gamma,
+                            deck_index=deck_index,
+                            timed_out=bool(timeout),
+                        )
+                    elif reward_objective == "deck-shaped-prizes":
                         turn_targets = _deck_shaped_turn_targets(
                             records,
                             final_prize_count=final_prize_count,
@@ -909,7 +919,16 @@ def generate_phase5_public_agent_trajectories(
                         target = dict(turn_targets[turn_index])
                         target["turn_index"] = turn_index
                         target["turns_in_game"] = len(turn_targets)
-                        turn_target_by_record[int(target["record_index"])] = target
+                        record_indices = list(
+                            target.get("record_indices", [target["record_index"]])
+                        )
+                        for macro_step_index, target_record_index in enumerate(
+                            record_indices
+                        ):
+                            turn_target_by_record[int(target_record_index)] = target | {
+                                "macro_step_index": macro_step_index,
+                                "macro_step_count": len(record_indices),
+                            }
                     sampled_record_indices = set(turn_target_by_record)
                 else:
                     sampled_record_indices = set(
@@ -945,11 +964,16 @@ def generate_phase5_public_agent_trajectories(
                         else 0.0
                     )
                     turn_target = turn_target_by_record.get(record_index)
-                    step_reward = (
-                        float(turn_target["return"])
-                        if turn_target is not None
-                        else assigned_outcome_reward + tactical_reward
-                    )
+                    if turn_target is None:
+                        step_reward = assigned_outcome_reward + tactical_reward
+                    elif reward_objective == "deck-shaped-macro-actions":
+                        step_reward = (
+                            float(turn_target["return"])
+                            if int(turn_target.get("macro_step_index", 0)) == 0
+                            else 0.0
+                        )
+                    else:
+                        step_reward = float(turn_target["return"])
                     prize_metadata = (
                         {
                             "reward_objective": reward_objective,
@@ -963,6 +987,29 @@ def generate_phase5_public_agent_trajectories(
                             "turns_in_game": turn_target["turns_in_game"],
                             "turn_prize_discount_gamma": turn_prize_discount_gamma,
                         }
+                        | (
+                            {
+                                "macro_action_id": (
+                                    f"{absolute_game_index}:{turn_target['turn_index']}"
+                                ),
+                                "macro_action_index": turn_target["turn_index"],
+                                "macro_step_index": turn_target["macro_step_index"],
+                                "macro_step_count": turn_target["macro_step_count"],
+                                "macro_root_context": turn_target["root_context"],
+                                "macro_root_select_type": turn_target["root_select_type"],
+                                "macro_behavior_logprob": turn_target[
+                                    "behavior_logprob"
+                                ],
+                                "macro_root_value": turn_target["root_value"],
+                                "macro_return": turn_target["return"],
+                                "macro_on_policy": turn_target["on_policy"],
+                                "macro_continuation_discount": turn_target[
+                                    "continuation_discount"
+                                ],
+                            }
+                            if reward_objective == "deck-shaped-macro-actions"
+                            else {}
+                        )
                         | (
                             {
                                 "deck_reward_profile": turn_target["reward_profile"],
@@ -984,7 +1031,10 @@ def generate_phase5_public_agent_trajectories(
                                     "discounted_prize_return"
                                 ],
                             }
-                            if reward_objective == "deck-shaped-prizes"
+                            if reward_objective in {
+                                "deck-shaped-prizes",
+                                "deck-shaped-macro-actions",
+                            }
                             else {}
                         )
                         if turn_target is not None
@@ -1116,7 +1166,12 @@ def generate_phase5_public_agent_trajectories(
         turn_prize_discount_gamma=turn_prize_discount_gamma,
         turn_prize_summary=(
             _summarize_turn_prize_games(turn_prize_games)
-            if reward_objective in {"discounted-turn-prizes", "deck-shaped-prizes"}
+            if reward_objective
+            in {
+                "discounted-turn-prizes",
+                "deck-shaped-prizes",
+                "deck-shaped-macro-actions",
+            }
             else None
         ),
         opponent_pool=opponent_pool,
@@ -1187,6 +1242,150 @@ def _turn_prize_targets(
     for target, discounted_return in zip(turn_starts, returns, strict=True):
         target["return"] = discounted_return
     return turn_starts
+
+
+def _deck_shaped_macro_action_targets(
+    records: Sequence[Any],
+    *,
+    final_prize_count: int | None,
+    gamma: float,
+    deck_index: int,
+    timed_out: bool,
+) -> list[dict[str, Any]]:
+    """Build one joint return for each root action and its effect prompts.
+
+    A normal MAIN decision starts a macro. Any following non-MAIN decisions in
+    the same numbered turn are its conditional continuation (for example,
+    playing Buddy-Buddy Poffin followed by choosing two Basic Pokemon). A new
+    MAIN decision, a turn change, or an otherwise unowned mandatory decision
+    starts the next macro. Setup remains excluded, matching the historical
+    numbered-turn training contract.
+    """
+    if not 0.0 <= gamma <= 1.0:
+        raise ValueError("gamma must be between 0 and 1.")
+    if deck_index not in {1, 3}:
+        raise ValueError(
+            f"No deck-shaped macro reward is defined for deck index {deck_index}."
+        )
+
+    groups: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+    for record_index, record in enumerate(records):
+        frame = record.frame
+        turn = _optional_board_int(frame.board.get("turn"))
+        if turn is None or turn <= 0:
+            continue
+        starts_root = frame.context == "MAIN"
+        starts_new = (
+            current is None
+            or turn != int(current["turn"])
+            or starts_root
+        )
+        if starts_new:
+            current = {
+                "record_index": record_index,
+                "record_indices": [record_index],
+                "turn": turn,
+                "prizes_before": _optional_board_int(frame.board.get("my_prizes")),
+                "root_context": frame.context,
+                "root_select_type": frame.select_type,
+                "root_value": float(record.value),
+                "behavior_logprob": float(record.logprob),
+                "on_policy": bool(record.on_policy),
+            }
+            groups.append(current)
+        else:
+            current["record_indices"].append(record_index)
+            current["behavior_logprob"] += float(record.logprob)
+            current["on_policy"] = bool(current["on_policy"] and record.on_policy)
+
+    if not groups:
+        return []
+
+    immediate_rewards = [0.0] * len(groups)
+    discounts = [0.0] * len(groups)
+    unshaped_prize_returns = [0.0] * len(groups)
+    running_unshaped = 0.0
+    for index in range(len(groups) - 1, -1, -1):
+        target = groups[index]
+        root_record = records[int(target["record_index"])]
+        current_board = root_record.frame.board
+        current_components = _deck_reward_potential_components(
+            current_board,
+            deck_index=deck_index,
+        )
+        next_target = groups[index + 1] if index + 1 < len(groups) else None
+        if next_target is not None:
+            next_record = records[int(next_target["record_index"])]
+            next_board = next_record.frame.board
+            next_components = _deck_reward_potential_components(
+                next_board,
+                deck_index=deck_index,
+            )
+            continuation_discount = (
+                1.0
+                if int(next_target["turn"]) == int(target["turn"])
+                else float(gamma)
+            )
+            prizes_after = _optional_board_int(next_board.get("my_prizes"))
+        else:
+            next_components = {}
+            continuation_discount = 0.0
+            prizes_after = final_prize_count
+
+        prizes_before = target.get("prizes_before")
+        if prizes_before is None:
+            prizes_before = prizes_after if prizes_after is not None else 0
+        if prizes_after is None:
+            prizes_after = prizes_before
+        prize_delta = max(0, int(prizes_before) - int(prizes_after))
+        prize_reward = 10.0 * float(prize_delta)
+        potential = sum(current_components.values())
+        next_potential = sum(next_components.values())
+        potential_reward = continuation_discount * next_potential - potential
+        event_reward = 0.0
+        if deck_index == 1 and root_record.frame.context == "TO_ACTIVE" and index > 0:
+            previous_board = records[int(groups[index - 1]["record_index"])].frame.board
+            event_reward = _alakazam_post_ko_kadabra_promotion_bonus(
+                previous_board,
+                root_record,
+            )
+        timeout_penalty = -10.0 if timed_out and index + 1 == len(groups) else 0.0
+        immediate_reward = (
+            prize_reward + potential_reward + event_reward + timeout_penalty
+        )
+        immediate_rewards[index] = immediate_reward
+        discounts[index] = continuation_discount
+        running_unshaped = float(prize_delta) + continuation_discount * running_unshaped
+        unshaped_prize_returns[index] = running_unshaped
+        target.update(
+            {
+                "reward_profile": (
+                    "alakazam-dudunsparce-macro"
+                    if deck_index == 1
+                    else "dragapult-dusknoir-macro"
+                ),
+                "prizes_before": int(prizes_before),
+                "prizes_after": int(prizes_after),
+                "prize_reward": prize_reward,
+                "potential": potential,
+                "next_potential": next_potential,
+                "potential_components": current_components,
+                "next_potential_components": next_components,
+                "potential_shaping_reward": potential_reward,
+                "event_reward": event_reward,
+                "timeout_penalty": timeout_penalty,
+                "immediate_reward": immediate_reward,
+                "continuation_discount": continuation_discount,
+            }
+        )
+
+    running_return = 0.0
+    for index in range(len(groups) - 1, -1, -1):
+        running_return = immediate_rewards[index] + discounts[index] * running_return
+        groups[index]["return"] = running_return
+        groups[index]["discounted_prize_return"] = unshaped_prize_returns[index]
+    return groups
 
 
 def _deck_shaped_turn_targets(
@@ -1472,11 +1671,18 @@ def _turn_prize_game_summary(
 ) -> dict[str, Any]:
     prizes_taken = max(0, 6 - int(final_prize_count)) if final_prize_count is not None else 0
     reached_six = final_prize_count == 0
+    controlled_turns = len(
+        {
+            int(target["turn"])
+            for target in targets
+            if target.get("turn") is not None
+        }
+    )
     return {
-        "turns": len(targets),
+        "turns": controlled_turns,
         "prizes_taken": prizes_taken,
         "reached_six_prizes": reached_six,
-        "turns_to_six": len(targets) if reached_six else None,
+        "turns_to_six": controlled_turns if reached_six else None,
         "discounted_prize_score": (
             float(
                 targets[0].get(

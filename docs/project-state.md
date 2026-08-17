@@ -259,6 +259,15 @@ This is the resume point for the project. Start here after switching machines, c
   `6cacfcb69a6d3c57b0d98cf62e2257c3e428e06764a325d438a573d9509c6a0d`.
 - Both final ZIPs are retained under protected local directory
   `D:\pokemon_rl\erawan_pull\phase5_final_reward50_best_gen46_gen11_20260817`.
+- An opt-in factorized macro-action PPO path is implemented locally for the
+  requested ten-generation follow-up. Each `MAIN` root and its same-turn effect
+  prompts share one joint return and one clipped PPO ratio; conditional
+  log-probabilities are summed so gradients update both the root and its
+  micro-decisions. Potential shaping uses discount `1.0` within a turn and
+  `0.97` only across controlled turns. Existing training remains unchanged by
+  default. The full local suite passes; run ERAWAN Torch/shell validation before
+  launching the capped pilot from the selected generation-46 Dragapult and
+  generation-11 Alakazam checkpoints.
 - The Alakazam reward now also includes a one-time `+2` post-KO Kadabra
   promotion event: the opponent must have taken a Prize, the exact `TO_ACTIVE`
   choice must be Kadabra, Alakazam must be in hand, and Psychic or Telepathic

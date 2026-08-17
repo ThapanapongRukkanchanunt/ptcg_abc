@@ -237,9 +237,19 @@ class Phase5PPOTrainingSummary:
     max_actions: int
     max_previous_actions: int
     config: dict[str, Any]
+    macro_actions: bool = False
+    macro_decisions: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class Phase5MacroPPOExample:
+    records: list[Phase5SymbolicDecisionRecord]
+    old_logprob: float
+    advantage: float
+    value_target: float
 
 
 @dataclass(frozen=True)
@@ -1324,6 +1334,7 @@ def train_phase5_ppo_policy_from_trajectories(
     selfplay_limit: int | None = None,
     deck_index_filter: int | None = None,
     require_on_policy: bool = False,
+    macro_actions: bool = False,
 ) -> Phase5PPOTrainingSummary:
     if not trajectory_dataset_paths:
         raise ValueError("Provide at least one trajectory dataset.")
@@ -1359,6 +1370,34 @@ def train_phase5_ppo_policy_from_trajectories(
     final_advantage_sum = 0.0
 
     for _ in range(max(1, epochs)):
+        if macro_actions:
+            (
+                final_loss,
+                final_steps_seen,
+                final_examples,
+                final_skipped,
+                final_skipped_off_policy,
+                final_advantage_sum,
+            ) = _train_phase5_macro_ppo_epoch(
+                trajectory_dataset_paths,
+                model=model,
+                optimizer=optimizer,
+                encoder=encoder,
+                torch=torch,
+                nn=nn,
+                device=device,
+                max_previous_actions=max_previous_actions,
+                batch_size=batch_size,
+                clip_epsilon=clip_epsilon,
+                policy_loss_weight=policy_loss_weight,
+                value_loss_weight=value_loss_weight,
+                value_backprop_scope=value_backprop_scope,
+                entropy_weight=entropy_weight,
+                selfplay_limit=selfplay_limit,
+                deck_index_filter=deck_index_filter,
+                require_on_policy=require_on_policy,
+            )
+            continue
         batch: list[tuple[Phase5SymbolicDecisionRecord, float, float]] = []
         context = Phase5TurnContext(max_previous_actions=max_previous_actions)
         steps_seen = 0
@@ -1457,6 +1496,7 @@ def train_phase5_ppo_policy_from_trajectories(
         "selfplay_limit": selfplay_limit,
         "deck_index_filter": deck_index_filter,
         "require_on_policy": require_on_policy,
+        "macro_actions": macro_actions,
         "examples": final_examples,
         "mean_advantage": final_advantage_sum / final_examples
         if final_examples
@@ -1486,6 +1526,8 @@ def train_phase5_ppo_policy_from_trajectories(
         max_actions=max_actions,
         max_previous_actions=max_previous_actions,
         config=config.to_dict(),
+        macro_actions=macro_actions,
+        macro_decisions=final_steps_seen if macro_actions else 0,
     )
     if report_path is not None:
         report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2828,6 +2870,235 @@ def _train_symbolic_batch(
         for row_index, record in enumerate(records)
     )
     return float(loss.detach().item()), correct
+
+
+def _train_phase5_macro_ppo_epoch(
+    trajectory_dataset_paths: Sequence[Path],
+    *,
+    model: Any,
+    optimizer: Any,
+    encoder: Phase5SymbolicEncoder,
+    torch: Any,
+    nn: Any,
+    device: Any,
+    max_previous_actions: int,
+    batch_size: int,
+    clip_epsilon: float,
+    policy_loss_weight: float,
+    value_loss_weight: float,
+    value_backprop_scope: str,
+    entropy_weight: float,
+    selfplay_limit: int | None,
+    deck_index_filter: int | None,
+    require_on_policy: bool,
+) -> tuple[float, int, int, int, int, float]:
+    batch: list[Phase5MacroPPOExample] = []
+    context = Phase5TurnContext(max_previous_actions=max_previous_actions)
+    final_loss = 0.0
+    steps_seen = examples = skipped = skipped_off_policy = 0
+    advantage_sum = 0.0
+
+    def flush_batch() -> None:
+        nonlocal batch, final_loss
+        if not batch:
+            return
+        final_loss = _train_macro_ppo_batch(
+            batch,
+            model=model,
+            optimizer=optimizer,
+            torch=torch,
+            nn=nn,
+            device=device,
+            clip_epsilon=clip_epsilon,
+            policy_loss_weight=policy_loss_weight,
+            value_loss_weight=value_loss_weight,
+            value_backprop_scope=value_backprop_scope,
+            entropy_weight=entropy_weight,
+        )
+        batch = []
+
+    pending_key: str | None = None
+    pending_steps: list[TrajectoryStep] = []
+
+    def consume_pending() -> None:
+        nonlocal examples, skipped, skipped_off_policy, advantage_sum, pending_steps
+        if not pending_steps:
+            return
+        root_metadata = pending_steps[0].decision.reward_metadata
+        expected_count = int(root_metadata.get("macro_step_count", 0) or 0)
+        if expected_count <= 0 or expected_count != len(pending_steps):
+            skipped += 1
+            pending_steps = []
+            return
+        if not _matches_deck_index_filter(root_metadata, deck_index_filter):
+            pending_steps = []
+            return
+        records: list[Phase5SymbolicDecisionRecord] = []
+        for step in pending_steps:
+            previous_rows = context.previous_rows(step.decision)
+            record = phase5_symbolic_record_from_trajectory(
+                step,
+                encoder=encoder,
+                previous_action_features=previous_rows,
+                max_previous_actions=max_previous_actions,
+                weight=1.0,
+            )
+            if record is None:
+                records = []
+                break
+            records.append(record)
+            behavior_indices = _trajectory_behavior_indices(step)
+            if behavior_indices is None:
+                context.observe(record)
+            else:
+                context.observe_indices(record, behavior_indices)
+        if not records:
+            skipped += 1
+            pending_steps = []
+            return
+        macro_on_policy = bool(root_metadata.get("macro_on_policy", False))
+        if require_on_policy and not macro_on_policy:
+            skipped_off_policy += 1
+            pending_steps = []
+            return
+        macro_return = float(root_metadata.get("macro_return", pending_steps[0].reward))
+        root_value = float(root_metadata.get("macro_root_value", pending_steps[0].value))
+        old_logprob = float(
+            root_metadata.get(
+                "macro_behavior_logprob",
+                sum(float(step.logprob) for step in pending_steps),
+            )
+        )
+        advantage = macro_return - root_value
+        batch.append(
+            Phase5MacroPPOExample(
+                records=records,
+                old_logprob=old_logprob,
+                advantage=advantage,
+                value_target=macro_return,
+            )
+        )
+        examples += 1
+        advantage_sum += advantage
+        pending_steps = []
+        if len(batch) >= max(1, batch_size):
+            flush_batch()
+
+    stop = False
+    for trajectory_path in trajectory_dataset_paths:
+        for step in iter_trajectory_jsonl(trajectory_path):
+            if selfplay_limit is not None and steps_seen >= selfplay_limit:
+                stop = True
+                break
+            steps_seen += 1
+            metadata = step.decision.reward_metadata
+            macro_key_value = metadata.get("macro_action_id")
+            if macro_key_value is None:
+                consume_pending()
+                skipped += 1
+                continue
+            macro_key = str(macro_key_value)
+            if pending_key is not None and macro_key != pending_key:
+                consume_pending()
+            pending_key = macro_key
+            pending_steps.append(step)
+        consume_pending()
+        pending_key = None
+        if stop:
+            break
+    flush_batch()
+    return (
+        final_loss,
+        steps_seen,
+        examples,
+        skipped,
+        skipped_off_policy,
+        advantage_sum,
+    )
+
+
+def _train_macro_ppo_batch(
+    examples: Sequence[Phase5MacroPPOExample],
+    *,
+    model: Any,
+    optimizer: Any,
+    torch: Any,
+    nn: Any,
+    device: Any,
+    clip_epsilon: float,
+    policy_loss_weight: float,
+    value_loss_weight: float,
+    value_backprop_scope: str,
+    entropy_weight: float,
+) -> float:
+    records = [record for example in examples for record in example.records]
+    output, action_mask = _forward_phase5_records(
+        records,
+        model=model,
+        torch=torch,
+        device=device,
+    )
+    decision_logprobs = _sequential_selected_logprobs(
+        records,
+        logits=output["action_logits"],
+        action_mask=action_mask,
+        torch=torch,
+        nn=nn,
+        use_record_policy=False,
+    )
+    macro_logprobs: list[Any] = []
+    root_rows: list[int] = []
+    offset = 0
+    for example in examples:
+        root_rows.append(offset)
+        macro_logprobs.append(decision_logprobs[offset : offset + len(example.records)].sum())
+        offset += len(example.records)
+    new_logprobs = torch.stack(macro_logprobs)
+    old_logprobs = torch.tensor(
+        [example.old_logprob for example in examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    advantages = torch.tensor(
+        [example.advantage for example in examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    if advantages.numel() > 1:
+        advantages = (advantages - advantages.mean()) / advantages.std().clamp(min=1.0e-6)
+    ratios = torch.exp(new_logprobs - old_logprobs)
+    clipped = torch.clamp(ratios, 1.0 - clip_epsilon, 1.0 + clip_epsilon)
+    policy_loss = -torch.minimum(ratios * advantages, clipped * advantages).mean()
+
+    root_row_tensor = torch.tensor(root_rows, dtype=torch.long, device=device)
+    root_embeddings = output["state_embedding"][root_row_tensor]
+    value_predictions = (
+        model.value_head(root_embeddings.detach()).squeeze(-1)
+        if value_backprop_scope == "head-only"
+        else output["state_value"][root_row_tensor]
+    )
+    value_targets = torch.tensor(
+        [example.value_target for example in examples],
+        dtype=torch.float32,
+        device=device,
+    )
+    value_loss = nn.functional.mse_loss(value_predictions, value_targets)
+    entropy = _first_action_policy_entropy(
+        records,
+        logits=output["action_logits"],
+        action_mask=action_mask,
+        torch=torch,
+        nn=nn,
+    )
+    loss = (
+        float(policy_loss_weight) * policy_loss
+        + float(value_loss_weight) * value_loss
+        - float(entropy_weight) * entropy
+    )
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    return float(loss.detach().item())
 
 
 def _train_ppo_batch(

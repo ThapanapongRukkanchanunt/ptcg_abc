@@ -19,6 +19,7 @@ from ptcg_abc.rl.public_opponents import (
     PublicAgentTacticalRewardConfig,
     _balanced_matchup_game_counts,
     _deck_shaped_turn_targets,
+    _deck_shaped_macro_action_targets,
     _deck_reward_potential_components,
     _filter_public_opponents,
     _summarize_turn_prize_games,
@@ -224,6 +225,85 @@ class PublicAgentRosterTests(unittest.TestCase):
         self.assertEqual(targets[1]["timeout_penalty"], -10.0)
         self.assertAlmostEqual(targets[0]["discounted_prize_return"], 1.0)
 
+    def test_macro_action_groups_poffin_and_two_basic_selection_once(self):
+        play_poffin = _recorded_macro_step(
+            turn=1,
+            context="MAIN",
+            select_type="MAIN",
+            board={"my_prizes": 6},
+            logprob=-0.2,
+            value=0.5,
+        )
+        choose_two_basics = _recorded_macro_step(
+            turn=1,
+            context="SEARCH_DECK",
+            select_type="CARD",
+            board={"my_prizes": 6},
+            logprob=-0.4,
+            value=0.7,
+        )
+        next_main = _recorded_macro_step(
+            turn=1,
+            context="MAIN",
+            select_type="MAIN",
+            board={
+                "my_prizes": 6,
+                "my_bench_cards": [_card_state(119), _card_state(119)],
+            },
+            logprob=-0.1,
+            value=0.8,
+        )
+
+        targets = _deck_shaped_macro_action_targets(
+            [play_poffin, choose_two_basics, next_main],
+            final_prize_count=6,
+            gamma=0.97,
+            deck_index=3,
+            timed_out=False,
+        )
+
+        self.assertEqual(targets[0]["record_indices"], [0, 1])
+        self.assertEqual(targets[1]["record_indices"], [2])
+        self.assertAlmostEqual(targets[0]["behavior_logprob"], -0.6)
+        self.assertEqual(targets[0]["root_value"], 0.5)
+        self.assertTrue(targets[0]["on_policy"])
+        self.assertEqual(targets[0]["continuation_discount"], 1.0)
+        self.assertEqual(targets[0]["potential_shaping_reward"], 2.0)
+        self.assertEqual(targets[0]["immediate_reward"], 2.0)
+
+    def test_macro_action_discount_applies_only_across_turns(self):
+        first = _recorded_macro_step(
+            turn=1,
+            context="MAIN",
+            select_type="MAIN",
+            board={"my_prizes": 6},
+        )
+        same_turn = _recorded_macro_step(
+            turn=1,
+            context="MAIN",
+            select_type="MAIN",
+            board={"my_prizes": 6, "my_bench_cards": [_card_state(119)]},
+        )
+        next_turn = _recorded_macro_step(
+            turn=2,
+            context="MAIN",
+            select_type="MAIN",
+            board={"my_prizes": 5, "my_bench_cards": [_card_state(119)]},
+        )
+
+        targets = _deck_shaped_macro_action_targets(
+            [first, same_turn, next_turn],
+            final_prize_count=5,
+            gamma=0.9,
+            deck_index=3,
+            timed_out=False,
+        )
+
+        self.assertEqual(targets[0]["continuation_discount"], 1.0)
+        self.assertEqual(targets[1]["continuation_discount"], 0.9)
+        self.assertEqual(targets[0]["prize_reward"], 0.0)
+        self.assertEqual(targets[1]["prize_reward"], 10.0)
+
     def test_alakazam_rewards_ready_kadabra_promotion_after_opponent_prize(self):
         first = _recorded_turn(turn=1, prizes=6)
         first.frame.board.update({"opponent_prizes": 6})
@@ -365,6 +445,22 @@ class PublicAgentRosterTests(unittest.TestCase):
             ]
         )
         self.assertEqual(shaped_args.reward_objective, "deck-shaped-prizes")
+
+        macro_args = build_parser().parse_args(
+            [
+                "rl-generate-phase5-public-agent-trajectories",
+                "--reward-objective",
+                "deck-shaped-macro-actions",
+            ]
+        )
+        macro_train_args = build_parser().parse_args(
+            ["rl-train-phase5-ppo", "--macro-actions"]
+        )
+        self.assertEqual(
+            macro_args.reward_objective,
+            "deck-shaped-macro-actions",
+        )
+        self.assertTrue(macro_train_args.macro_actions)
 
     def test_rule_roster_cli_and_exact_balanced_game_budget(self):
         args = build_parser().parse_args(
@@ -883,6 +979,35 @@ def _recorded_turn(*, turn: int, prizes: int) -> RecordedPolicyFrame:
     return RecordedPolicyFrame(
         frame=_public_tactical_frame(board={"turn": turn, "my_prizes": prizes}),
         chosen_indices=[0],
+    )
+
+
+def _recorded_macro_step(
+    *,
+    turn: int,
+    context: str,
+    select_type: str,
+    board: dict,
+    logprob: float = -0.1,
+    value: float = 0.0,
+    on_policy: bool = True,
+) -> RecordedPolicyFrame:
+    return RecordedPolicyFrame(
+        frame=DecisionFrame(
+            select_type=select_type,
+            context=context,
+            min_count=1,
+            max_count=2,
+            target_count=1,
+            legal_options=[ActionFrame(index=0, option_type="PLAY", features={})],
+            rule_selected_indices=[0],
+            board={"turn": turn} | dict(board),
+            board_image=[],
+        ),
+        chosen_indices=[0],
+        logprob=logprob,
+        value=value,
+        on_policy=on_policy,
     )
 
 
