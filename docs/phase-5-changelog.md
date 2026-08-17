@@ -9271,5 +9271,19 @@ Alakazam continuation recovery:
   behavior log probability, no same-turn discount, turn-boundary discounting,
   CLI wiring, and the Torch joint-PPO path when Torch is available. The full
   local suite passes: 158 tests and four subtests passed; nine environment- or
-  simulator-dependent tests skipped. ERAWAN Torch and shell validation are the
-  remaining gates before launching the requested capped ten-generation pilot.
+  simulator-dependent tests skipped.
+- Published commit `6e2b51f` and fast-forwarded the clean tracked ERAWAN
+  checkout while preserving its untracked experiment artifacts. ERAWAN's
+  built-in unittest runner passed all 43 focused tests, including the real
+  Torch two-decision/one-macro PPO update; the curriculum script also passed
+  shell syntax validation. The retained environment still lacks pytest, so
+  unittest is the cluster validation authority for this change.
+- Launched two isolated ten-generation pilots from the final selected
+  checkpoints with fixed epsilon `0.10`, 1,000 games/update, one PPO epoch,
+  learning rate `1e-5`, head-only critic, all 13 rule opponents, and a 104-game
+  reward50 evaluation after every update. Job `77134` is Dragapult Dusknoir
+  from generation 46; job `77135` is Alakazam Dudunsparce from post-KO
+  generation 11. Both use `deck-shaped-macro-actions`, `MACRO_ACTIONS=1`,
+  gamma `0.97`, self-chain in one five-generation continuation, and hard-stop
+  at generation 10. Both entered `RUNNING` on `compute2`; no other user jobs
+  occupied the queue at submission.
